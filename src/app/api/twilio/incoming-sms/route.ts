@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server'
+import { db } from '@/lib/supabase'
+import { normalizePhoneNumber } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {
   try {
@@ -6,13 +8,115 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams(body)
     
     const From = params.get('From')
+    const To = params.get('To')
     const Body = params.get('Body')
     
-    console.log(`[incoming-sms] From: ${From}, Body: ${Body}`)
+    if (!From || !To || !Body) {
+      console.error('[incoming-sms] Missing required fields:', { From, To, Body })
+      
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error: Missing required fields</Message>
+</Response>`
+
+      return new Response(errorTwiml, {
+        status: 400,
+        headers: {
+          'Content-Type': 'text/xml',
+        },
+      })
+    }
     
+    console.log(`[incoming-sms] From: ${From}, To: ${To}, Body: ${Body}`)
+    
+    // Find business by Twilio phone number
+    const business = await db.getBusinessByPhone(To)
+    if (!business) {
+      console.error(`[incoming-sms] Business not found for phone: ${To}`)
+      
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Service unavailable</Message>
+</Response>`
+
+      return new Response(errorTwiml, {
+        status: 404,
+        headers: {
+          'Content-Type': 'text/xml',
+        },
+      })
+    }
+    
+    console.log(`[incoming-sms] Found business: ${business.name} (${business.id})`)
+    
+    // Normalize customer phone number
+    const normalizedCustomerPhone = normalizePhoneNumber(From)
+    
+    // Find or create lead for this customer
+    let lead = await db.getLeadByPhone(business.id, normalizedCustomerPhone)
+    
+    if (!lead) {
+      // Create new lead
+      lead = await db.createLead({
+        business_id: business.id,
+        caller_phone: normalizedCustomerPhone,
+        status: 'contacted', // Status updated since they replied
+        first_contact_at: new Date().toISOString(),
+        last_message_at: new Date().toISOString(),
+      })
+      
+      if (!lead) {
+        console.error('[incoming-sms] Failed to create lead')
+        
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error processing message</Message>
+</Response>`
+
+        return new Response(errorTwiml, {
+          status: 500,
+          headers: {
+            'Content-Type': 'text/xml',
+          },
+        })
+      }
+      
+      console.log(`[incoming-sms] Created new lead: ${lead.id}`)
+    } else if (lead) {
+      // Update existing lead's last activity
+      const updatedLead = await db.updateLead(lead.id, {
+        status: 'contacted',
+        last_message_at: new Date().toISOString(),
+      })
+      
+      if (!updatedLead) {
+        console.error('[incoming-sms] Failed to update lead')
+      } else {
+        console.log(`[incoming-sms] Updated existing lead: ${updatedLead.id}`)
+        lead = updatedLead
+      }
+    }
+    
+    // Save inbound message
+    const message = await db.createMessage({
+      lead_id: lead.id,
+      direction: 'inbound',
+      body: Body,
+      from_phone: normalizedCustomerPhone,
+      to_phone: business.twilio_phone_number,
+      created_at: new Date().toISOString(),
+    })
+    
+    if (!message) {
+      console.error('[incoming-sms] Failed to save message')
+    } else {
+      console.log(`[incoming-sms] Saved inbound message: ${message.id}`)
+    }
+    
+    // Return simple TwiML response
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Got your message</Message>
+  <Message>Thanks - we received your message.</Message>
 </Response>`
 
     return new Response(twiml, {
@@ -23,7 +127,7 @@ export async function POST(req: NextRequest) {
     })
     
   } catch (error) {
-    console.error('[incoming-sms] Error:', error)
+    console.error('[incoming-sms] Unexpected error:', error)
     
     const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
