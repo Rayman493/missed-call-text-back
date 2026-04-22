@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     const To = params.get('To')
     const CallStatus = params.get('CallStatus')
     
-    // Add debugging logs
-    console.log("Twilio Call Status:", CallStatus)
+    // Log request details
+    console.log("CallStatus:", CallStatus)
     console.log("From:", From)
     console.log("To:", To)
     
@@ -24,15 +24,16 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
     
-    console.log(`[voice-status] Processing call: From=${From}, To=${To}, Status=${CallStatus}`)
+    // Determine if this is a missed call
+    const isMissedCall = MISSED_CALL_STATUSES.includes(CallStatus)
+    console.log("Treated as missed call:", isMissedCall)
     
-    // Check if this is a missed call using our comprehensive status list
-    if (!MISSED_CALL_STATUSES.includes(CallStatus)) {
+    if (!isMissedCall) {
       console.log(`[voice-status] Not a missed call (status: ${CallStatus}), ignoring`)
       return new Response("OK", { status: 200 })
     }
     
-    console.log(`[voice-status] Detected missed call with status: ${CallStatus}`)
+    console.log(`[voice-status] Processing missed call with status: ${CallStatus}`)
     
     // Find business by Twilio phone number
     const business = await db.getBusinessByPhone(To)
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     
     // Find or create lead for this customer
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
+    let leadWasCreated = false
     
     if (!lead) {
       // Create new lead with status 'new' for missed call
@@ -64,8 +66,11 @@ export async function POST(req: NextRequest) {
         return new Response("OK", { status: 200 })
       }
       
+      leadWasCreated = true
       console.log(`[voice-status] Created new lead: ${lead.id}`)
     } else {
+      console.log(`[voice-status] Found existing lead: ${lead.id}`)
+      
       // Update existing lead's first contact if this is their first missed call
       if (!lead.first_contact_at) {
         const updatedLead = await db.updateLead(lead.id, {
@@ -82,6 +87,7 @@ export async function POST(req: NextRequest) {
     
     // Handle conversation logic for missed calls
     let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+    let conversationWasCreated = false
     
     if (!conversation) {
       // Create new conversation for missed call
@@ -99,8 +105,11 @@ export async function POST(req: NextRequest) {
         return new Response("OK", { status: 200 })
       }
       
+      conversationWasCreated = true
       console.log(`[voice-status] Created new conversation: ${conversation.id}`)
     } else {
+      console.log(`[voice-status] Found existing conversation: ${conversation.id}`)
+      
       // Update existing conversation's last activity
       const updatedConversation = await db.updateConversation(conversation.id, {
         last_activity_at: new Date().toISOString(),
@@ -161,20 +170,20 @@ export async function POST(req: NextRequest) {
             console.log(`[voice-status] Saved outbound message: ${outboundMessage.id}`)
           }
           
-          // Schedule follow-up if auto-reply was sent successfully
+          // Attempt follow-up creation if auto-reply was sent successfully
           if (outboundMessage && conversation) {
-            console.log(`[voice-status] Attempting to schedule follow-up for conversation: ${conversation.id}`)
+            console.log(`[voice-status] Attempting follow-up insert for conversation: ${conversation.id}`)
             
-            // Check if there's already a pending follow-up of this kind for this conversation
+            // Check for existing pending follow-up to prevent duplicates
             const hasPendingFollowUp = await db.hasPendingFollowUpForConversation(conversation.id, 'missed_call_followup_1')
             
-            console.log(`[voice-status] Has pending follow-up: ${hasPendingFollowUp}`)
+            console.log(`[voice-status] Has existing pending follow-up: ${hasPendingFollowUp}`)
             
             if (!hasPendingFollowUp) {
               // Schedule follow-up for 1 hour later
               const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
               
-              console.log(`[voice-status] Creating follow-up scheduled for: ${scheduledFor}`)
+              console.log(`[voice-status] Inserting follow-up scheduled for: ${scheduledFor}`)
               
               const followUp = await db.createFollowUp({
                 conversation_id: conversation.id,
@@ -182,19 +191,19 @@ export async function POST(req: NextRequest) {
                 kind: 'missed_call_followup_1',
                 status: 'pending',
                 scheduled_for: scheduledFor,
-                message_body: "Hi, just following up in case you still need help. Reply here and we'll get back to you. Reply STOP to opt out.",
+                message_body: 'Hi, just following up in case you still need help. Reply here and we\'ll get back to you. Reply STOP to opt out.',
               })
               
               if (!followUp) {
-                console.error('[voice-status] Failed to schedule follow-up')
+                console.error('[voice-status] Follow-up insert failed - no data returned')
               } else {
-                console.log(`[voice-status] Scheduled follow-up: ${followUp.id} for ${scheduledFor}`)
+                console.log(`[voice-status] Follow-up insert successful: ${followUp.id}`)
               }
             } else {
-              console.log(`[voice-status] Follow-up already exists for conversation ${conversation.id}`)
+              console.log(`[voice-status] Follow-up insert skipped - existing pending follow-up for conversation ${conversation.id}`)
             }
           } else {
-            console.log(`[voice-status] Not scheduling follow-up - outboundMessage: ${!!outboundMessage}, conversation: ${!!conversation}`)
+            console.log(`[voice-status] Follow-up insert skipped - outboundMessage: ${!!outboundMessage}, conversation: ${!!conversation}`)
           }
           
           // Update conversation activity
@@ -208,7 +217,7 @@ export async function POST(req: NextRequest) {
         console.error('[voice-status] Failed to send auto-reply SMS')
       }
     } else {
-      console.log(`[voice-status] Lead already contacted, not sending auto-reply`)
+      console.log(`[voice-status] Auto-reply skipped - lead already contacted (status: ${lead.status})`)
     }
     
     // Return 200 response quickly (Twilio requires this)
