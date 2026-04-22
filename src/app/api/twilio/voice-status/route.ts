@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
           updated_last_message_at: lead.last_message_at
         })
         logInfo('voice-status', `Existing lead updated: ${lead.id}`)
+        console.log("Lead update completed, proceeding to SMS flow for lead:", lead.id)
         
       } else {
         console.log("No existing lead found, creating new lead")
@@ -202,6 +203,7 @@ export async function POST(request: NextRequest) {
           first_contact_at: lead.first_contact_at
         })
         logInfo('voice-status', `New lead created: ${lead.id}`)
+        console.log("Lead creation completed, proceeding to SMS flow for lead:", lead.id)
       }
       
     } catch (error) {
@@ -256,12 +258,15 @@ export async function POST(request: NextRequest) {
     
     // Send auto-reply SMS
     try {
+      console.log("=== SMS FLOW STARTED ===")
       console.log("Attempting to send auto-reply SMS:", {
         business_id: business.id,
         lead_id: lead.id,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: From,
-        body: business.auto_reply_message
+        body: business.auto_reply_message,
+        twilio_account_sid: accountSid ? 'Set' : 'Not set',
+        twilio_auth_token: authToken ? 'Set' : 'Not set'
       })
       
       const twilioClient = new Twilio(accountSid, authToken)
@@ -281,6 +286,7 @@ export async function POST(request: NextRequest) {
       
       // Save outbound message after Twilio accepts
       try {
+        console.log("=== MESSAGE SAVE STARTED ===")
         const messageData = {
           lead_id: lead.id,
           direction: 'outbound',
@@ -291,7 +297,7 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString()
         }
         
-        console.log("Saving outbound message:", messageData)
+        console.log("Saving outbound message with data:", messageData)
         
         const { data: savedMessage, error: saveError } = await supabase
           .from('messages')

@@ -46,7 +46,9 @@ async function getDashboardData() {
   console.log('Selected business:', { id: business.id, name: business.name, phone: business.twilio_phone_number })
 
   // Query leads only for this business, sorted by latest activity
-  const { data: leads } = await supabase
+  console.log("Dashboard fetching leads for business:", { business_id: business.id, business_name: business.name })
+  
+  const { data: leads, error: leadsError } = await supabase
     .from('leads')
     .select(`
       *,
@@ -58,8 +60,14 @@ async function getDashboardData() {
       )
     `)
     .eq('business_id', business.id)
-    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('last_message_at', { ascending: false, nullsFirst: true })
     .order('created_at', { ascending: false })
+  
+  console.log("Dashboard leads query result:", { leads_count: leads?.length || 0, leads_error: leadsError })
+  
+  if (leadsError) {
+    console.log("Dashboard leads query error:", leadsError)
+  }
 
   return {
     business,
