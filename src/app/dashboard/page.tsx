@@ -92,6 +92,10 @@ async function getDashboardData() {
 
 export default async function DashboardPage({ searchParams }: { searchParams?: { success?: string } }) {
   const { business, leads, allBusinesses, businessLeadCounts } = await getDashboardData()
+  
+  // Calculate lead counts
+  const newLeads = leads.filter(lead => lead.status === 'new').length
+  const contactedLeads = leads.filter(lead => lead.status === 'contacted').length
 
   if (!business) {
     return (
@@ -138,37 +142,59 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
         
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-              <p className="text-gray-600">{business.name}</p>
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+                <p className="text-sm text-gray-600">Automated text responses for missed calls</p>
+              </div>
+              <Link
+                href="/dashboard/settings"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.405 1.405H8.02c0-1.405.594-1.405H6.375c-1.405-.594-1.405H4.317c-1.405-.594 1.405H2.68c-.426 0-.594.426-.594.426H1.405c-.426.594-.426.594H.594c0 .426.594.426.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594H16.53c.426-.594.426-.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594z"/>
+                </svg>
+                Settings
+              </Link>
             </div>
-            <Link
-              href="/dashboard/settings"
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Settings
-            </Link>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Leads</h3>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-500">Total Leads</h3>
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4h6a4 4 0 01-4-4v2a4 4 0 01-4 4h8a4 4 0 01-4 4h6a4 4 0 01-4-4v14a4 4 0 01-4-4h-4a4 4 0 01-4 4z"/>
+                </svg>
+              </div>
+            </div>
             <p className="text-3xl font-bold text-gray-900">{leads.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">New Leads</h3>
-            <p className="text-3xl font-bold text-blue-600">
-              {leads.filter(lead => lead.status === 'new').length}
-            </p>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-500">New Leads</h3>
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-4H8m8 4v8m-4 4h4"/>
+                </svg>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{newLeads}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Contacted</h3>
-            <p className="text-3xl font-bold text-green-600">
-              {leads.filter(lead => lead.status === 'contacted').length}
-            </p>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-500">Contacted</h3>
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2m0 0l-2-2m2 2l-2-2"/>
+                </svg>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{contactedLeads}</p>
           </div>
         </div>
 
@@ -198,73 +224,90 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
           </div>
         </div>
 
-        {/* Leads Table */}
-        <div className="bg-white rounded-lg shadow">
+        {/* Recent Leads */}
+        <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Recent Leads</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">Recent Leads</h2>
+              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{leads.length}</span>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Latest Message
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    First Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Message
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {leads.map((lead) => {
-                  const latestMessage = lead.messages && lead.messages.length > 0
-                    ? lead.messages[lead.messages.length - 1]
-                    : null
-
-                  return (
-                    <tr key={lead.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatPhoneNumber(lead.caller_phone)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {latestMessage ? (
-                          <div>
-                            <p className="truncate max-w-xs">
-                              {latestMessage.direction === 'inbound' ? 'In: ' : 'Out: '}
-                              {truncateText(latestMessage.body, 40)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {formatRelativeTime(latestMessage.created_at)}
-                            </p>
+          <div className="p-6">
+            {leads.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V7a2 2 0 01-2-2H7a2 2 0 01-2 2v10a2 2 0 01-2 2h2a2 2 0 01-2 2v6a2 2 0 01-2 2h2a2 2 0 01-2 2v10a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No leads yet</h3>
+                <p className="text-gray-600">Missed calls will appear here automatically.</p>
+                <p className="text-sm text-gray-500 mt-2">Call your Twilio number and hang up to test the missed call flow.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {leads.map((lead) => (
+                  <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 01-2-2h14a2 2 0 01-2 2v14a2 2 0 01-2 2H5a2 2 0 01-2 2V7z"/>
+                            </svg>
                           </div>
-                        ) : (
-                          <span className="text-gray-400">No messages</span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                {formatPhoneNumber(lead.caller_phone)}
+                              </h3>
+                              <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
+                                {lead.status}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              First contact {formatRelativeTime(lead.first_contact_at)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 sm:gap-4">
+                        {lead.status === 'new' && (
+                          <form action={markLeadAsContacted.bind(null, lead.id)}>
+                            <button
+                              type="submit"
+                              className="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L16 7l-4-4"/>
+                              </svg>
+                              Mark Contacted
+                            </button>
+                          </form>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatRelativeTime(lead.first_contact_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatRelativeTime(lead.last_message_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <Link
+                          href={`/dashboard/leads/${lead.id}`}
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                          </svg>
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                    
+                    {/* Latest Message */}
+                    {lead.messages && lead.messages.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M4 12h.01M16 12h.01M1 12h.01"/>
+                          </svg>
+                          <span className="text-sm font-medium text-gray-900">Latest Message</span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            {formatRelativeTime(lead.messages[0].created_at)}
+                          </span>
                         <div className="flex flex-col sm:flex-row gap-2">
                           {lead.status === 'new' && (
                             <form action={markLeadAsContacted.bind(null, lead.id)}>
