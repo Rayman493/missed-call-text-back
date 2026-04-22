@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/supabase'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 
+// Define all missed call statuses that Twilio can send
+const MISSED_CALL_STATUSES = ["no-answer", "busy", "failed"]
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text()
@@ -11,18 +14,25 @@ export async function POST(req: NextRequest) {
     const To = params.get('To')
     const CallStatus = params.get('CallStatus')
     
+    // Add debugging logs
+    console.log("Twilio Call Status:", CallStatus)
+    console.log("From:", From)
+    console.log("To:", To)
+    
     if (!From || !To || !CallStatus) {
       console.error('[voice-status] Missing required fields:', { From, To, CallStatus })
       return new Response("OK", { status: 200 })
     }
     
-    console.log(`[voice-status] From: ${From}, To: ${To}, CallStatus: ${CallStatus}`)
+    console.log(`[voice-status] Processing call: From=${From}, To=${To}, Status=${CallStatus}`)
     
-    // Only process missed calls
-    if (CallStatus !== 'no-answer' && CallStatus !== 'busy' && CallStatus !== 'failed') {
-      console.log(`[voice-status] Not a missed call, ignoring: ${CallStatus}`)
+    // Check if this is a missed call using our comprehensive status list
+    if (!MISSED_CALL_STATUSES.includes(CallStatus)) {
+      console.log(`[voice-status] Not a missed call (status: ${CallStatus}), ignoring`)
       return new Response("OK", { status: 200 })
     }
+    
+    console.log(`[voice-status] Detected missed call with status: ${CallStatus}`)
     
     // Find business by Twilio phone number
     const business = await db.getBusinessByPhone(To)
@@ -201,6 +211,7 @@ export async function POST(req: NextRequest) {
       console.log(`[voice-status] Lead already contacted, not sending auto-reply`)
     }
     
+    // Return 200 response quickly (Twilio requires this)
     return new Response("OK", { status: 200 })
     
   } catch (error) {
