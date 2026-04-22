@@ -90,86 +90,72 @@ export default async function SettingsPage() {
         </div>
 
         {/* Settings Form */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Business Information</h2>
+            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.405 1.405H8.02c0-1.405.594-1.405H6.375c-1.405-.594-1.405H4.317c-1.405-.594 1.405H2.68c-.426 0-.594.426-.594.426H1.405c-.426.594-.426.594H.594c0 .426.594.426.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594H16.53c.426-.594.426-.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594z"/>
+              </svg>
+              Business Settings
+            </h2>
           </div>
-          
-          <form action={updateBusiness} className="p-6 space-y-6">
-            <input type="hidden" name="businessId" value={business.id} />
-            
-            {/* Business Name */}
-            <div>
-              <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
-                Business Name
-              </label>
-              <input
-                type="text"
-                id="businessName"
-                name="businessName"
-                defaultValue={business.name}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your business name"
-                required
-              />
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Business Name
+                </label>
+                <input
+                  type="text"
+                  id="businessName"
+                  name="businessName"
+                  defaultValue={business.name}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400"
+                />
+              </div>
+              <div>
+                <label htmlFor="twilioPhoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  Twilio Phone Number
+                </label>
+                <input
+                  type="tel"
+                  id="twilioPhoneNumber"
+                  name="twilioPhoneNumber"
+                  defaultValue={business.twilio_phone_number}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400"
+                  pattern="\+[0-9]+"
+                  title="Format: +1234567890"
+                />
+                <p className="text-xs text-gray-500 mt-1">Format: +1234567890 (with country code)</p>
+              </div>
             </div>
-
-            {/* Twilio Phone Number */}
-            <div>
-              <label htmlFor="twilioPhoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                Twilio Phone Number
-              </label>
-              <input
-                type="tel"
-                id="twilioPhoneNumber"
-                name="twilioPhoneNumber"
-                defaultValue={business.twilio_phone_number}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="+1234567890"
-                pattern="\+[0-9]+"
-                title="Please enter in format: +1234567890"
-                required
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Format: +1234567890 (with country code)
-              </p>
-            </div>
-
-            {/* Auto Reply Message */}
-            <div>
+            <div className="md:col-span-2">
               <label htmlFor="autoReplyMessage" className="block text-sm font-medium text-gray-700 mb-2">
-                Auto Reply Message
+                  Auto Reply Message
               </label>
               <textarea
                 id="autoReplyMessage"
                 name="autoReplyMessage"
                 defaultValue={business.auto_reply_message}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your auto reply message for missed calls"
-                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400 resize-none"
+                placeholder="Enter your auto-reply message for missed calls..."
               />
-              <p className="mt-1 text-sm text-gray-500">
-                This message will be sent to customers when they miss your call.
-              </p>
+              <p className="text-xs text-gray-500 mt-1">This message will be sent automatically when customers miss your calls.</p>
+              </div>
             </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end space-x-4">
-              <Link
-                href="/dashboard"
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Cancel
-              </Link>
+            <div className="flex justify-end mt-6">
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-blue-300 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm hover:shadow-md"
               >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L16 7l-4-4"/>
+                </svg>
                 Save Changes
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
