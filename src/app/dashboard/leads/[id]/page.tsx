@@ -1,7 +1,40 @@
 import { supabase } from '@/lib/supabase'
-import { formatPhoneNumber, formatDateTime, getLeadStatusColor } from '@/lib/utils'
+import { formatPhoneNumber, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
+// Utility functions
+function formatRelativeTime(dateString: string): string {
+  if (!dateString) return 'Never'
+  
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+  
+  if (diffDays > 0) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  } else {
+    return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+  }
+}
+
+function formatDateTime(dateString: string): string {
+  if (!dateString) return 'Never'
+  
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 async function getLeadDetails(leadId: string) {
   const { data, error } = await supabase
@@ -53,21 +86,24 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
         <div className="mb-8">
           <Link 
             href="/dashboard" 
-            className="text-blue-600 hover:text-blue-800 mb-4 inline-block text-sm sm:text-base"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4 text-sm sm:text-base transition-colors duration-200"
           >
-            &larr; Back to Dashboard
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l6-6m6 6v4H4a2 2 0 01-2-2h2a2 2 0 01-2 2v6a2 2 0 01-2 2z"/>
+            </svg>
+            Back to Dashboard
           </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Lead Details</h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
+          <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Lead Details</h1>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`inline-flex px-4 py-2 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
                     {lead.status}
                   </span>
-                  <span className="text-lg sm:text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
                     {formatPhoneNumber(lead.caller_phone)}
-                  </span>
+                  </h2>
                 </div>
               </div>
             </div>
@@ -78,80 +114,124 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
         </div>
 
         {/* Lead Info Card */}
-        <div className="bg-white rounded-lg shadow mb-8">
+        <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Lead Information</h2>
+            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 21v-2a4 4 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4h6a4 4 0 01-4 4v2a4 4 0 01-4 4h8a4 4 0 01-4 4h6a4 4 0 01-4 4v14a4 4 0 01-4 4h-4a4 4 0 01-4 4z"/>
+              </svg>
+              Lead Information
+            </h2>
           </div>
           <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Business</p>
-                <p className="text-sm text-gray-900">{lead.business.name}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">Business</h3>
+                  <span className="text-sm text-gray-600">{lead.business.name}</span>
+                </div>
+                <p className="text-gray-900">{lead.business.twilio_phone_number}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                <p className="text-sm text-gray-900">{formatPhoneNumber(lead.caller_phone)}</p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">Phone Number</h3>
+                  <span className={`inline-flex items-center px-3 py-1 text-lg font-semibold ${getLeadStatusColor(lead.status)}`}>
+                    {formatPhoneNumber(lead.caller_phone)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500">First Contact</p>
+                <p className="text-gray-900">{formatDateTime(lead.first_contact_at)}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">First Contact</p>
-                <p className="text-sm text-gray-900">{formatDateTime(lead.first_contact_at)}</p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">Last Message</h3>
+                  {lead.last_message_at ? (
+                    <span className="text-gray-900">{formatDateTime(lead.last_message_at)}</span>
+                  ) : (
+                    <span className="text-gray-400">No messages yet</span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Last Message</p>
-                <p className="text-sm text-gray-900">{formatDateTime(lead.last_message_at)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Created</p>
-                <p className="text-sm text-gray-900">{formatDateTime(lead.created_at)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Updated</p>
-                <p className="text-sm text-gray-900">{formatDateTime(lead.updated_at)}</p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">Created</h3>
+                  <p className="text-gray-900">{formatDateTime(lead.created_at)}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Message History</h2>
+        <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">Message History</h2>
+              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{lead.messages?.length || 0}</span>
+            </div>
           </div>
-          <div className="px-4 sm:px-6 py-4">
+          <div className="px-6 py-4">
             {lead.messages && lead.messages.length > 0 ? (
               <div className="space-y-4">
                 {lead.messages
-                  .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                  .map((message: any) => (
-                    <div key={message.id} className="flex items-start gap-3">
+                  .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                  .map((message) => (
+                    <div key={message.id} className={`flex items-start gap-4 p-4 rounded-lg border-l-4 ${
+                      message.direction === 'inbound' 
+                        ? 'bg-blue-50 hover:bg-blue-100' 
+                        : 'bg-green-50 hover:bg-green-100'
+                    } transition-colors duration-200`}>
                       <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
                         message.direction === 'inbound' ? 'bg-blue-500' : 'bg-green-500'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {message.direction === 'inbound' ? 'Customer' : 'Business'}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {formatDateTime(message.created_at)}
-                          </span>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="text-sm font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              {message.direction === 'inbound' ? (
+                                <>
+                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 6H9a2 2 0 01-2-2H7a2 2 0 01-2-2v4a2 2 0 01-2 2h2a2 2 0 01-2 2h6a2 2 0 01-2 2v2a2 2 0 01-2 2h-4a2 2 0 01-2 2z"/>
+                                  </svg>
+                                  <span className="font-medium">Customer</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12H8a2 2 0 01-2-2H4a2 2 0 01-2-2v6a2 2 0 01-2 2h2a2 2 0 01-2 2v14a2 2 0 01-2 2z"/>
+                                  </svg>
+                                  <span className="font-medium">Business</span>
+                                </>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {formatRelativeTime(message.created_at)}
+                            </span>
                         </div>
-                        <div className={`p-3 rounded-lg ${
+                        <div className={`p-4 rounded-lg ${
                           message.direction === 'inbound' 
-                            ? 'bg-blue-50 text-blue-900' 
-                            : 'bg-green-50 text-green-900'
+                            ? 'bg-blue-50 text-blue-900 border-blue-200' 
+                            : 'bg-green-50 text-green-900 border-green-200'
                         }`}>
-                          <p className="text-sm break-words">{message.body}</p>
+                          <p className="text-sm text-gray-800 break-words">{message.body}</p>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          From: {formatPhoneNumber(message.from_phone)} &rarr; {formatPhoneNumber(message.to_phone)}
+                        <div className="text-xs text-gray-500 mt-2">
+                          From: {formatPhoneNumber(message.from_phone)} → {formatPhoneNumber(message.to_phone)}
                         </div>
                       </div>
                     </div>
                   ))}
               </div>
             ) : (
-              <p className="text-gray-500">No messages yet.</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V7a2 2 0 01-2-2H7a2 2 0 01-2-2v10a2 2 0 01-2 2h2a2 2 0 01-2 2v6a2 2 0 01-2 2h2a2 2 0 01-2 2v10a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
+                <p className="text-gray-600">Messages will appear here when customers respond to your automated texts.</p>
+              </div>
             )}
           </div>
         </div>
