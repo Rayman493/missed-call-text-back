@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { Business, Lead, Message, CallEvent, LeadWithMessages } from './types'
+import { Business, Lead, Message, CallEvent, Conversation, LeadWithMessages } from './types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -225,5 +225,89 @@ export const db = {
     }
     
     return data || []
+  },
+
+  // Conversation operations
+  async getOpenConversationForLead(leadId: string, businessId: string): Promise<Conversation | null> {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('lead_id', leadId)
+      .eq('business_id', businessId)
+      .eq('status', 'open')
+      .gte('last_activity_at', thirtyDaysAgo)
+      .order('last_activity_at', { ascending: false })
+      .limit(1)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error fetching open conversation:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async createConversation(conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<Conversation | null> {
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .insert(conversation)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating conversation:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async updateConversation(conversationId: string, updates: Partial<Conversation>): Promise<Conversation | null> {
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .update(updates)
+      .eq('id', conversationId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error updating conversation:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async createMessageWithConversation(message: Omit<Message, 'id'>): Promise<Message | null> {
+    const { data, error } = await supabaseAdmin
+      .from('messages')
+      .insert(message)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating message:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async createCallEventWithConversation(callEvent: Omit<CallEvent, 'id'>): Promise<CallEvent | null> {
+    const { data, error } = await supabaseAdmin
+      .from('call_events')
+      .insert(callEvent)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating call event:', error)
+      return null
+    }
+    
+    return data
   }
 }

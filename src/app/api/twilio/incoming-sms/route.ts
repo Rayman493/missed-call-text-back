@@ -97,9 +97,56 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Save inbound message
-    const message = await db.createMessage({
+    // Handle conversation logic - ALWAYS ensure a conversation exists
+    let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+    
+    if (!conversation) {
+      // Create new conversation for SMS
+      conversation = await db.createConversation({
+        lead_id: lead.id,
+        business_id: business.id,
+        status: 'open',
+        source: 'sms',
+        started_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString(),
+      })
+      
+      if (!conversation) {
+        console.error('[incoming-sms] Failed to create conversation')
+        
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error processing message</Message>
+</Response>`
+
+        return new Response(errorTwiml, {
+          status: 500,
+          headers: {
+            'Content-Type': 'text/xml',
+          },
+        })
+      }
+      
+      console.log(`[incoming-sms] Created new conversation: ${conversation.id}`)
+    } else {
+      // Update existing conversation's last activity
+      const updatedConversation = await db.updateConversation(conversation.id, {
+        last_activity_at: new Date().toISOString(),
+      })
+      
+      if (!updatedConversation) {
+        console.error('[incoming-sms] Failed to update conversation')
+      } else {
+        console.log(`[incoming-sms] Updated conversation: ${updatedConversation.id}`)
+        conversation = updatedConversation
+      }
+    }
+    
+    // At this point, conversation is guaranteed to exist
+    // Save inbound message linked to conversation
+    const message = await db.createMessageWithConversation({
       lead_id: lead.id,
+      conversation_id: conversation.id,
       direction: 'inbound',
       body: Body,
       from_phone: normalizedCustomerPhone,

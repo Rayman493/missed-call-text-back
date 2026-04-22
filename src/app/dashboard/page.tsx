@@ -48,7 +48,7 @@ async function getDashboardData() {
 
   console.log('Selected business:', { id: business.id, name: business.name, phone: business.twilio_phone_number })
 
-  // Query leads only for this business, with latest message
+  // Query leads with their latest messages and conversations
   console.log("Dashboard fetching leads for business:", { business_id: business.id, business_name: business.name })
   
   const { data: leads, error: leadsError } = await supabaseAdmin
@@ -61,7 +61,15 @@ async function getDashboardData() {
         direction,
         from_phone,
         to_phone,
-        created_at
+        created_at,
+        conversation_id
+      ),
+      conversations (
+        id,
+        status,
+        source,
+        started_at,
+        last_activity_at
       )
     `)
     .eq('business_id', business.id)
@@ -223,6 +231,11 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                     ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                     : null
 
+                  // Get latest conversation info
+                  const latestConversation = lead.conversations && lead.conversations.length > 0
+                    ? lead.conversations.sort((a: any, b: any) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime())[0]
+                    : null
+
                   return (
                     <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
@@ -243,8 +256,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                 </span>
                               </div>
                               <div className="text-sm text-gray-500">
-                                {lead.last_message_at ? (
-                                  <>Last message {formatRelativeTime(lead.last_message_at)}</>
+                                {latestConversation?.last_activity_at ? (
+                                  <>Last activity {formatRelativeTime(latestConversation.last_activity_at)}</>
                                 ) : (
                                   <>First contact {formatRelativeTime(lead.first_contact_at)}</>
                                 )}
@@ -293,6 +306,11 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                 <span className="text-xs text-gray-400">
                                   {formatRelativeTime(latestMessage.created_at)}
                                 </span>
+                                {latestConversation && (
+                                  <span className="text-xs text-gray-400">
+                                    via {latestConversation.source}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2 border border-gray-200">
                                 {truncateText(latestMessage.body, 100)}

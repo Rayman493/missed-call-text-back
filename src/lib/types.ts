@@ -19,6 +19,7 @@ export interface Lead {
 export interface Message {
   id: string;
   lead_id: string;
+  conversation_id?: string;
   direction: 'inbound' | 'outbound';
   body: string;
   from_phone: string;
@@ -29,6 +30,7 @@ export interface Message {
 export interface CallEvent {
   id: string;
   business_id: string;
+  conversation_id?: string;
   caller_phone: string;
   call_status: string;
   twilio_call_sid: string | null;
@@ -58,6 +60,18 @@ export interface TwilioSmsPayload {
 export interface LeadWithMessages extends Lead {
   messages: Message[];
   business: Business;
+}
+
+export interface Conversation {
+  id: string;
+  lead_id: string;
+  business_id: string;
+  status: 'open' | 'closed' | 'archived';
+  source: 'missed_call' | 'sms' | 'manual';
+  started_at: string;
+  last_activity_at: string;
+  summary?: string;
+  created_at: string;
 }
 
 export interface CallEventWithBusiness extends CallEvent {
