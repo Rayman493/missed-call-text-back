@@ -79,76 +79,38 @@ export async function POST(request: NextRequest) {
       logError('voice-status', 'Call event save failed', error)
     }
     
-    // Only process missed calls (incoming calls that weren't answered)
-    if (!isMissedCall(CallStatus)) {
+    // Only process missed calls (no-answer or busy)
+    if (CallStatus !== "no-answer" && CallStatus !== "busy") {
       logInfo('voice-status', 'Not a missed call, ignoring')
       return new Response('OK', { status: 200 })
     }
     
-    // Try to find existing lead first
+    // Create lead for missed call
+    console.log("Creating lead for missed call:", { From, To, CallStatus })
+    
     let lead = null
     try {
-      logInfo('voice-status', 'Checking for existing lead', {
-        business_id: business.id,
-        caller_phone: normalizePhoneNumber(From)
-      })
-      
-      // Query for existing lead by business_id and caller_phone
-      const { data: existingLead, error: leadError } = await supabase
+      const { data: leadData, error: leadError } = await supabase
         .from('leads')
-        .select('*')
-        .eq('business_id', business.id)
-        .eq('caller_phone', normalizePhoneNumber(From))
+        .insert({
+          business_id: business.id,
+          caller_phone: normalizePhoneNumber(From),
+          status: "new",
+          first_contact_at: new Date().toISOString()
+        })
+        .select()
         .single()
       
       if (leadError) {
-        logError('voice-status', 'Failed to query existing lead', leadError)
-      } else if (existingLead) {
-        logInfo('voice-status', `Existing lead found: ${existingLead.id}, updating`)
-        
-        // Update existing lead
-        const { data: updatedLead, error: updateError } = await supabase
-          .from('leads')
-          .update({
-            status: 'new',
-            first_contact_at: existingLead.first_contact_at,
-            last_message_at: new Date().toISOString(),
-          })
-          .eq('id', existingLead.id)
-          .select()
-          .single()
-        
-        if (updateError) {
-          logError('voice-status', 'Failed to update existing lead', updateError)
-        } else {
-          logInfo('voice-status', `Lead updated: ${updatedLead.id}`)
-          lead = updatedLead
-        }
-      } else {
-        // Create new lead
-        logInfo('voice-status', 'Creating new lead')
-        
-        const { data: newLead, error: createError } = await supabase
-          .from('leads')
-          .insert({
-            business_id: business.id,
-            caller_phone: normalizePhoneNumber(From),
-            status: 'new',
-            first_contact_at: new Date().toISOString(),
-            last_message_at: null,
-          })
-          .select()
-          .single()
-        
-        if (createError) {
-          logError('voice-status', 'Failed to create new lead', createError)
-        } else {
-          logInfo('voice-status', `Lead created: ${newLead.id}`)
-          lead = newLead
-        }
+        logError('voice-status', 'Failed to create lead', leadError)
+        return new Response('OK', { status: 200 })
       }
+      
+      lead = leadData
+      logInfo('voice-status', `Lead created: ${lead.id}`)
     } catch (error) {
-      logError('voice-status', 'Lead processing failed', error)
+      logError('voice-status', 'Lead creation failed', error)
+      return new Response('OK', { status: 200 })
     }
     
     if (!lead) {
