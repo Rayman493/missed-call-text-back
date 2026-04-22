@@ -1,17 +1,20 @@
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+
+// Force dynamic rendering to prevent stale data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 async function markLeadAsContacted(leadId: string) {
   'use server'
   
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('leads')
       .update({ 
-        status: 'contacted',
-        updated_at: new Date().toISOString()
+        status: 'contacted'
       })
       .eq('id', leadId)
 
@@ -32,7 +35,7 @@ async function getDashboardData() {
   // Find the business with the configured Twilio phone number
   const configuredPhone = process.env.TWILIO_PHONE_NUMBER
   
-  const { data: business, error } = await supabase
+  const { data: business, error } = await supabaseAdmin
     .from('businesses')
     .select('*')
     .eq('twilio_phone_number', configuredPhone)
@@ -48,7 +51,7 @@ async function getDashboardData() {
   // Query leads only for this business, sorted by latest activity
   console.log("Dashboard fetching leads for business:", { business_id: business.id, business_name: business.name })
   
-  const { data: leads, error: leadsError } = await supabase
+  const { data: leads, error: leadsError } = await supabaseAdmin
     .from('leads')
     .select(`
       *,
@@ -60,7 +63,8 @@ async function getDashboardData() {
       )
     `)
     .eq('business_id', business.id)
-    .order('last_message_at', { ascending: false, nullsFirst: true })
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('first_contact_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
   
   console.log("Dashboard leads query result:", { leads_count: leads?.length || 0, leads_error: leadsError })
@@ -144,7 +148,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l6-6m6 6v4H4a2 2 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4v6a2 4 0 01-4 4h6a4 4 0 01-4 4z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l6-6m6 6v4H4a2 2 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4v6a2 4 0 01-4 4h6a4 4 0 01-4 4h6a4 4 0 01-4 4z"/>
                 </svg>
                 Settings
               </Link>
@@ -159,7 +163,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
               <h3 className="text-sm font-medium text-gray-500">Total Leads</h3>
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4h6a4 4 0 01-4-4v2a4 4 0 01-4 4h8a4 4 0 01-4 4h6a4 4 0 01-4-4v14a4 4 0 01-4-4h-4a4 4 0 01-4 4z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4h6a4 4 0 01-4 4h6a4 4 0 01-4 4v2a4 4 0 01-4 4h8a4 4 0 01-4 4h6a4 4 0 01-4-4v14a4 4 0 01-4-4h-4a4 4 0 01-4 4z"/>
                 </svg>
               </div>
             </div>
@@ -257,7 +261,11 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                               </span>
                             </div>
                             <div className="text-sm text-gray-500">
-                              First contact {formatRelativeTime(lead.first_contact_at)}
+                              {lead.last_message_at ? (
+                                <>Last message {formatRelativeTime(lead.last_message_at)}</>
+                              ) : (
+                                <>First contact {formatRelativeTime(lead.first_contact_at)}</>
+                              )}
                             </div>
                           </div>
                         </div>
