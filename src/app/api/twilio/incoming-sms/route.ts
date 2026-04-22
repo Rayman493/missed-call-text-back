@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       body: Body,
       from_phone: normalizePhoneNumber(From),
       to_phone: business.twilio_phone_number,
+      created_at: new Date().toISOString()
     })
     
     if (!message) {

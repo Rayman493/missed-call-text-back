@@ -31,18 +31,17 @@ export async function POST(request: NextRequest) {
     if (!CallStatus || !isMissedCall(CallStatus)) {
       console.log('Not a missed call, ignoring')
       // Keep call alive briefly to let Twilio detect no-answer
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?>
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Pause length="10"/>
-</Response>`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/xml',
-          },
-        }
-      )
+</Response>`
+      
+      return new Response(twiml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+        },
+      })
     }
     
     // Find business by Twilio phone number
@@ -54,19 +53,18 @@ export async function POST(request: NextRequest) {
     
     if (!businesses) {
       logError('voice', 'Business not found for phone', { To })
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?>
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>We're experiencing technical difficulties. Please try again later.</Say>
   <Hangup/>
-</Response>`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/xml'
-          }
-        }
-      )
+</Response>`
+      
+      return new Response(errorTwiml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+        },
+      })
     }
     
     const business = businesses
@@ -74,18 +72,17 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!From) {
       console.log('Missing From field, ignoring call')
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?>
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Reject/>
-</Response>`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/xml'
-          }
-        }
-      )
+</Response>`
+      
+      return new Response(errorTwiml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+        },
+      })
     }
 
     // Create or update lead
@@ -103,19 +100,18 @@ export async function POST(request: NextRequest) {
     
     if (leadError || !lead) {
       logError('voice', 'Failed to upsert lead', leadError)
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?>
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>We're experiencing technical difficulties. Please try again later.</Say>
   <Hangup/>
-</Response>`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/xml'
-          }
-        }
-      )
+</Response>`
+      
+      return new Response(errorTwiml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+        },
+      })
     }
     
     logInfo('voice', `Lead created/updated: ${lead.id}`)
@@ -143,7 +139,7 @@ export async function POST(request: NextRequest) {
       logError('voice', 'Failed to send auto-reply SMS')
     }
     
-    // Return TwiML response
+    // Return success TwiML response
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>Thank you for calling. We'll get back to you shortly. Goodbye.</Say>
@@ -153,8 +149,8 @@ export async function POST(request: NextRequest) {
     return new Response(twiml, {
       status: 200,
       headers: {
-        'Content-Type': 'text/xml'
-      }
+        'Content-Type': 'text/xml; charset=utf-8',
+      },
     })
     
   } catch (error) {
@@ -170,8 +166,8 @@ export async function POST(request: NextRequest) {
     return new Response(errorTwiml, {
       status: 500,
       headers: {
-        'Content-Type': 'text/xml'
-      }
+        'Content-Type': 'text/xml; charset=utf-8',
+      },
     })
   }
 }
