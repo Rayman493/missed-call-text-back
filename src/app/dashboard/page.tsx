@@ -45,7 +45,7 @@ async function getDashboardData() {
 
   console.log('Selected business:', { id: business.id, name: business.name, phone: business.twilio_phone_number })
 
-  // Query leads only for this business
+  // Query leads only for this business, sorted by latest activity
   const { data: leads } = await supabase
     .from('leads')
     .select(`
@@ -58,6 +58,7 @@ async function getDashboardData() {
       )
     `)
     .eq('business_id', business.id)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   return {
