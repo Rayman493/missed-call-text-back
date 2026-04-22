@@ -153,12 +153,18 @@ export async function POST(req: NextRequest) {
           
           // Schedule follow-up if auto-reply was sent successfully
           if (outboundMessage && conversation) {
+            console.log(`[voice-status] Attempting to schedule follow-up for conversation: ${conversation.id}`)
+            
             // Check if there's already a pending follow-up of this kind for this conversation
             const hasPendingFollowUp = await db.hasPendingFollowUpForConversation(conversation.id, 'missed_call_followup_1')
+            
+            console.log(`[voice-status] Has pending follow-up: ${hasPendingFollowUp}`)
             
             if (!hasPendingFollowUp) {
               // Schedule follow-up for 1 hour later
               const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+              
+              console.log(`[voice-status] Creating follow-up scheduled for: ${scheduledFor}`)
               
               const followUp = await db.createFollowUp({
                 conversation_id: conversation.id,
@@ -166,7 +172,7 @@ export async function POST(req: NextRequest) {
                 kind: 'missed_call_followup_1',
                 status: 'pending',
                 scheduled_for: scheduledFor,
-                message_body: "Just checking in - did you have any questions about our services? Feel free to reply to this message.",
+                message_body: "Hi, just following up in case you still need help. Reply here and we'll get back to you. Reply STOP to opt out.",
               })
               
               if (!followUp) {
@@ -177,6 +183,8 @@ export async function POST(req: NextRequest) {
             } else {
               console.log(`[voice-status] Follow-up already exists for conversation ${conversation.id}`)
             }
+          } else {
+            console.log(`[voice-status] Not scheduling follow-up - outboundMessage: ${!!outboundMessage}, conversation: ${!!conversation}`)
           }
           
           // Update conversation activity
