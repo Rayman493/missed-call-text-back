@@ -269,20 +269,49 @@ export async function POST(request: NextRequest) {
         twilio_auth_token: authToken ? 'Set' : 'Not set'
       })
       
+      // Validate Twilio configuration
+      if (!accountSid || !authToken || !process.env.TWILIO_PHONE_NUMBER) {
+        console.log("CRITICAL: Missing Twilio configuration:", {
+          accountSid: accountSid ? 'Set' : 'Missing',
+          authToken: authToken ? 'Set' : 'Missing',
+          phoneNumber: process.env.TWILIO_PHONE_NUMBER || 'Missing'
+        })
+        logError('voice-status', 'Missing Twilio configuration', { accountSid: !!accountSid, authToken: !!authToken, phoneNumber: !!process.env.TWILIO_PHONE_NUMBER })
+        return new Response('OK', { status: 200 })
+      }
+      
+      console.log("Twilio configuration validated, creating client...")
       const twilioClient = new Twilio(accountSid, authToken)
+      
+      console.log("Sending SMS via Twilio API...")
       const message = await twilioClient.messages.create({
         body: business.auto_reply_message,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: From,
       })
       
-      console.log("SMS sent successfully:", {
+      console.log("SMS API call completed, response:", {
         to: From,
         from: process.env.TWILIO_PHONE_NUMBER,
         twilio_message_sid: message.sid,
-        status: message.status
+        status: message.status,
+        date_created: message.dateCreated,
+        date_updated: message.dateUpdated,
+        error_code: message.errorCode,
+        error_message: message.errorMessage
       })
-      logInfo('voice-status', `Auto-reply SMS sent successfully to ${From}, SID: ${message.sid}`)
+      
+      // Check for immediate errors
+      if (message.errorCode || message.errorMessage) {
+        console.log("SMS ERROR DETECTED:", {
+          error_code: message.errorCode,
+          error_message: message.errorMessage,
+          status: message.status
+        })
+        logError('voice-status', 'SMS send error', { errorCode: message.errorCode, errorMessage: message.errorMessage, status: message.status })
+      } else {
+        logInfo('voice-status', `Auto-reply SMS sent successfully to ${From}, SID: ${message.sid}, Status: ${message.status}`)
+      }
       
       // Save outbound message after Twilio accepts
       try {
@@ -322,8 +351,22 @@ export async function POST(request: NextRequest) {
       return new Response('OK', { status: 200 })
       
     } catch (error) {
-      console.log("SMS send failed:", error)
-      logError('voice-status', 'SMS send failed', error)
+      const twilioError = error as any
+      console.log("SMS SEND FAILED - DETAILED ERROR:", {
+        error_name: twilioError.name,
+        error_message: twilioError.message,
+        error_code: twilioError.code,
+        error_status: twilioError.status,
+        error_more_info: twilioError.moreInfo,
+        full_error: twilioError
+      })
+      logError('voice-status', 'SMS send failed', {
+        name: twilioError.name,
+        message: twilioError.message,
+        code: twilioError.code,
+        status: twilioError.status,
+        moreInfo: twilioError.moreInfo
+      })
       
       // Return success response - lead was processed successfully even if SMS failed
       logInfo('voice-status', 'Auto-reply SMS flow completed with SMS error')
