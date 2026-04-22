@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       leadWasCreated = true
       console.log(`[voice-status] Created new lead: ${lead.id}`)
     } else {
-      console.log(`[voice-status] Found existing lead: ${lead.id}`)
+      console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
       
       // Update existing lead's first contact if this is their first missed call
       if (!lead.first_contact_at) {
@@ -145,8 +145,14 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
     
-    // Send auto-reply SMS if lead is still 'new' (no previous contact)
-    if (lead.status === 'new') {
+    // Determine if auto-reply should be sent (only for new leads)
+    const shouldSendAutoReply = lead.status === 'new'
+    console.log(`[voice-status] Should send auto-reply: ${shouldSendAutoReply} (lead status: ${lead.status})`)
+    
+    let outboundMessage = null
+    
+    // Send auto-reply SMS only if lead is 'new'
+    if (shouldSendAutoReply) {
       const messageSid = await sendSms(From, business.auto_reply_message)
       
       if (messageSid) {
@@ -154,7 +160,7 @@ export async function POST(req: NextRequest) {
         
         // Insert outbound message record linked to conversation
         if (conversation) {
-          const outboundMessage = await db.createMessageWithConversation({
+          outboundMessage = await db.createMessageWithConversation({
             lead_id: lead.id,
             conversation_id: conversation.id,
             direction: 'outbound',
@@ -169,47 +175,6 @@ export async function POST(req: NextRequest) {
           } else {
             console.log(`[voice-status] Saved outbound message: ${outboundMessage.id}`)
           }
-          
-          // Attempt follow-up creation if auto-reply was sent successfully
-          if (outboundMessage && conversation) {
-            console.log(`[voice-status] Attempting follow-up insert for conversation: ${conversation.id}`)
-            
-            // Check for existing pending follow-up to prevent duplicates
-            const hasPendingFollowUp = await db.hasPendingFollowUpForConversation(conversation.id, 'missed_call_followup_1')
-            
-            console.log(`[voice-status] Has existing pending follow-up: ${hasPendingFollowUp}`)
-            
-            if (!hasPendingFollowUp) {
-              // Schedule follow-up for 1 hour later
-              const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
-              
-              console.log(`[voice-status] Inserting follow-up scheduled for: ${scheduledFor}`)
-              
-              const followUp = await db.createFollowUp({
-                conversation_id: conversation.id,
-                business_id: business.id,
-                kind: 'missed_call_followup_1',
-                status: 'pending',
-                scheduled_for: scheduledFor,
-                message_body: 'Hi, just following up in case you still need help. Reply here and we\'ll get back to you. Reply STOP to opt out.',
-              })
-              
-              if (!followUp) {
-                console.error('[voice-status] Follow-up insert failed - no data returned')
-              } else {
-                console.log(`[voice-status] Follow-up insert successful: ${followUp.id}`)
-              }
-            } else {
-              console.log(`[voice-status] Follow-up insert skipped - existing pending follow-up for conversation ${conversation.id}`)
-            }
-          } else {
-            console.log(`[voice-status] Follow-up insert skipped - outboundMessage: ${!!outboundMessage}, conversation: ${!!conversation}`)
-          }
-          
-          // Update conversation activity
-          await db.updateConversation(conversation.id, {
-            last_activity_at: new Date().toISOString(),
-          })
         } else {
           console.error('[voice-status] No conversation available for outbound message')
         }
@@ -217,7 +182,55 @@ export async function POST(req: NextRequest) {
         console.error('[voice-status] Failed to send auto-reply SMS')
       }
     } else {
-      console.log(`[voice-status] Auto-reply skipped - lead already contacted (status: ${lead.status})`)
+      console.log(`[voice-status] Auto-reply skipped - lead status is not 'new' (status: ${lead.status})`)
+    }
+    
+    // ========================================
+    // NEW FOLLOW-UP LOGIC (INDEPENDENT OF LEAD STATUS)
+    // ========================================
+    
+    // ALWAYS attempt follow-up creation for missed calls, regardless of lead status
+    if (conversation) {
+      console.log(`[voice-status] Attempting follow-up creation for conversation: ${conversation.id}`)
+      
+      // Check for existing pending follow-up to prevent duplicates
+      const hasPendingFollowUp = await db.hasPendingFollowUpForConversation(conversation.id, 'missed_call_followup_1')
+      
+      console.log(`[voice-status] Has existing pending follow-up: ${hasPendingFollowUp}`)
+      
+      if (!hasPendingFollowUp) {
+        // Schedule follow-up for 1 hour later
+        const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        
+        console.log(`[voice-status] Inserting follow-up scheduled for: ${scheduledFor}`)
+        
+        const followUp = await db.createFollowUp({
+          conversation_id: conversation.id,
+          lead_id: lead.id,
+          business_id: business.id,
+          kind: 'missed_call_followup_1',
+          status: 'pending',
+          scheduled_for: scheduledFor,
+          message_body: "Hi, just following up in case you still need help. Reply here and we'll get back to you. Reply STOP to opt out.",
+        })
+        
+        if (!followUp) {
+          console.error('[voice-status] Follow-up insert failed - no data returned')
+        } else {
+          console.log(`[voice-status] Follow-up insert successful: ${followUp.id}`)
+        }
+      } else {
+        console.log(`[voice-status] Follow-up insert skipped - existing pending follow-up for conversation ${conversation.id}`)
+      }
+    } else {
+      console.error('[voice-status] No conversation available for follow-up creation')
+    }
+    
+    // Update conversation activity if outbound message was sent
+    if (outboundMessage && conversation) {
+      await db.updateConversation(conversation.id, {
+        last_activity_at: new Date().toISOString(),
+      })
     }
     
     // Return 200 response quickly (Twilio requires this)

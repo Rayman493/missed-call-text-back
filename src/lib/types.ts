@@ -77,6 +77,7 @@ export interface Conversation {
 export interface FollowUp {
   id: string;
   conversation_id: string;
+  lead_id: string;
   business_id: string;
   kind: string;
   status: 'pending' | 'sent' | 'cancelled';
