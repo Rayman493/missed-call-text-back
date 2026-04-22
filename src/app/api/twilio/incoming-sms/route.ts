@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
     let lead = await db.getLeadByPhone(business.id, normalizedCustomerPhone)
     
     if (!lead) {
-      // Create new lead
+      // Create new lead with status 'contacted' since customer replied
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCustomerPhone,
-        status: 'contacted', // Status updated since they replied
+        status: 'contacted', // Customer replied, so mark as contacted
         first_contact_at: new Date().toISOString(),
         last_message_at: new Date().toISOString(),
       })
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
       
       console.log(`[incoming-sms] Created new lead: ${lead.id}`)
     } else if (lead) {
-      // Update existing lead's last activity
+      // Update existing lead's status to 'contacted' and last activity
       const updatedLead = await db.updateLead(lead.id, {
-        status: 'contacted',
+        status: 'contacted', // Customer replied, so mark as contacted
         last_message_at: new Date().toISOString(),
       })
       
