@@ -45,17 +45,34 @@ export async function POST(request: NextRequest) {
     
     const { CallSid, From, To, CallStatus, Direction } = validation.data
     
-    // Find business by Twilio number
+    // Find business by Twilio number - exact match
     let business = null
     try {
-      business = await db.getBusinessByPhone(To)
-      if (business) {
-        logInfo('voice-status', `Business found: ${business.name}`)
-      } else {
-        logError('voice-status', `Business not found for phone: ${To}`)
+      console.log("Looking up business for phone:", { To, CallStatus, From })
+      const { data: businessData, error: businessError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('twilio_phone_number', To)
+        .single()
+      
+      if (businessError) {
+        console.log("Business lookup error:", businessError)
+        logError('voice-status', `Business lookup error for phone: ${To}`, businessError)
         return new Response('OK', { status: 200 })
       }
+      
+      business = businessData
+      console.log("Business found:", { 
+        business_id: business.id, 
+        business_name: business.name, 
+        business_phone: business.twilio_phone_number,
+        To,
+        CallStatus,
+        From
+      })
+      logInfo('voice-status', `Business found: ${business.name} (${business.id})`)
     } catch (error) {
+      console.log("Business lookup failed:", error)
       logError('voice-status', 'Business lookup failed', error)
       return new Response('OK', { status: 200 })
     }
@@ -86,29 +103,53 @@ export async function POST(request: NextRequest) {
     }
     
     // Create lead for missed call
-    console.log("Creating lead for missed call:", { From, To, CallStatus })
+    const normalizedCallerPhone = normalizePhoneNumber(From)
+    console.log("Creating lead for missed call:", { 
+      CallStatus, 
+      From, 
+      To, 
+      business_id: business.id, 
+      normalizedCallerPhone 
+    })
     
     let lead = null
     try {
-      const { data: leadData, error: leadError } = await supabase
+      const leadData = {
+        business_id: business.id,
+        caller_phone: normalizedCallerPhone,
+        status: "new",
+        first_contact_at: new Date().toISOString()
+      }
+      
+      console.log("Attempting lead upsert with data:", leadData)
+      
+      const { data: leadResult, error: leadError } = await supabase
         .from('leads')
-        .insert({
-          business_id: business.id,
-          caller_phone: normalizePhoneNumber(From),
-          status: "new",
-          first_contact_at: new Date().toISOString()
+        .upsert(leadData, {
+          onConflict: 'business_id,caller_phone',
+          ignoreDuplicates: false
         })
         .select()
         .single()
       
+      console.log("Lead upsert response:", { leadResult, leadError })
+      
       if (leadError) {
-        logError('voice-status', 'Failed to create lead', leadError)
+        console.log("Lead upsert error:", leadError)
+        logError('voice-status', 'Failed to upsert lead', leadError)
         return new Response('OK', { status: 200 })
       }
       
-      lead = leadData
-      logInfo('voice-status', `Lead created: ${lead.id}`)
+      lead = leadResult
+      console.log("Lead created/updated:", { 
+        lead_id: lead.id, 
+        business_id: lead.business_id, 
+        caller_phone: lead.caller_phone,
+        status: lead.status 
+      })
+      logInfo('voice-status', `Lead created/updated: ${lead.id}`)
     } catch (error) {
+      console.log("Lead creation failed:", error)
       logError('voice-status', 'Lead creation failed', error)
       return new Response('OK', { status: 200 })
     }

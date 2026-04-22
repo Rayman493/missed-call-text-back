@@ -29,43 +29,23 @@ async function markLeadAsContacted(leadId: string) {
 }
 
 async function getDashboardData() {
-  // Get all businesses for debugging
-  const { data: allBusinesses } = await supabase
+  // Find the business with the configured Twilio phone number
+  const configuredPhone = process.env.TWILIO_PHONE_NUMBER
+  
+  const { data: business, error } = await supabase
     .from('businesses')
     .select('*')
+    .eq('twilio_phone_number', configuredPhone)
+    .single()
 
-  console.log('Dashboard Debug - All businesses:', allBusinesses)
-
-  if (!allBusinesses || allBusinesses.length === 0) {
+  if (error || !business) {
+    console.log('Business not found for phone:', configuredPhone, error)
     return { business: null, leads: [], allBusinesses: [], businessLeadCounts: [] }
   }
 
-  // Get lead counts for all businesses
-  const businessLeadCounts = await Promise.all(
-    allBusinesses.map(async (business) => {
-      const { data: leads } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('business_id', business.id)
-      
-      return {
-        businessId: business.id,
-        businessName: business.name,
-        leadCount: leads?.length || 0
-      }
-    })
-  )
+  console.log('Selected business:', { id: business.id, name: business.name, phone: business.twilio_phone_number })
 
-  console.log('Dashboard Debug - Lead counts by business:', businessLeadCounts)
-
-  // Find the business with the configured Twilio phone number
-  const configuredPhone = process.env.TWILIO_PHONE_NUMBER
-  console.log('Dashboard Debug - Looking for business with phone:', configuredPhone)
-  console.log('Dashboard Debug - Available phone numbers:', allBusinesses.map(b => ({ id: b.id, name: b.name, phone: b.twilio_phone_number })))
-  
-  const business = allBusinesses.find(b => b.twilio_phone_number === configuredPhone) || allBusinesses[0]
-  console.log('Dashboard Debug - Selected business:', business.id, business.name, business.twilio_phone_number)
-
+  // Query leads only for this business
   const { data: leads } = await supabase
     .from('leads')
     .select(`
@@ -80,13 +60,15 @@ async function getDashboardData() {
     .eq('business_id', business.id)
     .order('created_at', { ascending: false })
 
-  console.log('Dashboard Debug - Leads for selected business:', leads?.length || 0)
-
   return {
     business,
     leads: leads || [],
-    allBusinesses,
-    businessLeadCounts
+    allBusinesses: [business],
+    businessLeadCounts: [{
+      businessId: business.id,
+      businessName: business.name,
+      leadCount: leads?.length || 0
+    }]
   }
 }
 
