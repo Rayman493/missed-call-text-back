@@ -164,68 +164,107 @@ export async function POST(request: NextRequest) {
     // Check for recent auto-reply to prevent duplicates
     try {
       const cooldownMinutes = parseInt(process.env.AUTO_REPLY_COOLDOWN_MINUTES || '15')
-      const hasRecentReply = await db.hasRecentAutoReply(business.id, normalizePhoneNumber(From), cooldownMinutes)
+      const cooldownTime = new Date(Date.now() - cooldownMinutes * 60 * 1000).toISOString()
       
-      if (hasRecentReply) {
-        logInfo('voice-status', 'Recent auto-reply already sent, skipping')
+      console.log("Checking cooldown for lead:", { 
+        lead_id: lead.id, 
+        business_id: business.id, 
+        caller_phone: normalizedCallerPhone,
+        cooldownMinutes,
+        cooldownTime
+      })
+      
+      const { data: recentMessages, error: cooldownError } = await supabase
+        .from('messages')
+        .select('id, created_at')
+        .eq('lead_id', lead.id)
+        .eq('direction', 'outbound')
+        .gte('created_at', cooldownTime)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      
+      if (cooldownError) {
+        console.log("Cooldown check error:", cooldownError)
+        logError('voice-status', 'Cooldown check failed', cooldownError)
+      } else if (recentMessages && recentMessages.length > 0) {
+        console.log("Recent auto-reply found, skipping SMS:", recentMessages[0])
+        logInfo('voice-status', `Recent auto-reply already sent at ${recentMessages[0].created_at}, skipping`)
         return new Response('OK', { status: 200 })
+      } else {
+        console.log("No recent auto-reply found, proceeding with SMS")
       }
     } catch (error) {
-      logError('voice-status', 'Auto-reply check failed', error)
+      console.log("Cooldown check failed:", error)
+      logError('voice-status', 'Auto-reply cooldown check failed', error)
     }
     
     // Send auto-reply SMS
     try {
-      logInfo('voice-status', 'Attempting to send auto-reply SMS')
+      console.log("Attempting to send auto-reply SMS:", {
+        business_id: business.id,
+        lead_id: lead.id,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: From,
+        body: business.auto_reply_message
+      })
       
       const twilioClient = new Twilio(accountSid, authToken)
       const message = await twilioClient.messages.create({
         body: business.auto_reply_message,
-        from: twilioPhoneNumber,
-        to: normalizePhoneNumber(From),
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: From,
       })
       
+      console.log("SMS sent successfully:", {
+        to: From,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        twilio_message_sid: message.sid,
+        status: message.status
+      })
       logInfo('voice-status', `Auto-reply SMS sent successfully to ${From}, SID: ${message.sid}`)
       
-      // Save outbound message
+      // Save outbound message after Twilio accepts
       try {
-        const savedMessage = await db.createMessage({
+        const messageData = {
           lead_id: lead.id,
           direction: 'outbound',
           body: business.auto_reply_message,
-          from_phone: business.twilio_phone_number,
-          to_phone: normalizePhoneNumber(From),
-        })
+          from_phone: process.env.TWILIO_PHONE_NUMBER,
+          to_phone: From,
+          twilio_message_sid: message.sid,
+          created_at: new Date().toISOString()
+        }
         
-        if (savedMessage) {
-          logInfo('voice-status', `Outbound message saved: ${savedMessage.id}`)
+        console.log("Saving outbound message:", messageData)
+        
+        const { data: savedMessage, error: saveError } = await supabase
+          .from('messages')
+          .insert(messageData)
+          .select()
+          .single()
+        
+        if (saveError) {
+          console.log("Message save error:", saveError)
+          logError('voice-status', 'Failed to save outbound message', saveError)
         } else {
-          logError('voice-status', 'Failed to save outbound message')
+          console.log("Outbound message saved:", savedMessage)
+          logInfo('voice-status', `Outbound message saved: ${savedMessage.id}`)
         }
       } catch (error) {
+        console.log("Message save failed:", error)
         logError('voice-status', 'Message save failed', error)
       }
       
-      // Return TwiML response
-      const twiml = '<?xml version="1.0" encoding="UTF-8"?>' +
-        '<Response>' +
-        '<Say>Thank you for calling. We experienced an issue processing your call. We will get back to you shortly.</Say>' +
-        '<Hangup/>' +
-        '</Response>'
-      
-      logInfo('voice-status', 'Final response sent to Twilio')
-      return new NextResponse(twiml, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/xml'
-        }
-      })
+      // Return success response
+      logInfo('voice-status', 'Auto-reply SMS flow completed successfully')
+      return new Response('OK', { status: 200 })
       
     } catch (error) {
+      console.log("SMS send failed:", error)
       logError('voice-status', 'SMS send failed', error)
       
-      // Return success response - lead was processed successfully
-      logInfo('voice-status', 'Final response sent to Twilio (SMS failed but lead processed)')
+      // Return success response - lead was processed successfully even if SMS failed
+      logInfo('voice-status', 'Auto-reply SMS flow completed with SMS error')
       return new Response('OK', { status: 200 })
     }
     
