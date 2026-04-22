@@ -74,6 +74,18 @@ export interface Conversation {
   created_at: string;
 }
 
+export interface FollowUp {
+  id: string;
+  conversation_id: string;
+  business_id: string;
+  kind: string;
+  status: 'pending' | 'sent' | 'cancelled';
+  scheduled_for: string;
+  message_body: string;
+  sent_at?: string;
+  created_at: string;
+}
+
 export interface CallEventWithBusiness extends CallEvent {
   business: Business;
 }

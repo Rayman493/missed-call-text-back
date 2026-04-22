@@ -142,6 +142,17 @@ export async function POST(req: NextRequest) {
       }
     }
     
+    // Cancel all pending follow-ups for this conversation when customer replies
+    if (conversation) {
+      const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
+      
+      if (cancelled) {
+        console.log(`[incoming-sms] Cancelled pending follow-ups for conversation: ${conversation.id}`)
+      } else {
+        console.error('[incoming-sms] Failed to cancel follow-ups')
+      }
+    }
+    
     // At this point, conversation is guaranteed to exist
     // Save inbound message linked to conversation
     const message = await db.createMessageWithConversation({
