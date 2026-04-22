@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
     // Only process missed calls (incoming calls that weren't answered)
     if (!CallStatus || !isMissedCall(CallStatus)) {
       console.log('Not a missed call, ignoring')
-      // Don't answer the call - let it ring through to voicemail
+      // Keep call alive briefly to let Twilio detect no-answer
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?>
-<Response></Response>`,
+<Response>
+  <Pause length="10"/>
+</Response>`,
         {
           status: 200,
           headers: {
