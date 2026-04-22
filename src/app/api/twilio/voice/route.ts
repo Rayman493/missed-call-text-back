@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendSms, normalizePhoneNumber, isMissedCall } from '@/lib/twilio'
 import { logInfo, logError } from '@/lib/utils'
@@ -31,15 +31,16 @@ export async function POST(request: NextRequest) {
     if (!CallStatus || !isMissedCall(CallStatus)) {
       console.log('Not a missed call, ignoring')
       // Don't answer the call - let it ring through to voicemail
-      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Reject/>
-</Response>`, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/xml'
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>`,
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/xml',
+          },
         }
-      })
+      )
     }
     
     // Find business by Twilio phone number
@@ -51,16 +52,19 @@ export async function POST(request: NextRequest) {
     
     if (!businesses) {
       logError('voice', 'Business not found for phone', { To })
-      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>We're experiencing technical difficulties. Please try again later.</Say>
   <Hangup/>
-</Response>`, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/xml'
+</Response>`,
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/xml'
+          }
         }
-      })
+      )
     }
     
     const business = businesses
@@ -68,15 +72,18 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!From) {
       console.log('Missing From field, ignoring call')
-      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Reject/>
-</Response>`, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/xml'
+</Response>`,
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/xml'
+          }
         }
-      })
+      )
     }
 
     // Create or update lead
@@ -94,16 +101,19 @@ export async function POST(request: NextRequest) {
     
     if (leadError || !lead) {
       logError('voice', 'Failed to upsert lead', leadError)
-      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>We're experiencing technical difficulties. Please try again later.</Say>
   <Hangup/>
-</Response>`, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/xml'
+</Response>`,
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/xml'
+          }
         }
-      })
+      )
     }
     
     logInfo('voice', `Lead created/updated: ${lead.id}`)
@@ -138,7 +148,7 @@ export async function POST(request: NextRequest) {
   <Hangup/>
 </Response>`
     
-    return new NextResponse(twiml, {
+    return new Response(twiml, {
       status: 200,
       headers: {
         'Content-Type': 'text/xml'
@@ -155,7 +165,7 @@ export async function POST(request: NextRequest) {
   <Hangup/>
 </Response>`
     
-    return new NextResponse(errorTwiml, {
+    return new Response(errorTwiml, {
       status: 500,
       headers: {
         'Content-Type': 'text/xml'
