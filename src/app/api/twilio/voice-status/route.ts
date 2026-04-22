@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Only process missed calls (incoming calls that weren't answered)
-    if (!isMissedCall(CallStatus, Direction)) {
+    if (!isMissedCall(CallStatus)) {
       logInfo('voice-status', 'Not a missed call, ignoring')
       return new Response('OK', { status: 200 })
     }
