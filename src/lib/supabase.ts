@@ -15,7 +15,7 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 export const db = {
   // Business operations
   async getBusinessByPhone(phone: string): Promise<Business | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('businesses')
       .select('*')
       .eq('twilio_phone_number', phone)
@@ -161,7 +161,7 @@ export const db = {
   },
 
   async getLeadsByBusiness(businessId: string): Promise<Lead[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('business_id', businessId)
@@ -176,7 +176,7 @@ export const db = {
   },
 
   async getLeadWithMessages(leadId: string): Promise<LeadWithMessages | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('leads')
       .select(`
         *,
@@ -196,7 +196,7 @@ export const db = {
 
   // Message operations
   async getMessagesByLead(leadId: string): Promise<Message[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('messages')
       .select('*')
       .eq('lead_id', leadId)
@@ -212,7 +212,7 @@ export const db = {
 
   
   async getCallEventsByLead(businessId: string, callerPhone: string): Promise<CallEvent[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('call_events')
       .select('*')
       .eq('business_id', businessId)
