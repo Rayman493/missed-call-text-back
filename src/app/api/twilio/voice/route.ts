@@ -65,6 +65,20 @@ export async function POST(request: NextRequest) {
     
     const business = businesses
     
+    // Validate required fields
+    if (!From) {
+      console.log('Missing From field, ignoring call')
+      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Reject/>
+</Response>`, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml'
+        }
+      })
+    }
+
     // Create or update lead
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('leads')
