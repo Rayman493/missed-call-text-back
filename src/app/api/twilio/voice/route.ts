@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     })
     
     // Only process missed calls (incoming calls that weren't answered)
-    if (!isMissedCall(CallStatus, Direction)) {
+    if (!CallStatus || !isMissedCall(CallStatus)) {
       console.log('Not a missed call, ignoring')
       // Don't answer the call - let it ring through to voicemail
       return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
