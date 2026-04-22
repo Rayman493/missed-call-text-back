@@ -150,10 +150,10 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
               </div>
               <Link
                 href="/dashboard/settings"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.405 1.405H8.02c0-1.405.594-1.405H6.375c-1.405-.594-1.405H4.317c-1.405-.594 1.405H2.68c-.426 0-.594.426-.594.426H1.405c-.426.594-.426.594H.594c0 .426.594.426.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594H16.53c.426-.594.426-.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l6-6m6 6v4H4a2 2 0 01-4-4H5a4 4 0 01-4 4h2a4 4 0 01-4 4v6a2 4 0 01-4 4h6a4 4 0 01-4 4z"/>
                 </svg>
                 Settings
               </Link>
@@ -308,6 +308,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                           <span className="text-xs text-gray-500 ml-2">
                             {formatRelativeTime(lead.messages[0].created_at)}
                           </span>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                           {lead.status === 'new' && (
                             <form action={markLeadAsContacted.bind(null, lead.id)}>
@@ -326,15 +327,10 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                             View Details
                           </Link>
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            {leads.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No leads yet. Missed calls will appear here.</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

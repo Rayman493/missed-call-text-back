@@ -174,8 +174,8 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
             {lead.messages && lead.messages.length > 0 ? (
               <div className="space-y-4">
                 {lead.messages
-                  .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                  .map((message) => (
+                  .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                  .map((message: any) => (
                     <div key={message.id} className={`flex items-start gap-4 p-4 rounded-lg border-l-4 ${
                       message.direction === 'inbound' 
                         ? 'bg-blue-50 hover:bg-blue-100' 
@@ -208,6 +208,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                               {formatRelativeTime(message.created_at)}
                             </span>
                         </div>
+                      </div>
                         <div className={`p-4 rounded-lg ${
                           message.direction === 'inbound' 
                             ? 'bg-blue-50 text-blue-900 border-blue-200' 

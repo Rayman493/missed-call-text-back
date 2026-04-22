@@ -90,16 +90,18 @@ export default async function SettingsPage() {
         </div>
 
         {/* Settings Form */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.405 1.405H8.02c0-1.405.594-1.405H6.375c-1.405-.594-1.405H4.317c-1.405-.594 1.405H2.68c-.426 0-.594.426-.594.426H1.405c-.426.594-.426.594H.594c0 .426.594.426.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594H16.53c.426-.594.426-.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594z"/>
-              </svg>
-              Business Settings
-            </h2>
-          </div>
-          <div className="p-6 space-y-6">
+        <form action={updateBusiness}>
+          <div className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.405 1.405H8.02c0-1.405.594-1.405H6.375c-1.405-.594-1.405H4.317c-1.405-.594 1.405H2.68c-.426 0-.594.426-.594.426H1.405c-.426.594-.426.594H.594c0 .426.594.426.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594H16.53c.426-.594.426-.594h.821c.426 0 .594-.426.594h1.405c.426.594.426.594z"/>
+                </svg>
+                Business Settings
+              </h2>
+            </div>
+            <div className="p-6 space-y-6">
+              <input type="hidden" name="businessId" value={business.id} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -156,7 +158,7 @@ export default async function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )
