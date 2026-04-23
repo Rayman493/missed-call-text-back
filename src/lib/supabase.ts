@@ -433,5 +433,52 @@ export const db = {
     }
     
     return !!data
+  },
+
+  // Additional helper functions for cron route
+  async cancelFollowUp(followUpId: string): Promise<FollowUp | null> {
+    const { data, error } = await supabaseAdmin
+      .from('follow_ups')
+      .update({ status: 'cancelled' })
+      .eq('id', followUpId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error cancelling follow-up:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getBusinessById(businessId: string): Promise<Business | null> {
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching business:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getLeadById(leadId: string): Promise<Lead | null> {
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .select('*')
+      .eq('id', leadId)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching lead:', error)
+      return null
+    }
+    
+    return data
   }
 }

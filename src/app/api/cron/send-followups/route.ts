@@ -4,127 +4,126 @@ import { sendSms } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[send-followups] Starting follow-up sending process')
+    console.log('[send-followups] Starting follow-up processing')
     
     // Get all due follow-ups
     const dueFollowUps = await db.getDueFollowUps()
     
     if (dueFollowUps.length === 0) {
       console.log('[send-followups] No due follow-ups found')
-      return NextResponse.json({ message: 'No due follow-ups found' })
+      return NextResponse.json({ 
+        processed: 0,
+        sent: 0,
+        cancelled: 0,
+        errors: 0
+      })
     }
     
     console.log(`[send-followups] Found ${dueFollowUps.length} due follow-ups`)
     
-    const results = []
+    let processed = 0
+    let sent = 0
+    let cancelled = 0
+    let errors = 0
     
+    // Loop through all due follow-ups
     for (const followUp of dueFollowUps) {
+      processed++
+      console.log(`[send-followups] Processing follow_up: ${followUp.id}`)
+      
       try {
-        console.log(`[send-followups] Processing follow-up: ${followUp.id}`)
-        
-        // Verify conversation is still open
+        // Fetch conversation
         const conversation = await db.getConversationById(followUp.conversation_id)
         
         if (!conversation) {
-          console.error(`[send-followups] Conversation not found: ${followUp.conversation_id}`)
+          console.log(`[send-followups] Skipped (conversation not found): ${followUp.id}`)
+          errors++
           continue
         }
         
+        // Skip if conversation.status !== 'open'
         if (conversation.status !== 'open') {
-          console.log(`[send-followups] Conversation ${conversation.id} is not open (status: ${conversation.status}), skipping`)
+          console.log(`[send-followups] Skipped (conversation closed): ${followUp.id}`)
+          
+          // Mark as cancelled
+          await db.cancelFollowUp(followUp.id)
+          cancelled++
           continue
         }
         
-        // Verify there is NO inbound customer message in that conversation after the follow_up was created
+        // Check for inbound messages AFTER follow_up.created_at
         const latestInboundMessage = await db.getLatestInboundMessageForConversation(
           followUp.conversation_id, 
           followUp.created_at
         )
         
         if (latestInboundMessage) {
-          console.log(`[send-followups] Found inbound message after follow-up creation, skipping: ${latestInboundMessage.id}`)
+          console.log(`[send-followups] Cancelled (user replied): ${followUp.id}`)
+          
+          // Mark follow_up as 'cancelled'
+          await db.cancelFollowUp(followUp.id)
+          cancelled++
           continue
         }
         
-        // Get lead information to send SMS
-        const lead = await db.getLeadByPhone(conversation.business_id, conversation.lead_id)
+        // Valid to send - fetch business and lead
+        const business = await db.getBusinessById(followUp.business_id)
+        const lead = await db.getLeadById(conversation.lead_id)
         
-        if (!lead) {
-          console.error(`[send-followups] Lead not found for conversation: ${conversation.id}`)
+        if (!business || !lead) {
+          console.log(`[send-followups] Error (missing business/lead): ${followUp.id}`)
+          errors++
           continue
         }
         
-        // Send the SMS
+        // Call sendSms
         const messageSid = await sendSms(lead.caller_phone, followUp.message_body)
         
         if (!messageSid) {
-          console.error(`[send-followups] Failed to send SMS for follow-up: ${followUp.id}`)
+          console.log(`[send-followups] Error (SMS failed): ${followUp.id}`)
+          errors++
           continue
         }
         
-        console.log(`[send-followups] Sent SMS for follow-up: ${followUp.id}, SID: ${messageSid}`)
+        console.log(`[send-followups] Sent successfully: ${followUp.id}, SID: ${messageSid}`)
         
-        // Insert outbound message into public.messages
-        const business = await db.getBusinessByPhone(process.env.TWILIO_PHONE_NUMBER!)
-        
-        if (!business) {
-          console.error('[send-followups] Business not found for Twilio phone number')
-          continue
-        }
-        
+        // Insert new row into public.messages
         const outboundMessage = await db.createMessageWithConversation({
-          lead_id: lead.id,
-          conversation_id: conversation.id,
           direction: 'outbound',
           body: followUp.message_body,
+          lead_id: lead.id,
+          conversation_id: conversation.id,
           from_phone: business.twilio_phone_number,
           to_phone: lead.caller_phone,
           created_at: new Date().toISOString(),
         })
         
         if (!outboundMessage) {
-          console.error(`[send-followups] Failed to save outbound message for follow-up: ${followUp.id}`)
-        } else {
-          console.log(`[send-followups] Saved outbound message: ${outboundMessage.id}`)
+          console.log(`[send-followups] Warning (message save failed): ${followUp.id}`)
         }
         
-        // Update follow-up status to sent
-        const updatedFollowUp = await db.markFollowUpSent(followUp.id)
-        
-        if (!updatedFollowUp) {
-          console.error(`[send-followups] Failed to mark follow-up as sent: ${followUp.id}`)
-        } else {
-          console.log(`[send-follow-ups] Marked follow-up as sent: ${updatedFollowUp.id}`)
-        }
+        // Update follow_up: status = 'sent', sent_at = now()
+        await db.markFollowUpSent(followUp.id)
+        sent++
         
         // Update conversation activity
         await db.updateConversation(conversation.id, {
           last_activity_at: new Date().toISOString(),
         })
         
-        results.push({
-          followUpId: followUp.id,
-          status: 'sent',
-          messageSid,
-          outboundMessageId: outboundMessage?.id
-        })
-        
       } catch (error) {
-        console.error(`[send-followups] Error processing follow-up ${followUp.id}:`, error)
-        results.push({
-          followUpId: followUp.id,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
+        console.log(`[send-followups] Error processing ${followUp.id}:`, error)
+        errors++
       }
     }
     
-    console.log(`[send-followups] Processed ${dueFollowUps.length} follow-ups, sent: ${results.filter(r => r.status === 'sent').length}`)
+    console.log(`[send-followups] Complete - Processed: ${processed}, Sent: ${sent}, Cancelled: ${cancelled}, Errors: ${errors}`)
     
     return NextResponse.json({
-      message: 'Follow-up sending process completed',
-      processed: dueFollowUps.length,
-      results
+      processed,
+      sent,
+      cancelled,
+      errors
     })
     
   } catch (error) {
@@ -149,9 +148,12 @@ export async function GET() {
       followUps: dueFollowUps.map(fu => ({
         id: fu.id,
         conversation_id: fu.conversation_id,
+        lead_id: fu.lead_id,
+        business_id: fu.business_id,
         kind: fu.kind,
         scheduled_for: fu.scheduled_for,
-        status: fu.status
+        status: fu.status,
+        created_at: fu.created_at
       }))
     })
     
