@@ -26,28 +26,40 @@ export async function GET() {
       });
     }
 
-    const client = Twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    );
-
-    const service = await client.messaging.v1
-      .services(business.twilio_messaging_service_sid)
-      .fetch();
-
+    // Return debug JSON with Supabase data
     return NextResponse.json({
       success: true,
-      business: {
+      debug: {
         id: business.id,
         name: business.name,
         twilio_phone_number: business.twilio_phone_number,
         twilio_messaging_service_sid: business.twilio_messaging_service_sid,
       },
-      messagingService: {
-        sid: service.sid,
-        friendlyName: service.friendlyName,
-      },
     });
+
+    // TODO: Uncomment when ready to test Twilio API
+    // const client = Twilio(
+    //   process.env.TWILIO_ACCOUNT_SID!,
+    //   process.env.TWILIO_AUTH_TOKEN!
+    // );
+
+    // const service = await client.messaging.v1
+    //   .services(business.twilio_messaging_service_sid)
+    //   .fetch();
+
+    // return NextResponse.json({
+    //   success: true,
+    //   business: {
+    //     id: business.id,
+    //     name: business.name,
+    //     twilio_phone_number: business.twilio_phone_number,
+    //     twilio_messaging_service_sid: business.twilio_messaging_service_sid,
+    //   },
+    //   messagingService: {
+    //     sid: service.sid,
+    //     friendlyName: service.friendlyName,
+    //   },
+    // });
   } catch (error) {
     const err =
       error && typeof error === "object"
