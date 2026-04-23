@@ -45,33 +45,57 @@ export async function GET() {
     })
     
     // Send SMS using real business configuration
-    const messageSid = await sendSms(business, to, message)
-    
-    if (!messageSid) {
-      console.error('[test/send-sms] Failed to send SMS')
-      const err = error && typeof error === "object"
-    ? (error as {
-        message?: string;
-        code?: string | number;
-        status?: string | number;
-        moreInfo?: string;
+    try {
+      const messageSid = await sendSms(business, to, message)
+      
+      if (!messageSid) {
+        console.error('[test/send-sms] Failed to send SMS')
+        const err = error as unknown as {
+          message?: string;
+          code?: string | number;
+          status?: string | number;
+          moreInfo?: string;
+        }
+        return NextResponse.json({
+          success: false,
+          message: "Failed to send SMS",
+          error: {
+            message: err.message ?? "Unknown error",
+            code: err.code,
+            status: err.status,
+            moreInfo: err.moreInfo
+          }
+        }, { status: 500 })
+      }
+      
+      console.log(`[test/send-sms] SMS sent successfully, SID: ${messageSid}`)
+      
+      return NextResponse.json({
+        success: true,
+        message: "SMS sent",
+        messageSid: messageSid,
+        to: to,
+        body: message,
+        business: {
+          id: business.id,
+          name: business.name,
+          messaging_service_sid: business.twilio_messaging_service_sid
+        }
       })
-    : null;
+    } catch (error) {
+      console.error('[test/send-sms] Error sending SMS:', error)
       
       return NextResponse.json({
         success: false,
-        message: "Failed to send SMS",
+        message: "Error sending SMS",
         error: {
-          message: err?.message ?? "Unknown error",
-          code: err?.code,
-          status: err?.status,
-          moreInfo: err?.moreInfo
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: error instanceof Error && 'code' in error ? error.code : undefined,
+          status: error instanceof Error && 'status' in error ? error.status : undefined,
+          moreInfo: error instanceof Error && 'moreInfo' in error ? error.moreInfo : undefined
         }
       }, { status: 500 })
     }
-    
-    console.log(`[test/send-sms] SMS sent successfully, SID: ${messageSid}`)
-    
     return NextResponse.json({
       success: true,
       message: "SMS sent",

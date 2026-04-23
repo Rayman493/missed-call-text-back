@@ -31,6 +31,7 @@ export async function sendSms(business: any, to: string, message: string): Promi
   const client = new Twilio(accountSid, authToken)
 
   try {
+    console.log("Attempting to send SMS to", to)
     const messageResult = await client.messages.create({
       body: message,
       messagingServiceSid: business.twilio_messaging_service_sid,
@@ -40,8 +41,8 @@ export async function sendSms(business: any, to: string, message: string): Promi
     console.log(`SMS sent to ${to}, SID: ${messageResult.sid}`)
     return messageResult.sid
   } catch (error) {
-    console.error('Error sending SMS:', error)
-    return null
+    console.error("Error sending SMS:", error)
+    throw error
   }
 }
 
