@@ -36,6 +36,14 @@ export async function GET() {
     
     console.log(`[test/send-sms] Sending test SMS to: ${to}`)
     
+    // Log business details before send attempt
+    console.log(`[test/send-sms] Attempting to send SMS via business:`, {
+      id: business.id,
+      name: business.name,
+      messaging_service_sid: business.twilio_messaging_service_sid,
+      phone_number: business.twilio_phone_number
+    })
+    
     // Send SMS using real business configuration
     const messageSid = await sendSms(business, to, message)
     
@@ -44,7 +52,12 @@ export async function GET() {
       return NextResponse.json({
         success: false,
         message: "Failed to send SMS",
-        error: "Twilio API error"
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: error instanceof Error && 'code' in error ? error.code : undefined,
+          status: error instanceof Error && 'status' in error ? error.status : undefined,
+          moreInfo: error instanceof Error && 'moreInfo' in error ? error.moreInfo : undefined
+        }
       }, { status: 500 })
     }
     
