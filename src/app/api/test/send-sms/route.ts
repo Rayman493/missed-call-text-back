@@ -28,6 +28,8 @@ export async function GET() {
       });
     }
 
+    console.log("Using messaging service SID:", business.twilio_messaging_service_sid);
+
     const result = await sendSms(business, to, body);
 
     return NextResponse.json({
