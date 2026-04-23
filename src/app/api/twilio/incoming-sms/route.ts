@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
         status: 'contacted', // Customer replied, so mark as contacted
         first_contact_at: new Date().toISOString(),
         last_message_at: new Date().toISOString(),
+        last_reply_at: new Date().toISOString(),
+        opted_out: false,
       })
       
       if (!lead) {
@@ -92,10 +94,11 @@ export async function POST(req: NextRequest) {
       
       console.log(`[incoming-sms] Created new lead: ${lead.id}`)
     } else if (lead) {
-      // Update existing lead's status to 'contacted' and last activity
+      // Update existing lead's status to 'replied' and track reply time
       const updatedLead = await db.updateLead(lead.id, {
-        status: 'contacted', // Customer replied, so mark as contacted
+        status: 'replied', // Customer replied, so mark as replied
         last_message_at: new Date().toISOString(),
+        last_reply_at: new Date().toISOString(), // Track when customer replied
       })
       
       if (!updatedLead) {
@@ -160,6 +163,15 @@ export async function POST(req: NextRequest) {
       } else {
         console.error('[incoming-sms] Failed to cancel follow-ups')
       }
+    }
+    
+    // Cancel all pending follow-up jobs for this lead when customer replies
+    const jobsCancelled = await db.cancelPendingFollowUpJobsForLead(lead.id)
+    
+    if (jobsCancelled) {
+      console.log(`[incoming-sms] Cancelled pending follow-up jobs for lead: ${lead.id}`)
+    } else {
+      console.error('[incoming-sms] Failed to cancel follow-up jobs')
     }
     
     // At this point, conversation is guaranteed to exist

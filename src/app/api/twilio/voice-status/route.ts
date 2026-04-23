@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
         status: 'new', // New missed call, not contacted yet
         first_contact_at: new Date().toISOString(),
         last_message_at: null, // No messages yet
+        last_reply_at: null, // No replies yet
+        opted_out: false,
       })
       
       if (!lead) {
