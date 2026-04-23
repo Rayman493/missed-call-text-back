@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     
     // Send auto-reply SMS only if lead is 'new'
     if (shouldSendAutoReply) {
-      const messageSid = await sendSms(From, business.auto_reply_message)
+      const messageSid = await sendSms(business, From, business.auto_reply_message)
       
       if (messageSid) {
         console.log(`[voice-status] Sent auto-reply SMS: ${messageSid}`)

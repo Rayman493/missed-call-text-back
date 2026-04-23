@@ -9,28 +9,33 @@ export const twilioClient = accountSid && authToken && accountSid.startsWith('AC
   ? new Twilio(accountSid, authToken)
   : null
 
-export async function sendSms(to: string, body: string): Promise<string | null> {
+export async function sendSms(business: any, to: string, message: string): Promise<string | null> {
   // Create fresh Twilio client for this SMS
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   
-  if (!accountSid || !authToken || !messagingServiceSid) {
+  if (!accountSid || !authToken) {
     console.error('Twilio credentials missing')
     return null
+  }
+
+  // Validate business has messaging service SID
+  if (!business.twilio_messaging_service_sid) {
+    console.error('Business twilio_messaging_service_sid is missing')
+    throw new Error('Business twilio_messaging_service_sid is required')
   }
 
   const client = new Twilio(accountSid, authToken)
 
   try {
-    const message = await client.messages.create({
-      body,
-      messagingServiceSid,
+    const messageResult = await client.messages.create({
+      body: message,
+      messagingServiceSid: business.twilio_messaging_service_sid,
       to,
     })
     
-    console.log(`SMS sent to ${to}, SID: ${message.sid}`)
-    return message.sid
+    console.log(`SMS sent to ${to}, SID: ${messageResult.sid}`)
+    return messageResult.sid
   } catch (error) {
     console.error('Error sending SMS:', error)
     return null

@@ -12,7 +12,11 @@ export async function GET() {
     console.log(`[test/send-sms] Sending test SMS to: ${to}`)
     
     // Send SMS using existing sendSms helper
-    const messageSid = await sendSms(to, message)
+    // For testing, create a mock business object with the global messaging service SID
+    const testBusiness = {
+      twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID
+    }
+    const messageSid = await sendSms(testBusiness, to, message)
     
     if (!messageSid) {
       console.error('[test/send-sms] Failed to send SMS')

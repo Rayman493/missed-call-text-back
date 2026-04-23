@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(lead.caller_phone, followUp.message_body)
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body)
         
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
@@ -204,7 +204,7 @@ export async function GET() {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(lead.caller_phone, followUp.message_body)
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body)
         
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
