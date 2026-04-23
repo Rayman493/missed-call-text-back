@@ -99,16 +99,6 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       message: "SMS sent",
-      messageSid: messageSid,
-      to: to,
-      body: message,
-      business: {
-        id: business.id,
-        name: business.name,
-        messaging_service_sid: business.twilio_messaging_service_sid
-      }
-    })
-    
   } catch (error) {
     console.error('[test/send-sms] Error:', error)
     
