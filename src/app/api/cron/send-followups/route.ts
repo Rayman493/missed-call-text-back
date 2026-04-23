@@ -257,10 +257,12 @@ export async function GET() {
   } catch (error) {
     console.error('[send-followups] GET error:', error)
 
+    const err = error as { message?: string }
+
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        errorDetails: [error.message]
+        errorDetails: [err.message]
       },
       { status: 500 }
     )
