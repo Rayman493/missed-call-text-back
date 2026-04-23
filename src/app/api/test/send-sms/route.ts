@@ -79,7 +79,8 @@ export async function GET() {
         business: {
           id: business.id,
           name: business.name,
-          messaging_service_sid: business.twilio_messaging_service_sid
+          twilio_phone_number: business.twilio_phone_number,
+          twilio_messaging_service_sid: business.twilio_messaging_service_sid,
         }
       })
     } catch (error) {
