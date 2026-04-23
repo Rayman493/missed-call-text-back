@@ -31,6 +31,15 @@ export async function POST(req: NextRequest) {
     
     // Find business by Twilio phone number
     const business = await db.getBusinessByPhone(To)
+    
+    // Log resolved business details
+    if (business) {
+      console.log(`[incoming-sms] Resolved business:`, {
+        id: business.id,
+        name: business.name,
+        phone_number: business.twilio_phone_number
+      })
+    }
     if (!business) {
       console.error(`[incoming-sms] Business not found for phone: ${To}`)
       

@@ -44,6 +44,13 @@ export async function POST(req: NextRequest) {
     
     console.log(`[voice-status] Found business: ${business.name} (${business.id})`)
     
+    // Log resolved business details
+    console.log(`[voice-status] Resolved business:`, {
+      id: business.id,
+      name: business.name,
+      phone_number: business.twilio_phone_number
+    })
+    
     // Normalize customer phone number
     const normalizedCallerPhone = normalizePhoneNumber(From)
     

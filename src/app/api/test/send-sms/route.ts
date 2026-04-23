@@ -1,22 +1,43 @@
 import { NextResponse } from 'next/server'
 import { sendSms } from '@/lib/twilio'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
     console.log('[test/send-sms] Starting SMS test')
     
+    // Load test business from database by name
+    const { data: business, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('name', 'Demo Plumbing Co')
+      .single()
+    
+    if (error || !business) {
+      console.error('[test/send-sms] Failed to load test business:', error)
+      return NextResponse.json({
+        success: false,
+        message: "Failed to load test business",
+        error: error instanceof Error ? error.message : 'Business not found'
+      }, { status: 500 })
+    }
+    
     // Hardcoded test phone number and message
     const to = "+14128553010"
     const message = "Test SMS from ReplyFlow - if you got this, Twilio is working"
     
+    // Log business details
+    console.log(`[test/send-sms] Using business:`, {
+      id: business.id,
+      name: business.name,
+      messaging_service_sid: business.twilio_messaging_service_sid,
+      phone_number: business.twilio_phone_number
+    })
+    
     console.log(`[test/send-sms] Sending test SMS to: ${to}`)
     
-    // Send SMS using existing sendSms helper
-    // For testing, create a mock business object with the global messaging service SID
-    const testBusiness = {
-      twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID
-    }
-    const messageSid = await sendSms(testBusiness, to, message)
+    // Send SMS using real business configuration
+    const messageSid = await sendSms(business, to, message)
     
     if (!messageSid) {
       console.error('[test/send-sms] Failed to send SMS')
@@ -34,7 +55,12 @@ export async function GET() {
       message: "SMS sent",
       messageSid: messageSid,
       to: to,
-      body: message
+      body: message,
+      business: {
+        id: business.id,
+        name: business.name,
+        messaging_service_sid: business.twilio_messaging_service_sid
+      }
     })
     
   } catch (error) {
@@ -43,7 +69,12 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       message: "Error sending SMS",
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: error instanceof Error && 'code' in error ? error.code : undefined,
+        status: error instanceof Error && 'status' in error ? error.status : undefined,
+        moreInfo: error instanceof Error && 'moreInfo' in error ? error.moreInfo : undefined
+      }
     }, { status: 500 })
   }
 }
