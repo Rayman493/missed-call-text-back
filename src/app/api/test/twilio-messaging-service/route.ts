@@ -21,7 +21,6 @@ export async function GET() {
         error: {
           message: businessError?.message ?? "Business not found",
           code: businessError?.code,
-          status: businessError?.status,
           moreInfo: businessError?.details,
         },
       });
