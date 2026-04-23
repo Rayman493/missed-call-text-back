@@ -13,6 +13,8 @@ export interface Lead {
   status: string;
   first_contact_at: string | null;
   last_message_at: string | null;
+  last_reply_at: string | null;
+  opted_out: boolean;
   created_at: string;
 }
 

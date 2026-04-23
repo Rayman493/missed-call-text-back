@@ -62,7 +62,7 @@ export async function POST() {
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
           .from('leads')
-          .select('id, caller_phone, business_id')
+          .select('id, caller_phone, business_id, opted_out')
           .eq('id', job.lead_id)
           .single();
 
@@ -82,11 +82,27 @@ export async function POST() {
           continue;
         }
 
-        // Check if lead has phone number
+        // Check if lead has phone number or is opted out
         if (!lead.caller_phone) {
           console.error(`[process-followups] Lead ${lead.id} has no phone number`);
           
-          // Mark job as failed
+          // Mark job as failed (do not retry)
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: job.attempt_count + 1
+            })
+            .eq('id', job.id);
+          
+          failed++;
+          continue;
+        }
+
+        if (lead.opted_out) {
+          console.error(`[process-followups] Lead ${lead.id} is opted out`);
+          
+          // Mark job as failed (do not retry)
           await supabase
             .from('follow_up_jobs')
             .update({ 
@@ -169,22 +185,36 @@ export async function POST() {
       } catch (error) {
         console.error(`[process-followups] Error processing job ${job.id}:`, error);
         
-        // Increment attempt count and mark as failed if max attempts reached
+        // Increment attempt count and determine retry logic
         const newAttemptCount = job.attempt_count + 1;
         const shouldFail = newAttemptCount >= job.max_attempts;
         
-        await supabase
-          .from('follow_up_jobs')
-          .update({ 
-            status: shouldFail ? 'failed' : 'pending',
-            attempt_count: newAttemptCount
-          })
-          .eq('id', job.id);
-        
         if (shouldFail) {
+          // Max attempts reached - mark as failed
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: newAttemptCount
+            })
+            .eq('id', job.id);
+          
           failed++;
+          console.log(`[process-followups] Job ${job.id} failed after ${newAttemptCount} attempts`);
         } else {
-          console.log(`[process-followups] Job ${job.id} failed, will retry (attempt ${newAttemptCount}/${job.max_attempts})`);
+          // Retry with 5-minute delay
+          const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
+          
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'pending',
+              attempt_count: newAttemptCount,
+              scheduled_for: retryTime
+            })
+            .eq('id', job.id);
+          
+          console.log(`[process-followups] Job ${job.id} failed, will retry at ${retryTime} (attempt ${newAttemptCount}/${job.max_attempts})`);
           errors++;
         }
       }
