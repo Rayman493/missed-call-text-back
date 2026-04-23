@@ -25,6 +25,9 @@ export async function sendSms(business: any, to: string, message: string): Promi
     throw new Error('Business twilio_messaging_service_sid is required')
   }
 
+  // Log the messagingServiceSid being used
+  console.log("Sending SMS via Messaging Service:", business.twilio_messaging_service_sid)
+
   const client = new Twilio(accountSid, authToken)
 
   try {
