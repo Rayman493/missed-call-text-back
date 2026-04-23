@@ -32,17 +32,16 @@ async function markLeadAsContacted(leadId: string) {
 }
 
 async function getDashboardData() {
-  // Find the business with the configured Twilio phone number
-  const configuredPhone = process.env.TWILIO_PHONE_NUMBER
-  
+  // TODO: This is temporary and should later be replaced with proper user/business ownership
+  // Fetch the first business row from public.businesses without filtering by user
   const { data: business, error } = await supabaseAdmin
     .from('businesses')
     .select('*')
-    .eq('twilio_phone_number', configuredPhone)
+    .limit(1)
     .single()
 
   if (error || !business) {
-    console.log('Business not found for phone:', configuredPhone, error)
+    console.log('No business found in database:', error)
     return { business: null, leads: [], allBusinesses: [], businessLeadCounts: [] }
   }
 
