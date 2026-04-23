@@ -49,7 +49,7 @@ export async function GET() {
     
     if (!messageSid) {
       console.error('[test/send-sms] Failed to send SMS')
-      const err = error as {
+      const err = error as unknown as {
         message?: string;
         code?: string | number;
         status?: string | number;
