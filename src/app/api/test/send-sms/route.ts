@@ -97,9 +97,6 @@ export async function GET() {
         }
       }, { status: 500 })
     }
-    return NextResponse.json({
-      success: true,
-      message: "SMS sent",
   } catch (error) {
     console.error('[test/send-sms] Error:', error)
     
