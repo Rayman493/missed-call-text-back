@@ -49,14 +49,20 @@ export async function GET() {
     
     if (!messageSid) {
       console.error('[test/send-sms] Failed to send SMS')
+      const err = error as {
+        message?: string;
+        code?: string | number;
+        status?: string | number;
+        moreInfo?: string;
+      }
       return NextResponse.json({
         success: false,
         message: "Failed to send SMS",
         error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          code: error instanceof Error && 'code' in error ? error.code : undefined,
-          status: error instanceof Error && 'status' in error ? error.status : undefined,
-          moreInfo: error instanceof Error && 'moreInfo' in error ? error.moreInfo : undefined
+          message: err.message ?? "Unknown error",
+          code: err.code,
+          status: err.status,
+          moreInfo: err.moreInfo
         }
       }, { status: 500 })
     }
