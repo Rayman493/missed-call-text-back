@@ -19,24 +19,20 @@ export async function sendSms(business: any, to: string, message: string): Promi
     return null
   }
 
-  // Validate business has messaging service SID
   if (!business.twilio_messaging_service_sid) {
-    console.error('Business twilio_messaging_service_sid is missing')
-    throw new Error('Business twilio_messaging_service_sid is required')
+    throw new Error("Missing messaging service SID for business");
   }
 
-  // Log the messagingServiceSid being used
-  console.log("Sending SMS via Messaging Service:", business.twilio_messaging_service_sid)
+  console.log("Sending SMS with Messaging Service SID:", business.twilio_messaging_service_sid);
 
   const client = new Twilio(accountSid, authToken)
 
   try {
-    console.log("Attempting to send SMS to", to)
     const messageResult = await client.messages.create({
-      body: message,
-      messagingServiceSid: business.twilio_messaging_service_sid,
+      body,
       to,
-    })
+      messagingServiceSid: business.twilio_messaging_service_sid,
+    });
     
     console.log(`SMS sent to ${to}, SID: ${messageResult.sid}`)
     return messageResult.sid
