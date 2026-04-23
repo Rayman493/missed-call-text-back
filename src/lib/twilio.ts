@@ -13,9 +13,9 @@ export async function sendSms(to: string, body: string): Promise<string | null> 
   // Create fresh Twilio client for this SMS
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
-  const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   
-  if (!accountSid || !authToken || !twilioPhoneNumber) {
+  if (!accountSid || !authToken || !messagingServiceSid) {
     console.error('Twilio credentials missing')
     return null
   }
@@ -25,7 +25,7 @@ export async function sendSms(to: string, body: string): Promise<string | null> 
   try {
     const message = await client.messages.create({
       body,
-      from: twilioPhoneNumber,
+      messagingServiceSid,
       to,
     })
     
