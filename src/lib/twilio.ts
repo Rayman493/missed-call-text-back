@@ -29,7 +29,7 @@ export async function sendSms(business: any, to: string, message: string): Promi
 
   try {
     const messageResult = await client.messages.create({
-      body,
+      body: message,
       to,
       messagingServiceSid: business.twilio_messaging_service_sid,
     });
