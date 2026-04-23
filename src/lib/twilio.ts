@@ -1,4 +1,4 @@
-import { Twilio } from 'twilio'
+import Twilio from "twilio";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN
@@ -6,7 +6,7 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
 
 // Only initialize Twilio client if credentials are available and valid
 export const twilioClient = accountSid && authToken && accountSid.startsWith('AC') 
-  ? new Twilio(accountSid, authToken)
+  ? Twilio(accountSid, authToken)
   : null
 
 export async function sendSms(business: any, to: string, message: string): Promise<string | null> {
@@ -25,9 +25,15 @@ export async function sendSms(business: any, to: string, message: string): Promi
 
   console.log("Sending SMS with Messaging Service SID:", business.twilio_messaging_service_sid);
 
-  const client = new Twilio(accountSid, authToken)
+  const client = Twilio(
+    process.env.TWILIO_ACCOUNT_SID!,
+    process.env.TWILIO_AUTH_TOKEN!
+  );
 
   try {
+    console.log("Twilio SID used:", process.env.TWILIO_ACCOUNT_SID);
+    console.log("Messaging Service SID:", business.twilio_messaging_service_sid);
+    
     const messageResult = await client.messages.create({
       body: message,
       to,
