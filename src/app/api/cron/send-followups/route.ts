@@ -243,9 +243,9 @@ export async function GET() {
         errors++
       }
     }
-    
+
     console.log(`[send-followups] Complete - Processed: ${processed}, Sent: ${sent}, Cancelled: ${cancelled}, Errors: ${errors}`)
-    
+
     // Return ONLY this JSON summary
     return NextResponse.json({
       processed,
@@ -253,11 +253,15 @@ export async function GET() {
       cancelled,
       errors
     })
-    
+
   } catch (error) {
     console.error('[send-followups] GET error:', error)
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        errorDetails: [error.message]
+      },
       { status: 500 }
     )
   }
