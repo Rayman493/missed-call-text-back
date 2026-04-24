@@ -225,3 +225,5 @@ npm run seed
 ## Support
 
 This is an MVP designed for solo founders. The code is kept simple and readable for easy modification and scaling.
+
+// trigger deploy
