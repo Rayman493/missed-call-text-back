@@ -19,7 +19,7 @@ const supabase = createClient(
 export async function GET() {
   try {
     const to = "+14128553010";
-    const body = "Test SMS from ReplyFlow - if you got this, Twilio is working";
+    const body = "Hi, we missed your call earlier. How can we help? Reply STOP to opt out.";
 
     const { data: business, error: businessError } = await supabase
       .from("businesses")

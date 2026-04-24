@@ -40,7 +40,7 @@ async function seedDemoBusiness() {
     const demoBusiness = {
       name: 'Joe\'s Plumbing',
       twilio_phone_number: '+15551234567',
-      auto_reply_message: 'Thanks for calling Joe\'s Plumbing! Sorry we missed your call. We\'ll get back to you as soon as possible. Is this a plumbing emergency or can you describe the issue you\'re having?',
+      auto_reply_message: 'Hi, we missed your call earlier. How can we help? Reply STOP to opt out.',
     }
 
     const { data: business, error } = await supabaseAdmin
@@ -118,7 +118,7 @@ async function seedDemoBusiness() {
           {
             lead_id: lead.id,
             direction: 'outbound' as const,
-            body: 'We can schedule you for tomorrow between 10am-12pm. Does that work for you?',
+            body: 'Hi, we missed your call earlier. How can we help? Reply STOP to opt out.',
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
           },
