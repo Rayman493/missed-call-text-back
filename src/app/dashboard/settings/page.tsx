@@ -1,11 +1,11 @@
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 async function getActiveBusiness() {
   const configuredPhone = process.env.TWILIO_PHONE_NUMBER
   
-  const { data: businesses } = await supabase
+  const { data: businesses } = await supabaseAdmin
     .from('businesses')
     .select('*')
 
@@ -26,7 +26,7 @@ async function updateBusiness(formData: FormData) {
   const autoReplyMessage = formData.get('autoReplyMessage') as string
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('businesses')
       .update({
         name: businessName,

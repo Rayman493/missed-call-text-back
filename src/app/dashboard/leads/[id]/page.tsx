@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { formatPhoneNumber, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -37,7 +37,7 @@ function formatDateTime(dateString: string): string {
 }
 
 async function getLeadDetails(leadId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('leads')
     .select(`
       *,
