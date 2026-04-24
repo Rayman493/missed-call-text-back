@@ -233,8 +233,8 @@ export async function POST() {
       processed,
       sent,
       failed,
-      errorCount: errors,
-      errors: processingErrors
+      errors,
+      processingErrors: processingErrors.length > 0 ? processingErrors : undefined
     });
 
   } catch (error) {
