@@ -5,18 +5,20 @@ import { createClient } from '@supabase/supabase-js'
 // Load environment variables
 config({ path: '.env.local' })
 
-// Create Supabase client directly
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase environment variables')
-  console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl)
-  console.error('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'Set' : 'Not set')
-  process.exit(1)
+// Helper function to validate environment variables
+function getRequiredEnvVar(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
 }
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+// Create Supabase client directly with proper error handling
+const supabaseAdmin = createClient(
+  getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
+  getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
+)
 
 async function seedDemoBusiness() {
   try {

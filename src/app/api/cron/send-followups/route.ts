@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSms } from '@/lib/twilio'
 
+// Helper function to validate environment variables
+function getRequiredEnvVar(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
 // Initialize Supabase client with service role key (server-side only)
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
+  getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 )
 
 export async function POST(req: NextRequest) {

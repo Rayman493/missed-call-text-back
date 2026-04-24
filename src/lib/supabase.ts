@@ -1,9 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 import { Business, Lead, Message, CallEvent, Conversation, FollowUp, LeadWithMessages } from './types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Helper function to validate environment variables
+function getRequiredEnvVar(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
+// Get environment variables with proper error handling
+const supabaseUrl = getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL')
+const supabaseAnonKey = getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+const supabaseServiceKey = getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 
 // Client for browser/anonymous access
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
