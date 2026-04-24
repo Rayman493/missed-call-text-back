@@ -164,57 +164,103 @@ export async function POST() {
             created_at: new Date().toISOString()
           });
 
+        // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         if (messageInsertError) {
           console.error(`[process-followups] Failed to insert message for job ${job.id}:`, messageInsertError);
-          // Don't fail the job, just log the error
-        }
-
-        // Mark job as sent
-        const { error: jobUpdateError } = await supabase
-          .from('follow_up_jobs')
-          .update({ status: 'sent' })
-          .eq('id', job.id);
-
-        if (jobUpdateError) {
-          console.error(`[process-followups] Failed to update job ${job.id} status:`, jobUpdateError);
-          errors++;
+          console.error(`[process-followups] Job ${job.id} will NOT be marked as sent due to message insertion failure`);
+          
+          // Mark job as failed since we couldn't store the message
+          const { error: updateError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: job.attempt_count + 1,
+              last_error_message: `Failed to insert message: ${messageInsertError.message || 'Database error'}`,
+              last_error_code: 'DB_INSERT_ERROR',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          
+          if (updateError) {
+            console.error(`[process-followups] Failed to update job ${job.id} as failed:`, updateError);
+          }
+          
+          failed++;
         } else {
-          sent++;
+          // Message was inserted successfully, now mark job as sent
+          console.log(`[process-followups] Message inserted successfully for job ${job.id}, SID: ${messageResult.sid}`);
+          
+          const { error: jobUpdateError } = await supabase
+            .from('follow_up_jobs')
+            .update({ status: 'sent' })
+            .eq('id', job.id);
+
+          if (jobUpdateError) {
+            console.error(`[process-followups] Failed to update job ${job.id} status to sent:`, jobUpdateError);
+            errors++;
+          } else {
+            console.log(`[process-followups] Job ${job.id} marked as sent successfully`);
+            sent++;
+          }
         }
 
-      } catch (error) {
+      } catch (error: any) {
         console.error(`[process-followups] Error processing job ${job.id}:`, error);
+        console.error(`[process-followups] Error details:`, {
+          jobId: job.id,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorStack: error.stack
+        });
         
         // Increment attempt count and determine retry logic
         const newAttemptCount = job.attempt_count + 1;
         const shouldFail = newAttemptCount >= job.max_attempts;
         
+        // Prepare error data for storage
+        const errorMessage = error.message || 'Unknown error occurred';
+        const errorCode = error.code || 'UNKNOWN';
+        
         if (shouldFail) {
-          // Max attempts reached - mark as failed
-          await supabase
+          // Max attempts reached - mark as failed with error details
+          const { error: updateError } = await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              attempt_count: newAttemptCount
+              attempt_count: newAttemptCount,
+              last_error_message: errorMessage,
+              last_error_code: errorCode,
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
+          if (updateError) {
+            console.error(`[process-followups] Failed to update job ${job.id} with error details:`, updateError);
+          }
+          
           failed++;
-          console.log(`[process-followups] Job ${job.id} failed after ${newAttemptCount} attempts`);
+          console.log(`[process-followups] Job ${job.id} failed after ${newAttemptCount} attempts. Error: ${errorMessage} (${errorCode})`);
         } else {
-          // Retry with 5-minute delay
+          // Retry with 5-minute delay and store error details
           const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
           
-          await supabase
+          const { error: updateError } = await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'pending',
               attempt_count: newAttemptCount,
-              scheduled_for: retryTime
+              scheduled_for: retryTime,
+              last_error_message: errorMessage,
+              last_error_code: errorCode,
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
-          console.log(`[process-followups] Job ${job.id} failed, will retry at ${retryTime} (attempt ${newAttemptCount}/${job.max_attempts})`);
+          if (updateError) {
+            console.error(`[process-followups] Failed to update job ${job.id} for retry:`, updateError);
+          }
+          
+          console.log(`[process-followups] Job ${job.id} failed, will retry at ${retryTime} (attempt ${newAttemptCount}/${job.max_attempts}). Error: ${errorMessage} (${errorCode})`);
           errors++;
         }
       }
