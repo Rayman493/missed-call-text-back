@@ -19,7 +19,6 @@ const supabase = createClient(
 export async function GET() {
   try {
     const to = "+14128553010";
-    const body = "Hi, we missed your call earlier. How can we help? Reply STOP to opt out.";
 
     const { data: business, error: businessError } = await supabase
       .from("businesses")
@@ -36,6 +35,8 @@ export async function GET() {
         },
       });
     }
+
+    const body = `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`;
 
     console.log("Using messaging service SID:", business.twilio_messaging_service_sid);
 

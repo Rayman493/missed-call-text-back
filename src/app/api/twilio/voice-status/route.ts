@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
           kind: 'missed_call_followup_1',
           status: 'pending',
           scheduled_for: scheduledFor,
-          message_body: "Hi, we missed your call earlier. How can we help? Reply STOP to opt out.",
+          message_body: `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
         })
         
         if (!followUp) {

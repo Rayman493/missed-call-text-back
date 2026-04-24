@@ -141,7 +141,7 @@ export default async function SettingsPage() {
                 defaultValue={business.auto_reply_message}
                 rows={4}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400 resize-none"
-                placeholder="Enter your auto-reply message for missed calls..."
+                placeholder="Hi, this is {{business_name}}. Sorry we missed your call—how can we help? Reply STOP to opt out."
               />
               <p className="text-xs text-gray-500 mt-1">This message will be sent automatically when customers miss your calls.</p>
               </div>
