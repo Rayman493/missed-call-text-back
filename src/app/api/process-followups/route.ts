@@ -53,12 +53,16 @@ export async function POST() {
       process.env.TWILIO_AUTH_TOKEN!
     );
 
-    // Process each job
+    // Process each job with comprehensive error handling
+    const processingErrors: Array<{jobId: string, error: string}> = [];
+    
     for (const job of jobs) {
       processed++;
-      console.log(`[process-followups] Processing job: ${job.id}`);
+      console.log(`[process-followups] Picked up job: ${job.id}`);
 
       try {
+        console.log(`[process-followups] Fetching lead for job ${job.id}`);
+        
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
           .from('leads')
@@ -67,88 +71,56 @@ export async function POST() {
           .single();
 
         if (leadError || !lead) {
-          console.error(`[process-followups] Lead not found for job ${job.id}:`, leadError);
-          
-          // Mark job as failed
-          await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: job.attempt_count + 1
-            })
-            .eq('id', job.id);
-          
-          failed++;
-          continue;
+          throw new Error(`Lead not found for job ${job.id}: ${leadError?.message || 'Unknown error'}`);
         }
 
-        // Check if lead has phone number or is opted out
+        console.log(`[process-followups] Lead fetched successfully: ${lead.id}`);
+
+        // Validate lead has phone number
         if (!lead.caller_phone) {
-          console.error(`[process-followups] Lead ${lead.id} has no phone number`);
-          
-          // Mark job as failed (do not retry)
-          await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: job.attempt_count + 1
-            })
-            .eq('id', job.id);
-          
-          failed++;
-          continue;
+          throw new Error(`Missing phone number for lead ${lead.id}`);
         }
 
+        console.log(`[process-followups] Phone validated: ${lead.caller_phone}`);
+
+        // Check if lead is opted out
         if (lead.opted_out) {
-          console.error(`[process-followups] Lead ${lead.id} is opted out`);
-          
-          // Mark job as failed (do not retry)
-          await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: job.attempt_count + 1
-            })
-            .eq('id', job.id);
-          
-          failed++;
-          continue;
+          throw new Error(`Lead ${lead.id} is opted out`);
         }
 
-        // Get business information for Twilio Messaging Service SID
+        console.log(`[process-followups] Opt-out check passed`);
+
+        // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
           .from('businesses')
-          .select('twilio_messaging_service_sid, twilio_phone_number')
+          .select('id, twilio_messaging_service_sid, twilio_phone_number')
           .eq('id', lead.business_id)
           .single();
 
         if (businessError || !business) {
-          console.error(`[process-followups] Business not found for lead ${lead.id}:`, businessError);
-          
-          // Mark job as failed
-          await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: job.attempt_count + 1
-            })
-            .eq('id', job.id);
-          
-          failed++;
-          continue;
+          throw new Error(`Business not found for job ${job.id}: ${businessError?.message || 'Unknown error'}`);
         }
 
-        // Send SMS using Twilio Messaging Service
-        console.log(`[process-followups] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
+        console.log(`[process-followups] Business fetched successfully: ${business.id}`);
         
+        // Validate business has messaging service SID
+        if (!business.twilio_messaging_service_sid) {
+          throw new Error(`Missing twilio_messaging_service_sid for business ${business.id}`);
+        }
+        
+        console.log(`[process-followups] Attempting Twilio send for job ${job.id}`);
+        
+        // Send SMS using Twilio Messaging Service
         const messageResult = await twilioClient.messages.create({
           body: job.message_body,
           to: lead.caller_phone,
           messagingServiceSid: business.twilio_messaging_service_sid,
         });
 
-        console.log(`[process-followups] SMS sent successfully for job ${job.id}, SID: ${messageResult.sid}`);
-
+        console.log(`[process-followups] Twilio send succeeded for job ${job.id}, SID: ${messageResult.sid}`);
+        
+        console.log(`[process-followups] Inserting message row for job ${job.id}`);
+        
         // Insert row into messages table
         const { error: messageInsertError } = await supabase
           .from('messages')
@@ -164,48 +136,29 @@ export async function POST() {
             created_at: new Date().toISOString()
           });
 
-        // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         if (messageInsertError) {
-          console.error(`[process-followups] Failed to insert message for job ${job.id}:`, messageInsertError);
-          console.error(`[process-followups] Job ${job.id} will NOT be marked as sent due to message insertion failure`);
-          
-          // Mark job as failed since we couldn't store the message
-          const { error: updateError } = await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: job.attempt_count + 1,
-              last_error_message: `Failed to insert message: ${messageInsertError.message || 'Database error'}`,
-              last_error_code: 'DB_INSERT_ERROR',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
-          
-          if (updateError) {
-            console.error(`[process-followups] Failed to update job ${job.id} as failed:`, updateError);
-          }
-          
-          failed++;
-        } else {
-          // Message was inserted successfully, now mark job as sent
-          console.log(`[process-followups] Message inserted successfully for job ${job.id}, SID: ${messageResult.sid}`);
-          
-          const { error: jobUpdateError } = await supabase
-            .from('follow_up_jobs')
-            .update({ status: 'sent' })
-            .eq('id', job.id);
-
-          if (jobUpdateError) {
-            console.error(`[process-followups] Failed to update job ${job.id} status to sent:`, jobUpdateError);
-            errors++;
-          } else {
-            console.log(`[process-followups] Job ${job.id} marked as sent successfully`);
-            sent++;
-          }
+          throw new Error(`Failed to insert message: ${messageInsertError.message || 'Database error'}`);
         }
 
+        console.log(`[process-followups] Message inserted successfully for job ${job.id}`);
+        
+        console.log(`[process-followups] Marking job ${job.id} as sent`);
+        
+        // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
+        const { error: jobUpdateError } = await supabase
+          .from('follow_up_jobs')
+          .update({ status: 'sent' })
+          .eq('id', job.id);
+
+        if (jobUpdateError) {
+          throw new Error(`Failed to update job status to sent: ${jobUpdateError.message || 'Database error'}`);
+        }
+
+        console.log(`[process-followups] Job ${job.id} marked as sent successfully`);
+        sent++;
+
       } catch (error: any) {
-        console.error(`[process-followups] Error processing job ${job.id}:`, error);
+        console.error(`[process-followups] ERROR processing job ${job.id}:`, error);
         console.error(`[process-followups] Error details:`, {
           jobId: job.id,
           errorMessage: error.message,
@@ -218,11 +171,13 @@ export async function POST() {
         const shouldFail = newAttemptCount >= job.max_attempts;
         
         // Prepare error data for storage
-        const errorMessage = error.message || 'Unknown error occurred';
-        const errorCode = error.code || 'UNKNOWN';
+        const errorMessage = String(error?.message || error || 'Unknown error occurred');
+        const errorCode = error?.code || null;
         
         if (shouldFail) {
           // Max attempts reached - mark as failed with error details
+          console.log(`[process-followups] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
+          
           const { error: updateError } = await supabase
             .from('follow_up_jobs')
             .update({ 
@@ -239,10 +194,11 @@ export async function POST() {
           }
           
           failed++;
-          console.log(`[process-followups] Job ${job.id} failed after ${newAttemptCount} attempts. Error: ${errorMessage} (${errorCode})`);
         } else {
           // Retry with 5-minute delay and store error details
           const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
+          
+          console.log(`[process-followups] Scheduling retry for job ${job.id} at ${retryTime}`);
           
           const { error: updateError } = await supabase
             .from('follow_up_jobs')
@@ -260,9 +216,14 @@ export async function POST() {
             console.error(`[process-followups] Failed to update job ${job.id} for retry:`, updateError);
           }
           
-          console.log(`[process-followups] Job ${job.id} failed, will retry at ${retryTime} (attempt ${newAttemptCount}/${job.max_attempts}). Error: ${errorMessage} (${errorCode})`);
           errors++;
         }
+
+        // Track processing errors for response
+        processingErrors.push({
+          jobId: job.id,
+          error: errorMessage
+        });
       }
     }
 
@@ -272,7 +233,8 @@ export async function POST() {
       processed,
       sent,
       failed,
-      errors
+      errorCount: errors,
+      errors: processingErrors
     });
 
   } catch (error) {
