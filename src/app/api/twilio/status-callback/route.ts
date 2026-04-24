@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
   let MessageSid: string | null = null
   let MessageStatus: string | null = null
   let ErrorCode: string | null = null
+  let ErrorMessage: string | null = null
   
   try {
     // Parse the form data from Twilio safely
@@ -16,13 +17,16 @@ export async function POST(req: NextRequest) {
     MessageSid = params.get('MessageSid')
     MessageStatus = params.get('MessageStatus')
     ErrorCode = params.get('ErrorCode')
+    ErrorMessage = params.get('ErrorMessage')
     
-    // Log all incoming callback data for debugging
-    console.log('[status-callback] Callback data:', {
+    // Log the full parsed callback payload for debugging
+    const allParams = Object.fromEntries(params.entries())
+    console.log('[status-callback] Full callback payload:', allParams)
+    console.log('[status-callback] Parsed fields:', {
       MessageSid,
       MessageStatus,
       ErrorCode,
-      AllParams: Object.fromEntries(params.entries())
+      ErrorMessage
     })
     
     // Only proceed with DB update if we have the required fields
@@ -53,12 +57,27 @@ export async function POST(req: NextRequest) {
           // Add error code if it exists
           if (ErrorCode) {
             updateData.error_code = ErrorCode
+            console.log('[status-callback] Adding error_code:', ErrorCode)
           }
           
-          // Add delivered_at timestamp if status is 'delivered'
+          // Add error message with fallback logic
+          if (ErrorMessage) {
+            updateData.error_message = ErrorMessage
+            console.log('[status-callback] Adding error_message:', ErrorMessage)
+          } else if (ErrorCode) {
+            // Fallback message if ErrorCode exists but ErrorMessage is missing
+            const fallbackMessage = `Twilio reported error code ${ErrorCode}`
+            updateData.error_message = fallbackMessage
+            console.log('[status-callback] Adding fallback error_message:', fallbackMessage)
+          }
+          
+          // Add delivered_at timestamp only if status is 'delivered'
           if (MessageStatus === 'delivered') {
             updateData.delivered_at = new Date().toISOString()
+            console.log('[status-callback] Adding delivered_at timestamp')
           }
+          
+          console.log('[status-callback] Preparing database update with data:', updateData)
           
           // Update the message in database (non-critical)
           try {
@@ -76,6 +95,7 @@ export async function POST(req: NextRequest) {
                 messageId: updatedMessage.id,
                 newStatus: updatedMessage.status,
                 errorCode: updatedMessage.error_code,
+                errorMessage: updatedMessage.error_message,
                 deliveredAt: updatedMessage.delivered_at
               })
             }
