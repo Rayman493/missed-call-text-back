@@ -12,14 +12,16 @@ function getRequiredEnvVar(name: string): string {
 
 // Get environment variables with proper error handling
 const supabaseUrl = getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL')
-const supabaseAnonKey = getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 const supabaseServiceKey = getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 
-// Client for browser/anonymous access
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Admin client for server-side operations
+// Admin client for server-side operations (required for all server routes)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+
+// Client for browser/anonymous access (optional - only needed for client-side code)
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+export const supabase = supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // Database helpers
 export const db = {
