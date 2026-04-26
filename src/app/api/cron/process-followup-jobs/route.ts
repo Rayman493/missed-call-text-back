@@ -78,12 +78,14 @@ export async function POST() {
         if (leadError || !lead) {
           console.error(`[process-followup-jobs] Lead not found for job ${job.id}:`, leadError);
           
-          // Mark job as failed
+          // Mark job as failed (non-retryable error)
           await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              attempt_count: job.attempt_count + 1
+              attempt_count: job.attempt_count + 1,
+              last_error_message: `Lead not found: ${leadError?.message || 'Unknown error'}`,
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
@@ -95,12 +97,14 @@ export async function POST() {
         if (lead.opted_out) {
           console.log(`[process-followup-jobs] Lead ${lead.id} has opted out, skipping job ${job.id}`);
           
-          // Mark job as failed with opt-out reason
+          // Mark job as failed with opt-out reason (non-retryable)
           await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              attempt_count: job.attempt_count + 1
+              attempt_count: job.attempt_count + 1,
+              last_error_message: 'Lead has opted out of messages',
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
@@ -112,12 +116,14 @@ export async function POST() {
         if (!lead.caller_phone) {
           console.error(`[process-followup-jobs] Lead ${lead.id} has no phone number`);
           
-          // Mark job as failed
+          // Mark job as failed (non-retryable error)
           await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              attempt_count: job.attempt_count + 1
+              attempt_count: job.attempt_count + 1,
+              last_error_message: 'Lead has no phone number',
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
@@ -135,12 +141,14 @@ export async function POST() {
         if (businessError || !business) {
           console.error(`[process-followup-jobs] Business not found for lead ${lead.id}:`, businessError);
           
-          // Mark job as failed
+          // Mark job as failed (non-retryable error)
           await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              attempt_count: job.attempt_count + 1
+              attempt_count: job.attempt_count + 1,
+              last_error_message: `Business not found: ${businessError?.message || 'Unknown error'}`,
+              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
@@ -176,10 +184,11 @@ export async function POST() {
 
         if (messageInsertError) {
           console.error(`[process-followup-jobs] Failed to insert message for job ${job.id}:`, messageInsertError);
-          // Don't fail the job, just log the error
+          // This is a retryable error - don't mark as sent
+          throw new Error(`Failed to insert message: ${messageInsertError.message || 'Database error'}`);
         }
 
-        // Mark job as sent
+        // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         const { error: jobUpdateError } = await supabase
           .from('follow_up_jobs')
           .update({ status: 'sent' })
@@ -192,25 +201,57 @@ export async function POST() {
           sent++;
         }
 
-      } catch (error) {
+      } catch (error: any) {
         console.error(`[process-followup-jobs] Error processing job ${job.id}:`, error);
+        console.error(`[process-followup-jobs] Error details:`, {
+          jobId: job.id,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorStack: error.stack
+        });
         
-        // Increment attempt count and mark as failed if max attempts reached
+        // Increment attempt count and determine retry logic
         const newAttemptCount = job.attempt_count + 1;
         const shouldFail = newAttemptCount >= job.max_attempts;
         
-        await supabase
-          .from('follow_up_jobs')
-          .update({ 
-            status: shouldFail ? 'failed' : 'pending',
-            attempt_count: newAttemptCount
-          })
-          .eq('id', job.id);
+        // Prepare error data for storage
+        const errorMessage = String(error?.message || error || 'Unknown error occurred');
+        const errorCode = error?.code || null;
         
         if (shouldFail) {
+          // Max attempts reached - mark as failed with error details
+          console.log(`[process-followup-jobs] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
+          
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: newAttemptCount,
+              last_error_message: errorMessage,
+              last_error_code: errorCode,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          
           failed++;
         } else {
-          console.log(`[process-followup-jobs] Job ${job.id} failed, will retry (attempt ${newAttemptCount}/${job.max_attempts})`);
+          // Retry with 5-minute delay and store error details
+          const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
+          
+          console.log(`[process-followup-jobs] Scheduling retry for job ${job.id} at ${retryTime}`);
+          
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'pending',
+              attempt_count: newAttemptCount,
+              scheduled_for: retryTime,
+              last_error_message: errorMessage,
+              last_error_code: errorCode,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          
           errors++;
         }
       }
