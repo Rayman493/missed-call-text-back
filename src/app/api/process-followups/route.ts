@@ -143,6 +143,11 @@ export async function POST() {
           messagingServiceSid: business.twilio_messaging_service_sid,
         });
 
+        // Check for Twilio send errors - Twilio may return an object even for failures
+        if (!messageResult || messageResult.error || messageResult.status === 'failed' || messageResult.status === 'undelivered') {
+          throw new Error(messageResult?.error?.message || `SMS send failed with status: ${messageResult?.status || 'unknown'}`);
+        }
+
         console.log(`[process-followups] Twilio send succeeded for job ${job.id}, SID: ${messageResult.sid}`);
         
         console.log(`[process-followups] Inserting message row for job ${job.id}`);
