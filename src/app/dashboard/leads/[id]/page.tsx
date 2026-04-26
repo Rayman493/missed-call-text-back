@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { formatPhoneNumber, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import StatusBadge from '@/components/StatusBadge'
 
 // Utility functions
 function formatRelativeTime(dateString: string): string {
@@ -47,6 +48,10 @@ async function getLeadDetails(leadId: string) {
         body,
         from_phone,
         to_phone,
+        status,
+        error_code,
+        error_message,
+        status_updated_at,
         created_at
       ),
       business (
@@ -185,7 +190,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                         message.direction === 'inbound' ? 'bg-blue-500' : 'bg-green-500'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <div className="text-sm font-medium text-gray-900">
                             <div className="flex items-center gap-2">
                               {message.direction === 'inbound' ? (
@@ -207,8 +212,11 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                             <span className="text-xs text-gray-500">
                               {formatRelativeTime(message.created_at)}
                             </span>
+                          </div>
+                          {message.status && (
+                            <StatusBadge status={message.status} />
+                          )}
                         </div>
-                      </div>
                         <div className={`p-4 rounded-lg ${
                           message.direction === 'inbound' 
                             ? 'bg-blue-50 text-blue-900 border-blue-200' 
@@ -216,9 +224,19 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                         }`}>
                           <p className="text-sm text-gray-800 break-words">{message.body}</p>
                         </div>
+                        {(message.status === 'failed' || message.status === 'undelivered') && message.error_message && (
+                          <p className="text-xs text-red-500 mt-2">
+                            Error: {message.error_message}
+                          </p>
+                        )}
                         <div className="text-xs text-gray-500 mt-2">
                           From: {formatPhoneNumber(message.from_phone)} → {formatPhoneNumber(message.to_phone)}
                         </div>
+                        {message.status_updated_at && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Status updated {formatRelativeTime(message.status_updated_at)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

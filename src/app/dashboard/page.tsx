@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import StatusBadge from '@/components/StatusBadge'
 
 // Force dynamic rendering to prevent stale data
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,10 @@ async function getDashboardData() {
         direction,
         from_phone,
         to_phone,
+        status,
+        error_code,
+        error_message,
+        status_updated_at,
         created_at,
         conversation_id
       ),
@@ -298,7 +303,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                               latestMessage.direction === 'inbound' ? 'bg-blue-500' : 'bg-green-500'
                             }`} />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="text-xs font-medium text-gray-500">
                                   {latestMessage.direction === 'inbound' ? 'Customer' : 'Business'}
                                 </span>
@@ -310,10 +315,23 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                     via {latestConversation.source}
                                   </span>
                                 )}
+                                {latestMessage.status && (
+                                  <StatusBadge status={latestMessage.status} />
+                                )}
                               </div>
                               <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2 border border-gray-200">
                                 {truncateText(latestMessage.body, 100)}
                               </div>
+                              {(latestMessage.status === 'failed' || latestMessage.status === 'undelivered') && latestMessage.error_message && (
+                                <p className="text-xs text-red-500 mt-1">
+                                  {latestMessage.error_message}
+                                </p>
+                              )}
+                              {latestMessage.status_updated_at && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Updated {formatRelativeTime(latestMessage.status_updated_at)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>

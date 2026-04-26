@@ -19,82 +19,76 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   console.log('[twilio-status] Received Twilio status callback');
   
-  let MessageSid: string | null = null;
-  let MessageStatus: string | null = null;
-  let ErrorCode: string | null = null;
-  let ErrorMessage: string | null = null;
-  let To: string | null = null;
-  let From: string | null = null;
-  
   try {
     // Parse the form data from Twilio
     const body = await req.text();
     const params = new URLSearchParams(body);
     
-    MessageSid = params.get('MessageSid');
-    MessageStatus = params.get('MessageStatus');
-    ErrorCode = params.get('ErrorCode');
-    ErrorMessage = params.get('ErrorMessage');
-    To = params.get('To');
-    From = params.get('From');
+    // Read all required form fields with fallbacks
+    const MessageSid = params.get('MessageSid');
+    const SmsSid = params.get('SmsSid');
+    const MessageStatus = params.get('MessageStatus');
+    const SmsStatus = params.get('SmsStatus');
+    const ErrorCode = params.get('ErrorCode');
+    const ErrorMessage = params.get('ErrorMessage');
     
-    console.log('[twilio-status] Parsed fields:', {
-      MessageSid,
-      MessageStatus,
-      ErrorCode,
-      ErrorMessage,
-      To,
-      From
+    // Use SID fallback
+    const sid = MessageSid || SmsSid;
+    const status = MessageStatus || SmsStatus;
+    
+    // Log before updating
+    console.log('[twilio-status] Status update request:', {
+      sid,
+      status,
+      errorCode: ErrorCode,
+      errorMessage: ErrorMessage,
     });
     
-    // Gracefully handle missing MessageSid
-    if (!MessageSid) {
-      console.error('[twilio-status] Missing required MessageSid');
-      return NextResponse.json({ error: 'Missing MessageSid' }, { status: 400 });
+    // Gracefully handle missing SID
+    if (!sid) {
+      console.error('[twilio-status] Missing required SID (MessageSid or SmsSid)');
+      return NextResponse.json({ error: 'Missing SID' }, { status: 400 });
     }
     
     // Update the matching row in messages table
     const updateData: any = {
-      status: MessageStatus,
+      status: status,
       status_updated_at: new Date().toISOString(),
       error_code: ErrorCode || null,
       error_message: ErrorMessage || null,
     };
     
     // Add delivered_at timestamp only if status is 'delivered'
-    if (MessageStatus === 'delivered') {
+    if (status === 'delivered') {
       updateData.delivered_at = new Date().toISOString();
       console.log('[twilio-status] Adding delivered_at timestamp');
     }
     
-    console.log('[twilio-status] Updating message with twilio_message_sid:', MessageSid);
+    console.log('[twilio-status] Updating message with twilio_message_sid:', sid);
     
     const { data: updatedMessage, error: updateError } = await supabase
       .from('messages')
       .update(updateData)
-      .eq('twilio_message_sid', MessageSid)
-      .select()
-      .single();
+      .eq('twilio_message_sid', sid)
+      .select('id');
     
+    // If Supabase returns an error, log and return 500
     if (updateError) {
       console.error('[twilio-status] Database update failed:', updateError);
       return NextResponse.json({ error: 'Database update failed', details: updateError }, { status: 500 });
     }
     
-    if (!updatedMessage) {
-      console.error('[twilio-status] No message found with twilio_message_sid:', MessageSid);
-      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    // If update succeeds but returns empty data, return 200 with skipped message
+    if (!updatedMessage || updatedMessage.length === 0) {
+      console.log('[twilio-status] No message found with twilio_message_sid:', sid, '- skipping');
+      return NextResponse.json({ ok: true, skipped: 'message_not_found' }, { status: 200 });
     }
     
     console.log('[twilio-status] Successfully updated message:', {
-      messageId: updatedMessage.id,
-      newStatus: updatedMessage.status,
-      errorCode: updatedMessage.error_code,
-      errorMessage: updatedMessage.error_message,
-      statusUpdatedAt: updatedMessage.status_updated_at,
+      messageId: updatedMessage[0].id,
     });
     
-    return NextResponse.json({ success: true, message: 'Status updated' });
+    return NextResponse.json({ ok: true, message: 'Status updated' });
     
   } catch (error) {
     console.error('[twilio-status] Unexpected error:', error);
