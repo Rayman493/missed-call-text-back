@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/supabase'
 import { normalizePhoneNumber } from '@/lib/twilio'
+import { sendSms } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
     // Normalize customer phone number
     const normalizedCustomerPhone = normalizePhoneNumber(From)
     
+    // Check for opt-out keywords (case-insensitive)
+    const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
+    const normalizedBody = Body.trim().toUpperCase()
+    const isOptOut = optOutKeywords.some(keyword => normalizedBody === keyword)
+    
     // Find or create lead for this customer
     let lead = await db.getLeadByPhone(business.id, normalizedCustomerPhone)
     
@@ -107,6 +113,53 @@ export async function POST(req: NextRequest) {
         console.log(`[incoming-sms] Updated existing lead: ${updatedLead.id}`)
         lead = updatedLead
       }
+    }
+    
+    // Handle opt-out requests
+    if (isOptOut) {
+      console.log(`[incoming-sms] Opt-out request received from lead: ${lead.id}`)
+      
+      // Update lead to set opted_out = true
+      const updatedLead = await db.updateLead(lead.id, { opted_out: true })
+      
+      if (updatedLead) {
+        console.log(`[incoming-sms] Lead opted out: ${lead.id}`)
+        lead = updatedLead
+      } else {
+        console.error('[incoming-sms] Failed to update lead opted_out status')
+      }
+      
+      // Cancel all pending follow-up jobs for this lead
+      const jobsCancelled = await db.cancelPendingFollowUpJobsForLead(lead.id)
+      
+      if (jobsCancelled) {
+        console.log(`[incoming-sms] Cancelled pending follow-up jobs for opted-out lead: ${lead.id}`)
+      } else {
+        console.error('[incoming-sms] Failed to cancel follow-up jobs for opted-out lead')
+      }
+      
+      // Send confirmation reply SMS
+      const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
+      const messageSid = await sendSms(business, From, confirmationMessage)
+      
+      if (messageSid) {
+        console.log(`[incoming-sms] Sent opt-out confirmation SMS: ${messageSid}`)
+      } else {
+        console.error('[incoming-sms] Failed to send opt-out confirmation SMS')
+      }
+      
+      // Return TwiML response for opt-out
+      const optOutTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>You have been unsubscribed. You will no longer receive messages.</Message>
+</Response>`
+
+      return new Response(optOutTwiml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml',
+        },
+      })
     }
     
     // Handle conversation logic - ALWAYS ensure a conversation exists

@@ -157,6 +157,24 @@ export async function POST(req: NextRequest) {
           continue
         }
         
+        // Check if lead has opted out
+        if (lead.opted_out) {
+          console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
+          
+          // Mark follow-up as cancelled
+          const { error: cancelError } = await supabase
+            .from('follow_ups')
+            .update({ status: 'cancelled' })
+            .eq('id', followUp.id)
+          
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for opted-out lead:', cancelError)
+          }
+          
+          cancelled++
+          continue
+        }
+        
         // Send SMS using the existing sendSms helper
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body)
         
@@ -376,6 +394,24 @@ export async function GET() {
         if (!lead || !business) {
           console.log(`[send-followups] Error - missing lead or business: ${followUp.id}`)
           errors++
+          continue
+        }
+        
+        // Check if lead has opted out
+        if (lead.opted_out) {
+          console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
+          
+          // Mark follow-up as cancelled
+          const { error: cancelError } = await supabase
+            .from('follow_ups')
+            .update({ status: 'cancelled' })
+            .eq('id', followUp.id)
+          
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for opted-out lead:', cancelError)
+          }
+          
+          cancelled++
           continue
         }
         

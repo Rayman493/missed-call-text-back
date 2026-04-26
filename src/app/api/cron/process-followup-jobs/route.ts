@@ -71,7 +71,7 @@ export async function POST() {
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
           .from('leads')
-          .select('id, caller_phone, business_id')
+          .select('id, caller_phone, business_id, opted_out')
           .eq('id', job.lead_id)
           .single();
 
@@ -79,6 +79,23 @@ export async function POST() {
           console.error(`[process-followup-jobs] Lead not found for job ${job.id}:`, leadError);
           
           // Mark job as failed
+          await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: job.attempt_count + 1
+            })
+            .eq('id', job.id);
+          
+          failed++;
+          continue;
+        }
+
+        // Check if lead has opted out
+        if (lead.opted_out) {
+          console.log(`[process-followup-jobs] Lead ${lead.id} has opted out, skipping job ${job.id}`);
+          
+          // Mark job as failed with opt-out reason
           await supabase
             .from('follow_up_jobs')
             .update({ 

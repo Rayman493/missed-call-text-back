@@ -85,19 +85,35 @@ export async function POST() {
 
         console.log(`[process-followups] Lead fetched successfully: ${lead.id}`);
 
+        // Check if lead has opted out
+        if (lead.opted_out) {
+          console.log(`[process-followups] Lead ${lead.id} has opted out, skipping job ${job.id}`);
+          
+          // Mark job as failed with opt-out reason
+          const { error: updateError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              attempt_count: job.attempt_count + 1,
+              last_error_message: 'Lead has opted out of messages',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          
+          if (updateError) {
+            console.error(`[process-followups] Failed to update job ${job.id} status:`, updateError);
+          }
+          
+          failed++;
+          continue;
+        }
+
         // Validate lead has phone number
         if (!lead.caller_phone) {
           throw new Error(`Missing phone number for lead ${lead.id}`);
         }
 
         console.log(`[process-followups] Phone validated: ${lead.caller_phone}`);
-
-        // Check if lead is opted out
-        if (lead.opted_out) {
-          throw new Error(`Lead ${lead.id} is opted out`);
-        }
-
-        console.log(`[process-followups] Opt-out check passed`);
 
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
