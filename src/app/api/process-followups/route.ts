@@ -135,11 +135,12 @@ export async function POST() {
         
         console.log(`[process-followups] Attempting Twilio send for job ${job.id}`);
         
-        // Send SMS using Twilio Messaging Service
+        // Send SMS using Twilio Messaging Service with status callback
         const messageResult = await twilioClient.messages.create({
           body: job.message_body,
           to: lead.caller_phone,
           messagingServiceSid: business.twilio_messaging_service_sid,
+          statusCallback: "https://replyflowhq.com/api/twilio/status",
         });
 
         // Check for Twilio send errors - ensure message was created successfully
