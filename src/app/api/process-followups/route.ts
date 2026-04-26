@@ -205,23 +205,53 @@ export async function POST() {
         const errorMessage = String(error?.message || error || 'Unknown error occurred');
         const errorCode = error?.code || null;
         
+        console.log(`[process-followups] Job ${job.id} - current attempt_count: ${job.attempt_count}, newAttemptCount: ${newAttemptCount}, max_attempts: ${job.max_attempts}, shouldFail: ${shouldFail}`);
+        
         if (shouldFail) {
           // Max attempts reached - mark as failed with error details
           console.log(`[process-followups] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
           
-          const { error: updateError } = await supabase
+          const retryUpdateData = { 
+            status: 'failed',
+            attempt_count: newAttemptCount,
+            last_error_message: errorMessage,
+            last_error_code: errorCode,
+            updated_at: new Date().toISOString()
+          };
+          
+          console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
+          
+          const { error: updateError, data: updateData } = await supabase
             .from('follow_up_jobs')
-            .update({ 
-              status: 'failed',
-              attempt_count: newAttemptCount,
-              last_error_message: errorMessage,
-              last_error_code: errorCode,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
+            .update(retryUpdateData)
+            .eq('id', job.id)
+            .select()
+            .single();
+          
+          console.log(`[process-followups] Job ${job.id} - Supabase update result:`, { updateError, updateData });
           
           if (updateError) {
             console.error(`[process-followups] Failed to update job ${job.id} with error details:`, updateError);
+            processingErrors.push({
+              jobId: job.id,
+              error: errorMessage,
+              updateError: updateError.message
+            });
+            failed++;
+            continue;
+          }
+          
+          // Re-select the job to verify the update
+          const { data: verifyJob, error: verifyError } = await supabase
+            .from('follow_up_jobs')
+            .select('status, attempt_count, scheduled_for, last_error_message')
+            .eq('id', job.id)
+            .single();
+          
+          console.log(`[process-followups] Job ${job.id} - Verification after update:`, verifyJob);
+          
+          if (verifyError) {
+            console.error(`[process-followups] Failed to verify job ${job.id}:`, verifyError);
           }
           
           failed++;
@@ -231,20 +261,48 @@ export async function POST() {
           
           console.log(`[process-followups] Scheduling retry for job ${job.id} at ${retryTime}`);
           
-          const { error: updateError } = await supabase
+          const retryUpdateData = { 
+            status: 'pending',
+            attempt_count: newAttemptCount,
+            scheduled_for: retryTime,
+            last_error_message: errorMessage,
+            last_error_code: errorCode,
+            updated_at: new Date().toISOString()
+          };
+          
+          console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
+          
+          const { error: updateError, data: updateData } = await supabase
             .from('follow_up_jobs')
-            .update({ 
-              status: 'pending',
-              attempt_count: newAttemptCount,
-              scheduled_for: retryTime,
-              last_error_message: errorMessage,
-              last_error_code: errorCode,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
+            .update(retryUpdateData)
+            .eq('id', job.id)
+            .select()
+            .single();
+          
+          console.log(`[process-followups] Job ${job.id} - Supabase update result:`, { updateError, updateData });
           
           if (updateError) {
             console.error(`[process-followups] Failed to update job ${job.id} for retry:`, updateError);
+            processingErrors.push({
+              jobId: job.id,
+              error: errorMessage,
+              updateError: updateError.message
+            });
+            errors++;
+            continue;
+          }
+          
+          // Re-select the job to verify the update
+          const { data: verifyJob, error: verifyError } = await supabase
+            .from('follow_up_jobs')
+            .select('status, attempt_count, scheduled_for, last_error_message')
+            .eq('id', job.id)
+            .single();
+          
+          console.log(`[process-followups] Job ${job.id} - Verification after update:`, verifyJob);
+          
+          if (verifyError) {
+            console.error(`[process-followups] Failed to verify job ${job.id}:`, verifyError);
           }
           
           errors++;
