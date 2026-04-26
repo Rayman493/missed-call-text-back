@@ -19,6 +19,7 @@ const supabase = createClient(
 
 export async function POST() {
   try {
+    console.log('[process-followups] Worker started');
     console.log('[process-followups] Starting follow-up job processing');
     
     // Fetch up to 10 pending jobs where scheduled_for <= now()
