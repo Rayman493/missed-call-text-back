@@ -97,7 +97,6 @@ export async function POST() {
               status: 'failed',
               attempt_count: job.attempt_count + 1,
               last_error_message: 'Lead has opted out of messages',
-              updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
           
