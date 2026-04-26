@@ -64,7 +64,7 @@ export async function POST() {
     );
 
     // Process each job with comprehensive error handling
-    const processingErrors: Array<{jobId: string, error: string}> = [];
+    const processingErrors: Array<{jobId: string, error: string, updateError?: string, updateData?: any, reselectData?: any}> = [];
     
     for (const job of jobs) {
       processed++;
