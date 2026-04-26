@@ -15,12 +15,18 @@ function formatLeadPhone(phone: string): string {
 // Helper to get friendly error message
 function getFriendlyErrorMessage(errorCode?: string | null, errorMessage?: string | null): string {
   if (errorCode === '30007') {
-    return 'Carrier blocked this message (possible spam filtering or unverified number)'
+    return 'Carrier blocked this message (likely due to unverified toll-free number)'
   }
   if (errorMessage) {
-    return 'Message could not be delivered'
+    return 'Message failed to deliver'
   }
-  return 'Message could not be delivered'
+  return 'Message failed to deliver'
+}
+
+// Helper to format timestamp with fallback
+function formatMessageTimestamp(message: any): string {
+  const timestamp = message.status_updated_at || message.created_at
+  return formatRelativeTime(timestamp)
 }
 
 // Utility functions
@@ -242,13 +248,8 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs text-gray-500">
-                            {formatRelativeTime(message.created_at)}
+                            {formatMessageTimestamp(message)}
                           </span>
-                          {message.status_updated_at && (
-                            <span className="text-xs text-gray-400">
-                              • Updated {formatRelativeTime(message.status_updated_at)}
-                            </span>
-                          )}
                         </div>
                         {(message.status === 'failed' || message.status === 'undelivered') && (
                           <p className="text-sm text-red-600 mt-2 font-medium">

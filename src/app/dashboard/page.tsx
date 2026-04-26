@@ -15,12 +15,33 @@ function formatLeadPhone(phone: string): string {
 // Helper to get friendly error message
 function getFriendlyErrorMessage(errorCode?: string | null, errorMessage?: string | null): string {
   if (errorCode === '30007') {
-    return 'Carrier blocked this message (possible spam filtering or unverified number)'
+    return 'Carrier blocked this message (likely due to unverified toll-free number)'
   }
   if (errorMessage) {
-    return 'Message could not be delivered'
+    return 'Message failed to deliver'
   }
-  return 'Message could not be delivered'
+  return 'Message failed to deliver'
+}
+
+// Helper to get lead-level status indicator
+function getLeadMessageStatus(latestMessage: any): { text: string; color: string } {
+  if (!latestMessage || !latestMessage.status) {
+    return { text: 'No messages', color: 'gray' }
+  }
+  
+  const status = latestMessage.status
+  if (status === 'delivered') return { text: 'Delivered', color: 'green' }
+  if (status === 'sent') return { text: 'Sent', color: 'blue' }
+  if (status === 'queued') return { text: 'Sending', color: 'gray' }
+  if (status === 'failed') return { text: 'Issue sending', color: 'red' }
+  if (status === 'undelivered') return { text: 'Issue sending', color: 'orange' }
+  return { text: 'Unknown', color: 'gray' }
+}
+
+// Helper to format timestamp with fallback
+function formatMessageTimestamp(message: any): string {
+  const timestamp = message.status_updated_at || message.created_at
+  return formatRelativeTime(timestamp)
 }
 
 // Force dynamic rendering to prevent stale data
@@ -248,13 +269,26 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                     ? lead.conversations.sort((a: any, b: any) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime())[0]
                     : null
 
+                  // Get lead-level message status
+                  const messageStatus = getLeadMessageStatus(latestMessage)
+
                   return (
                     <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              messageStatus.color === 'green' ? 'bg-green-100' :
+                              messageStatus.color === 'red' ? 'bg-red-100' :
+                              messageStatus.color === 'orange' ? 'bg-orange-100' :
+                              'bg-blue-100'
+                            }`}>
+                              <svg className={`w-6 h-6 ${
+                                messageStatus.color === 'green' ? 'text-green-600' :
+                                messageStatus.color === 'red' ? 'text-red-600' :
+                                messageStatus.color === 'orange' ? 'text-orange-600' :
+                                'text-blue-600'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 01-2-2h14a2 2 0 01-2 2v14a2 2 0 01-2 2H5a2 2 0 01-2 2V7z"/>
                               </svg>
                             </div>
@@ -263,9 +297,24 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
                                   {formatLeadPhone(lead.caller_phone)}
                                 </h3>
-                                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
-                                  {lead.status}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
+                                    {lead.status}
+                                  </span>
+                                  {latestMessage && (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${
+                                      messageStatus.color === 'green' ? 'bg-green-100 text-green-700' :
+                                      messageStatus.color === 'red' ? 'bg-red-100 text-red-700' :
+                                      messageStatus.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {messageStatus.color === 'green' && '✓'}
+                                      {messageStatus.color === 'red' && '✕'}
+                                      {messageStatus.color === 'orange' && '⚠'}
+                                      {messageStatus.text}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-sm text-gray-500">
                                 {latestConversation?.last_activity_at ? (
@@ -324,13 +373,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                               </div>
                               <div className="flex items-center gap-2 mt-2">
                                 <span className="text-xs text-gray-400">
-                                  {formatRelativeTime(latestMessage.created_at)}
+                                  {formatMessageTimestamp(latestMessage)}
                                 </span>
-                                {latestMessage.status_updated_at && (
-                                  <span className="text-xs text-gray-400">
-                                    • Updated {formatRelativeTime(latestMessage.status_updated_at)}
-                                  </span>
-                                )}
                               </div>
                               {(latestMessage.status === 'failed' || latestMessage.status === 'undelivered') && (
                                 <p className="text-sm text-red-600 mt-2 font-medium">
