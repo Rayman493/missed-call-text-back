@@ -4,6 +4,25 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 
+// Helper to hide test numbers
+function formatLeadPhone(phone: string): string {
+  if (phone === '+10000000000') {
+    return 'Test Lead'
+  }
+  return formatPhoneNumber(phone)
+}
+
+// Helper to get friendly error message
+function getFriendlyErrorMessage(errorCode?: string | null, errorMessage?: string | null): string {
+  if (errorCode === '30007') {
+    return 'Carrier blocked this message (possible spam filtering or unverified number)'
+  }
+  if (errorMessage) {
+    return 'Message could not be delivered'
+  }
+  return 'Message could not be delivered'
+}
+
 // Force dynamic rendering to prevent stale data
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -122,17 +141,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Debug Header */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="text-sm text-blue-800">
-            <strong>DEBUG:</strong> Selected Business ID: {business.id} | 
-            Selected Business Name: {business.name} | 
-            Phone: {business.twilio_phone_number} | 
-            Configured Phone: {process.env.TWILIO_PHONE_NUMBER} | 
-            Lead Count: {leads.length}
-          </div>
-        </div>
-
         {/* Success Message */}
         {searchParams?.success === 'settings-updated' && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
@@ -253,7 +261,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                                  {formatPhoneNumber(lead.caller_phone)}
+                                  {formatLeadPhone(lead.caller_phone)}
                                 </h3>
                                 <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getLeadStatusColor(lead.status)}`}>
                                   {lead.status}
@@ -303,33 +311,30 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                               latestMessage.direction === 'inbound' ? 'bg-blue-500' : 'bg-green-500'
                             }`} />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="text-xs font-medium text-gray-500">
                                   {latestMessage.direction === 'inbound' ? 'Customer' : 'Business'}
                                 </span>
-                                <span className="text-xs text-gray-400">
-                                  {formatRelativeTime(latestMessage.created_at)}
-                                </span>
-                                {latestConversation && (
-                                  <span className="text-xs text-gray-400">
-                                    via {latestConversation.source}
-                                  </span>
-                                )}
                                 {latestMessage.status && (
                                   <StatusBadge status={latestMessage.status} />
                                 )}
                               </div>
-                              <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                              <div className="text-sm font-semibold text-gray-900 bg-gray-50 rounded-lg p-3 border border-gray-200">
                                 {truncateText(latestMessage.body, 100)}
                               </div>
-                              {(latestMessage.status === 'failed' || latestMessage.status === 'undelivered') && latestMessage.error_message && (
-                                <p className="text-xs text-red-500 mt-1">
-                                  {latestMessage.error_message}
-                                </p>
-                              )}
-                              {latestMessage.status_updated_at && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  Updated {formatRelativeTime(latestMessage.status_updated_at)}
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-gray-400">
+                                  {formatRelativeTime(latestMessage.created_at)}
+                                </span>
+                                {latestMessage.status_updated_at && (
+                                  <span className="text-xs text-gray-400">
+                                    • Updated {formatRelativeTime(latestMessage.status_updated_at)}
+                                  </span>
+                                )}
+                              </div>
+                              {(latestMessage.status === 'failed' || latestMessage.status === 'undelivered') && (
+                                <p className="text-sm text-red-600 mt-2 font-medium">
+                                  {getFriendlyErrorMessage(latestMessage.error_code, latestMessage.error_message)}
                                 </p>
                               )}
                             </div>

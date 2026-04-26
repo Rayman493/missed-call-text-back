@@ -4,6 +4,25 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 
+// Helper to hide test numbers
+function formatLeadPhone(phone: string): string {
+  if (phone === '+10000000000') {
+    return 'Test Lead'
+  }
+  return formatPhoneNumber(phone)
+}
+
+// Helper to get friendly error message
+function getFriendlyErrorMessage(errorCode?: string | null, errorMessage?: string | null): string {
+  if (errorCode === '30007') {
+    return 'Carrier blocked this message (possible spam filtering or unverified number)'
+  }
+  if (errorMessage) {
+    return 'Message could not be delivered'
+  }
+  return 'Message could not be delivered'
+}
+
 // Utility functions
 function formatRelativeTime(dateString: string): string {
   if (!dateString) return 'Never'
@@ -107,7 +126,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                     {lead.status}
                   </span>
                   <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
-                    {formatPhoneNumber(lead.caller_phone)}
+                    {formatLeadPhone(lead.caller_phone)}
                   </h2>
                 </div>
               </div>
@@ -209,9 +228,6 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                                 </>
                               )}
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {formatRelativeTime(message.created_at)}
-                            </span>
                           </div>
                           {message.status && (
                             <StatusBadge status={message.status} />
@@ -222,21 +238,26 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                             ? 'bg-blue-50 text-blue-900 border-blue-200' 
                             : 'bg-green-50 text-green-900 border-green-200'
                         }`}>
-                          <p className="text-sm text-gray-800 break-words">{message.body}</p>
+                          <p className="text-sm font-semibold text-gray-800 break-words">{message.body}</p>
                         </div>
-                        {(message.status === 'failed' || message.status === 'undelivered') && message.error_message && (
-                          <p className="text-xs text-red-500 mt-2">
-                            Error: {message.error_message}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-gray-500">
+                            {formatRelativeTime(message.created_at)}
+                          </span>
+                          {message.status_updated_at && (
+                            <span className="text-xs text-gray-400">
+                              • Updated {formatRelativeTime(message.status_updated_at)}
+                            </span>
+                          )}
+                        </div>
+                        {(message.status === 'failed' || message.status === 'undelivered') && (
+                          <p className="text-sm text-red-600 mt-2 font-medium">
+                            {getFriendlyErrorMessage(message.error_code, message.error_message)}
                           </p>
                         )}
                         <div className="text-xs text-gray-500 mt-2">
                           From: {formatPhoneNumber(message.from_phone)} → {formatPhoneNumber(message.to_phone)}
                         </div>
-                        {message.status_updated_at && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Status updated {formatRelativeTime(message.status_updated_at)}
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
