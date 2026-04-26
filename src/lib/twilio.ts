@@ -38,9 +38,14 @@ export async function sendSms(business: any, to: string, message: string): Promi
       body: message,
       to,
       messagingServiceSid: business.twilio_messaging_service_sid,
+      statusCallback: "https://replyflowhq.com/api/twilio/status",
     });
     
-    console.log(`SMS sent to ${to}, SID: ${messageResult.sid}`)
+    console.log("[twilio] message sent", {
+      to: to,
+      sid: messageResult.sid,
+      statusCallback: "https://replyflowhq.com/api/twilio/status"
+    });
     return messageResult.sid
   } catch (error) {
     console.error("Error sending SMS:", error)

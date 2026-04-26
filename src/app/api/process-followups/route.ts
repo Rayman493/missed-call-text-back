@@ -150,6 +150,12 @@ export async function POST() {
 
         console.log(`[process-followups] Twilio send succeeded for job ${job.id}, SID: ${messageResult.sid}`);
         
+        console.log("[twilio] message sent", {
+          to: lead.caller_phone,
+          sid: messageResult.sid,
+          statusCallback: "https://replyflowhq.com/api/twilio/status"
+        });
+        
         console.log(`[process-followups] Inserting message row for job ${job.id}`);
         
         // Insert row into messages table

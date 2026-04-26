@@ -163,6 +163,12 @@ export async function POST() {
         });
 
         console.log(`[process-followup-jobs] SMS sent successfully for job ${job.id}, SID: ${messageResult.sid}`);
+        
+        console.log("[twilio] message sent", {
+          to: lead.caller_phone,
+          sid: messageResult.sid,
+          statusCallback: "https://replyflowhq.com/api/twilio/status"
+        });
 
         // Insert row into messages table
         const { error: messageInsertError } = await supabase
