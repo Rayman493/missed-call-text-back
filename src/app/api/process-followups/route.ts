@@ -215,7 +215,6 @@ export async function POST() {
             attempt_count: newAttemptCount,
             last_error_message: errorMessage,
             last_error_code: errorCode,
-            updated_at: new Date().toISOString()
           };
           
           console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
@@ -266,7 +265,6 @@ export async function POST() {
             scheduled_for: retryTime,
             last_error_message: errorMessage,
             last_error_code: errorCode,
-            updated_at: new Date().toISOString()
           };
           
           console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
