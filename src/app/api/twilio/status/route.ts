@@ -16,6 +16,21 @@ const supabase = createClient(
   getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 );
 
+// Status priority mapping to prevent backwards status updates
+// Higher number = higher priority (final states)
+const STATUS_PRIORITY: Record<string, number> = {
+  queued: 1,
+  sent: 2,
+  delivered: 3,
+  undelivered: 3,
+  failed: 3,
+};
+
+function getStatusPriority(status: string | null): number {
+  if (!status) return 0;
+  return STATUS_PRIORITY[status] || 0;
+}
+
 export async function POST(req: NextRequest) {
   console.log('[twilio-status] Received Twilio status callback');
   
@@ -49,7 +64,45 @@ export async function POST(req: NextRequest) {
       console.error('[twilio-status] Missing required SID (MessageSid or SmsSid)');
       return NextResponse.json({ error: 'Missing SID' }, { status: 400 });
     }
-    
+
+    // Fetch current message status to prevent backwards updates
+    const { data: currentMessage, error: fetchError } = await supabase
+      .from('messages')
+      .select('id, status')
+      .eq('twilio_message_sid', sid)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('[twilio-status] Database fetch failed:', fetchError);
+      return NextResponse.json({ error: 'Database fetch failed', details: fetchError }, { status: 500 });
+    }
+
+    // If message not found, return 200 (graceful handling)
+    if (!currentMessage) {
+      console.log('[twilio-status] No message found with twilio_message_sid:', sid, '- skipping');
+      return NextResponse.json({ ok: true, skipped: 'message_not_found' }, { status: 200 });
+    }
+
+    // Compare status priorities to prevent backwards updates
+    const currentPriority = getStatusPriority(currentMessage.status);
+    const incomingPriority = getStatusPriority(status);
+
+    console.log('[twilio-status] Status priority check:', {
+      currentStatus: currentMessage.status,
+      currentPriority,
+      incomingStatus: status,
+      incomingPriority,
+    });
+
+    // Skip update if incoming status has lower priority than current status
+    if (incomingPriority < currentPriority) {
+      console.log('[twilio-status] Skipping stale status update:', {
+        current: currentMessage.status,
+        incoming: status,
+      });
+      return NextResponse.json({ ok: true, skipped: 'stale_status' }, { status: 200 });
+    }
+
     // Update the matching row in messages table
     const updateData: any = {
       status: status,
@@ -57,15 +110,15 @@ export async function POST(req: NextRequest) {
       error_code: ErrorCode || null,
       error_message: ErrorMessage || null,
     };
-    
+
     // Add delivered_at timestamp only if status is 'delivered'
     if (status === 'delivered') {
       updateData.delivered_at = new Date().toISOString();
       console.log('[twilio-status] Adding delivered_at timestamp');
     }
-    
+
     console.log('[twilio-status] Updating message with twilio_message_sid:', sid);
-    
+
     const { data: updatedMessage, error: updateError } = await supabase
       .from('messages')
       .update(updateData)
