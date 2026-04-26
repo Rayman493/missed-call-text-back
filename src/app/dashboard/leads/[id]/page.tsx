@@ -235,9 +235,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                               )}
                             </div>
                           </div>
-                          {message.status && (
-                            <StatusBadge status={message.status} />
-                          )}
+                          <StatusBadge status={message.status} errorCode={message.error_code} />
                         </div>
                         <div className={`p-4 rounded-lg ${
                           message.direction === 'inbound' 

@@ -24,18 +24,28 @@ function getFriendlyErrorMessage(errorCode?: string | null, errorMessage?: strin
 }
 
 // Helper to get lead-level status indicator
-function getLeadMessageStatus(latestMessage: any): { text: string; color: string } {
+function getLeadMessageStatus(latestMessage: any): { text: string; color: string; icon: string } {
+  // Debug log
+  console.log('LEAD STATUS - latestMessage:', latestMessage);
+
   if (!latestMessage || !latestMessage.status) {
-    return { text: 'No messages', color: 'gray' }
+    return { text: 'Pending...', color: 'gray', icon: '…' }
   }
   
   const status = latestMessage.status
-  if (status === 'delivered') return { text: 'Delivered', color: 'green' }
-  if (status === 'sent') return { text: 'Sent', color: 'blue' }
-  if (status === 'queued') return { text: 'Sending', color: 'gray' }
-  if (status === 'failed') return { text: 'Issue sending', color: 'red' }
-  if (status === 'undelivered') return { text: 'Issue sending', color: 'orange' }
-  return { text: 'Unknown', color: 'gray' }
+  const errorCode = latestMessage.error_code
+
+  if (status === 'delivered') return { text: 'Delivered', color: 'green', icon: '✓' }
+  if (status === 'sent') return { text: 'Sent', color: 'blue', icon: '→' }
+  if (status === 'queued') return { text: 'Sending...', color: 'gray', icon: '…' }
+  if (status === 'failed') return { text: 'Failed', color: 'red', icon: '✕' }
+  if (status === 'undelivered') {
+    if (errorCode === '30007') {
+      return { text: 'Blocked (Carrier)', color: 'orange', icon: '🚫' }
+    }
+    return { text: 'Not Delivered', color: 'orange', icon: '⚠' }
+  }
+  return { text: 'Unknown', color: 'gray', icon: '?' }
 }
 
 // Helper to format timestamp with fallback
@@ -308,10 +318,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                       messageStatus.color === 'orange' ? 'bg-orange-100 text-orange-700' :
                                       'bg-gray-100 text-gray-700'
                                     }`}>
-                                      {messageStatus.color === 'green' && '✓'}
-                                      {messageStatus.color === 'red' && '✕'}
-                                      {messageStatus.color === 'orange' && '⚠'}
-                                      {messageStatus.text}
+                                      <span>{messageStatus.icon}</span>
+                                      <span>{messageStatus.text}</span>
                                     </span>
                                   )}
                                 </div>
@@ -364,9 +372,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                                 <span className="text-xs font-medium text-gray-500">
                                   {latestMessage.direction === 'inbound' ? 'Customer' : 'Business'}
                                 </span>
-                                {latestMessage.status && (
-                                  <StatusBadge status={latestMessage.status} />
-                                )}
+                                <StatusBadge status={latestMessage.status} errorCode={latestMessage.error_code} />
                               </div>
                               <div className="text-sm font-semibold text-gray-900 bg-gray-50 rounded-lg p-3 border border-gray-200">
                                 {truncateText(latestMessage.body, 100)}
