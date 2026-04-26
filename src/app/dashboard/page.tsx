@@ -274,6 +274,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
                     ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                     : null
 
+                  // Debug log for latest message
+                  console.log("LATEST MESSAGE for lead", lead.id, ":", latestMessage)
+
                   // Get latest conversation info
                   const latestConversation = lead.conversations && lead.conversations.length > 0
                     ? lead.conversations.sort((a: any, b: any) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime())[0]
