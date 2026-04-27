@@ -55,16 +55,24 @@ export default function OnboardingPage() {
     setError('')
 
     try {
+      // Guard: ensure supabase client exists
+      if (!supabase) {
+        setError('App is not configured correctly. Missing Supabase client.')
+        return
+      }
+
       // Insert business with user_id
+      const businessPayload = {
+        user_id: userId,
+        name: businessName,
+        twilio_phone_number: businessPhone,
+        twilio_messaging_service_sid: messagingServiceSid || null,
+        auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+      }
+
       const { error: insertError } = await supabase
         .from('businesses')
-        .insert({
-          user_id: userId,
-          name: businessName,
-          twilio_phone_number: businessPhone,
-          twilio_messaging_service_sid: messagingServiceSid || null,
-          auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
-        })
+        .insert(businessPayload as any)
 
       if (insertError) throw insertError
 
