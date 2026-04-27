@@ -1,9 +1,16 @@
 import { NextRequest } from 'next/server'
-import { db, supabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+import { db } from '@/lib/supabase'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {
   try {
+    // Create fresh Supabase client for this request
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const body = await req.text()
     const params = new URLSearchParams(body)
     
@@ -36,7 +43,7 @@ export async function POST(req: NextRequest) {
     
     console.log("Looking up business with:", normalizedTo)
     
-    const { data: business } = await supabaseAdmin
+    const { data: business } = await supabase
       .from('businesses')
       .select('*')
       .eq('twilio_phone_number', normalizedTo)
@@ -222,7 +229,7 @@ export async function POST(req: NextRequest) {
       console.log(`[voice-status] Attempting follow-up job creation for conversation: ${conversation.id}`)
       
       // Check for existing pending follow-up job to prevent duplicates
-      const { data: existingJob } = await supabaseAdmin
+      const { data: existingJob } = await supabase
         .from('follow_up_jobs')
         .select('id')
         .eq('lead_id', lead.id)
@@ -241,12 +248,17 @@ export async function POST(req: NextRequest) {
         const messageBody = business.auto_reply_message || 
           `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
         
+        console.log("INSERTING FOLLOW UP:", {
+          business_id: business.id,
+          lead_id: lead.id
+        })
+        
         console.log(`[voice-status] Inserting follow-up job scheduled for: ${scheduledFor}`)
         console.log(`[voice-status] Message body: ${messageBody}`)
         
-        const { data: followUpJob, error: jobError } = await supabaseAdmin
+        const { data: followUpJob, error: jobError } = await supabase
           .from('follow_up_jobs')
-          .insert({
+          .insert([{
             lead_id: lead.id,
             business_id: business.id,
             message_body: messageBody,
@@ -254,12 +266,12 @@ export async function POST(req: NextRequest) {
             scheduled_for: scheduledFor,
             attempt_count: 0,
             max_attempts: 3,
-          })
-          .select('id')
+          }])
+          .select()
           .single()
         
         if (jobError) {
-          console.error('[voice-status] Follow-up job insert failed:', jobError)
+          console.error("FOLLOW UP INSERT ERROR:", jobError)
         } else {
           console.log(`[voice-status] Follow-up job insert successful: ${followUpJob?.id}`)
           console.log(`[voice-status] Follow-up job details:`, {
