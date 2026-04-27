@@ -74,28 +74,37 @@ export async function POST(req: NextRequest) {
         caller_phone: normalizedCallerPhone,
         status: 'new'
       })
-      lead = await db.createLead({
-        business_id: business.id,
-        caller_phone: normalizedCallerPhone,
-        status: 'new', // New missed call, not contacted yet
-        first_contact_at: new Date().toISOString(),
-        last_message_at: null, // No messages yet
-        last_reply_at: null, // No replies yet
-        opted_out: false,
-      })
-      
-      if (!lead) {
-        console.error('[voice-status] Failed to create lead')
-        console.error('[voice-status] Early return: lead creation failed')
-        return new Response("OK", { status: 200 })
+
+      const { data: leadData, error: leadError } = await supabase
+        .from('leads')
+        .insert([{
+          business_id: business.id,
+          caller_phone: normalizedCallerPhone,
+          status: 'new',
+          first_contact_at: new Date().toISOString(),
+          last_message_at: null,
+          last_reply_at: null,
+          opted_out: false,
+        }])
+        .select()
+        .single()
+
+      console.log("LEAD INSERT RESULT:", leadData, leadError)
+
+      if (leadError) {
+        console.error("LEAD INSERT ERROR:", leadError)
       }
-      
+
+      lead = leadData
       leadWasCreated = true
-      console.log(`[voice-status] Lead inserted successfully:`, {
-        lead_id: lead.id,
-        business_id: lead.business_id,
-        caller_phone: lead.caller_phone
-      })
+
+      if (lead) {
+        console.log(`[voice-status] Lead inserted successfully:`, {
+          lead_id: lead.id,
+          business_id: lead.business_id,
+          caller_phone: lead.caller_phone
+        })
+      }
     } else {
       console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
       console.log(`[voice-status] Lead details:`, {
@@ -122,6 +131,12 @@ export async function POST(req: NextRequest) {
       } else {
         console.log(`[voice-status] Lead already has first_contact_at: ${lead.first_contact_at}`)
       }
+    }
+
+    // Debug: ensure lead exists before continuing
+    if (!lead) {
+      console.error('[voice-status] Lead is null after creation/lookup, throwing error for debugging')
+      throw new Error('Lead is null after creation/lookup')
     }
     
     // Handle conversation logic for missed calls
