@@ -1,4 +1,7 @@
-import { supabaseAdmin } from '@/lib/supabase/admin'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -13,60 +16,103 @@ function getErrorMessage(errorCode?: string | null): string | null {
 }
 
 async function getLeadDetails(leadId: string) {
-  const { data: lead, error: leadError } = await supabaseAdmin
-    .from('leads')
-    .select('*')
-    .eq('id', leadId)
-    .single()
-
-  if (leadError || !lead) {
-    return null
-  }
-
-  // Try to get conversation first
-  const { data: conversation } = await supabaseAdmin
-    .from('conversations')
-    .select('id, source')
-    .eq('lead_id', leadId)
-    .single()
-
-  let messages: Message[] = []
-
-  if (conversation) {
-    // Fetch messages by conversation_id
-    const { data: conversationMessages } = await supabaseAdmin
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversation.id)
-      .order('created_at', { ascending: true })
-
-    messages = conversationMessages || []
-  } else {
-    // Fallback: fetch messages by lead_id
-    const { data: leadMessages } = await supabaseAdmin
-      .from('messages')
-      .select('*')
-      .eq('lead_id', leadId)
-      .order('created_at', { ascending: true })
-
-    messages = leadMessages || []
-  }
-
-  return {
-    lead: lead as Lead,
-    messages,
-    source: conversation?.source || null
-  }
+  const response = await fetch(`/api/lead-details?leadId=${leadId}`)
+  if (!response.ok) return null
+  return response.json()
 }
 
-export default async function LeadDetailPage({ params }: { params: { id: string } }) {
-  const result = await getLeadDetails(params.id)
+export default function LeadDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [leadData, setLeadData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
-  if (!result) {
+  // Fetch lead data on mount
+  useEffect(() => {
+    getLeadDetails(params.id).then(data => {
+      setLeadData(data)
+      setLoading(false)
+    })
+  }, [params.id])
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!message.trim()) return
+
+    setSending(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: params.id, message: message.trim() })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to send message')
+        return
+      }
+
+      setMessage('')
+      router.refresh()
+      // Refetch data
+      const data = await getLeadDetails(params.id)
+      setLeadData(data)
+    } catch (err) {
+      setError('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleRetry = async (messageBody: string) => {
+    setSending(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: params.id, message: messageBody })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to send message')
+        return
+      }
+
+      router.refresh()
+      const data = await getLeadDetails(params.id)
+      setLeadData(data)
+    } catch (err) {
+      setError('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (!leadData) {
     notFound()
   }
 
-  const { lead, messages, source } = result
+  const { lead, messages, source } = leadData
 
   // Get latest message status
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null
@@ -138,6 +184,33 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
+        {/* Send Message */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Send Message
+          </h2>
+          <form onSubmit={handleSendMessage}>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              disabled={sending}
+            />
+            {error && (
+              <p className="text-red-600 dark:text-red-400 text-sm mt-2">{error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={sending || !message.trim()}
+              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+            >
+              {sending ? 'Sending...' : 'Send SMS'}
+            </button>
+          </form>
+        </div>
+
         {/* Messages Timeline */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -153,31 +226,31 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
               </p>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => {
-                  const errorMessage = getErrorMessage(message.error_code)
-                  const hasError = message.status === 'undelivered' || message.status === 'failed'
+                {messages.map((msg: any) => {
+                  const errorMessage = getErrorMessage(msg.error_code)
+                  const hasError = msg.status === 'undelivered' || msg.status === 'failed'
 
                   return (
                     <div
-                      key={message.id}
-                      className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}
+                      key={msg.id}
+                      className={`flex ${msg.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}
                     >
                       <div className="max-w-[80%]">
                         <div
                           className={`rounded-lg p-4 ${
-                            message.direction === 'inbound'
+                            msg.direction === 'inbound'
                               ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                               : 'bg-blue-600 text-white'
                           }`}
                         >
-                          <p className="text-sm break-words">{message.body || 'No content'}</p>
+                          <p className="text-sm break-words">{msg.body || 'No content'}</p>
                           <div className="flex items-center justify-between gap-2 mt-2">
                             <span className="text-xs opacity-70">
-                              {formatRelativeTime(message.created_at)}
+                              {formatRelativeTime(msg.created_at)}
                             </span>
-                            {message.status && (
+                            {msg.status && (
                               <span className="text-xs opacity-70 capitalize">
-                                {message.status}
+                                {msg.status}
                               </span>
                             )}
                           </div>
@@ -187,6 +260,13 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                             <p className="text-xs text-amber-800 dark:text-amber-300">
                               {errorMessage}
                             </p>
+                            <button
+                              onClick={() => handleRetry(msg.body)}
+                              disabled={sending}
+                              className="mt-2 text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:bg-gray-400"
+                            >
+                              {sending ? 'Retrying...' : 'Retry'}
+                            </button>
                           </div>
                         )}
                       </div>
