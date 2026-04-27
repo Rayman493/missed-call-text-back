@@ -259,7 +259,41 @@ export default function DashboardContent() {
 
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">No missed calls yet. When someone calls your ReplyFlow number, they'll appear here.</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
+                
+                {business?.twilio_phone_number && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
+                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">{business.twilio_phone_number}</p>
+                  </div>
+                )}
+
+                <div className="text-left bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">To test it now:</h3>
+                  <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
+                    <li>Call your ReplyFlow number</li>
+                    <li>Let it ring (don't answer)</li>
+                    <li>You should receive an automatic text</li>
+                    <li>Refresh this page to see the lead</li>
+                  </ol>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const instructions = document.querySelector('.bg-gray-50.dark\\:bg-gray-700')
+                    if (instructions) {
+                      instructions.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      instructions.classList.add('ring-2', 'ring-blue-500')
+                      setTimeout(() => {
+                        instructions.classList.remove('ring-2', 'ring-blue-500')
+                      }, 2000)
+                    }
+                  }}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Test my number
+                </button>
               </div>
             ) : (
               <div>
