@@ -53,9 +53,53 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          // No business found
-          console.log('[BusinessContext] No business found for user')
-          setBusiness(null)
+          // No business found - auto-create one
+          console.log('[BusinessContext] No business found for user, auto-creating...')
+          
+          const newBusiness = {
+            user_id: user.id,
+            name: user.email || 'My Business',
+            twilio_phone_number: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '',
+            auto_reply_message: 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
+            subscription_status: 'inactive',
+          }
+
+          const { data: createdBusiness, error: createError } = await supabase
+            .from('businesses')
+            .insert(newBusiness)
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('[BusinessContext] Error auto-creating business:', createError)
+            // If twilio_phone_number is not unique, try without it
+            if (createError.code === '23505') {
+              console.log('[BusinessContext] Duplicate twilio_phone_number, retrying without it')
+              const { data: createdBusinessNoPhone, error: createErrorNoPhone } = await supabase
+                .from('businesses')
+                .insert({
+                  user_id: user.id,
+                  name: user.email || 'My Business',
+                  auto_reply_message: 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
+                  subscription_status: 'inactive',
+                })
+                .select()
+                .single()
+
+              if (createErrorNoPhone) {
+                console.error('[BusinessContext] Error auto-creating business without phone:', createErrorNoPhone)
+                setBusiness(null)
+              } else {
+                console.log('[BusinessContext] Business created without phone:', createdBusinessNoPhone?.id)
+                setBusiness(createdBusinessNoPhone as Business)
+              }
+            } else {
+              setBusiness(null)
+            }
+          } else {
+            console.log('[BusinessContext] Business auto-created:', createdBusiness?.id)
+            setBusiness(createdBusiness as Business)
+          }
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)
           throw fetchError
