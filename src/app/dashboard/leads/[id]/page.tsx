@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
@@ -40,6 +39,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Fetch lead data on mount
   useEffect(() => {
+    console.log('[Lead View] Opening lead details for leadId:', params.id)
     getLeadDetails(params.id).then(data => {
       setLeadData(data)
       setLoading(false)
@@ -139,7 +139,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   if (!leadData) {
-    notFound()
+    return (
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+            >
+              ← Back to dashboard
+            </Link>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Lead not found</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              The lead you're looking for doesn't exist or you don't have permission to view it.
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              Return to Dashboard
+            </Link>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   const { lead, messages, source } = leadData
