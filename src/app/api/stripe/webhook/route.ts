@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import Stripe from 'stripe'
+import { provisionTwilioNumber } from '@/lib/twilio'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,30 @@ export async function POST(request: Request) {
           console.error('[stripe-webhook] Supabase update error:', updateError)
         } else {
           console.log('[stripe-webhook] Successfully updated business:', businessId, 'for user:', userId)
+        }
+
+        // Provision Twilio number if business doesn't have one
+        try {
+          const { data: business } = await supabase
+            .from('businesses')
+            .select('id, twilio_phone_number')
+            .eq('id', businessId)
+            .single()
+
+          if (business && !business.twilio_phone_number) {
+            console.log('[stripe-webhook] Business has no Twilio number, provisioning one...')
+            const provisioned = await provisionTwilioNumber(businessId)
+            if (provisioned) {
+              console.log('[stripe-webhook] Successfully provisioned Twilio number:', provisioned.phoneNumber)
+            } else {
+              console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId)
+            }
+          } else if (business && business.twilio_phone_number) {
+            console.log('[stripe-webhook] Business already has Twilio number, skipping provisioning')
+          }
+        } catch (provisionError) {
+          console.error('[stripe-webhook] Error during Twilio provisioning:', provisionError)
+          // Don't fail the webhook if provisioning fails - subscription is still active
         }
 
         break

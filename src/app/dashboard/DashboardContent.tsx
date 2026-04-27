@@ -403,6 +403,25 @@ export default function DashboardContent() {
               </div>
             )}
 
+            {/* Number Setup In Progress Banner */}
+            {isActive && !business?.twilio_phone_number && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <span className="text-lg sm:text-xl">⏳</span>
+                  </div>
+                  <div className="ml-2 sm:ml-3 flex-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100">
+                      Phone number setup in progress
+                    </h3>
+                    <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 mt-1">
+                      We're assigning your ReplyFlow number. This usually takes 1-2 minutes. If it doesn't appear soon, please contact support.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Missed Call Leads Section - MOVED TO TOP */}
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-8 rounded-lg shadow text-center">

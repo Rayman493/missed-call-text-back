@@ -131,3 +131,69 @@ export function isMissedCall(callStatus: string): boolean {
 export function validateTwilioRequest(payload: any, expectedFields: string[]): boolean {
   return expectedFields.every(field => field in payload)
 }
+
+export async function provisionTwilioNumber(businessId: string): Promise<{ phoneNumber: string; phoneNumberSid: string } | null> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+
+  if (!accountSid || !authToken) {
+    console.error('[Twilio Provisioning] Credentials missing');
+    return null
+  }
+
+  const client = Twilio(accountSid, authToken);
+
+  try {
+    console.log('[Twilio Provisioning] Searching numbers for business:', businessId);
+
+    // Search for available US local numbers with voice + SMS enabled
+    const availableNumbers = await client.availablePhoneNumbers('US')
+      .local
+      .list({
+        voiceEnabled: true,
+        smsEnabled: true,
+        limit: 1,
+      });
+
+    if (!availableNumbers || availableNumbers.length === 0) {
+      console.error('[Twilio Provisioning] No available numbers found');
+      return null
+    }
+
+    const numberToPurchase = availableNumbers[0];
+    console.log('[Twilio Provisioning] Found available number:', numberToPurchase.phoneNumber);
+
+    // Purchase the number
+    const purchasedNumber = await client.incomingPhoneNumbers.create({
+      phoneNumber: numberToPurchase.phoneNumber,
+      voiceUrl: 'https://replyflowhq.com/api/twilio/voice',
+      smsUrl: 'https://replyflowhq.com/api/twilio/incoming-sms',
+    });
+
+    console.log('[Twilio Provisioning] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid);
+
+    // Save to database
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update({
+        twilio_phone_number: purchasedNumber.phoneNumber,
+        twilio_phone_number_sid: purchasedNumber.sid,
+      })
+      .eq('id', businessId);
+
+    if (updateError) {
+      console.error('[Twilio Provisioning] Failed to save number to database:', updateError);
+      // Still return the number since it was purchased, but log the error
+    } else {
+      console.log('[Twilio Provisioning] Saved number to business:', businessId);
+    }
+
+    return {
+      phoneNumber: purchasedNumber.phoneNumber,
+      phoneNumberSid: purchasedNumber.sid,
+    };
+  } catch (error) {
+    console.error('[Twilio Provisioning] Failed to assign number:', error);
+    return null
+  }
+}
