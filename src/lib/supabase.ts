@@ -372,21 +372,25 @@ export const db = {
     return true
   },
 
-  async cancelPendingFollowUpJobsForLead(leadId: string): Promise<boolean> {
+  async cancelPendingFollowUpJobsForLead(leadId: string, cancelledReason: string): Promise<number> {
     const now = new Date().toISOString()
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('follow_up_jobs')
-      .update({ status: 'cancelled' })
+      .update({ 
+        status: 'cancelled',
+        cancelled_reason: cancelledReason,
+        cancelled_at: now
+      })
       .eq('lead_id', leadId)
       .eq('status', 'pending')
-      .gt('scheduled_for', now) // Only cancel jobs scheduled for the future
+      .select('id')
     
     if (error) {
       console.error('Error cancelling follow-up jobs:', error)
-      return false
+      return 0
     }
     
-    return true
+    return data?.length || 0
   },
 
   async markFollowUpSent(followUpId: string): Promise<FollowUp | null> {

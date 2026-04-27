@@ -140,13 +140,9 @@ export async function POST(req: NextRequest) {
       }
       
       // Cancel all pending follow-up jobs for this lead
-      const jobsCancelled = await db.cancelPendingFollowUpJobsForLead(lead.id)
+      const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_opted_out')
       
-      if (jobsCancelled) {
-        console.log(`[incoming-sms] Cancelled pending follow-up jobs for opted-out lead: ${lead.id}`)
-      } else {
-        console.error('[incoming-sms] Failed to cancel follow-up jobs for opted-out lead')
-      }
+      console.log(`[incoming-sms] Cancelled ${jobsCancelledCount} pending follow-up jobs for opted-out lead: ${lead.id} (From: ${From})`)
       
       // Send confirmation reply SMS
       const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
@@ -231,13 +227,9 @@ export async function POST(req: NextRequest) {
     }
     
     // Cancel all pending follow-up jobs for this lead when customer replies
-    const jobsCancelled = await db.cancelPendingFollowUpJobsForLead(lead.id)
+    const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
     
-    if (jobsCancelled) {
-      console.log(`[incoming-sms] Cancelled pending follow-up jobs for lead: ${lead.id}`)
-    } else {
-      console.error('[incoming-sms] Failed to cancel follow-up jobs')
-    }
+    console.log(`[incoming-sms] Cancelled ${jobsCancelledCount} pending follow-up jobs for lead: ${lead.id} (From: ${From})`)
     
     // At this point, conversation is guaranteed to exist
     // Save inbound message linked to conversation
