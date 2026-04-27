@@ -120,14 +120,25 @@ function AuthContent() {
         
         {error && (
           <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
-            <p className="text-sm text-red-300 mb-3">{error}</p>
+            <p className="text-sm text-red-300 mb-4">{error}</p>
             {existingAccount && (
-              <button
-                onClick={() => router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)}
-                className="text-sm text-blue-400 hover:text-blue-300 font-medium underline"
-              >
-                Sign in instead
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={() => router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    setExistingAccount(false)
+                    setError('')
+                  }}
+                  className="w-full text-sm text-gray-400 hover:text-gray-300 underline"
+                >
+                  Use a different email
+                </button>
+              </div>
             )}
           </div>
         )}
