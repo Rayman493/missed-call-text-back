@@ -66,7 +66,14 @@ function AuthContent() {
       // Redirect to onboarding after successful signup
       router.push('/onboarding')
     } catch (err: any) {
-      setError(err.message || 'Failed to sign up')
+      // Check for existing user error
+      const errorMessage = err.message || 'Failed to sign up'
+      if (errorMessage.toLowerCase().includes('user already registered') || 
+          errorMessage.toLowerCase().includes('already exists')) {
+        setError('Account already exists. Please sign in.')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
