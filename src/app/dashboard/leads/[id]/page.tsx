@@ -4,6 +4,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Lead, Message, Conversation } from '@/lib/types'
 
+function getErrorMessage(errorCode?: string | null): string | null {
+  if (!errorCode) return null
+  if (errorCode === '30007') {
+    return 'Carrier filtering detected. This may happen while toll-free verification is pending.'
+  }
+  return `Twilio error code: ${errorCode}`
+}
+
 async function getLeadDetails(leadId: string) {
   const { data: lead, error: leadError } = await supabaseAdmin
     .from('leads')
@@ -134,37 +142,46 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
               </p>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}
-                  >
+                {messages.map((message) => {
+                  const errorMessage = getErrorMessage(message.error_code)
+                  const hasError = message.status === 'undelivered' || message.status === 'failed'
+
+                  return (
                     <div
-                      className={`max-w-[80%] rounded-lg p-4 ${
-                        message.direction === 'inbound'
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                          : 'bg-blue-600 text-white'
-                      }`}
+                      key={message.id}
+                      className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}
                     >
-                      <p className="text-sm break-words">{message.body || 'No content'}</p>
-                      <div className="flex items-center justify-between gap-2 mt-2">
-                        <span className="text-xs opacity-70">
-                          {formatRelativeTime(message.created_at)}
-                        </span>
-                        {message.status && (
-                          <span className="text-xs opacity-70 capitalize">
-                            {message.status}
-                          </span>
+                      <div className="max-w-[80%]">
+                        <div
+                          className={`rounded-lg p-4 ${
+                            message.direction === 'inbound'
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                              : 'bg-blue-600 text-white'
+                          }`}
+                        >
+                          <p className="text-sm break-words">{message.body || 'No content'}</p>
+                          <div className="flex items-center justify-between gap-2 mt-2">
+                            <span className="text-xs opacity-70">
+                              {formatRelativeTime(message.created_at)}
+                            </span>
+                            {message.status && (
+                              <span className="text-xs opacity-70 capitalize">
+                                {message.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {hasError && errorMessage && (
+                          <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                            <p className="text-xs text-red-800 dark:text-red-300">
+                              {errorMessage}
+                            </p>
+                          </div>
                         )}
                       </div>
-                      {message.error_code && (
-                        <p className="text-xs text-red-300 mt-2">
-                          Error: {message.error_code}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
