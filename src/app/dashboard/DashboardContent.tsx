@@ -340,26 +340,26 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Your Missed Call Leads</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">See who called, who got a text, and who replied.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+              <div className="w-full">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">Your Missed Call Leads</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">See who called, who got a text, and who replied.</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <ThemeToggle />
                 <Link
                   href="/dashboard/settings"
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
                 >
                   Settings
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
                 >
-                  Sign Out
+                  Sign out
                 </button>
               </div>
             </div>
@@ -368,20 +368,20 @@ export default function DashboardContent() {
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3 mb-6">
-                <p className="text-blue-300">Payment confirmed. Setting up your account...</p>
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-6">
+                <p className="text-blue-300 text-sm">Payment confirmed. Setting up your account...</p>
               </div>
             )}
 
             {/* Checkout cancel message */}
             {checkoutStatus === 'cancelled' && (
-              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3 mb-6">
-                <p className="text-yellow-300">Checkout cancelled. You can activate anytime.</p>
+              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-6">
+                <p className="text-yellow-300 text-sm">Checkout cancelled. You can activate anytime.</p>
               </div>
             )}
 
             {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow">
               {webhookConfirming ? (
                 <>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
@@ -430,25 +430,25 @@ export default function DashboardContent() {
             </div>
 
             {/* Value Summary Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
-              <h2 className="text-2xl font-semibold text-gray-100 mb-2">Never Miss a Lead</h2>
-              <p className="text-gray-400 mb-6">Missed Call → Instant Text → Conversation Started</p>
-              
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6 mb-4 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 mb-2">Never Miss a Lead</h2>
+              <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">Missed Call → Instant Text → Conversation Started</p>
+
               {leads.length === 0 ? (
-                <p className="text-gray-400">Once you miss a call, ReplyFlow will automatically text them and track it here.</p>
+                <p className="text-gray-400 text-sm sm:text-base">Once you miss a call, ReplyFlow will automatically text them and track it here.</p>
               ) : (
-                <div className="flex flex-wrap gap-6">
+                <div className="flex flex-wrap gap-4 sm:gap-6">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">Total Leads:</span>
-                    <span className="text-xl font-semibold text-gray-100">{missedCalls}</span>
+                    <span className="text-gray-400 text-sm sm:text-base">Total Leads:</span>
+                    <span className="text-lg sm:text-xl font-semibold text-gray-100">{missedCalls}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">Messages Sent:</span>
-                    <span className="text-xl font-semibold text-gray-100">{textsSent}</span>
+                    <span className="text-gray-400 text-sm sm:text-base">Messages Sent:</span>
+                    <span className="text-lg sm:text-xl font-semibold text-gray-100">{textsSent}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">Leads Recovered:</span>
-                    <span className="text-xl font-semibold text-green-400">{leadsRecovered}</span>
+                    <span className="text-gray-400 text-sm sm:text-base">Leads Recovered:</span>
+                    <span className="text-lg sm:text-xl font-semibold text-green-400">{leadsRecovered}</span>
                   </div>
                 </div>
               )}
@@ -456,51 +456,51 @@ export default function DashboardContent() {
 
             {/* Value Message */}
             {leads.length > 0 && (
-              <div className="bg-green-900/20 border border-green-800 rounded-xl px-4 py-3 mb-8">
-                <p className="text-green-300 text-base">
+              <div className="bg-green-900/20 border border-green-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-8">
+                <p className="text-green-300 text-sm sm:text-base">
                   🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''} automatically
                 </p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Missed Calls</h3>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Missed Calls</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Texts Sent</h3>
-                <p className="text-3xl font-bold text-blue-600">{textsSent}</p>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Texts Sent</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{textsSent}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Replies</h3>
-                <p className="text-3xl font-bold text-green-600">{replies}</p>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Replies</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600">{replies}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Follow-ups Scheduled</h3>
-                <p className="text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Follow-ups Scheduled</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
               </div>
             </div>
 
             {/* Test Your Setup Section */}
             {business?.twilio_phone_number && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 mb-8 text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Test your setup</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8 mb-4 sm:mb-8 text-center">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Test your setup</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
                   Call your ReplyFlow number to test the missed call text back feature.
                 </p>
-                <div className="mb-6">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Your ReplyFlow number:</p>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                <div className="mb-4 sm:mb-6">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
                   Let it ring — you'll receive an automatic text.
                 </p>
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                   <button
                     onClick={handleTestSms}
                     disabled={testSmsLoading}
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
                   >
                     {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
                   </button>
@@ -509,13 +509,13 @@ export default function DashboardContent() {
                       console.log('[Dashboard] Refresh leads clicked')
                       router.refresh()
                     }}
-                    className="px-8 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
                   >
                     Refresh leads
                   </button>
                 </div>
                 {testSmsMessage && (
-                  <div className={`mt-4 text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {testSmsMessage}
                   </div>
                 )}
@@ -523,11 +523,11 @@ export default function DashboardContent() {
             )}
 
             {/* Live Activity Feed */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Live Activity</h2>
+            <div className="mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Live Activity</h2>
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                 {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
                     No activity yet
                   </div>
                 ) : (
@@ -542,11 +542,11 @@ export default function DashboardContent() {
                       .map((item: any, index: number) => {
                         const isLead = 'caller_phone' in item
                         const isJob = 'message_body' in item
-                        
+
                         let icon = ''
                         let text = ''
                         let time = ''
-                        
+
                         if (isLead) {
                           icon = '📞'
                           text = `Missed call from ${formatLeadPhone(item.caller_phone)}`
@@ -564,14 +564,14 @@ export default function DashboardContent() {
                           }
                           time = formatRelativeTime(item.created_at)
                         }
-                        
+
                         return (
-                          <div key={index} className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <span className="text-xl">{icon}</span>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-900 dark:text-gray-100">{text}</p>
+                          <div key={index} className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <span className="text-lg sm:text-xl">{icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">{text}</p>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{time}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{time}</p>
                           </div>
                         )
                       })}
@@ -581,20 +581,20 @@ export default function DashboardContent() {
             </div>
 
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
-                
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-8 rounded-lg shadow text-center">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
+
                 {business?.twilio_phone_number && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
-                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">{business.twilio_phone_number}</p>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
+                    <p className="text-base sm:text-lg font-semibold text-blue-900 dark:text-blue-100">{formatPhoneNumber(business.twilio_phone_number)}</p>
                   </div>
                 )}
 
-                <div className="text-left bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">To test it now:</h3>
-                  <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
+                <div className="text-left bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">To test it now:</h3>
+                  <ol className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
                     <li>Call your ReplyFlow number</li>
                     <li>Let it ring (don't answer)</li>
                     <li>You should receive an automatic text</li>
@@ -605,22 +605,22 @@ export default function DashboardContent() {
                 <button
                   onClick={handleTestSms}
                   disabled={testSmsLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
                 >
                   {testSmsLoading ? 'Sending...' : 'Test my number'}
                 </button>
 
                 {testSmsMessage && (
-                  <div className={`mt-3 text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  <div className={`mt-3 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {testSmsMessage}
                   </div>
                 )}
               </div>
             ) : (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Missed Call Leads</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">People who called but did not reach you.</p>
-                <div className="space-y-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Missed Call Leads</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">People who called but did not reach you.</p>
+                <div className="space-y-3 sm:space-y-4">
                   {leads.map((lead) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
@@ -652,43 +652,43 @@ export default function DashboardContent() {
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
                     return (
-                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-5">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 messageStatus.color === 'green' ? 'bg-green-100' :
                                 messageStatus.color === 'red' ? 'bg-red-100' :
                                 messageStatus.color === 'orange' ? 'bg-orange-100' :
                                 'bg-blue-100'
                               }`}>
-                                <span className="text-lg">{messageStatus.icon}</span>
+                                <span className="text-sm sm:text-lg">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">{formatLeadPhone(lead.caller_phone)}</p>
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
                                 {hasTexted && !hasReplied && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">⚡ We texted this customer instantly so you don't lose them</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">⚡ We texted this customer instantly so you don't lose them</p>
                                 )}
                                 {hasReplied && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">Customer responded — opportunity active</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">Customer responded — opportunity active</p>
                                 )}
                                 {!hasTexted && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">No follow-up sent yet</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">No follow-up sent yet</p>
                                 )}
                               </div>
                             </div>
                             {latestMessage && (
-                              <div className="ml-13">
-                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{latestMessage.body}</p>
+                              <div className="ml-10 sm:ml-13">
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 truncate">{latestMessage.body}</p>
                                 {isDeliveryPending && (
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Delivery pending (carrier verification)</p>
                                 )}
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                               statusBadge === 'New' ? 'bg-blue-100 text-blue-800' :
                               statusBadge === 'Texted' ? 'bg-yellow-100 text-yellow-800' :
                               statusBadge === 'Replied' ? 'bg-green-100 text-green-800' :

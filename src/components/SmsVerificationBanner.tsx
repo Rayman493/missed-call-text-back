@@ -21,26 +21,26 @@ export default function SmsVerificationBanner({ business }: SmsVerificationBanne
   if (!shouldShow) return null
 
   return (
-    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <span className="text-2xl">🚧</span>
+          <span className="text-xl sm:text-2xl">🚧</span>
         </div>
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+        <div className="ml-2 sm:ml-3 flex-1">
+          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100">
             Setup in progress (1–2 days)
           </h3>
-          <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 mt-1">
             Your auto-text is active, but carriers may delay some messages until verification completes.
           </p>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-sm text-blue-700 dark:text-blue-300 underline mt-2 hover:text-blue-900 dark:hover:text-blue-100"
+            className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 underline mt-2 hover:text-blue-900 dark:hover:text-blue-100"
           >
             {expanded ? 'Show less' : 'Learn more'}
           </button>
           {expanded && (
-            <ul className="text-sm text-blue-800 dark:text-blue-200 mt-3 space-y-1 list-disc list-inside">
+            <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 mt-2 sm:mt-3 space-y-1 list-disc list-inside">
               <li>Messages may show as undelivered during verification</li>
               <li>Once approved, delivery becomes reliable</li>
               <li>You can still test flows and view leads normally</li>
