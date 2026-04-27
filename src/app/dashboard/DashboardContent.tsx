@@ -208,6 +208,17 @@ export default function DashboardContent() {
               )}
             </div>
 
+            {/* Value Message */}
+            {leads.length > 0 && (
+              <div className="bg-green-900/20 border border-green-800 rounded-xl px-4 py-3 mb-8">
+                <p className="text-green-300 text-base">
+                  {textsSent === 1
+                    ? `You've reached out to ${textsSent} missed caller`
+                    : `You've reached out to ${textsSent} missed callers`}
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Missed Calls</h3>
