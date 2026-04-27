@@ -31,20 +31,20 @@ function getLeadMessageStatus(latestMessage: any): { text: string; color: string
   if (!latestMessage || !latestMessage.status) {
     return { text: 'Pending...', color: 'gray', icon: '…' }
   }
-  
+
   const status = latestMessage.status
   const errorCode = latestMessage.error_code
+
+  // Override for carrier blocking
+  if (errorCode === '30007') {
+    return { text: 'Blocked (Carrier)', color: 'red', icon: '🚫' }
+  }
 
   if (status === 'delivered') return { text: 'Delivered', color: 'green', icon: '✓' }
   if (status === 'sent') return { text: 'Sent', color: 'blue', icon: '→' }
   if (status === 'queued') return { text: 'Sending...', color: 'gray', icon: '…' }
   if (status === 'failed') return { text: 'Failed', color: 'red', icon: '✕' }
-  if (status === 'undelivered') {
-    if (errorCode === '30007') {
-      return { text: 'Blocked (Carrier)', color: 'orange', icon: '🚫' }
-    }
-    return { text: 'Not Delivered', color: 'orange', icon: '⚠' }
-  }
+  if (status === 'undelivered') return { text: 'Failed', color: 'red', icon: '✕' }
   return { text: 'Unknown', color: 'gray', icon: '?' }
 }
 
