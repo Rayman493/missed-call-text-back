@@ -401,206 +401,7 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow">
-              {webhookConfirming ? (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
-                </>
-              ) : isActive ? (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
-                  </div>
-                  {business?.cancel_at_period_end && (
-                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">Subscription will cancel at period end</p>
-                  )}
-                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
-                  )}
-                  <button
-                    onClick={handleManageBilling}
-                    disabled={checkoutLoading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {checkoutLoading ? 'Loading...' : 'Manage billing'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
-                  </div>
-                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
-                  )}
-                  <button
-                    onClick={handleStartSubscription}
-                    disabled={checkoutLoading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {checkoutLoading ? 'Loading...' : 'Start Subscription'}
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Value Summary Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6 mb-4 sm:mb-8">
-              <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 mb-2">Never Miss a Lead</h2>
-              <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">Missed Call → Instant Text → Conversation Started</p>
-
-              {leads.length === 0 ? (
-                <p className="text-gray-400 text-sm sm:text-base">Once you miss a call, ReplyFlow will automatically text them and track it here.</p>
-              ) : (
-                <div className="flex flex-wrap gap-4 sm:gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-sm sm:text-base">Total Leads:</span>
-                    <span className="text-lg sm:text-xl font-semibold text-gray-100">{missedCalls}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-sm sm:text-base">Messages Sent:</span>
-                    <span className="text-lg sm:text-xl font-semibold text-gray-100">{textsSent}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-sm sm:text-base">Leads Recovered:</span>
-                    <span className="text-lg sm:text-xl font-semibold text-green-400">{leadsRecovered}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Value Message */}
-            {leads.length > 0 && (
-              <div className="bg-green-900/20 border border-green-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-8">
-                <p className="text-green-300 text-sm sm:text-base">
-                  🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''} automatically
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
-              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Missed Calls</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Texts Sent</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{textsSent}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Replies</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-green-600">{replies}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Follow-ups Scheduled</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
-              </div>
-            </div>
-
-            {/* Test Your Setup Section */}
-            {business?.twilio_phone_number && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8 mb-4 sm:mb-8 text-center">
-                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Test your setup</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
-                  Call your ReplyFlow number to test the missed call text back feature.
-                </p>
-                <div className="mb-4 sm:mb-6">
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-                  Let it ring — you'll receive an automatic text.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                  <button
-                    onClick={handleTestSms}
-                    disabled={testSmsLoading}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
-                  >
-                    {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('[Dashboard] Refresh leads clicked')
-                      router.refresh()
-                    }}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
-                  >
-                    Refresh leads
-                  </button>
-                </div>
-                {testSmsMessage && (
-                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {testSmsMessage}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Live Activity Feed */}
-            <div className="mb-4 sm:mb-8">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Live Activity</h2>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-                {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                    No activity yet
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
-                      .sort((a: any, b: any) => {
-                        const timeA = new Date(a.created_at || a.scheduled_for).getTime()
-                        const timeB = new Date(b.created_at || b.scheduled_for).getTime()
-                        return timeB - timeA
-                      })
-                      .slice(0, 8)
-                      .map((item: any, index: number) => {
-                        const isLead = 'caller_phone' in item
-                        const isJob = 'message_body' in item
-
-                        let icon = ''
-                        let text = ''
-                        let time = ''
-
-                        if (isLead) {
-                          icon = '📞'
-                          text = `Missed call from ${formatLeadPhone(item.caller_phone)}`
-                          time = formatRelativeTime(item.created_at)
-                        } else if (isJob) {
-                          if (item.status === 'pending') {
-                            icon = '⏱'
-                            text = 'Follow-up scheduled'
-                          } else if (item.status === 'cancelled') {
-                            icon = '✅'
-                            text = 'Follow-up cancelled'
-                          } else {
-                            icon = '⏱'
-                            text = 'Follow-up job'
-                          }
-                          time = formatRelativeTime(item.created_at)
-                        }
-
-                        return (
-                          <div key={index} className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <span className="text-lg sm:text-xl">{icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">{text}</p>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{time}</p>
-                          </div>
-                        )
-                      })}
-                  </div>
-                )}
-              </div>
-            </div>
-
+            {/* Missed Call Leads Section - MOVED TO TOP */}
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-8 rounded-lg shadow text-center">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
@@ -639,7 +440,7 @@ export default function DashboardContent() {
               </div>
             ) : (
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Missed Call Leads</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Your Leads</h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">People who called but did not reach you.</p>
                 <div className="space-y-3 sm:space-y-4">
                   {leads.map((lead) => {
@@ -742,6 +543,182 @@ export default function DashboardContent() {
                 </div>
               </div>
             )}
+
+            {/* Live Activity Feed */}
+            <div className="mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Live Activity</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                {leads.length === 0 && followUpJobs.length === 0 ? (
+                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                    No activity yet
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
+                      .sort((a: any, b: any) => {
+                        const timeA = new Date(a.created_at || a.scheduled_for).getTime()
+                        const timeB = new Date(b.created_at || b.scheduled_for).getTime()
+                        return timeB - timeA
+                      })
+                      .slice(0, 8)
+                      .map((item: any, index: number) => {
+                        const isLead = 'caller_phone' in item
+                        const isJob = 'message_body' in item
+
+                        let icon = ''
+                        let text = ''
+                        let time = ''
+
+                        if (isLead) {
+                          icon = '📞'
+                          text = `Missed call from ${formatLeadPhone(item.caller_phone)}`
+                          time = formatRelativeTime(item.created_at)
+                        } else if (isJob) {
+                          if (item.status === 'pending') {
+                            icon = '⏱'
+                            text = 'Follow-up scheduled'
+                          } else if (item.status === 'cancelled') {
+                            icon = '✅'
+                            text = 'Follow-up cancelled'
+                          } else {
+                            icon = '⏱'
+                            text = 'Follow-up job'
+                          }
+                          time = formatRelativeTime(item.created_at)
+                        }
+
+                        return (
+                          <div key={index} className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <span className="text-lg sm:text-xl">{icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">{text}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{time}</p>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Missed Calls</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Texts Sent</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{textsSent}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Replies</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600">{replies}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Follow-ups Scheduled</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
+              </div>
+            </div>
+
+            {/* Value Message */}
+            {leads.length > 0 && (
+              <div className="bg-green-900/20 border border-green-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-8">
+                <p className="text-green-300 text-sm sm:text-base">
+                  🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''} automatically
+                </p>
+              </div>
+            )}
+
+            {/* Test Your Setup Section */}
+            {business?.twilio_phone_number && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8 mb-4 sm:mb-8 text-center">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Test your setup</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
+                  Call your ReplyFlow number to test the missed call text back feature.
+                </p>
+                <div className="mb-4 sm:mb-6">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
+                  Let it ring — you'll receive an automatic text.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                  <button
+                    onClick={handleTestSms}
+                    disabled={testSmsLoading}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
+                  >
+                    {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('[Dashboard] Refresh leads clicked')
+                      router.refresh()
+                    }}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
+                  >
+                    Refresh leads
+                  </button>
+                </div>
+                {testSmsMessage && (
+                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {testSmsMessage}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Billing card - always shown for testing */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow">
+              {webhookConfirming ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                </>
+              ) : isActive ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                  </div>
+                  {business?.cancel_at_period_end && (
+                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">Subscription will cancel at period end</p>
+                  )}
+                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                  )}
+                  <button
+                    onClick={handleManageBilling}
+                    disabled={checkoutLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? 'Loading...' : 'Manage billing'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                  </div>
+                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                  )}
+                  <button
+                    onClick={handleStartSubscription}
+                    disabled={checkoutLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? 'Loading...' : 'Start Subscription'}
+                  </button>
+                </>
+              )}
+            </div>
             </div>
           </div>
         </div>
