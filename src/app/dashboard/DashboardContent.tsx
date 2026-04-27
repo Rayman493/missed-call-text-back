@@ -150,6 +150,16 @@ export default function DashboardContent() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      console.log('[Auth] User signed out')
+      router.push('/')
+    } catch (error) {
+      console.error('[Auth] Sign out error:', error)
+    }
+  }
+
   const handleManageBilling = async () => {
     setCheckoutLoading(true)
     console.log("Creating Stripe portal session...")
@@ -306,6 +316,12 @@ export default function DashboardContent() {
                 >
                   Settings
                 </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
 
