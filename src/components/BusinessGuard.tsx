@@ -18,6 +18,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       return
     }
     
+    // Only redirect if loading is complete and no business exists
     if (!loading && !business) {
       console.log('[BusinessGuard] No business found, redirecting to onboarding')
       router.push('/onboarding')
@@ -26,8 +27,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-200">Loading ReplyFlow...</div>
       </div>
     )
   }

@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import { normalizePhoneNumber } from '@/lib/utils'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 const supabase = createBrowserClient()
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { refreshBusiness } = useBusiness()
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -94,6 +96,12 @@ export default function OnboardingPage() {
 
       if (insertError) throw insertError
 
+      // Refresh business context to update state
+      await refreshBusiness()
+      
+      // Refresh the page to ensure all state is updated
+      router.refresh()
+      
       // Redirect to dashboard
       router.push('/dashboard')
     } catch (err: any) {
