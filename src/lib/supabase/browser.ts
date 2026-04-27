@@ -14,7 +14,27 @@ export function createBrowserClient() {
     return null
   }
 
-  browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+  browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: {
+        getItem: (key) => {
+          if (typeof window === 'undefined') return null
+          return localStorage.getItem(key)
+        },
+        setItem: (key, value) => {
+          if (typeof window === 'undefined') return
+          localStorage.setItem(key, value)
+        },
+        removeItem: (key) => {
+          if (typeof window === 'undefined') return
+          localStorage.removeItem(key)
+        },
+      },
+    },
+  })
   console.log('[browser-client] Created singleton Supabase client')
   return browserClient
 }
