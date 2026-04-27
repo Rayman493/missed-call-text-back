@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import SetupError from '@/components/SetupError'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createBrowserClient()
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -15,6 +13,11 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Show setup error if env vars are missing
+  if (!supabase) {
+    return <SetupError />
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()

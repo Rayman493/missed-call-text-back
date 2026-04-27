@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@/lib/supabase'
+import SetupError from '@/components/SetupError'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createBrowserClient()
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [authenticated, setAuthenticated] = useState(false)
+
+  // Show setup error if env vars are missing
+  if (!supabase) {
+    return <SetupError />
+  }
 
   useEffect(() => {
     const checkAuth = async () => {

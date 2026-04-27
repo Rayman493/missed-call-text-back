@@ -1,8 +1,9 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@/lib/supabase'
 import { Business } from '@/lib/types'
+import SetupError from '@/components/SetupError'
 
 interface BusinessContextType {
   business: Business | null
@@ -18,10 +19,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createBrowserClient()
+
+  // Show setup error if env vars are missing
+  if (!supabase) {
+    return <SetupError />
+  }
 
   const fetchBusiness = async () => {
     setLoading(true)

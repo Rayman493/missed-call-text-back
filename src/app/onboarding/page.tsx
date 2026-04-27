@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
+import SetupError from '@/components/SetupError'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createBrowserClient()
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -18,6 +16,11 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+
+  // Show setup error if env vars are missing
+  if (!supabase) {
+    return <SetupError />
+  }
 
   useEffect(() => {
     // Get current user
