@@ -31,14 +31,16 @@ export default function SettingsPage() {
       const twilioPhoneNumber = formData.get('twilioPhoneNumber') as string
       const autoReplyMessage = formData.get('autoReplyMessage') as string
 
+      const updatePayload = {
+        name: businessName,
+        twilio_phone_number: twilioPhoneNumber,
+        auto_reply_message: autoReplyMessage,
+        updated_at: new Date().toISOString()
+      }
+
       const { error: updateError } = await supabase
         .from('businesses')
-        .update({
-          name: businessName,
-          twilio_phone_number: twilioPhoneNumber,
-          auto_reply_message: autoReplyMessage,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload as any)
         .eq('id', business.id)
 
       if (updateError) {
