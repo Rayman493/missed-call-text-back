@@ -379,12 +379,6 @@ export default function DashboardContent() {
           {/* Main Content */}
           <div className="p-4 sm:p-8">
             <div className="max-w-7xl mx-auto">
-              {/* Page Title */}
-              <div className="mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">Your Missed Call Leads</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">See who called, who got a text, and who replied.</p>
-              </div>
-
             <SmsVerificationBanner business={business} />
 
             {/* Checkout success confirming message */}
@@ -398,6 +392,14 @@ export default function DashboardContent() {
             {checkoutStatus === 'cancelled' && (
               <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-6">
                 <p className="text-yellow-300 text-sm">Checkout cancelled. You can activate anytime.</p>
+              </div>
+            )}
+
+            {/* Value Header */}
+            {leads.length > 0 && (
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2">🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''}</h1>
+                <p className="text-orange-100 text-sm sm:text-base">Missed call → instant text → conversation started</p>
               </div>
             )}
 
@@ -443,7 +445,7 @@ export default function DashboardContent() {
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Your Leads</h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">People who called but did not reach you.</p>
                 <div className="space-y-3 sm:space-y-4">
-                  {leads.map((lead) => {
+                  {leads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                       : null
@@ -454,7 +456,10 @@ export default function DashboardContent() {
                     const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
                     const hasBlockedOutbound = lead.messages?.some((m: any) => m.direction === 'outbound' && m.error_code === '30007')
                     const hasFailedMessage = latestMessage && (latestMessage.status === 'failed' || latestMessage.status === 'undelivered')
-                    
+
+                    // Check if this is the newest lead (within 24 hours)
+                    const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+
                     let statusBadge = 'New'
                     let isDeliveryPending = false
                     let smsIssueBadge = null
@@ -474,7 +479,7 @@ export default function DashboardContent() {
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
                     return (
-                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      <div key={lead.id} className={`bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border shadow-sm ${isNewLead ? 'border-orange-400 dark:border-orange-500 ring-2 ring-orange-100 dark:ring-orange-900/30' : 'border-gray-200 dark:border-gray-700'}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-5">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -487,16 +492,21 @@ export default function DashboardContent() {
                                 <span className="text-sm sm:text-lg">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">{formatLeadPhone(lead.caller_phone)}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">{formatLeadPhone(lead.caller_phone)}</p>
+                                  {isNewLead && (
+                                    <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-medium rounded-full flex-shrink-0">New</span>
+                                  )}
+                                </div>
                                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
                                 {hasTexted && !hasReplied && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">⚡ We texted this customer instantly so you don't lose them</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">⚡ Auto-text sent instantly</p>
                                 )}
                                 {hasReplied && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">Customer responded — opportunity active</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">💬 Customer replied</p>
                                 )}
                                 {!hasTexted && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">No follow-up sent yet</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 hidden sm:block">⏳ Waiting for reply</p>
                                 )}
                               </div>
                             </div>
