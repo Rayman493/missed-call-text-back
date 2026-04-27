@@ -34,14 +34,17 @@ export async function POST(request: Request) {
         const customerId = session.customer as string
         const subscriptionId = session.subscription as string
 
+        console.log('[stripe-webhook] Webhook received:', event.type)
+        console.log('[stripe-webhook] Customer:', customerId)
+        console.log('[stripe-webhook] Subscription:', subscriptionId)
+        console.log('[stripe-webhook] Metadata:', session.metadata)
+
         // Support both naming styles for metadata keys
         const businessId = session.metadata?.businessId || session.metadata?.business_id
         const userId = session.metadata?.userId || session.metadata?.user_id
 
-        console.log("Stripe metadata:", session.metadata)
-        console.log("Resolved businessId:", businessId)
-        console.log("Resolved userId:", userId)
-        console.log("Stripe webhook checkout completed", { businessId, userId, customerId, subscriptionId })
+        console.log('[stripe-webhook] Business ID:', businessId)
+        console.log('[stripe-webhook] User ID:', userId)
 
         // Validate businessId
         if (!businessId) {
@@ -51,6 +54,7 @@ export async function POST(request: Request) {
 
         let updateData: any = {
           stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
           subscription_status: 'active',
         }
 
@@ -60,7 +64,6 @@ export async function POST(request: Request) {
             const subscription = await stripe.subscriptions.retrieve(subscriptionId)
             updateData = {
               ...updateData,
-              stripe_subscription_id: subscriptionId,
               subscription_status: subscription.status,
               subscription_price_id: subscription.items.data[0]?.price.id,
               current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
@@ -70,36 +73,18 @@ export async function POST(request: Request) {
           }
         }
 
-        // Try to update by business_id first
-        try {
-          const { error: updateError } = await supabase
-            .from('businesses')
-            .update(updateData)
-            .eq('id', businessId)
+        console.log('[stripe-webhook] Updating business:', businessId, 'with data:', updateData)
 
-          if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (by business_id):', updateError)
-          } else {
-            console.log('[stripe-webhook] Updated business to active:', businessId)
-          }
-        } catch (error) {
-          console.error('[stripe-webhook] Supabase update error (by business_id):', error)
-        }
+        // Update by business_id
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update(updateData)
+          .eq('id', businessId)
 
-        // Fallback: try to update by stripe_customer_id
-        try {
-          const { error: updateError } = await supabase
-            .from('businesses')
-            .update(updateData)
-            .eq('stripe_customer_id', customerId)
-
-          if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (by customer_id):', updateError)
-          } else {
-            console.log('[stripe-webhook] Updated business by customer_id:', customerId)
-          }
-        } catch (error) {
-          console.error('[stripe-webhook] Supabase update error (by customer_id):', error)
+        if (updateError) {
+          console.error('[stripe-webhook] Supabase update error:', updateError)
+        } else {
+          console.log('[stripe-webhook] Successfully updated business:', businessId)
         }
 
         break
