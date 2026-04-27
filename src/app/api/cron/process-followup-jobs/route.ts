@@ -17,8 +17,28 @@ const supabase = createClient(
   getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 );
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Verify CRON_SECRET for cron job protection
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      console.error('[Security] Unauthorized request to /api/cron/process-followup-jobs - missing CRON_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const expectedSecret = process.env.CRON_SECRET
+    if (!expectedSecret) {
+      console.error('[Security] CRON_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '')
+    if (providedSecret !== expectedSecret) {
+      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/process-followup-jobs')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[Cron] Authorized cron request to /api/cron/process-followup-jobs');
     console.log('[SYSTEM] [FOLLOWUP-CRON] Follow-up job processing started');
     
     // Fetch up to 10 pending jobs where scheduled_for <= now()
@@ -245,6 +265,6 @@ export async function POST() {
 }
 
 // Also support GET for testing
-export async function GET() {
-  return POST();
+export async function GET(request: Request) {
+  return POST(request);
 }

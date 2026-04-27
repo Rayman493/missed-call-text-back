@@ -6,6 +6,7 @@ import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Lead, Message, Conversation } from '@/lib/types'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 function getErrorMessage(errorCode?: string | null): string | null {
   if (!errorCode) return null
@@ -16,7 +17,14 @@ function getErrorMessage(errorCode?: string | null): string | null {
 }
 
 async function getLeadDetails(leadId: string) {
-  const response = await fetch(`/api/lead-details?leadId=${leadId}`)
+  const supabase = createBrowserClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
+  const response = await fetch(`/api/lead-details?leadId=${leadId}`, { headers })
   if (!response.ok) return null
   return response.json()
 }
@@ -47,9 +55,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setSuccessMessage('')
 
     try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
       const response = await fetch('/api/send-sms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ leadId: params.id, message: message.trim() })
       })
 
@@ -83,9 +98,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setError('')
 
     try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
       const response = await fetch('/api/send-sms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ leadId: params.id, message: messageBody })
       })
 

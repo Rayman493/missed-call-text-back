@@ -19,6 +19,26 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify CRON_SECRET for cron job protection
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      console.error('[Security] Unauthorized request to /api/cron/send-followups - missing CRON_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const expectedSecret = process.env.CRON_SECRET
+    if (!expectedSecret) {
+      console.error('[Security] CRON_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '')
+    if (providedSecret !== expectedSecret) {
+      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/send-followups')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[Cron] Authorized cron request to /api/cron/send-followups');
     console.log('[send-followups] Starting follow-up processing')
     
     // Query due follow_ups where: status = 'pending', scheduled_for <= now()
@@ -243,10 +263,30 @@ export async function POST(req: NextRequest) {
 }
 
 // Also support GET for testing (but it should also process, not just list)
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Verify CRON_SECRET for cron job protection
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      console.error('[Security] Unauthorized request to /api/cron/send-followups GET - missing CRON_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const expectedSecret = process.env.CRON_SECRET
+    if (!expectedSecret) {
+      console.error('[Security] CRON_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '')
+    if (providedSecret !== expectedSecret) {
+      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/send-followups GET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[Cron] Authorized cron request to /api/cron/send-followups GET');
     console.log('[send-followups] GET request - processing follow-ups')
-    
+
     // For GET, also process follow-ups (same logic as POST)
     const now = new Date().toISOString()
     const { data: dueFollowUps, error: followUpsError } = await supabase
