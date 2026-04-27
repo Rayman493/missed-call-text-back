@@ -32,11 +32,13 @@ export default function OnboardingPage() {
       setUserId(user.id)
 
       // Check if user already has a business
-      const { data: businesses } = await supabase
+      const { data } = await supabase
         .from('businesses')
         .select('id')
         .eq('user_id', user.id)
         .limit(1)
+
+      const businesses = data as any[]
 
       if (businesses && businesses.length > 0) {
         // User already has a business, redirect to dashboard

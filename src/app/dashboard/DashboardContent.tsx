@@ -71,7 +71,7 @@ export default function DashboardContent() {
       console.log('[DashboardContent] Fetching leads for business:', business.id)
       setLoading(true)
       try {
-        const { data: leadsData } = await supabase
+        const { data } = await supabase
           .from('leads')
           .select(`
             *,
@@ -100,6 +100,8 @@ export default function DashboardContent() {
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
+
+        const leadsData = data as any[]
 
         console.log('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
         setLeads(leadsData || [])

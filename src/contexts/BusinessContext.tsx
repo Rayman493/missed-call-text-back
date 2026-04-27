@@ -42,12 +42,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('[BusinessContext] User found, fetching business for user:', user.id)
-      const { data: businessData, error: fetchError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
         .eq('user_id', user.id)
         .limit(1)
         .single()
+
+      const businessData = data as Business | null
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
