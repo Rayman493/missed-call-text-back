@@ -5,6 +5,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
@@ -63,8 +64,31 @@ export default function DashboardContent() {
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const checkoutStatus = searchParams.get('checkout')
 
   const supabase = createBrowserClient()
+
+  const handleStartSubscription = async () => {
+    setCheckoutLoading(true)
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+      })
+      const data = await response.json()
+      
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('[checkout] No URL returned:', data)
+      }
+    } catch (error) {
+      console.error('[checkout] Error:', error)
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
 
   useEffect(() => {
     console.log('[DashboardContent] Business:', business?.id, 'Supabase:', !!supabase)
@@ -182,6 +206,46 @@ export default function DashboardContent() {
             </div>
 
             <SmsVerificationBanner business={business} />
+
+            {/* Checkout success/cancel messages */}
+            {checkoutStatus === 'success' && (
+              <div className="bg-green-900/20 border border-green-800 rounded-xl px-4 py-3 mb-6">
+                <p className="text-green-300">Subscription activated. Welcome to ReplyFlow.</p>
+              </div>
+            )}
+            {checkoutStatus === 'cancelled' && (
+              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3 mb-6">
+                <p className="text-yellow-300">Checkout cancelled. You can activate anytime.</p>
+              </div>
+            )}
+
+            {/* Billing bypass badge */}
+            {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3 mb-6">
+                <p className="text-blue-300">Billing bypass enabled</p>
+              </div>
+            )}
+
+            {/* Billing card when subscription not active and bypass is false */}
+            {process.env.NEXT_PUBLIC_BYPASS_BILLING !== 'true' && 
+             business && 
+             business.subscription_status !== 'active' && 
+             business.subscription_status !== 'trialing' && (
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                </div>
+                <button
+                  onClick={handleStartSubscription}
+                  disabled={checkoutLoading}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {checkoutLoading ? 'Loading...' : 'Start Subscription'}
+                </button>
+              </div>
+            )}
 
             {/* Value Summary Section */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
