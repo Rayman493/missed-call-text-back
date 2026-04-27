@@ -2,9 +2,6 @@ import { NextRequest } from 'next/server'
 import { db, supabaseAdmin } from '@/lib/supabase'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 
-// Define all missed call statuses that Twilio can send
-const MISSED_CALL_STATUSES = ["no-answer", "busy", "failed"]
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text()
@@ -21,32 +18,30 @@ export async function POST(req: NextRequest) {
     console.log('[voice-status]   To:', To)
     console.log('[voice-status]   CallSid:', params.get('CallSid'))
     
-    if (!From || !To || !CallStatus) {
-      console.error('[voice-status] Missing required fields:', { From, To, CallStatus })
+    if (!From || !To) {
+      console.error('[voice-status] Missing required fields:', { From, To })
+      console.error('[voice-status] Early return: missing required fields')
       return new Response("OK", { status: 200 })
     }
     
-    // Determine if this is a missed call
-    const isMissedCall = MISSED_CALL_STATUSES.includes(CallStatus)
-    console.log("Treated as missed call:", isMissedCall)
-    
-    if (!isMissedCall) {
-      console.log(`[voice-status] Not a missed call (status: ${CallStatus}), ignoring`)
-      return new Response("OK", { status: 200 })
-    }
-    
-    console.log(`[voice-status] Processing missed call with status: ${CallStatus}`)
+    // Treat ALL inbound calls as valid leads, regardless of CallStatus
+    console.log('[voice-status] Creating lead regardless of call status:', CallStatus)
+    console.log(`[voice-status] Processing inbound call with status: ${CallStatus}`)
     
     // Find business by Twilio phone number
     console.log(`[voice-status] Looking up business by phone: ${To}`)
-    const business = await db.getBusinessByPhone(To)
+    const normalizedTo = normalizePhoneNumber(To)
+    console.log(`[voice-status] Normalized To number: ${normalizedTo}`)
+    const business = await db.getBusinessByPhone(normalizedTo)
     if (!business) {
-      console.error(`[voice-status] No business found for To number: ${To}`)
+      console.error(`[voice-status] No business found for To number: ${To} (normalized: ${normalizedTo})`)
+      console.error(`[voice-status] Early return: no business matched`)
       return new Response("OK", { status: 200 })
     }
     
     console.log(`[voice-status] Matched business: ${business.name} (id: ${business.id})`)
-    console.log(`[voice-status] Business phone: ${business.twilio_phone_number}`)
+    console.log(`[voice-status] Business phone in DB: ${business.twilio_phone_number}`)
+    console.log(`[voice-status] Phone match check: ${normalizedTo} === ${business.twilio_phone_number} = ${normalizedTo === business.twilio_phone_number}`)
     
     // Normalize customer phone number
     const normalizedCallerPhone = normalizePhoneNumber(From)
@@ -77,6 +72,7 @@ export async function POST(req: NextRequest) {
       
       if (!lead) {
         console.error('[voice-status] Failed to create lead')
+        console.error('[voice-status] Early return: lead creation failed')
         return new Response("OK", { status: 200 })
       }
       
@@ -88,9 +84,17 @@ export async function POST(req: NextRequest) {
       })
     } else {
       console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
+      console.log(`[voice-status] Lead details:`, {
+        lead_id: lead.id,
+        business_id: lead.business_id,
+        caller_phone: lead.caller_phone,
+        status: lead.status,
+        opted_out: lead.opted_out
+      })
       
       // Update existing lead's first contact if this is their first missed call
       if (!lead.first_contact_at) {
+        console.log(`[voice-status] Updating lead first_contact_at`)
         const updatedLead = await db.updateLead(lead.id, {
           first_contact_at: new Date().toISOString(),
         })
@@ -99,7 +103,10 @@ export async function POST(req: NextRequest) {
           console.error('[voice-status] Failed to update lead first_contact_at')
         } else {
           lead = updatedLead
+          console.log(`[voice-status] Lead first_contact_at updated`)
         }
+      } else {
+        console.log(`[voice-status] Lead already has first_contact_at: ${lead.first_contact_at}`)
       }
     }
     
@@ -109,6 +116,7 @@ export async function POST(req: NextRequest) {
     
     if (!conversation) {
       // Create new conversation for missed call
+      console.log(`[voice-status] Creating new conversation for lead: ${lead.id}`)
       conversation = await db.createConversation({
         lead_id: lead.id,
         business_id: business.id,
@@ -120,6 +128,7 @@ export async function POST(req: NextRequest) {
       
       if (!conversation) {
         console.error('[voice-status] Failed to create conversation')
+        console.error('[voice-status] Early return: conversation creation failed')
         return new Response("OK", { status: 200 })
       }
       
@@ -127,8 +136,16 @@ export async function POST(req: NextRequest) {
       console.log(`[voice-status] Created new conversation: ${conversation.id}`)
     } else {
       console.log(`[voice-status] Found existing conversation: ${conversation.id}`)
+      console.log(`[voice-status] Conversation details:`, {
+        conversation_id: conversation.id,
+        lead_id: conversation.lead_id,
+        business_id: conversation.business_id,
+        status: conversation.status,
+        source: conversation.source
+      })
       
       // Update existing conversation's last activity
+      console.log(`[voice-status] Updating conversation last_activity_at`)
       const updatedConversation = await db.updateConversation(conversation.id, {
         last_activity_at: new Date().toISOString(),
       })
@@ -143,11 +160,12 @@ export async function POST(req: NextRequest) {
     
     // Save call event linked to conversation
     if (conversation) {
+      console.log(`[voice-status] Creating call event for conversation: ${conversation.id}`)
       const callEvent = await db.createCallEventWithConversation({
         business_id: business.id,
         conversation_id: conversation.id,
         caller_phone: normalizedCallerPhone,
-        call_status: CallStatus,
+        call_status: CallStatus || 'unknown',
         twilio_call_sid: params.get('CallSid'),
         raw_payload: Object.fromEntries(params.entries()),
         created_at: new Date().toISOString(),
@@ -160,6 +178,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       console.error('[voice-status] No conversation available for call event')
+      console.error('[voice-status] Early return: no conversation for call event')
       return new Response("OK", { status: 200 })
     }
     
@@ -189,6 +208,8 @@ export async function POST(req: NextRequest) {
     // NEW FOLLOW-UP JOB LOGIC (INDEPENDENT OF LEAD STATUS)
     // ========================================
     
+    let hasPendingJob = false
+    
     // ALWAYS attempt follow-up job creation for missed calls, regardless of lead status
     if (conversation) {
       console.log(`[voice-status] Attempting follow-up job creation for conversation: ${conversation.id}`)
@@ -202,7 +223,7 @@ export async function POST(req: NextRequest) {
         .limit(1)
         .single()
       
-      const hasPendingJob = !!existingJob
+      hasPendingJob = !!existingJob
       console.log(`[voice-status] Has existing pending follow-up job: ${hasPendingJob}`)
       
       if (!hasPendingJob) {
@@ -251,10 +272,24 @@ export async function POST(req: NextRequest) {
     
     // Update conversation activity if outbound message was sent
     if (outboundMessage && conversation) {
+      console.log(`[voice-status] Updating conversation activity after outbound message`)
       await db.updateConversation(conversation.id, {
         last_activity_at: new Date().toISOString(),
       })
     }
+    
+    // Final summary log
+    console.log(`[voice-status] === PROCESSING COMPLETE ===`)
+    console.log(`[voice-status] Summary:`, {
+      lead_created: leadWasCreated,
+      lead_id: lead.id,
+      conversation_created: conversationWasCreated,
+      conversation_id: conversation?.id,
+      auto_reply_sent: shouldSendAutoReply,
+      follow_up_job_created: !hasPendingJob,
+      business_id: business.id,
+      caller_phone: normalizedCallerPhone
+    })
     
     // Return 200 response quickly (Twilio requires this)
     return new Response("OK", { status: 200 })
