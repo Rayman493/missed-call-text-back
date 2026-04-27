@@ -43,8 +43,9 @@ export default function SettingsPage() {
         name: businessName,
         twilio_phone_number: normalizedPhone,
         auto_reply_message: autoReplyMessage,
-        updated_at: new Date().toISOString()
       }
+
+      console.log('[Settings] Updating business:', business.id, 'with payload:', updatePayload)
 
       const supabaseAny = supabase as any
       const { error: updateError } = await supabaseAny
@@ -53,15 +54,15 @@ export default function SettingsPage() {
         .eq('id', business.id)
 
       if (updateError) {
-        console.error('Failed to update business:', updateError)
-        throw new Error('Failed to update business')
+        console.error('[Settings] Update failed:', updateError)
+        throw new Error(updateError.message || 'Failed to update business')
       }
 
       setSuccess(true)
       await refreshBusiness()
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
-      console.error('Unexpected error updating business:', err)
+      console.error('[Settings] Unexpected error updating business:', err)
       setError(err.message || 'Failed to update business')
     } finally {
       setLoading(false)
