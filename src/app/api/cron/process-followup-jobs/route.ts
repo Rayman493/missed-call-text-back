@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import Twilio from "twilio";
+import { sendSms } from "@/lib/twilio";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -55,12 +55,6 @@ export async function POST() {
     let sent = 0;
     let failed = 0;
     let errors = 0;
-
-    // Initialize Twilio client
-    const twilioClient = Twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    );
 
     // Process each job
     for (const job of jobs) {
@@ -152,44 +146,18 @@ export async function POST() {
           continue;
         }
 
-        // Send SMS using Twilio Messaging Service with status callback
+        // Send SMS using centralized sendSms function
         console.log(`[process-followup-jobs] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
-        
-        const messageResult = await twilioClient.messages.create({
-          body: job.message_body,
-          to: lead.caller_phone,
-          messagingServiceSid: business.twilio_messaging_service_sid,
-          statusCallback: "https://replyflowhq.com/api/twilio/status",
+
+        const messageSid = await sendSms(business, lead.caller_phone, job.message_body, {
+          lead_id: job.lead_id,
         });
 
-        console.log(`[process-followup-jobs] SMS sent successfully for job ${job.id}, SID: ${messageResult.sid}`);
-        
-        console.log("[twilio] message sent", {
-          to: lead.caller_phone,
-          sid: messageResult.sid,
-          statusCallback: "https://replyflowhq.com/api/twilio/status"
-        });
-
-        // Insert row into messages table
-        const { error: messageInsertError } = await supabase
-          .from('messages')
-          .insert({
-            lead_id: job.lead_id,
-            body: job.message_body,
-            direction: 'outbound',
-            to_phone: lead.caller_phone,
-            from_phone: business.twilio_phone_number,
-            status: 'sent',
-            twilio_message_sid: messageResult.sid,
-            sent_at: new Date().toISOString(),
-            created_at: new Date().toISOString()
-          });
-
-        if (messageInsertError) {
-          console.error(`[process-followup-jobs] Failed to insert message for job ${job.id}:`, messageInsertError);
-          // This is a retryable error - don't mark as sent
-          throw new Error(`Failed to insert message: ${messageInsertError.message || 'Database error'}`);
+        if (!messageSid) {
+          throw new Error('SMS send failed: no Twilio message SID returned');
         }
+
+        console.log(`[process-followup-jobs] SMS sent successfully for job ${job.id}, SID: ${messageSid}`);
 
         // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         const { error: jobUpdateError } = await supabase

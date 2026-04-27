@@ -176,43 +176,23 @@ export async function POST(req: NextRequest) {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body)
-        
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, {
+          lead_id: lead.id,
+          conversation_id: conversation.id,
+        })
+
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
           errors++
           continue
         }
-        
-        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
-        
-        // Insert outbound row into public.messages
-        const { data: outboundMessage, error: messageInsertError } = await supabase
-          .from('messages')
-          .insert({
-            lead_id: lead.id,
-            conversation_id: conversation.id,
-            direction: 'outbound',
-            body: followUp.message_body,
-            from_phone: business.twilio_phone_number,
-            to_phone: lead.caller_phone,
-            twilio_message_sid: messageSid,
-            status: 'queued',
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single()
 
-        if (!outboundMessage) {
-          console.log(`[send-followups] Warning - failed to save outbound message: ${followUp.id}`)
-        } else {
-          console.log(`[send-followups] Saved outbound message: ${outboundMessage.id} with SID: ${messageSid}`)
-        }
-        
+        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
+
         // After successful send - update follow_up
         const { error: updateError } = await supabase
           .from('follow_ups')
-          .update({ 
+          .update({
             status: 'sent',
             sent_at: new Date().toISOString()
           })
@@ -420,43 +400,23 @@ export async function GET() {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body)
-        
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, {
+          lead_id: lead.id,
+          conversation_id: conversation.id,
+        })
+
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
           errors++
           continue
         }
-        
-        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
-        
-        // Insert outbound row into public.messages
-        const { data: outboundMessage, error: messageInsertError } = await supabase
-          .from('messages')
-          .insert({
-            lead_id: lead.id,
-            conversation_id: conversation.id,
-            direction: 'outbound',
-            body: followUp.message_body,
-            from_phone: business.twilio_phone_number,
-            to_phone: lead.caller_phone,
-            twilio_message_sid: messageSid,
-            status: 'queued',
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single()
 
-        if (!outboundMessage) {
-          console.log(`[send-followups] Warning - failed to save outbound message: ${followUp.id}`)
-        } else {
-          console.log(`[send-followups] Saved outbound message: ${outboundMessage.id} with SID: ${messageSid}`)
-        }
-        
+        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
+
         // After successful send - update follow_up
         const { error: updateError } = await supabase
           .from('follow_ups')
-          .update({ 
+          .update({
             status: 'sent',
             sent_at: new Date().toISOString()
           })

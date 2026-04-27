@@ -140,28 +140,12 @@ export async function POST(req: NextRequest) {
       
       // Send confirmation reply SMS
       const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
-      const messageSid = await sendSms(business, From, confirmationMessage)
+      const messageSid = await sendSms(business, From, confirmationMessage, {
+        lead_id: lead.id,
+      })
 
       if (messageSid) {
         console.log(`[incoming-sms] Sent opt-out confirmation SMS: ${messageSid}`)
-
-        // Save outbound message record (without conversation_id since opt-out is early return)
-        const outboundMessage = await db.createMessageWithConversation({
-          lead_id: lead.id,
-          direction: 'outbound',
-          body: confirmationMessage,
-          from_phone: business.twilio_phone_number,
-          to_phone: normalizedCustomerPhone,
-          twilio_message_sid: messageSid,
-          status: 'queued',
-          created_at: new Date().toISOString(),
-        })
-
-        if (!outboundMessage) {
-          console.error('[incoming-sms] Failed to save opt-out confirmation message')
-        } else {
-          console.log(`[incoming-sms] Saved opt-out confirmation message: ${outboundMessage.id} with SID: ${messageSid}`)
-        }
       } else {
         console.error('[incoming-sms] Failed to send opt-out confirmation SMS')
       }

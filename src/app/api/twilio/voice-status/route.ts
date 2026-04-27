@@ -162,33 +162,13 @@ export async function POST(req: NextRequest) {
     
     // Send auto-reply SMS only if lead is 'new'
     if (shouldSendAutoReply) {
-      const messageSid = await sendSms(business, From, business.auto_reply_message)
+      const messageSid = await sendSms(business, From, business.auto_reply_message, {
+        lead_id: lead.id,
+        conversation_id: conversation?.id,
+      })
 
       if (messageSid) {
         console.log(`[voice-status] Sent auto-reply SMS: ${messageSid}`)
-
-        // Insert outbound message record linked to conversation
-        if (conversation) {
-          outboundMessage = await db.createMessageWithConversation({
-            lead_id: lead.id,
-            conversation_id: conversation.id,
-            direction: 'outbound',
-            body: business.auto_reply_message,
-            from_phone: business.twilio_phone_number,
-            to_phone: normalizedCallerPhone,
-            twilio_message_sid: messageSid,
-            status: 'queued',
-            created_at: new Date().toISOString(),
-          })
-
-          if (!outboundMessage) {
-            console.error('[voice-status] Failed to save outbound message')
-          } else {
-            console.log(`[voice-status] Saved outbound message: ${outboundMessage.id} with SID: ${messageSid}`)
-          }
-        } else {
-          console.error('[voice-status] No conversation available for outbound message')
-        }
       } else {
         console.error('[voice-status] Failed to send auto-reply SMS')
       }
