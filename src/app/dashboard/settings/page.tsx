@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
-import { normalizePhoneNumber } from '@/lib/utils'
+import { normalizePhoneNumber, formatDisplayPhone } from '@/lib/utils'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                         type="tel"
                         id="twilioPhoneNumber"
                         name="twilioPhoneNumber"
-                        defaultValue={business.twilio_phone_number}
+                        defaultValue={formatDisplayPhone(business.twilio_phone_number)}
                         required
                         placeholder="(412) 855-3010"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400"
