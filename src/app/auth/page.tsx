@@ -77,7 +77,7 @@ function AuthContent() {
       // Check if user exists but has empty identities (indicates existing account)
       if (data.user && data.user.identities && data.user.identities.length === 0) {
         setExistingAccount(true)
-        setError('An account with this email may already exist. Please sign in instead.')
+        setError('Looks like you already have an account. Try signing in.')
         return
       }
 
