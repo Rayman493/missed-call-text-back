@@ -441,9 +441,9 @@ export default function DashboardContent() {
                 )}
               </div>
             ) : (
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Your Leads</h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">People who called but did not reach you.</p>
+              <div className="mt-8">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Your Leads</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">People who called but did not reach you.</p>
                 <div className="space-y-3 sm:space-y-4">
                   {leads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
@@ -555,8 +555,8 @@ export default function DashboardContent() {
             )}
 
             {/* Live Activity Feed */}
-            <div className="mb-4 sm:mb-8">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Live Activity</h2>
+            <div className="mt-8 mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Live Activity</h2>
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                 {leads.length === 0 && followUpJobs.length === 0 ? (
                   <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
@@ -613,7 +613,7 @@ export default function DashboardContent() {
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
               <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-lg shadow">
                 <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Missed Calls</h3>
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
@@ -632,19 +632,10 @@ export default function DashboardContent() {
               </div>
             </div>
 
-            {/* Value Message */}
-            {leads.length > 0 && (
-              <div className="bg-green-900/20 border border-green-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 mb-4 sm:mb-8">
-                <p className="text-green-300 text-sm sm:text-base">
-                  🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''} automatically
-                </p>
-              </div>
-            )}
-
             {/* Test Your Setup Section */}
             {business?.twilio_phone_number && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8 mb-4 sm:mb-8 text-center">
-                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Test your setup</h2>
+              <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8 mb-6 sm:mb-8 text-center">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Test your setup</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
                   Call your ReplyFlow number to test the missed call text back feature.
                 </p>
@@ -682,7 +673,7 @@ export default function DashboardContent() {
             )}
 
             {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow">
+            <div className="mt-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 shadow">
               {webhookConfirming ? (
                 <>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
