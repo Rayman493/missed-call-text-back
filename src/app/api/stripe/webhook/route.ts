@@ -113,6 +113,9 @@ export async function POST(request: Request) {
         const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end
+
+        console.log('[stripe-webhook] Subscription event:', { status, cancelAtPeriodEnd, customerId })
 
         // Find business by stripe_customer_id
         const { data: business } = await supabase
@@ -123,15 +126,24 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('businesses')
             .update({
               stripe_subscription_id: subscription.id,
               subscription_status: status,
               subscription_price_id: priceId,
               current_period_end: new Date(periodEnd * 1000).toISOString(),
+              cancel_at_period_end: cancelAtPeriodEnd,
             })
             .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[stripe-webhook] Supabase update error (subscription event):', updateError)
+          } else {
+            console.log('[stripe-webhook] Updated subscription status:', { businessId: business.id, status, cancelAtPeriodEnd })
+          }
+        } else {
+          console.error('[stripe-webhook] Business not found for customer:', customerId)
         }
         break
       }

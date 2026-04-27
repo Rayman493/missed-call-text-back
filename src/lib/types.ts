@@ -12,6 +12,7 @@ export interface Business {
   subscription_status?: string | null;
   subscription_price_id?: string | null;
   current_period_end?: string | null;
+  cancel_at_period_end?: boolean | null;
   created_at: string;
   updated_at?: string;
 }

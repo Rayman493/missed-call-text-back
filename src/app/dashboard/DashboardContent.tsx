@@ -104,6 +104,27 @@ export default function DashboardContent() {
     }
   }
 
+  const handleManageBilling = async () => {
+    setCheckoutLoading(true)
+    console.log("Creating Stripe portal session...")
+    try {
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+      })
+      const data = await response.json()
+      
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('[portal] No URL returned:', data)
+      }
+    } catch (error) {
+      console.error('[portal] Error:', error)
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
+
   useEffect(() => {
     console.log('[DashboardContent] Business:', business?.id, 'Supabase:', !!supabase)
     
@@ -237,9 +258,19 @@ export default function DashboardContent() {
                   <div className="flex items-center gap-4 mb-4">
                     <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
                   </div>
-                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400">Billing bypass enabled (testing mode)</p>
+                  {business?.cancel_at_period_end && (
+                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">Subscription will cancel at period end</p>
                   )}
+                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                  )}
+                  <button
+                    onClick={handleManageBilling}
+                    disabled={checkoutLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? 'Loading...' : 'Manage billing'}
+                  </button>
                 </>
               ) : (
                 <>
