@@ -33,18 +33,22 @@ export default function SettingsPage() {
       const formData = new FormData(e.currentTarget)
       const businessName = formData.get('businessName') as string
       const twilioPhoneNumber = formData.get('twilioPhoneNumber') as string
+      const personalPhoneNumber = formData.get('personalPhoneNumber') as string
       const autoReplyMessage = formData.get('autoReplyMessage') as string
 
-      // Normalize phone number
+      // Normalize phone numbers
       const normalizedPhone = normalizePhoneNumber(twilioPhoneNumber)
       if (!normalizedPhone) {
-        setError('Please enter a valid phone number.')
+        setError('Please enter a valid business phone number.')
         return
       }
+
+      const normalizedPersonalPhone = personalPhoneNumber ? normalizePhoneNumber(personalPhoneNumber) : null
 
       const updatePayload = {
         name: businessName,
         twilio_phone_number: normalizedPhone,
+        personal_phone_number: normalizedPersonalPhone,
         auto_reply_message: autoReplyMessage,
       }
 
@@ -80,10 +84,10 @@ export default function SettingsPage() {
     setError('')
 
     try {
-      // Get current user's phone from auth
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user?.phone) {
-        setTestSmsMessage('Please add a phone number to your account to receive test SMS.')
+      // Use personal phone number from business
+      const personalPhone = business.personal_phone_number
+      if (!personalPhone) {
+        setTestSmsMessage('Please add your personal phone number to receive test SMS.')
         return
       }
 
@@ -92,7 +96,7 @@ export default function SettingsPage() {
         .from('leads')
         .insert({
           business_id: business.id,
-          caller_phone: user.phone,
+          caller_phone: personalPhone,
           status: 'test',
         })
         .select()
@@ -217,6 +221,21 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter your business phone number. We'll format it automatically.</p>
+              </div>
+
+              <div>
+                <label htmlFor="personalPhoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Your Phone Number (for test SMS)
+                </label>
+                <input
+                  type="tel"
+                  id="personalPhoneNumber"
+                  name="personalPhoneNumber"
+                  defaultValue={business.personal_phone_number ? formatDisplayPhone(business.personal_phone_number) : ''}
+                  placeholder="(412) 555-1234"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional: Add your personal phone number to receive test SMS messages.</p>
               </div>
 
               <div>
