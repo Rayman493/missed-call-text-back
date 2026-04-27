@@ -16,7 +16,7 @@ const sampleLeads = [
       },
       {
         direction: 'inbound',
-        body: 'Yes, can you come tomorrow?',
+        body: 'Yes, can you come tomorrow around 3?',
         created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
       },
     ],
@@ -56,7 +56,7 @@ const sampleLeads = [
 
 const sampleActivity = [
   { type: 'call', text: 'Missed call from (412) 555-1234', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-  { type: 'reply', text: 'Customer replied: "Yes, can you come tomorrow?"', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+  { type: 'reply', text: 'Customer replied: "Yes, can you come tomorrow around 3?"', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
   { type: 'call', text: 'Missed call from (412) 555-5678', time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
   { type: 'text', text: 'Auto-reply sent to (412) 555-5678', time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
   { type: 'followup', text: 'Follow-up scheduled for (412) 555-1234', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
@@ -75,6 +75,11 @@ export default function DemoPage() {
         <p className="text-sm text-yellow-800 font-medium">Demo Mode — sample data shown</p>
       </div>
 
+      {/* Value Message */}
+      <div className="bg-blue-50 border-b border-blue-100 px-4 py-4 text-center">
+        <p className="text-sm text-gray-600 font-semibold">⚡ We text missed callers instantly so you don't lose them to competitors</p>
+      </div>
+
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -87,7 +92,7 @@ export default function DemoPage() {
               href="/onboarding"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Set this up for your business
+              Set this up in 2 minutes
             </Link>
           </div>
         </div>
@@ -113,7 +118,7 @@ export default function DemoPage() {
         </div>
 
         {/* Live Activity Feed */}
-        <div className="mb-8">
+        <div className="mb-12">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Live Activity</h2>
           <div className="bg-white rounded-lg shadow border border-gray-200">
             <div className="divide-y divide-gray-100">
@@ -133,7 +138,7 @@ export default function DemoPage() {
         </div>
 
         {/* Leads Section */}
-        <div className="mb-8">
+        <div className="mb-12">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">People Who Tried To Call You</h2>
           <div className="space-y-4">
             {sampleLeads.map((lead) => (
@@ -185,13 +190,14 @@ export default function DemoPage() {
           </div>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center py-8">
+        {/* Bottom CTA Section */}
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Start capturing missed calls today</h2>
           <Link
             href="/onboarding"
-            className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-block px-6 py-3 text-lg bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Set this up for your business
+            Start Setup
           </Link>
         </div>
       </div>
