@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning className="light">
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -26,9 +26,11 @@ export default function RootLayout({
                 const savedTheme = localStorage.getItem('replyflow-theme');
                 if (savedTheme) {
                   document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+                  document.documentElement.classList.toggle('light', savedTheme === 'light');
                 } else {
                   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   document.documentElement.classList.toggle('dark', systemPrefersDark);
+                  document.documentElement.classList.toggle('light', !systemPrefersDark);
                 }
               })();
             `,
