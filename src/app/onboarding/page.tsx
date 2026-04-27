@@ -97,6 +97,7 @@ export default function OnboardingPage() {
     <AuthGuard>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
         <div className="max-w-md w-full bg-white rounded-lg shadow p-8">
+          <p className="text-sm text-gray-500 mb-2">Step 1 of 2</p>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to ReplyFlow</h1>
           <p className="text-gray-600 mb-6">Let's set up your business</p>
           
@@ -145,9 +146,20 @@ export default function OnboardingPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Creating business...' : 'Start Capturing Leads'}
+              {loading ? 'Creating business...' : 'Set Up My Auto-Reply'}
             </button>
+            <p className="text-sm text-gray-500 text-center mt-2">Takes less than 2 minutes</p>
           </form>
+
+          {/* Live Preview Section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Preview of what your customers will receive</h3>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+              <p className="text-sm text-gray-800">
+                "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </AuthGuard>
