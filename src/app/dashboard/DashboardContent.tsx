@@ -107,9 +107,23 @@ export default function DashboardContent() {
   const handleManageBilling = async () => {
     setCheckoutLoading(true)
     console.log("Creating Stripe portal session...")
+    
+    // Get current session
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
+      console.error('[portal] No session found')
+      alert('Please sign in again')
+      setCheckoutLoading(false)
+      return
+    }
+    
     try {
       const response = await fetch('/api/stripe/create-portal-session', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       })
       const data = await response.json()
       
