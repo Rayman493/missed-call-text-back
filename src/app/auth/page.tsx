@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SetupError from '@/components/SetupError'
@@ -11,18 +11,27 @@ function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || 'signup'
+  const emailParam = searchParams.get('email')
   
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(emailParam || '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
+  const passwordRef = React.useRef<HTMLInputElement>(null)
 
   // Update mode when URL changes
   useEffect(() => {
     setIsSignIn(mode === 'signin')
   }, [mode])
+
+  // Auto-focus password field when email is prefilled and in sign-in mode
+  useEffect(() => {
+    if (isSignIn && emailParam && passwordRef.current) {
+      passwordRef.current.focus()
+    }
+  }, [isSignIn, emailParam])
 
   // Show setup error if env vars are missing
   if (!supabase) {
@@ -97,19 +106,27 @@ function AuthContent() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-8">
       <div className="max-w-md w-full bg-gray-800 rounded-lg shadow p-8">
-        <h1 className="text-2xl font-bold text-gray-100 mb-6">
+        <h1 className="text-2xl font-bold text-gray-100 mb-2">
           {isSignIn ? 'Sign In' : 'Sign Up'}
         </h1>
+        
+        {isSignIn && emailParam && (
+          <p className="text-sm text-gray-400 mb-6">Welcome back — please sign in</p>
+        )}
+        
+        {!isSignIn && (
+          <p className="text-sm text-gray-400 mb-6">Create your account to get started</p>
+        )}
         
         {error && (
           <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
             <p className="text-sm text-red-300 mb-3">{error}</p>
             {existingAccount && (
               <button
-                onClick={() => router.push('/auth?mode=signin')}
+                onClick={() => router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)}
                 className="text-sm text-blue-400 hover:text-blue-300 font-medium underline"
               >
-                Go to Sign In
+                Sign in instead
               </button>
             )}
           </div>
@@ -135,6 +152,7 @@ function AuthContent() {
               Password
             </label>
             <input
+              ref={passwordRef}
               id="password"
               type="password"
               value={password}
