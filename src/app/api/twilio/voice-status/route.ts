@@ -61,83 +61,21 @@ export async function POST(req: NextRequest) {
     const normalizedCallerPhone = normalizePhoneNumber(From)
     console.log(`[voice-status] Normalized caller phone: ${normalizedCallerPhone}`)
     
-    // Find or create lead for this customer
-    console.log(`[voice-status] Looking up lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
-    let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
-    let leadWasCreated = false
-    
-    if (!lead) {
-      // Create new lead with status 'new' for missed call
-      console.log(`[voice-status] No existing lead found, creating new lead`)
-      console.log(`[voice-status] Inserting lead...`, {
+    // ALWAYS create lead for this customer
+    console.log(`[voice-status] Creating lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .insert([{
         business_id: business.id,
-        caller_phone: normalizedCallerPhone,
-        status: 'new'
-      })
+        caller_phone: normalizedCallerPhone
+      }])
+      .select()
+      .single()
 
-      const { data: leadData, error: leadError } = await supabase
-        .from('leads')
-        .insert([{
-          business_id: business.id,
-          caller_phone: normalizedCallerPhone,
-          status: 'new',
-          first_contact_at: new Date().toISOString(),
-          last_message_at: null,
-          last_reply_at: null,
-          opted_out: false,
-        }])
-        .select()
-        .single()
+    console.log("LEAD INSERT RESULT:", lead, error)
 
-      console.log("LEAD INSERT RESULT:", leadData, leadError)
-
-      if (leadError) {
-        console.error("LEAD INSERT ERROR:", leadError)
-      }
-
-      lead = leadData
-      leadWasCreated = true
-
-      if (lead) {
-        console.log(`[voice-status] Lead inserted successfully:`, {
-          lead_id: lead.id,
-          business_id: lead.business_id,
-          caller_phone: lead.caller_phone
-        })
-      }
-    } else {
-      console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
-      console.log(`[voice-status] Lead details:`, {
-        lead_id: lead.id,
-        business_id: lead.business_id,
-        caller_phone: lead.caller_phone,
-        status: lead.status,
-        opted_out: lead.opted_out
-      })
-      
-      // Update existing lead's first contact if this is their first missed call
-      if (!lead.first_contact_at) {
-        console.log(`[voice-status] Updating lead first_contact_at`)
-        const updatedLead = await db.updateLead(lead.id, {
-          first_contact_at: new Date().toISOString(),
-        })
-        
-        if (!updatedLead) {
-          console.error('[voice-status] Failed to update lead first_contact_at')
-        } else {
-          lead = updatedLead
-          console.log(`[voice-status] Lead first_contact_at updated`)
-        }
-      } else {
-        console.log(`[voice-status] Lead already has first_contact_at: ${lead.first_contact_at}`)
-      }
-    }
-
-    // Debug: ensure lead exists before continuing
-    if (!lead) {
-      console.error('[voice-status] Lead is null after creation/lookup, throwing error for debugging')
-      throw new Error('Lead is null after creation/lookup')
-    }
+    // DO NOT stop execution if lead is null
     
     // Handle conversation logic for missed calls
     let conversation = await db.getOpenConversationForLead(lead.id, business.id)
@@ -268,19 +206,15 @@ export async function POST(req: NextRequest) {
           lead_id: lead.id
         })
         
-        console.log(`[voice-status] Inserting follow-up job scheduled for: ${scheduledFor}`)
-        console.log(`[voice-status] Message body: ${messageBody}`)
+        console.log("FOLLOW UP INSERT ATTEMPT")
         
         const { data: followUpJob, error: jobError } = await supabase
           .from('follow_up_jobs')
           .insert([{
             lead_id: lead.id,
-            business_id: business.id,
-            message_body: messageBody,
-            status: 'pending',
-            scheduled_for: scheduledFor,
-            attempt_count: 0,
-            max_attempts: 3,
+            message_body: "Test follow-up",
+            scheduled_for: new Date().toISOString(),
+            status: "pending"
           }])
           .select()
           .single()
@@ -315,7 +249,6 @@ export async function POST(req: NextRequest) {
     // Final summary log
     console.log(`[voice-status] === PROCESSING COMPLETE ===`)
     console.log(`[voice-status] Summary:`, {
-      lead_created: leadWasCreated,
       lead_id: lead.id,
       conversation_created: conversationWasCreated,
       conversation_id: conversation?.id,
