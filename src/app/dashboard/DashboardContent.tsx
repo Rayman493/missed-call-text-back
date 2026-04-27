@@ -60,7 +60,7 @@ function formatMessageTimestamp(message: any): string {
 }
 
 export default function DashboardContent() {
-  const { business } = useBusiness()
+  const { business, refreshBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +69,19 @@ export default function DashboardContent() {
   const checkoutStatus = searchParams.get('checkout')
 
   const supabase = createBrowserClient()
+
+  // Force refresh business after checkout success
+  useEffect(() => {
+    if (checkoutStatus === 'success') {
+      console.log('[Dashboard] Checkout success, refreshing business data')
+      refreshBusiness()
+    }
+  }, [checkoutStatus, refreshBusiness])
+
+  const isActive = business?.subscription_status === 'active' || business?.subscription_status === 'trialing'
+
+  console.log('[Dashboard] Business subscription status:', business?.subscription_status)
+  console.log('[Dashboard] Is subscription active:', isActive)
 
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
@@ -208,12 +221,7 @@ export default function DashboardContent() {
 
             <SmsVerificationBanner business={business} />
 
-            {/* Checkout success/cancel messages */}
-            {checkoutStatus === 'success' && (
-              <div className="bg-green-900/20 border border-green-800 rounded-xl px-4 py-3 mb-6">
-                <p className="text-green-300">Subscription activated. Welcome to ReplyFlow.</p>
-              </div>
-            )}
+            {/* Checkout cancel message */}
             {checkoutStatus === 'cancelled' && (
               <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3 mb-6">
                 <p className="text-yellow-300">Checkout cancelled. You can activate anytime.</p>
@@ -222,7 +230,7 @@ export default function DashboardContent() {
 
             {/* Billing card - always shown for testing */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow">
-              {business && (business.subscription_status === 'active' || business.subscription_status === 'trialing') ? (
+              {isActive ? (
                 <>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>

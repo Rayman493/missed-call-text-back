@@ -63,6 +63,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       } else {
         console.log('[BusinessContext] Business result:', businessData)
         console.log('[BusinessContext] Business found:', businessData?.id)
+        console.log('[BusinessContext] Business subscription status:', businessData?.subscription_status)
         setBusiness(businessData)
       }
     } catch (err: any) {
