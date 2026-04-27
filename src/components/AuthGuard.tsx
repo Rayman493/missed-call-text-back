@@ -19,12 +19,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('[AuthGuard] Checking authentication...')
+      console.log('[AuthGuard] Checking authentication session...')
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.error('[AuthGuard] Auth error:', error)
+        }
         
         if (!user) {
-          console.log('[AuthGuard] No user found, redirecting to signin')
+          console.log('[AuthGuard] No user found, redirecting to /auth/signin')
           router.push('/auth/signin')
         } else {
           console.log('[AuthGuard] User authenticated:', user.id)

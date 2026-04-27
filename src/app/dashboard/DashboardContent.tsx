@@ -65,7 +65,14 @@ export default function DashboardContent() {
   const supabase = createBrowserClient()
 
   useEffect(() => {
-    if (!business || !supabase) return
+    console.log('[DashboardContent] Business:', business?.id, 'Supabase:', !!supabase)
+    
+    // If no business or no supabase, don't fetch leads - guards will handle redirect
+    if (!business || !supabase) {
+      console.log('[DashboardContent] No business or supabase, setting loading to false')
+      setLoading(false)
+      return
+    }
 
     const fetchLeads = async () => {
       console.log('[DashboardContent] Fetching leads for business:', business.id)
