@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 
-let browserClient: ReturnType<typeof createClient> | null = null
+let browserClient: ReturnType<typeof createSupabaseBrowserClient> | null = null
 
 // Singleton browser client - prevents multiple GoTrueClient instances
 export function createBrowserClient() {
@@ -14,7 +14,7 @@ export function createBrowserClient() {
     return null
   }
 
-  browserClient = createClient(supabaseUrl, supabaseAnonKey)
+  browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
   console.log('[browser-client] Created singleton Supabase client')
   return browserClient
 }
