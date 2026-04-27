@@ -393,6 +393,26 @@ export const db = {
     return data?.length || 0
   },
 
+  async hasRecentOutboundMessage(leadId: string, minutesAgo: number = 10): Promise<boolean> {
+    const cutoffTime = new Date(Date.now() - minutesAgo * 60 * 1000).toISOString()
+    
+    const { data, error } = await supabaseAdmin
+      .from('messages')
+      .select('id')
+      .eq('lead_id', leadId)
+      .eq('direction', 'outbound')
+      .gte('created_at', cutoffTime)
+      .limit(1)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking recent outbound messages:', error)
+      return false
+    }
+    
+    return !!data
+  },
+
   async markFollowUpSent(followUpId: string): Promise<FollowUp | null> {
     const { data, error } = await supabaseAdmin
       .from('follow_ups')

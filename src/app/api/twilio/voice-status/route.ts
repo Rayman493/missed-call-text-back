@@ -171,26 +171,36 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
     
-    // Determine if auto-reply should be sent (only for new leads)
-    const shouldSendAutoReply = lead.status === 'new'
-    console.log(`[voice-status] Should send auto-reply: ${shouldSendAutoReply} (lead status: ${lead.status})`)
+    // Check for recent outbound messages to avoid spam
+    const hasRecentOutbound = await db.hasRecentOutboundMessage(lead.id, 10)
+    console.log(`[voice-status] Recent outbound message found (last 10 min): ${hasRecentOutbound}`)
     
-    let outboundMessage = null
+    let autoReplySent = false
+    let messageSid = null
     
-    // Send auto-reply SMS only if lead is 'new'
-    if (shouldSendAutoReply) {
-      const messageSid = await sendSms(business, From, business.auto_reply_message, {
+    // Send auto-reply SMS if no recent outbound message exists
+    if (!hasRecentOutbound) {
+      console.log(`[voice-status] Attempting to send auto-reply SMS`)
+      
+      // Use business auto_reply_message or fallback
+      const autoReplyMessage = business.auto_reply_message || 
+        `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help?`
+      
+      console.log(`[voice-status] Auto-reply message: ${autoReplyMessage}`)
+      
+      messageSid = await sendSms(business, From, autoReplyMessage, {
         lead_id: lead.id,
         conversation_id: conversation?.id,
       })
 
       if (messageSid) {
-        console.log(`[voice-status] Sent auto-reply SMS: ${messageSid}`)
+        console.log(`[voice-status] Auto-reply SMS sent successfully: ${messageSid}`)
+        autoReplySent = true
       } else {
         console.error('[voice-status] Failed to send auto-reply SMS')
       }
     } else {
-      console.log(`[voice-status] Auto-reply skipped - lead status is not 'new' (status: ${lead.status})`)
+      console.log(`[voice-status] Auto-reply skipped - recent outbound message found for lead: ${lead.id}`)
     }
     
     // ========================================
@@ -267,7 +277,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Update conversation activity if outbound message was sent
-    if (outboundMessage && conversation) {
+    if (autoReplySent && conversation) {
       console.log(`[voice-status] Updating conversation activity after outbound message`)
       await db.updateConversation(conversation.id, {
         last_activity_at: new Date().toISOString(),
@@ -280,7 +290,7 @@ export async function POST(req: NextRequest) {
       lead_id: lead.id,
       conversation_created: conversationWasCreated,
       conversation_id: conversation?.id,
-      auto_reply_sent: shouldSendAutoReply,
+      auto_reply_sent: autoReplySent,
       follow_up_job_created: !hasPendingJob,
       business_id: business.id,
       caller_phone: normalizedCallerPhone
