@@ -66,6 +66,8 @@ export default function DashboardContent() {
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
+  const [testSmsLoading, setTestSmsLoading] = useState(false)
+  const [testSmsMessage, setTestSmsMessage] = useState('')
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams.get('checkout')
   const router = useRouter()
@@ -157,6 +159,43 @@ export default function DashboardContent() {
       router.push('/')
     } catch (error) {
       console.error('[Auth] Sign out error:', error)
+    }
+  }
+
+  const handleTestSms = async () => {
+    if (!business || !supabase) return
+
+    setTestSmsLoading(true)
+    setTestSmsMessage('')
+
+    try {
+      console.log('[Test Button] Sending test SMS')
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch('/api/test/send-sms', {
+        method: 'GET',
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        console.log('[Test Button] Success')
+        setTestSmsMessage(`Test SMS sent to ${data.to}`)
+      } else {
+        console.log('[Test Button] Failed:', data.error)
+        setTestSmsMessage(`Failed to send test SMS. ${data.message || 'Please check your setup.'}`)
+      }
+    } catch (err: any) {
+      console.log('[Test Button] Failed:', err)
+      setTestSmsMessage('Failed to send test SMS. Please check your setup.')
+    } finally {
+      setTestSmsLoading(false)
     }
   }
 
@@ -526,20 +565,18 @@ export default function DashboardContent() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    const instructions = document.querySelector('.bg-gray-50.dark\\:bg-gray-700')
-                    if (instructions) {
-                      instructions.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      instructions.classList.add('ring-2', 'ring-blue-500')
-                      setTimeout(() => {
-                        instructions.classList.remove('ring-2', 'ring-blue-500')
-                      }, 2000)
-                    }
-                  }}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  onClick={handleTestSms}
+                  disabled={testSmsLoading}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
                 >
-                  Test my number
+                  {testSmsLoading ? 'Sending...' : 'Test my number'}
                 </button>
+
+                {testSmsMessage && (
+                  <div className={`mt-3 text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {testSmsMessage}
+                  </div>
+                )}
               </div>
             ) : (
               <div>
