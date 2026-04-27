@@ -14,8 +14,10 @@ export default function SettingsPage() {
   const router = useRouter()
   const { business, refreshBusiness } = useBusiness()
   const [loading, setLoading] = useState(false)
+  const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [testSmsMessage, setTestSmsMessage] = useState('')
 
   const supabase = createBrowserClient()
 
@@ -70,6 +72,65 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSendTestSms = async () => {
+    if (!business || !supabase) return
+
+    setTestSmsLoading(true)
+    setTestSmsMessage('')
+    setError('')
+
+    try {
+      // Get current user's phone from auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.phone) {
+        setTestSmsMessage('Please add a phone number to your account to receive test SMS.')
+        return
+      }
+
+      // Create a temporary lead for the test SMS
+      const { data: lead, error: leadError } = await (supabase as any)
+        .from('leads')
+        .insert({
+          business_id: business.id,
+          caller_phone: user.phone,
+          status: 'test',
+        })
+        .select()
+        .single()
+
+      if (leadError || !lead) {
+        console.log('[Test SMS] Failed: Could not create test lead')
+        setTestSmsMessage('Failed to send test SMS. Please try again.')
+        return
+      }
+
+      // Send test SMS via API
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          message: business.auto_reply_message,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        console.log('[Test SMS] Sent successfully')
+        setTestSmsMessage('Test SMS sent successfully! Check your phone.')
+      } else {
+        console.log('[Test SMS] Failed:', data.error)
+        setTestSmsMessage(`Failed to send test SMS: ${data.error || 'Unknown error'}`)
+      }
+    } catch (err: any) {
+      console.log('[Test SMS] Failed:', err)
+      setTestSmsMessage(`Failed to send test SMS: ${err.message || 'Unknown error'}`)
+    } finally {
+      setTestSmsLoading(false)
+    }
+  }
+
   if (!business) {
     return (
       <AuthGuard>
@@ -115,6 +176,12 @@ export default function SettingsPage() {
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
                 <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+              </div>
+            )}
+
+            {testSmsMessage && (
+              <div className={`rounded-lg p-4 mb-6 ${testSmsMessage.includes('successfully') ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'}`}>
+                <p className={`text-sm ${testSmsMessage.includes('successfully') ? 'text-green-800 dark:text-green-300' : 'text-yellow-800 dark:text-yellow-300'}`}>{testSmsMessage}</p>
               </div>
             )}
 
@@ -166,6 +233,14 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={handleSendTestSms}
+                  disabled={testSmsLoading}
+                  className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                >
+                  {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
+                </button>
                 <button
                   type="submit"
                   disabled={loading}
