@@ -60,6 +60,11 @@ export async function POST(req: NextRequest) {
     if (!lead) {
       // Create new lead with status 'new' for missed call
       console.log(`[voice-status] No existing lead found, creating new lead`)
+      console.log(`[voice-status] Inserting lead...`, {
+        business_id: business.id,
+        caller_phone: normalizedCallerPhone,
+        status: 'new'
+      })
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
@@ -76,7 +81,11 @@ export async function POST(req: NextRequest) {
       }
       
       leadWasCreated = true
-      console.log(`[voice-status] Created new lead: ${lead.id} for business: ${business.id}`)
+      console.log(`[voice-status] Lead inserted successfully:`, {
+        lead_id: lead.id,
+        business_id: lead.business_id,
+        caller_phone: lead.caller_phone
+      })
     } else {
       console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
       

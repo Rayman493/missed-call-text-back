@@ -72,6 +72,12 @@ export async function POST(req: NextRequest) {
     
     if (!lead) {
       // Create new lead with status 'contacted' since customer replied
+      console.log(`[incoming-sms] No existing lead found, creating new lead`)
+      console.log(`[incoming-sms] Inserting lead...`, {
+        business_id: business.id,
+        caller_phone: normalizedCustomerPhone,
+        status: 'contacted'
+      })
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCustomerPhone,
@@ -98,7 +104,11 @@ export async function POST(req: NextRequest) {
         })
       }
       
-      console.log(`[incoming-sms] Created new lead: ${lead.id}`)
+      console.log(`[incoming-sms] Lead inserted successfully:`, {
+        lead_id: lead.id,
+        business_id: lead.business_id,
+        caller_phone: lead.caller_phone
+      })
     } else if (lead) {
       // Update existing lead's status to 'replied' and track reply time
       const updatedLead = await db.updateLead(lead.id, {
