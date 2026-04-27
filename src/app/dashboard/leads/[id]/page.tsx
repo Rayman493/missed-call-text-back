@@ -28,6 +28,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   // Fetch lead data on mount
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     setSending(true)
     setError('')
+    setSuccessMessage('')
 
     try {
       const response = await fetch('/api/send-sms', {
@@ -54,17 +56,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result.error || 'Failed to send message')
+        setError('Failed to send message. Please try again.')
         return
       }
 
       setMessage('')
+      setSuccessMessage('Message sent successfully')
       router.refresh()
       // Refetch data
       const data = await getLeadDetails(params.id)
       setLeadData(data)
+
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage('')
+      }, 3000)
     } catch (err) {
-      setError('Failed to send message')
+      setError('Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
@@ -198,6 +206,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               rows={3}
               disabled={sending}
             />
+            {!message.trim() && (
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Message cannot be empty</p>
+            )}
             {error && (
               <p className="text-red-600 dark:text-red-400 text-sm mt-2">{error}</p>
             )}
@@ -210,6 +221,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </button>
           </form>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+          </div>
+        )}
 
         {/* Messages Timeline */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
