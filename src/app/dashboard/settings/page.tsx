@@ -38,9 +38,10 @@ export default function SettingsPage() {
         updated_at: new Date().toISOString()
       }
 
-      const { error: updateError } = await supabase
+      const supabaseAny = supabase as any
+      const { error: updateError } = await supabaseAny
         .from('businesses')
-        .update(updatePayload as any)
+        .update(updatePayload)
         .eq('id', business.id)
 
       if (updateError) {
