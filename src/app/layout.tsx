@@ -17,7 +17,24 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const savedTheme = localStorage.getItem('replyflow-theme');
+                if (savedTheme) {
+                  document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+                } else {
+                  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  document.documentElement.classList.toggle('dark', systemPrefersDark);
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <BusinessProvider>{children}</BusinessProvider>
