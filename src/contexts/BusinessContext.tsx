@@ -61,6 +61,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           throw fetchError
         }
       } else {
+        console.log('[BusinessContext] Business result:', businessData)
         console.log('[BusinessContext] Business found:', businessData?.id)
         setBusiness(businessData)
       }

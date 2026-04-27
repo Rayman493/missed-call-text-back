@@ -1,20 +1,41 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 async function getActiveBusiness() {
-  const configuredPhone = process.env.TWILIO_PHONE_NUMBER
-  
-  const { data: businesses } = await supabaseAdmin
-    .from('businesses')
-    .select('*')
+  const cookieStore = cookies()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        cookieStore: cookieStore as any,
+      },
+    }
+  )
 
-  if (!businesses || businesses.length === 0) {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     return null
   }
 
-  const business = businesses.find(b => b.twilio_phone_number === configuredPhone) || businesses[0]
-  return business
+  console.log('[Settings] Fetching business for user:', user.id)
+  const { data: businessData, error } = await supabaseAdmin
+    .from('businesses')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
+  if (error) {
+    console.error('[Settings] Error fetching business:', error)
+    return null
+  }
+
+  console.log('[Settings] Business result:', businessData?.id)
+  return businessData
 }
 
 async function updateBusiness(formData: FormData) {
