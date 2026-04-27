@@ -1,8 +1,9 @@
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, supabase } from '@/lib/supabase'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
+import { createClient } from '@supabase/supabase-js'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -58,49 +59,38 @@ function formatMessageTimestamp(message: any): string {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-async function markLeadAsContacted(leadId: string) {
-  'use server'
-  
-  try {
-    const { error } = await supabaseAdmin
-      .from('leads')
-      .update({ 
-        status: 'contacted'
-      })
-      .eq('id', leadId)
-
-    if (error) {
-      console.error('Failed to mark lead as contacted:', error)
-      throw new Error('Failed to update lead status')
-    }
-
-    // Redirect back to dashboard to refresh the data
-    redirect('/dashboard?success=lead-contacted')
-  } catch (error) {
-    console.error('Unexpected error marking lead as contacted:', error)
-    throw error
-  }
-}
-
 async function getDashboardData() {
-  // TODO: This is temporary and should later be replaced with proper user/business ownership
-  // Fetch the first business row from public.businesses without filtering by user
+  // Check if user is authenticated
+  const supabaseClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+
+  if (authError || !user) {
+    // Redirect to sign in if not authenticated
+    return { business: null, leads: [], allBusinesses: [], businessLeadCounts: [], redirect: '/auth/signin' }
+  }
+
+  // Fetch business for the current user
   const { data: business, error } = await supabaseAdmin
     .from('businesses')
     .select('*')
+    .eq('user_id', user.id)
     .limit(1)
     .single()
 
   if (error || !business) {
-    console.log('No business found in database:', error)
-    return { business: null, leads: [], allBusinesses: [], businessLeadCounts: [] }
+    // If no business found, redirect to onboarding
+    return { business: null, leads: [], allBusinesses: [], businessLeadCounts: [], redirect: '/onboarding' }
   }
 
   console.log('Selected business:', { id: business.id, name: business.name, phone: business.twilio_phone_number })
 
   // Query leads with their latest messages and conversations
   console.log("Dashboard fetching leads for business:", { business_id: business.id, business_name: business.name })
-  
+
   const { data: leads, error: leadsError } = await supabaseAdmin
     .from('leads')
     .select(`
@@ -130,9 +120,9 @@ async function getDashboardData() {
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('first_contact_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
-  
+
   console.log("Dashboard leads query result:", { leads_count: leads?.length || 0, leads_error: leadsError })
-  
+
   if (leadsError) {
     console.log("Dashboard leads query error:", leadsError)
   }
@@ -145,13 +135,43 @@ async function getDashboardData() {
       businessId: business.id,
       businessName: business.name,
       leadCount: leads?.length || 0
-    }]
+    }],
+    redirect: null
+  }
+}
+
+async function markLeadAsContacted(leadId: string) {
+  'use server'
+  
+  try {
+    const { error } = await supabaseAdmin
+      .from('leads')
+      .update({ 
+        status: 'contacted'
+      })
+      .eq('id', leadId)
+
+    if (error) {
+      console.error('Failed to mark lead as contacted:', error)
+      throw new Error('Failed to update lead status')
+    }
+
+    // Redirect back to dashboard to refresh the data
+    redirect('/dashboard?success=lead-contacted')
+  } catch (error) {
+    console.error('Unexpected error marking lead as contacted:', error)
+    throw error
   }
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams?: { success?: string } }) {
-  const { business, leads, allBusinesses, businessLeadCounts } = await getDashboardData()
-  
+  const { business, leads, allBusinesses, businessLeadCounts, redirect } = await getDashboardData()
+
+  // Handle redirect if needed
+  if (redirect) {
+    redirect(redirect)
+  }
+
   // Calculate lead counts
   const newLeads = leads.filter(lead => lead.status === 'new').length
   const contactedLeads = leads.filter(lead => lead.status === 'contacted').length
