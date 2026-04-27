@@ -259,12 +259,12 @@ export default function DashboardContent() {
 
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">No missed call leads yet</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Call your ReplyFlow number to see your first lead appear here.</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">No missed calls yet. When someone calls your ReplyFlow number, they'll appear here.</p>
               </div>
             ) : (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">People Who Tried To Call You</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Missed Call Leads</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">People who called but did not reach you.</p>
                 <div className="space-y-4">
                   {leads.map((lead) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
@@ -297,10 +297,10 @@ export default function DashboardContent() {
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
                     return (
-                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-3">
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                                 messageStatus.color === 'green' ? 'bg-green-100' :
                                 messageStatus.color === 'red' ? 'bg-red-100' :

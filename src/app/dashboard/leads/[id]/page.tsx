@@ -68,6 +68,10 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
 
   const { lead, messages, source } = result
 
+  // Get latest message status
+  const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null
+  const latestMessageStatus = latestMessage?.status || 'No messages'
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
@@ -81,14 +85,17 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           </Link>
         </div>
 
-        {/* Lead Profile Card */}
+        {/* Lead Summary */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+            Lead Summary
+          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {formatPhoneNumber(lead.caller_phone)}
               </h1>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLeadStatusColor(lead.status)}`}>
                   {lead.status}
                 </span>
@@ -99,29 +106,33 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                 )}
               </div>
             </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Latest Message</p>
+              <p className="text-gray-900 dark:text-gray-100 font-medium capitalize">{latestMessageStatus}</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Created</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.created_at)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Created</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.created_at)}</p>
             </div>
             {lead.first_contact_at && (
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">First Contact</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.first_contact_at)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">First Contact</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.first_contact_at)}</p>
               </div>
             )}
             {lead.last_message_at && (
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Last Message</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_message_at)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Message</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_message_at)}</p>
               </div>
             )}
             {lead.last_reply_at && (
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Last Reply</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_reply_at)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Reply</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_reply_at)}</p>
               </div>
             )}
           </div>
@@ -172,8 +183,8 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                           </div>
                         </div>
                         {hasError && errorMessage && (
-                          <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <p className="text-xs text-red-800 dark:text-red-300">
+                          <div className="mt-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                            <p className="text-xs text-amber-800 dark:text-amber-300">
                               {errorMessage}
                             </p>
                           </div>
