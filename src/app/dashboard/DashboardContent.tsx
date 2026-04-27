@@ -598,12 +598,12 @@ export default function DashboardContent() {
                         }
 
                         return (
-                          <div key={index} className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <span className="text-lg sm:text-xl">{icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">{text}</p>
+                          <div key={index} className="flex items-center justify-between gap-2 py-2.5 px-3 sm:px-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-base sm:text-lg flex-shrink-0 leading-none">{icon}</span>
+                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate leading-relaxed">{text}</p>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{time}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0 ml-2">{time}</p>
                           </div>
                         )
                       })}
