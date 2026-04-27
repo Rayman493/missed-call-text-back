@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
     if (!existingLead) {
+      console.log('[Twilio Voice] No existing lead found, creating new lead');
+      
       // Create new lead
       const lead = await db.createLead({
         business_id: business.id,

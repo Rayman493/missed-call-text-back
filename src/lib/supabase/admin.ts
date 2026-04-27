@@ -61,7 +61,10 @@ export const db = {
       .single()
     
     if (error) {
-      console.error('Error fetching lead:', error)
+      // PGRST116 is "not found" error - expected for first-time callers
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching lead:', error)
+      }
       return null
     }
     
