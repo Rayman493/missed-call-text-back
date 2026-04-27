@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
       errorCode: ErrorCode,
       errorMessage: ErrorMessage,
     });
+
+    console.log('[status-callback] Incoming SID:', sid);
     
     // Gracefully handle missing SID
     if (!sid) {
@@ -80,6 +82,21 @@ export async function POST(req: NextRequest) {
     // If message not found, return 200 (graceful handling)
     if (!currentMessage) {
       console.log('[twilio-status] No message found with twilio_message_sid:', sid, '- skipping');
+
+      // Log last 5 stored SIDs for comparison
+      const { data: recentMessages } = await supabase
+        .from('messages')
+        .select('twilio_message_sid, id, created_at')
+        .not('twilio_message_sid', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      console.log('[twilio-status] Last 5 stored message SIDs:', recentMessages?.map(m => ({
+        id: m.id,
+        sid: m.twilio_message_sid,
+        created_at: m.created_at
+      })));
+
       return NextResponse.json({ ok: true, skipped: 'message_not_found' }, { status: 200 });
     }
 

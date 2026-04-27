@@ -196,13 +196,17 @@ export async function POST(req: NextRequest) {
             body: followUp.message_body,
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
+            twilio_message_sid: messageSid,
+            status: 'queued',
             created_at: new Date().toISOString(),
           })
           .select()
           .single()
-        
+
         if (!outboundMessage) {
           console.log(`[send-followups] Warning - failed to save outbound message: ${followUp.id}`)
+        } else {
+          console.log(`[send-followups] Saved outbound message: ${outboundMessage.id} with SID: ${messageSid}`)
         }
         
         // After successful send - update follow_up
@@ -436,13 +440,17 @@ export async function GET() {
             body: followUp.message_body,
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
+            twilio_message_sid: messageSid,
+            status: 'queued',
             created_at: new Date().toISOString(),
           })
           .select()
           .single()
-        
+
         if (!outboundMessage) {
           console.log(`[send-followups] Warning - failed to save outbound message: ${followUp.id}`)
+        } else {
+          console.log(`[send-followups] Saved outbound message: ${outboundMessage.id} with SID: ${messageSid}`)
         }
         
         // After successful send - update follow_up

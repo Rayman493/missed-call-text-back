@@ -27,6 +27,11 @@ export interface Message {
   body: string;
   from_phone: string;
   to_phone: string;
+  twilio_message_sid?: string | null;
+  status?: string | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  status_updated_at?: string | null;
   created_at: string;
 }
 
