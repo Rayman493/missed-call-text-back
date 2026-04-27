@@ -27,6 +27,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   }
 
   const fetchBusiness = async () => {
+    console.log('[BusinessContext] Fetching business...')
     setLoading(true)
     setError(null)
 
@@ -34,11 +35,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
+        console.log('[BusinessContext] No user found')
         setBusiness(null)
         setLoading(false)
         return
       }
 
+      console.log('[BusinessContext] User found, fetching business for user:', user.id)
       const { data: businessData, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
@@ -49,17 +52,21 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
           // No business found
+          console.log('[BusinessContext] No business found for user')
           setBusiness(null)
         } else {
+          console.error('[BusinessContext] Error fetching business:', fetchError)
           throw fetchError
         }
       } else {
+        console.log('[BusinessContext] Business found:', businessData?.id)
         setBusiness(businessData)
       }
     } catch (err: any) {
-      console.error('Error fetching business:', err)
+      console.error('[BusinessContext] Fetch business failed:', err)
       setError(err.message || 'Failed to fetch business')
     } finally {
+      console.log('[BusinessContext] Setting loading to false')
       setLoading(false)
     }
   }

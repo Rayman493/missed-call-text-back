@@ -9,7 +9,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const router = useRouter()
 
   useEffect(() => {
+    console.log('[BusinessGuard] State:', { loading, businessId: business?.id })
     if (!loading && !business) {
+      console.log('[BusinessGuard] No business found, redirecting to onboarding')
       router.push('/onboarding')
     }
   }, [business, loading, router])

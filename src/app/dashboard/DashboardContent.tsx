@@ -68,39 +68,47 @@ export default function DashboardContent() {
     if (!business || !supabase) return
 
     const fetchLeads = async () => {
+      console.log('[DashboardContent] Fetching leads for business:', business.id)
       setLoading(true)
-      const { data: leadsData } = await supabase
-        .from('leads')
-        .select(`
-          *,
-          messages (
-            id,
-            body,
-            direction,
-            from_phone,
-            to_phone,
-            status,
-            error_code,
-            error_message,
-            status_updated_at,
-            created_at,
-            conversation_id
-          ),
-          conversations (
-            id,
-            status,
-            source,
-            started_at,
-            last_activity_at
-          )
-        `)
-        .eq('business_id', business.id)
-        .order('last_message_at', { ascending: false, nullsFirst: false })
-        .order('first_contact_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
+      try {
+        const { data: leadsData } = await supabase
+          .from('leads')
+          .select(`
+            *,
+            messages (
+              id,
+              body,
+              direction,
+              from_phone,
+              to_phone,
+              status,
+              error_code,
+              error_message,
+              status_updated_at,
+              created_at,
+              conversation_id
+            ),
+            conversations (
+              id,
+              status,
+              source,
+              started_at,
+              last_activity_at
+            )
+          `)
+          .eq('business_id', business.id)
+          .order('last_message_at', { ascending: false, nullsFirst: false })
+          .order('first_contact_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
 
-      setLeads(leadsData || [])
-      setLoading(false)
+        console.log('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
+        setLeads(leadsData || [])
+      } catch (error) {
+        console.error('[DashboardContent] Error fetching leads:', error)
+      } finally {
+        console.log('[DashboardContent] Setting loading to false')
+        setLoading(false)
+      }
     }
 
     fetchLeads()
