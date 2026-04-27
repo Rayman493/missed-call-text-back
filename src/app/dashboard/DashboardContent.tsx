@@ -60,7 +60,7 @@ function formatMessageTimestamp(message: any): string {
 }
 
 export default function DashboardContent() {
-  const { business, refreshBusiness } = useBusiness()
+  const { business, loading: businessLoading, refreshBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,8 +122,10 @@ export default function DashboardContent() {
     }
   }, [checkoutStatus, refreshBusiness, supabase, router])
 
-  const isActive = business?.subscription_status === 'active' || business?.subscription_status === 'trialing'
+  // Only calculate isActive after business loading is complete
+  const isActive = !businessLoading && (business?.subscription_status === 'active' || business?.subscription_status === 'trialing')
 
+  console.log('[Dashboard] Business loading:', businessLoading)
   console.log('[Dashboard] Business subscription status:', business?.subscription_status)
   console.log('[Dashboard] Is subscription active:', isActive)
 
@@ -184,7 +186,13 @@ export default function DashboardContent() {
   }
 
   useEffect(() => {
-    console.log('[DashboardContent] Business:', business?.id, 'Supabase:', !!supabase)
+    console.log('[DashboardContent] Business loading:', businessLoading, 'Business:', business?.id, 'Supabase:', !!supabase)
+    
+    // If business is still loading, don't fetch leads yet
+    if (businessLoading) {
+      console.log('[DashboardContent] Business still loading, waiting...')
+      return
+    }
     
     // If no business or no supabase, don't fetch leads - guards will handle redirect
     if (!business || !supabase) {
@@ -255,12 +263,15 @@ export default function DashboardContent() {
     }
 
     fetchLeads()
-  }, [business, supabase])
+  }, [business, businessLoading, supabase])
 
-  if (loading) {
+  // Show loading state while business is loading or webhook is confirming
+  if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-600 dark:text-gray-400">
+          {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
+        </div>
       </div>
     )
   }
