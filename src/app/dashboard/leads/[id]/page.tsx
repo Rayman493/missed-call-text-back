@@ -219,6 +219,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </h2>
           </div>
 
+          {/* Notice for undelivered latest message */}
+          {latestMessage && (latestMessage.status === 'undelivered' || latestMessage.status === 'failed') && (
+            <div className="mx-6 mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Delivery limited during verification — this will resolve once approved.
+              </p>
+            </div>
+          )}
+
           <div className="p-6">
             {messages.length === 0 ? (
               <p className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -267,6 +276,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             >
                               {sending ? 'Retrying...' : 'Retry'}
                             </button>
+                            <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+                              Retry may still fail until verification completes.
+                            </p>
                           </div>
                         )}
                       </div>
