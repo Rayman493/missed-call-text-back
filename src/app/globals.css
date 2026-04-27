@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+  background-color: #020617;
+}
+
+html {
+  background-color: #020617;
+}
+
+body {
+  background-color: #020617;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+#__next,
+main {
+  background-color: #020617;
+}
+
 @layer base {
   :root {
     --background: 222.2 84% 4.9%;

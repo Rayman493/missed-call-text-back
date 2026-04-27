@@ -12,7 +12,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -22,11 +22,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (savedTheme) {
       setTheme(savedTheme)
       document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+      document.documentElement.classList.toggle('light', savedTheme === 'light')
     } else {
       // Check system preference
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(systemPrefersDark ? 'dark' : 'light')
       document.documentElement.classList.toggle('dark', systemPrefersDark)
+      document.documentElement.classList.toggle('light', !systemPrefersDark)
     }
   }, [])
 
@@ -35,6 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(newTheme)
     localStorage.setItem('replyflow-theme', newTheme)
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
+    document.documentElement.classList.toggle('light', newTheme === 'light')
   }
 
   return (

@@ -17,11 +17,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="light">
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              try {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.backgroundColor = '#020617';
+                document.body && (document.body.style.backgroundColor = '#020617');
+              } catch (e) {}
               (function() {
                 const savedTheme = localStorage.getItem('replyflow-theme');
                 if (savedTheme) {
@@ -37,7 +42,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-gray-900 text-gray-100`}>
+      <body className={`${inter.className} min-h-screen bg-slate-950 text-white antialiased`}>
         <ThemeProvider>
           <BusinessProvider>{children}</BusinessProvider>
         </ThemeProvider>
