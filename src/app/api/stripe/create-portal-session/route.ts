@@ -46,7 +46,9 @@ export async function POST(request: Request) {
 
     // Require stripe_customer_id
     if (!business.stripe_customer_id) {
-      return NextResponse.json({ error: 'No Stripe customer found' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'No Stripe customer found for this business. Please resubscribe or contact support.' 
+      }, { status: 400 })
     }
 
     // Create billing portal session
