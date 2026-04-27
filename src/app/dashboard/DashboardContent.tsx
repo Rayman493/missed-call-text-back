@@ -9,6 +9,7 @@ import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
+import ThemeToggle from '@/components/ThemeToggle'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -159,17 +160,18 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 p-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Your Missed Call Leads</h1>
-                <p className="text-gray-600 mt-1">See who called, who got a text, and who replied.</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Your Missed Call Leads</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">See who called, who got a text, and who replied.</p>
               </div>
               <div className="flex gap-4">
+                <ThemeToggle />
                 <Link
                   href="/dashboard/settings"
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Settings
                 </Link>
@@ -179,34 +181,34 @@ export default function DashboardContent() {
             <SmsVerificationBanner business={business} />
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Missed Calls</h3>
-                <p className="text-3xl font-bold text-gray-900">{missedCalls}</p>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Missed Calls</h3>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Texts Sent</h3>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Texts Sent</h3>
                 <p className="text-3xl font-bold text-blue-600">{textsSent}</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Replies</h3>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Replies</h3>
                 <p className="text-3xl font-bold text-green-600">{replies}</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Follow-ups Scheduled</h3>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Follow-ups Scheduled</h3>
                 <p className="text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
               </div>
             </div>
 
             {/* Live Activity Feed */}
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Live Activity</h2>
-              <div className="bg-white rounded-lg shadow border border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Live Activity</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                 {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500 text-sm">
+                  <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
                     No activity yet
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
                       .sort((a: any, b: any) => {
                         const timeA = new Date(a.created_at || a.scheduled_for).getTime()
@@ -241,12 +243,12 @@ export default function DashboardContent() {
                         }
                         
                         return (
-                          <div key={index} className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                          <div key={index} className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <span className="text-xl">{icon}</span>
                             <div className="flex-1">
-                              <p className="text-sm text-gray-900">{text}</p>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">{text}</p>
                             </div>
-                            <p className="text-xs text-gray-500">{time}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{time}</p>
                           </div>
                         )
                       })}
@@ -256,13 +258,13 @@ export default function DashboardContent() {
             </div>
 
             {leads.length === 0 ? (
-              <div className="bg-white p-8 rounded-lg shadow text-center">
-                <p className="text-gray-600 mb-4">No missed call leads yet</p>
-                <p className="text-sm text-gray-500">Call your ReplyFlow number to see your first lead appear here.</p>
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">No missed call leads yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">Call your ReplyFlow number to see your first lead appear here.</p>
               </div>
             ) : (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">People Who Tried To Call You</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">People Who Tried To Call You</h2>
                 <div className="space-y-4">
                   {leads.map((lead) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
@@ -286,7 +288,7 @@ export default function DashboardContent() {
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
                     return (
-                      <div key={lead.id} className="bg-white rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200 border border border-gray-200 shadow-sm">
+                      <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
@@ -299,24 +301,24 @@ export default function DashboardContent() {
                                 <span className="text-lg">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-900 truncate">{formatLeadPhone(lead.caller_phone)}</p>
-                                <p className="text-sm text-gray-500">{formatRelativeTime(lastActivity)}</p>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
                                 {hasTexted && !hasReplied && (
-                                  <p className="text-xs text-gray-600 font-medium mt-1">⚡ We texted this customer instantly so you don't lose them</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">⚡ We texted this customer instantly so you don't lose them</p>
                                 )}
                                 {hasReplied && (
-                                  <p className="text-xs text-gray-600 font-medium mt-1">Customer responded — opportunity active</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">Customer responded — opportunity active</p>
                                 )}
                                 {!hasTexted && (
-                                  <p className="text-xs text-gray-600 font-medium mt-1">No follow-up sent yet</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">No follow-up sent yet</p>
                                 )}
                               </div>
                             </div>
                             {latestMessage && (
                               <div className="ml-13">
-                                <p className="text-sm text-gray-600 truncate">{latestMessage.body}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{latestMessage.body}</p>
                                 {isDeliveryPending && (
-                                  <p className="text-xs text-gray-500 mt-1">Delivery pending (carrier verification)</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Delivery pending (carrier verification)</p>
                                 )}
                               </div>
                             )}
@@ -333,7 +335,7 @@ export default function DashboardContent() {
                             </span>
                             <Link
                               href={`/dashboard/leads/${lead.id}`}
-                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
                             >
                               View →
                             </Link>
