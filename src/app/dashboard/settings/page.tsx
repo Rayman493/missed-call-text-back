@@ -156,11 +156,13 @@ export default function SettingsPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div>
-                <nav className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  <Link href="/dashboard" className="hover:text-gray-700 dark:hover:text-gray-300">Dashboard</Link>
-                  <span className="mx-2">/</span>
-                  <span className="text-gray-900 dark:text-gray-100">Settings</span>
-                </nav>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors"
+                >
+                  <span className="text-lg">←</span>
+                  <span className="font-medium">Back to Dashboard</span>
+                </button>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Business Settings</h1>
                 <p className="text-gray-600 dark:text-gray-400">Configure your business information and auto-reply message.</p>
               </div>
