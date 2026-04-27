@@ -131,8 +131,13 @@ export default function DashboardContent() {
     )
   }
 
-  const newLeads = leads.filter(lead => lead.status === 'new').length
-  const contactedLeads = leads.filter(lead => lead.status === 'contacted').length
+  const missedCalls = leads.length
+  const textsSent = leads.reduce((count, lead) => {
+    return count + (lead.messages?.filter((m: any) => m.direction === 'outbound').length || 0)
+  }, 0)
+  const replies = leads.reduce((count, lead) => {
+    return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
+  }, 0)
 
   return (
     <AuthGuard>
@@ -141,8 +146,8 @@ export default function DashboardContent() {
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">{business?.name}</p>
+                <h1 className="text-3xl font-bold text-gray-900">Your Missed Call Leads</h1>
+                <p className="text-gray-600 mt-1">See who called, who got a text, and who replied.</p>
               </div>
               <div className="flex gap-4">
                 <Link
@@ -158,90 +163,86 @@ export default function DashboardContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Total Leads</h3>
-                <p className="text-3xl font-bold text-gray-900">{leads.length}</p>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Missed Calls</h3>
+                <p className="text-3xl font-bold text-gray-900">{missedCalls}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">New Leads</h3>
-                <p className="text-3xl font-bold text-blue-600">{newLeads}</p>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Texts Sent</h3>
+                <p className="text-3xl font-bold text-blue-600">{textsSent}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Contacted</h3>
-                <p className="text-3xl font-bold text-green-600">{contactedLeads}</p>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Replies</h3>
+                <p className="text-3xl font-bold text-green-600">{replies}</p>
               </div>
             </div>
 
             {leads.length === 0 ? (
               <div className="bg-white p-8 rounded-lg shadow text-center">
                 <p className="text-gray-600 mb-4">No leads yet</p>
-                <p className="text-sm text-gray-500">Call your Twilio number and hang up to test the missed call flow.</p>
+                <p className="text-sm text-gray-500">Call your business number and hang up to test the missed call flow.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {leads.map((lead) => {
-                  const latestMessage = lead.messages && lead.messages.length > 0
-                    ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                    : null
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">People Who Tried To Call You</h2>
+                <div className="space-y-4">
+                  {leads.map((lead) => {
+                    const latestMessage = lead.messages && lead.messages.length > 0
+                      ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                      : null
 
-                  console.log("LATEST MESSAGE for lead", lead.id, ":", latestMessage)
+                    const messageStatus = getLeadMessageStatus(latestMessage)
+                    const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
+                    const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
+                    const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
+                    
+                    let statusBadge = 'New'
+                    if (hasReplied) statusBadge = 'Replied'
+                    else if (hasTexted) statusBadge = 'Texted'
+                    else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
-                  const messageStatus = getLeadMessageStatus(latestMessage)
-
-                  return (
-                    <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                              messageStatus.color === 'green' ? 'bg-green-100' :
-                              messageStatus.color === 'red' ? 'bg-red-100' :
-                              messageStatus.color === 'orange' ? 'bg-orange-100' :
-                              'bg-blue-100'
-                            }`}>
-                              <span className="text-xl">{messageStatus.icon}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900">{formatLeadPhone(lead.caller_phone)}</p>
-                              <p className="text-sm text-gray-500">{messageStatus.text}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getLeadStatusColor(lead.status)}`}>
-                            {lead.status}
-                          </span>
-                          <Link
-                            href={`/dashboard/leads/${lead.id}`}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                          >
-                            View →
-                          </Link>
-                        </div>
-                      </div>
-
-                      {latestMessage && (
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-700 break-words">{latestMessage.body}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <StatusBadge status={latestMessage.status} errorCode={latestMessage.error_code} />
-                                <span className="text-xs text-gray-500">
-                                  {formatMessageTimestamp(latestMessage)}
-                                </span>
+                    return (
+                      <div key={lead.id} className="bg-white rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200 border border border-gray-200 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                messageStatus.color === 'green' ? 'bg-green-100' :
+                                messageStatus.color === 'red' ? 'bg-red-100' :
+                                messageStatus.color === 'orange' ? 'bg-orange-100' :
+                                'bg-blue-100'
+                              }`}>
+                                <span className="text-lg">{messageStatus.icon}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                <p className="text-sm text-gray-500">{formatRelativeTime(lastActivity)}</p>
                               </div>
                             </div>
+                            {latestMessage && (
+                              <p className="text-sm text-gray-600 truncate ml-13">{latestMessage.body}</p>
+                            )}
                           </div>
-                          {latestMessage.error_message && (
-                            <p className="text-xs text-red-600 mt-2">
-                              {getFriendlyErrorMessage(latestMessage.error_code, latestMessage.error_message)}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              statusBadge === 'New' ? 'bg-blue-100 text-blue-800' :
+                              statusBadge === 'Texted' ? 'bg-yellow-100 text-yellow-800' :
+                              statusBadge === 'Replied' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {statusBadge}
+                            </span>
+                            <Link
+                              href={`/dashboard/leads/${lead.id}`}
+                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            >
+                              View →
+                            </Link>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )
-                })}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>

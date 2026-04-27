@@ -27,7 +27,7 @@ export default function SmsVerificationBanner({ business }: SmsVerificationBanne
         </div>
         <div className="ml-3">
           <p className="text-sm text-amber-800">
-            SMS delivery may be limited while your toll-free number verification is pending. Messages are being sent, but carriers may block them until approval.
+            SMS delivery may be limited while your toll-free verification is pending. ReplyFlow is sending messages, but carriers may block delivery until approval.
           </p>
         </div>
       </div>

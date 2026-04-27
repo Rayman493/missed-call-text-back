@@ -12,7 +12,6 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
-  const [messagingServiceSid, setMessagingServiceSid] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
@@ -68,7 +67,6 @@ export default function OnboardingPage() {
         user_id: userId,
         name: businessName,
         twilio_phone_number: businessPhone,
-        twilio_messaging_service_sid: messagingServiceSid || null,
         auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
       }
 
@@ -130,24 +128,7 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Enter your Twilio phone number
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="messagingServiceSid" className="block text-sm font-medium text-gray-700 mb-2">
-                Twilio Messaging Service SID (Optional)
-              </label>
-              <input
-                id="messagingServiceSid"
-                type="text"
-                value={messagingServiceSid}
-                onChange={(e) => setMessagingServiceSid(e.target.value)}
-                placeholder="MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Leave blank if you don't have a messaging service
+                This is the number customers call.
               </p>
             </div>
 
@@ -156,7 +137,7 @@ export default function OnboardingPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Creating business...' : 'Continue to Dashboard'}
+              {loading ? 'Creating business...' : 'Start Capturing Leads'}
             </button>
           </form>
         </div>
