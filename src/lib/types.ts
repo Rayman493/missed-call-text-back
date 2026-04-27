@@ -5,6 +5,8 @@ export interface Business {
   twilio_phone_number: string;
   twilio_messaging_service_sid?: string | null;
   auto_reply_message: string;
+  sms_type?: string | null;
+  a2p_status?: string | null;
   created_at: string;
   updated_at?: string;
 }

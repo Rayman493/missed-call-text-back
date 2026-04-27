@@ -8,6 +8,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
+import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -133,6 +134,8 @@ export default function DashboardContent() {
                 </Link>
               </div>
             </div>
+
+            <SmsVerificationBanner business={business} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-white p-6 rounded-lg shadow">
