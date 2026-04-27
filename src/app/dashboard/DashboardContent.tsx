@@ -302,13 +302,13 @@ export default function DashboardContent() {
                                 <p className="font-semibold text-gray-900 truncate">{formatLeadPhone(lead.caller_phone)}</p>
                                 <p className="text-sm text-gray-500">{formatRelativeTime(lastActivity)}</p>
                                 {hasTexted && !hasReplied && (
-                                  <p className="text-xs text-gray-400 mt-1">We followed up instantly so you don't lose this customer</p>
+                                  <p className="text-xs text-gray-600 font-medium mt-1">⚡ We texted this customer instantly so you don't lose them</p>
                                 )}
                                 {hasReplied && (
-                                  <p className="text-xs text-gray-400 mt-1">Customer responded — opportunity active</p>
+                                  <p className="text-xs text-gray-600 font-medium mt-1">Customer responded — opportunity active</p>
                                 )}
                                 {!hasTexted && (
-                                  <p className="text-xs text-gray-400 mt-1">No follow-up sent yet</p>
+                                  <p className="text-xs text-gray-600 font-medium mt-1">No follow-up sent yet</p>
                                 )}
                               </div>
                             </div>
