@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
+import { normalizePhoneNumber } from '@/lib/utils'
 
 const supabase = createBrowserClient()
 
@@ -62,11 +63,18 @@ export default function OnboardingPage() {
         return
       }
 
+      // Normalize phone number
+      const normalizedPhone = normalizePhoneNumber(businessPhone)
+      if (!normalizedPhone) {
+        setError('Please enter a valid phone number.')
+        return
+      }
+
       // Insert business with user_id
       const businessPayload = {
         user_id: userId,
         name: businessName,
-        twilio_phone_number: businessPhone,
+        twilio_phone_number: normalizedPhone,
         auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
       }
 
@@ -124,11 +132,11 @@ export default function OnboardingPage() {
                 value={businessPhone}
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
-                placeholder="+15551234567"
+                placeholder="(412) 855-3010"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                This is the number customers call.
+                Enter your business phone number. We'll format it automatically.
               </p>
             </div>
 

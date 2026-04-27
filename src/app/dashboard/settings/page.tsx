@@ -7,6 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
+import { normalizePhoneNumber } from '@/lib/utils'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -31,9 +32,16 @@ export default function SettingsPage() {
       const twilioPhoneNumber = formData.get('twilioPhoneNumber') as string
       const autoReplyMessage = formData.get('autoReplyMessage') as string
 
+      // Normalize phone number
+      const normalizedPhone = normalizePhoneNumber(twilioPhoneNumber)
+      if (!normalizedPhone) {
+        setError('Please enter a valid phone number.')
+        return
+      }
+
       const updatePayload = {
         name: businessName,
-        twilio_phone_number: twilioPhoneNumber,
+        twilio_phone_number: normalizedPhone,
         auto_reply_message: autoReplyMessage,
         updated_at: new Date().toISOString()
       }
@@ -141,11 +149,10 @@ export default function SettingsPage() {
                         name="twilioPhoneNumber"
                         defaultValue={business.twilio_phone_number}
                         required
+                        placeholder="(412) 855-3010"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 hover:border-gray-400"
-                        pattern="\+[0-9]+"
-                        title="Format: +1234567890"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Format: +1234567890 (with country code)</p>
+                      <p className="text-xs text-gray-500 mt-1">Enter your business phone number. We'll format it automatically.</p>
                     </div>
                   </div>
                   <div>
