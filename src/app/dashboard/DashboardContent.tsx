@@ -276,7 +276,11 @@ export default function DashboardContent() {
                     const hasBlockedOutbound = lead.messages?.some((m: any) => m.direction === 'outbound' && m.error_code === '30007')
                     
                     let statusBadge = 'New'
-                    if (hasBlockedOutbound) statusBadge = 'Blocked'
+                    let isDeliveryPending = false
+                    if (hasBlockedOutbound) {
+                      statusBadge = 'Sent'
+                      isDeliveryPending = true
+                    }
                     else if (hasReplied) statusBadge = 'Replied'
                     else if (hasTexted) statusBadge = 'Texted'
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
@@ -300,7 +304,12 @@ export default function DashboardContent() {
                               </div>
                             </div>
                             {latestMessage && (
-                              <p className="text-sm text-gray-600 truncate ml-13">{latestMessage.body}</p>
+                              <div className="ml-13">
+                                <p className="text-sm text-gray-600 truncate">{latestMessage.body}</p>
+                                {isDeliveryPending && (
+                                  <p className="text-xs text-gray-500 mt-1">Delivery pending (carrier verification)</p>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
@@ -308,6 +317,7 @@ export default function DashboardContent() {
                               statusBadge === 'New' ? 'bg-blue-100 text-blue-800' :
                               statusBadge === 'Texted' ? 'bg-yellow-100 text-yellow-800' :
                               statusBadge === 'Replied' ? 'bg-green-100 text-green-800' :
+                              statusBadge === 'Sent' ? 'bg-gray-100 text-gray-800' :
                               'bg-red-100 text-red-800'
                             }`}>
                               {statusBadge}
