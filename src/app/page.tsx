@@ -13,7 +13,7 @@ export default function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
-            href="/signup"
+            href="/auth/signup"
             className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             Get Started Free
@@ -91,7 +91,7 @@ export default function Home() {
             Start capturing missed calls today
           </h2>
           <Link
-            href="/signup"
+            href="/auth/signup"
             className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             Get Started
