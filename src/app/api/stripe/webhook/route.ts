@@ -115,24 +115,24 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Successfully updated business:', businessId, 'for user:', userId)
         }
 
-        // Provision Twilio number if business doesn't have one
+        // Provision Twilio number if business doesn't have one or SID is missing
         try {
           const { data: business } = await supabase
             .from('businesses')
-            .select('id, twilio_phone_number')
+            .select('id, twilio_phone_number, twilio_phone_number_sid')
             .eq('id', businessId)
             .single()
 
-          if (business && !business.twilio_phone_number) {
-            console.log('[stripe-webhook] Business has no Twilio number, provisioning one...')
+          if (business && (!business.twilio_phone_number || !business.twilio_phone_number_sid)) {
+            console.log('[stripe-webhook] Business has no Twilio number or SID is missing, provisioning one...')
             const provisioned = await provisionTwilioNumber(businessId)
             if (provisioned) {
               console.log('[stripe-webhook] Successfully provisioned Twilio number:', provisioned.phoneNumber)
             } else {
               console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId)
             }
-          } else if (business && business.twilio_phone_number) {
-            console.log('[stripe-webhook] Business already has Twilio number, skipping provisioning')
+          } else if (business && business.twilio_phone_number && business.twilio_phone_number_sid) {
+            console.log('[stripe-webhook] Business already has valid Twilio number and SID, skipping provisioning')
           }
         } catch (provisionError) {
           console.error('[stripe-webhook] Error during Twilio provisioning:', provisionError)

@@ -144,6 +144,73 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
   const client = Twilio(accountSid, authToken);
 
   try {
+    // Idempotency check: Verify both twilio_phone_number and twilio_phone_number_sid exist
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('id, twilio_phone_number, twilio_phone_number_sid')
+      .eq('id', businessId)
+      .single();
+
+    if (business && business.twilio_phone_number && business.twilio_phone_number_sid) {
+      console.log('[Twilio Provisioning] Business already has valid Twilio number and SID, skipping provisioning');
+      return {
+        phoneNumber: business.twilio_phone_number,
+        phoneNumberSid: business.twilio_phone_number_sid,
+      };
+    }
+
+    // Handle bad state: phone number exists but SID is missing
+    if (business && business.twilio_phone_number && !business.twilio_phone_number_sid) {
+      console.log('[Twilio Provisioning] Bad state detected: phone number exists but SID is missing, verifying in Twilio');
+
+      try {
+        // Verify if the number exists in Twilio Active Numbers
+        const incomingNumbers = await client.incomingPhoneNumbers.list({ phoneNumber: business.twilio_phone_number });
+        
+        if (incomingNumbers.length === 0) {
+          console.log('[Twilio Provisioning] Number does not exist in Twilio Active Numbers, clearing bad saved number');
+          
+          // Clear the bad phone number
+          const { error: clearError } = await supabase
+            .from('businesses')
+            .update({
+              twilio_phone_number: null,
+              twilio_phone_number_sid: null,
+            })
+            .eq('id', businessId);
+
+          if (clearError) {
+            console.error('[Twilio Provisioning] Failed to clear bad saved number:', clearError);
+          } else {
+            console.log('[Twilio Provisioning] Bad saved number cleared');
+          }
+        } else {
+          console.log('[Twilio Provisioning] Number exists in Twilio, updating SID in database');
+          
+          // Update with the correct SID
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update({
+              twilio_phone_number_sid: incomingNumbers[0].sid,
+            })
+            .eq('id', businessId);
+
+          if (updateError) {
+            console.error('[Twilio Provisioning] Failed to update SID:', updateError);
+          } else {
+            console.log('[Twilio Provisioning] SID updated successfully');
+            return {
+              phoneNumber: business.twilio_phone_number,
+              phoneNumberSid: incomingNumbers[0].sid,
+            };
+          }
+        }
+      } catch (verifyError) {
+        console.error('[Twilio Provisioning] Error verifying number in Twilio:', verifyError);
+        // Proceed to purchase a new number
+      }
+    }
+
     console.log('[Twilio Provisioning] Searching numbers for business:', businessId);
 
     // Search for available US local numbers with voice + SMS enabled
@@ -161,7 +228,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
     }
 
     const numberToPurchase = availableNumbers[0];
-    console.log('[Twilio Provisioning] Found available number:', numberToPurchase.phoneNumber);
+    console.log('[Twilio Provisioning] Selected available number:', numberToPurchase.phoneNumber);
 
     // Purchase the number
     const purchasedNumber = await client.incomingPhoneNumbers.create({
@@ -170,9 +237,17 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       smsUrl: 'https://replyflowhq.com/api/twilio/incoming-sms',
     });
 
-    console.log('[Twilio Provisioning] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid);
+    console.log('[Twilio Provisioning] Purchase succeeded:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid);
 
-    // Save to database
+    // Verify the number exists by SID after purchase
+    try {
+      const verifiedNumber = await client.incomingPhoneNumbers(purchasedNumber.sid).fetch();
+      console.log('[Twilio Provisioning] Verified number exists in Twilio by SID:', verifiedNumber.phoneNumber);
+    } catch (verifyError) {
+      console.error('[Twilio Provisioning] Failed to verify number by SID after purchase:', verifyError);
+    }
+
+    // Save to database only after purchase succeeds
     const { error: updateError } = await supabase
       .from('businesses')
       .update({
@@ -193,7 +268,8 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       phoneNumberSid: purchasedNumber.sid,
     };
   } catch (error) {
-    console.error('[Twilio Provisioning] Failed to assign number:', error);
+    console.error('[Twilio Provisioning] Purchase failed:', error);
+    // Do not save twilio_phone_number or twilio_phone_number_sid on failure
     return null
   }
 }
