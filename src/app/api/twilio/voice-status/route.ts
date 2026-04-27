@@ -196,6 +196,18 @@ export async function POST(req: NextRequest) {
       if (messageSid) {
         console.log(`[voice-status] Auto-reply SMS sent successfully: ${messageSid}`)
         autoReplySent = true
+
+        // Update lead status to contacted after SMS sent
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ status: 'contacted' })
+          .eq('id', lead.id)
+
+        if (updateError) {
+          console.error('[voice-status] Failed to update lead status:', updateError)
+        } else {
+          console.log(`[voice-status] Lead status updated to 'contacted': ${lead.id}`)
+        }
       } else {
         console.error('[voice-status] Failed to send auto-reply SMS')
       }
