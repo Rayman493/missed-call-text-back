@@ -458,9 +458,7 @@ export default function DashboardContent() {
             {leads.length > 0 && (
               <div className="bg-green-900/20 border border-green-800 rounded-xl px-4 py-3 mb-8">
                 <p className="text-green-300 text-base">
-                  {textsSent === 1
-                    ? `You've reached out to ${textsSent} missed caller`
-                    : `You've reached out to ${textsSent} missed callers`}
+                  🔥 You recovered {leadsRecovered} lead{leadsRecovered !== 1 ? 's' : ''} automatically
                 </p>
               </div>
             )}
@@ -483,6 +481,46 @@ export default function DashboardContent() {
                 <p className="text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
               </div>
             </div>
+
+            {/* Test Your Setup Section */}
+            {business?.twilio_phone_number && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 mb-8 text-center">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Test your setup</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Call your ReplyFlow number to test the missed call text back feature.
+                </p>
+                <div className="mb-6">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Your ReplyFlow number:</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  Let it ring — you'll receive an automatic text.
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={handleTestSms}
+                    disabled={testSmsLoading}
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                  >
+                    {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('[Dashboard] Refresh leads clicked')
+                      router.refresh()
+                    }}
+                    className="px-8 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Refresh leads
+                  </button>
+                </div>
+                {testSmsMessage && (
+                  <div className={`mt-4 text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {testSmsMessage}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Live Activity Feed */}
             <div className="mb-8">
@@ -603,7 +641,7 @@ export default function DashboardContent() {
                     if (hasBlockedOutbound) {
                       statusBadge = 'Sent'
                       isDeliveryPending = true
-                      carrierFilteringBadge = 'Carrier filtering'
+                      carrierFilteringBadge = 'Sent (delivery pending)'
                     }
                     else if (hasFailedMessage) {
                       statusBadge = 'Texted'
@@ -665,7 +703,7 @@ export default function DashboardContent() {
                               </span>
                             )}
                             {carrierFilteringBadge && (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300" title="Carrier filtering detected. This may happen while toll-free verification is pending.">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300" title="Sent (delivery pending). This may happen while toll-free verification is pending.">
                                 {carrierFilteringBadge}
                               </span>
                             )}
