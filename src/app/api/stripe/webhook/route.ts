@@ -90,17 +90,14 @@ export async function POST(request: Request) {
         break
       }
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
+      case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
         const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
-        const cancelAtPeriodEnd = subscription.cancel_at_period_end
 
-        console.log('[stripe-webhook] Subscription event:', { status, cancelAtPeriodEnd, customerId })
+        console.log('[stripe-webhook] Subscription created:', subscription.id)
 
         // Find business by stripe_customer_id
         const { data: business } = await supabase
@@ -118,17 +115,96 @@ export async function POST(request: Request) {
               subscription_status: status,
               subscription_price_id: priceId,
               current_period_end: new Date(periodEnd * 1000).toISOString(),
-              cancel_at_period_end: cancelAtPeriodEnd,
             })
             .eq('id', business.id)
 
           if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (subscription event):', updateError)
+            console.error('[stripe-webhook] Supabase update error (subscription created):', updateError)
           } else {
-            console.log('[stripe-webhook] Updated subscription status:', { businessId: business.id, status, cancelAtPeriodEnd })
+            console.log('[stripe-webhook] Created subscription:', { businessId: business.id, status })
           }
         } else {
           console.error('[stripe-webhook] Business not found for customer:', customerId)
+        }
+        break
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+        const status = subscription.status
+        const priceId = subscription.items.data[0]?.price.id
+        const periodEnd = (subscription as any).current_period_end
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end
+
+        console.log("Subscription updated:", subscription.id)
+        console.log("Cancel at period end:", subscription.cancel_at_period_end)
+
+        // Find business by stripe_subscription_id
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('stripe_subscription_id', subscription.id)
+          .limit(1)
+          .single()
+
+        if (business) {
+          let updateData: any = {
+            subscription_status: status,
+            subscription_price_id: priceId,
+            current_period_end: new Date(periodEnd * 1000).toISOString(),
+            cancel_at_period_end: cancelAtPeriodEnd,
+          }
+
+          // If canceling, set status to 'canceling'
+          if (cancelAtPeriodEnd) {
+            updateData.subscription_status = 'canceling'
+          }
+
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update(updateData)
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[stripe-webhook] Supabase update error (subscription updated):', updateError)
+          } else {
+            console.log('[stripe-webhook] Updated subscription:', { businessId: business.id, status: updateData.subscription_status, cancelAtPeriodEnd })
+          }
+        } else {
+          console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
+        }
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+
+        console.log("Subscription deleted:", subscription.id)
+
+        // Find business by stripe_subscription_id
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('stripe_subscription_id', subscription.id)
+          .limit(1)
+          .single()
+
+        if (business) {
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update({
+              subscription_status: 'canceled',
+            })
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)
+          } else {
+            console.log('[stripe-webhook] Canceled subscription:', { businessId: business.id })
+          }
+        } else {
+          console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
         }
         break
       }
