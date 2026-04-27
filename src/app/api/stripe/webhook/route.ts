@@ -68,11 +68,26 @@ export async function POST(request: Request) {
         // Retrieve subscription details
         try {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          console.log('[stripe-webhook] Subscription period end:', (subscription as any).current_period_end)
+          
+          let currentPeriodEnd = null
+          if ((subscription as any).current_period_end) {
+            try {
+              currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting period end date:', dateError)
+            }
+          }
+          
           updateData = {
             ...updateData,
             subscription_status: subscription.status,
             subscription_price_id: subscription.items.data[0]?.price.id,
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          }
+          
+          // Only set current_period_end if it exists and was successfully converted
+          if (currentPeriodEnd) {
+            updateData.current_period_end = currentPeriodEnd
           }
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
@@ -105,6 +120,7 @@ export async function POST(request: Request) {
         const periodEnd = (subscription as any).current_period_end
 
         console.log('[stripe-webhook] Subscription created:', subscription.id)
+        console.log('[stripe-webhook] Subscription period end:', periodEnd)
 
         // Find business by stripe_customer_id
         const { data: business } = await supabase
@@ -115,14 +131,24 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
+          let updateData: any = {
+            stripe_subscription_id: subscription.id,
+            subscription_status: status,
+            subscription_price_id: priceId,
+          }
+
+          // Only set current_period_end if it exists
+          if (periodEnd) {
+            try {
+              updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting period end date:', dateError)
+            }
+          }
+
           const { error: updateError } = await supabase
             .from('businesses')
-            .update({
-              stripe_subscription_id: subscription.id,
-              subscription_status: status,
-              subscription_price_id: priceId,
-              current_period_end: new Date(periodEnd * 1000).toISOString(),
-            })
+            .update(updateData)
             .eq('id', business.id)
 
           if (updateError) {
@@ -146,6 +172,7 @@ export async function POST(request: Request) {
 
         console.log('[stripe-webhook] Subscription updated:', subscription.id)
         console.log('[stripe-webhook] Subscription status:', status)
+        console.log('[stripe-webhook] Subscription period end:', periodEnd)
         console.log('[stripe-webhook] Cancel at period end:', cancelAtPeriodEnd)
 
         // Find business by stripe_subscription_id
@@ -159,8 +186,16 @@ export async function POST(request: Request) {
         if (business) {
           let updateData: any = {
             subscription_price_id: priceId,
-            current_period_end: new Date(periodEnd * 1000).toISOString(),
             cancel_at_period_end: cancelAtPeriodEnd,
+          }
+
+          // Only set current_period_end if it exists
+          if (periodEnd) {
+            try {
+              updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting period end date:', dateError)
+            }
           }
 
           // Handle different subscription statuses
