@@ -1,6 +1,19 @@
+'use client'
+
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
+  const { loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-200">Loading...</div>
+      </div>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gray-900">
       {/* Header */}

@@ -1,49 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@/lib/supabase/browser'
+import { useAuth } from '@/contexts/AuthContext'
 import SetupError from '@/components/SetupError'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 const supabase = createBrowserClient()
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [authenticated, setAuthenticated] = useState(false)
+  const { user, loading } = useAuth()
 
   // Show setup error if env vars are missing
   if (!supabase) {
     return <SetupError />
   }
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      console.log('[AuthGuard] Checking authentication session...')
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        
-        if (error) {
-          console.error('[AuthGuard] Auth error:', error)
-        }
-        
-        if (!user) {
-          console.log('[AuthGuard] No user found, redirecting to /auth/signin')
-          router.push('/auth/signin')
-        } else {
-          console.log('[AuthGuard] User authenticated:', user.id)
-          setAuthenticated(true)
-        }
-      } catch (error) {
-        console.error('[AuthGuard] Auth check failed:', error)
-      } finally {
-        console.log('[AuthGuard] Setting loading to false')
-        setLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [router])
 
   if (loading) {
     return (
@@ -53,8 +22,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!authenticated) {
-    return null // Will redirect
+  if (!user) {
+    return null // Will redirect via AuthProvider
   }
 
   return <>{children}</>

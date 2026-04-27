@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { BusinessProvider } from '@/contexts/BusinessContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
@@ -43,9 +44,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} min-h-screen bg-slate-950 text-white antialiased`}>
-        <ThemeProvider>
-          <BusinessProvider>{children}</BusinessProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <BusinessProvider>{children}</BusinessProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
