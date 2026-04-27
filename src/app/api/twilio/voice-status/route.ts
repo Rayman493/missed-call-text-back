@@ -61,21 +61,43 @@ export async function POST(req: NextRequest) {
     const normalizedCallerPhone = normalizePhoneNumber(From)
     console.log(`[voice-status] Normalized caller phone: ${normalizedCallerPhone}`)
     
-    // ALWAYS create lead for this customer
-    console.log(`[voice-status] Creating lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
+    // First try to find existing lead
+    const { data: existingLead, error: existingLeadError } = await supabase
+      .from("leads")
+      .select("id, status")
+      .eq("business_id", business.id)
+      .eq("caller_phone", normalizedCallerPhone)
+      .maybeSingle();
 
-    const { data: lead, error } = await supabase
-      .from('leads')
-      .insert([{
-        business_id: business.id,
-        caller_phone: normalizedCallerPhone
-      }])
-      .select()
-      .single()
+    let lead;
 
-    console.log("LEAD INSERT RESULT:", lead, error)
+    if (existingLead) {
+      // Use existing lead
+      lead = existingLead;
+      console.log("[voice-status] Existing lead found:", lead.id);
+    } else {
+      // Insert new lead
+      console.log(`[voice-status] No existing lead found, inserting new lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`);
+      
+      const { data: newLead, error: leadInsertError } = await supabase
+        .from("leads")
+        .insert([{
+          business_id: business.id,
+          caller_phone: normalizedCallerPhone
+        }])
+        .select("id, status")
+        .single();
 
-    // DO NOT stop execution if lead is null
+      if (leadInsertError) {
+        console.error("[voice-status] Lead insert failed:", leadInsertError);
+        return new Response("OK", { status: 200 });
+      }
+
+      lead = newLead;
+      console.log("[voice-status] New lead inserted:", lead.id);
+    }
+
+    console.log("[voice-status] Lead id used for follow-up job:", lead.id);
     
     // Handle conversation logic for missed calls
     let conversation = await db.getOpenConversationForLead(lead.id, business.id)
@@ -174,6 +196,12 @@ export async function POST(req: NextRequest) {
     // ========================================
     // NEW FOLLOW-UP JOB LOGIC (INDEPENDENT OF LEAD STATUS)
     // ========================================
+    
+    // Guard: ensure lead.id exists before creating follow-up jobs
+    if (!lead?.id) {
+      console.error("[voice-status] No valid lead id, skipping follow-up creation");
+      return new Response("OK", { status: 200 });
+    }
     
     let hasPendingJob = false
     
