@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     if (businessError || !business) {
       console.error('[stripe-portal] Business not found:', businessError)
-      return NextResponse.json({ error: 'Business not found' }, { status: 400 })
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
     console.log('[stripe-portal] Business found:', business.id)
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     if (!business.stripe_customer_id) {
       console.error('[stripe-portal] Missing stripe_customer_id for business:', business.id)
       return NextResponse.json({ 
-        error: 'No Stripe customer found for this business. Please resubscribe or contact support.' 
+        error: 'No Stripe customer found. Please complete checkout first.' 
       }, { status: 400 })
     }
 

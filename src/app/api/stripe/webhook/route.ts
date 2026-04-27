@@ -52,28 +52,35 @@ export async function POST(request: Request) {
           return NextResponse.json({ received: true, warning: 'Missing businessId in metadata' })
         }
 
+        // Validate that both customer and subscription exist
+        if (!customerId || !subscriptionId) {
+          console.error('[stripe-webhook] Missing Stripe billing data - customer:', customerId, 'subscription:', subscriptionId)
+          console.error('[stripe-webhook] Cannot activate subscription without both customer and subscription IDs')
+          return NextResponse.json({ received: true, warning: 'Missing customer or subscription ID' })
+        }
+
+        // Both exist - proceed with activation
         let updateData: any = {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          subscription_status: 'active',
         }
 
-        // If subscription exists, retrieve it and update with subscription details
-        if (subscriptionId) {
-          try {
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-            updateData = {
-              ...updateData,
-              subscription_status: subscription.status,
-              subscription_price_id: subscription.items.data[0]?.price.id,
-              current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-            }
-          } catch (error) {
-            console.error('[stripe-webhook] Error retrieving subscription:', error)
+        // Retrieve subscription details
+        try {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          updateData = {
+            ...updateData,
+            subscription_status: subscription.status,
+            subscription_price_id: subscription.items.data[0]?.price.id,
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
           }
+        } catch (error) {
+          console.error('[stripe-webhook] Error retrieving subscription:', error)
+          // If we can't retrieve subscription, still set to active since checkout completed
+          updateData.subscription_status = 'active'
         }
 
-        console.log('[stripe-webhook] Updating business:', businessId, 'with data:', updateData)
+        console.log('[stripe-webhook] Updating business:', businessId, 'for user:', userId, 'with data:', updateData)
 
         // Update by business_id
         const { error: updateError } = await supabase
@@ -84,7 +91,7 @@ export async function POST(request: Request) {
         if (updateError) {
           console.error('[stripe-webhook] Supabase update error:', updateError)
         } else {
-          console.log('[stripe-webhook] Successfully updated business:', businessId)
+          console.log('[stripe-webhook] Successfully updated business:', businessId, 'for user:', userId)
         }
 
         break
@@ -137,8 +144,9 @@ export async function POST(request: Request) {
         const periodEnd = (subscription as any).current_period_end
         const cancelAtPeriodEnd = subscription.cancel_at_period_end
 
-        console.log("Subscription updated:", subscription.id)
-        console.log("Cancel at period end:", subscription.cancel_at_period_end)
+        console.log('[stripe-webhook] Subscription updated:', subscription.id)
+        console.log('[stripe-webhook] Subscription status:', status)
+        console.log('[stripe-webhook] Cancel at period end:', cancelAtPeriodEnd)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -150,16 +158,31 @@ export async function POST(request: Request) {
 
         if (business) {
           let updateData: any = {
-            subscription_status: status,
             subscription_price_id: priceId,
             current_period_end: new Date(periodEnd * 1000).toISOString(),
             cancel_at_period_end: cancelAtPeriodEnd,
           }
 
-          // If canceling, set status to 'canceling'
+          // Handle different subscription statuses
+          if (status === 'canceled' || status === 'unpaid' || status === 'past_due' || status === 'incomplete_expired') {
+            updateData.subscription_status = status
+            console.log('[stripe-webhook] Subscription is in failed/canceled state:', status)
+          } else if (status === 'active' || status === 'trialing') {
+            updateData.subscription_status = status
+            console.log('[stripe-webhook] Subscription is active:', status)
+          } else {
+            // For other statuses (incomplete, trialing, etc.), use the Stripe status directly
+            updateData.subscription_status = status
+            console.log('[stripe-webhook] Subscription status:', status)
+          }
+
+          // If canceling, override status to 'canceling'
           if (cancelAtPeriodEnd) {
             updateData.subscription_status = 'canceling'
+            console.log('[stripe-webhook] Subscription set to canceling at period end')
           }
+
+          console.log('[stripe-webhook] Updating subscription status for business:', business.id, 'to:', updateData.subscription_status)
 
           const { error: updateError } = await supabase
             .from('businesses')
@@ -169,7 +192,7 @@ export async function POST(request: Request) {
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription updated):', updateError)
           } else {
-            console.log('[stripe-webhook] Updated subscription:', { businessId: business.id, status: updateData.subscription_status, cancelAtPeriodEnd })
+            console.log('[stripe-webhook] Successfully updated subscription status:', { businessId: business.id, status: updateData.subscription_status, cancelAtPeriodEnd })
           }
         } else {
           console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
@@ -180,7 +203,7 @@ export async function POST(request: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
 
-        console.log("Subscription deleted:", subscription.id)
+        console.log('[stripe-webhook] Subscription deleted:', subscription.id)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -191,6 +214,8 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
+          console.log('[stripe-webhook] Setting subscription status to canceled for business:', business.id)
+
           const { error: updateError } = await supabase
             .from('businesses')
             .update({
@@ -201,7 +226,7 @@ export async function POST(request: Request) {
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)
           } else {
-            console.log('[stripe-webhook] Canceled subscription:', { businessId: business.id })
+            console.log('[stripe-webhook] Successfully set subscription status to canceled for business:', business.id)
           }
         } else {
           console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
