@@ -16,6 +16,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [checkingBusiness, setCheckingBusiness] = useState(true)
 
   // Show setup error if env vars are missing
   if (!supabase) {
@@ -27,6 +28,7 @@ export default function OnboardingPage() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
+        setCheckingBusiness(false)
         return // AuthGuard will handle redirect
       }
       setUserId(user.id)
@@ -43,11 +45,19 @@ export default function OnboardingPage() {
       if (businesses && businesses.length > 0) {
         // User already has a business, redirect to dashboard
         router.push('/dashboard')
+      } else {
+        // User needs onboarding, show the form
+        setCheckingBusiness(false)
       }
     }
 
     getUser()
   }, [router])
+
+  // Don't render anything while checking if user needs onboarding
+  if (checkingBusiness) {
+    return null
+  }
 
   const handleOnboarding = async (e: React.FormEvent) => {
     e.preventDefault()
