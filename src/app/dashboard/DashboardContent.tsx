@@ -276,12 +276,21 @@ export default function DashboardContent() {
                     const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
                     const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
                     const hasBlockedOutbound = lead.messages?.some((m: any) => m.direction === 'outbound' && m.error_code === '30007')
+                    const hasFailedMessage = latestMessage && (latestMessage.status === 'failed' || latestMessage.status === 'undelivered')
                     
                     let statusBadge = 'New'
                     let isDeliveryPending = false
+                    let smsIssueBadge = null
+                    let carrierFilteringBadge = null
+
                     if (hasBlockedOutbound) {
                       statusBadge = 'Sent'
                       isDeliveryPending = true
+                      carrierFilteringBadge = 'Carrier filtering'
+                    }
+                    else if (hasFailedMessage) {
+                      statusBadge = 'Texted'
+                      smsIssueBadge = 'SMS issue'
                     }
                     else if (hasReplied) statusBadge = 'Replied'
                     else if (hasTexted) statusBadge = 'Texted'
@@ -333,6 +342,16 @@ export default function DashboardContent() {
                             }`}>
                               {statusBadge}
                             </span>
+                            {smsIssueBadge && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
+                                {smsIssueBadge}
+                              </span>
+                            )}
+                            {carrierFilteringBadge && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300" title="Carrier filtering detected. This may happen while toll-free verification is pending.">
+                                {carrierFilteringBadge}
+                              </span>
+                            )}
                             <Link
                               href={`/dashboard/leads/${lead.id}`}
                               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
