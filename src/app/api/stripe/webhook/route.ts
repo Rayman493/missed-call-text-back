@@ -33,15 +33,20 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session
         const customerId = session.customer as string
         const subscriptionId = session.subscription as string
-        const businessId = session.metadata?.business_id
-        const userId = session.metadata?.user_id
 
+        // Support both naming styles for metadata keys
+        const businessId = session.metadata?.businessId || session.metadata?.business_id
+        const userId = session.metadata?.userId || session.metadata?.user_id
+
+        console.log("Stripe metadata:", session.metadata)
+        console.log("Resolved businessId:", businessId)
+        console.log("Resolved userId:", userId)
         console.log("Stripe webhook checkout completed", { businessId, userId, customerId, subscriptionId })
 
         // Validate businessId
         if (!businessId) {
-          console.error('[stripe-webhook] No businessId in session metadata')
-          return NextResponse.json({ error: 'Missing businessId in metadata' }, { status: 400 })
+          console.error('[stripe-webhook] Missing businessId in Stripe metadata')
+          return NextResponse.json({ received: true, warning: 'Missing businessId in metadata' })
         }
 
         let updateData: any = {
