@@ -3,6 +3,17 @@ import Link from 'next/link'
 export default function Home() {
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-4 md:px-8 md:py-6 max-w-7xl mx-auto">
+        <div className="text-xl font-bold text-gray-900 dark:text-gray-100">ReplyFlow</div>
+        <Link
+          href="/auth?mode=signin"
+          className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        >
+          Sign In
+        </Link>
+      </header>
+
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-20 md:py-32 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6 max-w-4xl">
@@ -13,7 +24,7 @@ export default function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
-            href="/auth/signup"
+            href="/auth?mode=signup"
             className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             Get Started Free
@@ -91,7 +102,7 @@ export default function Home() {
             Start capturing missed calls today
           </h2>
           <Link
-            href="/auth/signup"
+            href="/auth?mode=signup"
             className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             Get Started
