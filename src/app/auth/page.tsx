@@ -24,6 +24,11 @@ function AuthContent() {
   // Update mode when URL changes
   useEffect(() => {
     setIsSignIn(mode === 'signin')
+    // Clear error when switching modes
+    if (mode === 'signin') {
+      setError('')
+      setExistingAccount(false)
+    }
   }, [mode])
 
   // Auto-focus password field when email is prefilled and in sign-in mode
@@ -121,10 +126,14 @@ function AuthContent() {
         {error && (
           <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
             <p className="text-sm text-red-300 mb-4">{error}</p>
-            {existingAccount && (
+            {existingAccount && !isSignIn && (
               <div className="space-y-3">
                 <button
-                  onClick={() => router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)}
+                  onClick={() => {
+                    setError('')
+                    setExistingAccount(false)
+                    router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+                  }}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   Sign In
