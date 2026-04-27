@@ -5,7 +5,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
@@ -65,18 +65,62 @@ export default function DashboardContent() {
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [webhookConfirming, setWebhookConfirming] = useState(false)
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams.get('checkout')
+  const router = useRouter()
 
   const supabase = createBrowserClient()
 
-  // Force refresh business after checkout success
+  // Force refresh business after checkout success with retry logic
   useEffect(() => {
     if (checkoutStatus === 'success') {
-      console.log('[Dashboard] Checkout success, refreshing business data')
-      refreshBusiness()
+      console.log('[Dashboard] Checkout success return detected')
+      setWebhookConfirming(true)
+
+      const checkSubscription = async (attempt: number) => {
+        console.log('[Dashboard] Business row refetch attempt:', attempt)
+        
+        // Refresh business data via context
+        await refreshBusiness()
+        
+        // Directly fetch business from Supabase to get fresh data
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: freshBusiness } = await supabase
+            .from('businesses')
+            .select('*')
+            .eq('user_id', user.id)
+            .limit(1)
+            .single()
+          
+          // Check if subscription is now active
+          const isActive = freshBusiness?.subscription_status === 'active' || freshBusiness?.subscription_status === 'trialing'
+          const hasCustomerId = !!freshBusiness?.stripe_customer_id
+          
+          console.log('[Dashboard] Subscription active confirmed:', isActive)
+          console.log('[Dashboard] Stripe customer ID exists:', hasCustomerId)
+
+          if (isActive && hasCustomerId) {
+            console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
+            setWebhookConfirming(false)
+            // Remove checkout=success from URL
+            router.replace('/dashboard')
+          } else if (attempt < 10) {
+            // Retry after 1 second
+            console.log('[Dashboard] Subscription not active yet, retrying in 1 second...')
+            setTimeout(() => checkSubscription(attempt + 1), 1000)
+          } else {
+            console.error('[Dashboard] Subscription not active after 10 seconds, showing error')
+            setWebhookConfirming(false)
+          }
+        }
+      }
+
+      // Start checking
+      checkSubscription(1)
     }
-  }, [checkoutStatus, refreshBusiness])
+  }, [checkoutStatus, refreshBusiness, supabase, router])
 
   const isActive = business?.subscription_status === 'active' || business?.subscription_status === 'trialing'
 
@@ -256,6 +300,13 @@ export default function DashboardContent() {
 
             <SmsVerificationBanner business={business} />
 
+            {/* Checkout success confirming message */}
+            {webhookConfirming && (
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3 mb-6">
+                <p className="text-blue-300">Payment confirmed. Setting up your account...</p>
+              </div>
+            )}
+
             {/* Checkout cancel message */}
             {checkoutStatus === 'cancelled' && (
               <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3 mb-6">
@@ -265,7 +316,12 @@ export default function DashboardContent() {
 
             {/* Billing card - always shown for testing */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow">
-              {isActive ? (
+              {webhookConfirming ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                </>
+              ) : isActive ? (
                 <>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
