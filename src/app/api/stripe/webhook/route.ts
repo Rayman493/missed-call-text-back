@@ -45,20 +45,54 @@ export async function POST(request: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         const customerId = session.customer as string
+        const subscriptionId = session.subscription as string
+        const businessId = session.metadata?.business_id
+        const userId = session.metadata?.user_id
 
-        // Retrieve customer to get metadata
-        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
-        const businessId = customer.metadata.business_id
+        console.log("Stripe webhook checkout completed", { businessId, userId, customerId, subscriptionId })
 
+        let updateData: any = {
+          stripe_customer_id: customerId,
+        }
+
+        // If subscription exists, retrieve it and update with subscription details
+        if (subscriptionId) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+            updateData = {
+              ...updateData,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: subscription.status,
+              subscription_price_id: subscription.items.data[0]?.price.id,
+              current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            }
+          } catch (error) {
+            console.error('[stripe-webhook] Error retrieving subscription:', error)
+          }
+        }
+
+        // Try to update by business_id first
         if (businessId) {
-          // Update business with subscription info
+          try {
+            await supabase
+              .from('businesses')
+              .update(updateData)
+              .eq('id', businessId)
+          } catch (error) {
+            console.error('[stripe-webhook] Supabase update error (by business_id):', error)
+          }
+        }
+
+        // Fallback: try to update by stripe_customer_id
+        try {
           await supabase
             .from('businesses')
-            .update({
-              stripe_customer_id: customerId,
-            })
-            .eq('id', businessId)
+            .update(updateData)
+            .eq('stripe_customer_id', customerId)
+        } catch (error) {
+          console.error('[stripe-webhook] Supabase update error (by customer_id):', error)
         }
+
         break
       }
 

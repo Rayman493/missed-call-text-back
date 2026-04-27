@@ -222,21 +222,36 @@ export default function DashboardContent() {
 
             {/* Billing card - always shown for testing */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
-              <div className="flex items-center gap-4 mb-4">
-                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
-              </div>
-              {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+              {business && (business.subscription_status === 'active' || business.subscription_status === 'trialing') ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                  </div>
+                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400">Billing bypass enabled (testing mode)</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                  </div>
+                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                  )}
+                  <button
+                    onClick={handleStartSubscription}
+                    disabled={checkoutLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? 'Loading...' : 'Start Subscription'}
+                  </button>
+                </>
               )}
-              <button
-                onClick={handleStartSubscription}
-                disabled={checkoutLoading}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {checkoutLoading ? 'Loading...' : 'Start Subscription'}
-              </button>
             </div>
 
             {/* Value Summary Section */}

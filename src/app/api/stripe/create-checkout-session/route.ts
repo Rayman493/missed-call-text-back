@@ -83,6 +83,13 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/dashboard?checkout=cancelled`,
       metadata: {
         business_id: business.id,
+        user_id: user.id,
+      },
+      subscription_data: {
+        metadata: {
+          business_id: business.id,
+          user_id: user.id,
+        },
       },
     })
 
