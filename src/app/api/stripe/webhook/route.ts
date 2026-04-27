@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import Stripe from 'stripe'
@@ -23,22 +22,10 @@ export async function POST(request: Request) {
 
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
 
-    const cookieStore = cookies()
-    const supabase = createServerClient(
+    // Use service role key for webhook to bypass RLS
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
     switch (event.type) {
@@ -51,8 +38,15 @@ export async function POST(request: Request) {
 
         console.log("Stripe webhook checkout completed", { businessId, userId, customerId, subscriptionId })
 
+        // Validate businessId
+        if (!businessId) {
+          console.error('[stripe-webhook] No businessId in session metadata')
+          return NextResponse.json({ error: 'Missing businessId in metadata' }, { status: 400 })
+        }
+
         let updateData: any = {
           stripe_customer_id: customerId,
+          subscription_status: 'active',
         }
 
         // If subscription exists, retrieve it and update with subscription details
@@ -72,23 +66,33 @@ export async function POST(request: Request) {
         }
 
         // Try to update by business_id first
-        if (businessId) {
-          try {
-            await supabase
-              .from('businesses')
-              .update(updateData)
-              .eq('id', businessId)
-          } catch (error) {
-            console.error('[stripe-webhook] Supabase update error (by business_id):', error)
+        try {
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update(updateData)
+            .eq('id', businessId)
+
+          if (updateError) {
+            console.error('[stripe-webhook] Supabase update error (by business_id):', updateError)
+          } else {
+            console.log('[stripe-webhook] Updated business to active:', businessId)
           }
+        } catch (error) {
+          console.error('[stripe-webhook] Supabase update error (by business_id):', error)
         }
 
         // Fallback: try to update by stripe_customer_id
         try {
-          await supabase
+          const { error: updateError } = await supabase
             .from('businesses')
             .update(updateData)
             .eq('stripe_customer_id', customerId)
+
+          if (updateError) {
+            console.error('[stripe-webhook] Supabase update error (by customer_id):', updateError)
+          } else {
+            console.log('[stripe-webhook] Updated business by customer_id:', customerId)
+          }
         } catch (error) {
           console.error('[stripe-webhook] Supabase update error (by customer_id):', error)
         }
