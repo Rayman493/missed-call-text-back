@@ -60,6 +60,7 @@ function formatMessageTimestamp(message: any): string {
 export default function DashboardContent() {
   const { business } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
+  const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient()
@@ -114,6 +115,21 @@ export default function DashboardContent() {
         setLeads(leadsData || [])
       } catch (error) {
         console.error('[DashboardContent] Error fetching leads:', error)
+      }
+
+      // Fetch follow-up jobs
+      try {
+        const supabaseAny = supabase as any
+        const { data: jobsData } = await supabaseAny
+          .from('follow_up_jobs')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+
+        console.log('[DashboardContent] Fetched', jobsData?.length || 0, 'follow-up jobs')
+        setFollowUpJobs(jobsData || [])
+      } catch (error) {
+        console.error('[DashboardContent] Error fetching follow-up jobs:', error)
       } finally {
         console.log('[DashboardContent] Setting loading to false')
         setLoading(false)
@@ -138,6 +154,7 @@ export default function DashboardContent() {
   const replies = leads.reduce((count, lead) => {
     return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
   }, 0)
+  const followUpsScheduled = followUpJobs.filter((job: any) => job.status === 'pending').length
 
   return (
     <AuthGuard>
@@ -161,7 +178,7 @@ export default function DashboardContent() {
 
             <SmsVerificationBanner business={business} />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Missed Calls</h3>
                 <p className="text-3xl font-bold text-gray-900">{missedCalls}</p>
@@ -174,12 +191,74 @@ export default function DashboardContent() {
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Replies</h3>
                 <p className="text-3xl font-bold text-green-600">{replies}</p>
               </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Follow-ups Scheduled</h3>
+                <p className="text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
+              </div>
+            </div>
+
+            {/* Live Activity Feed */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Live Activity</h2>
+              <div className="bg-white rounded-lg shadow border border-gray-200">
+                {leads.length === 0 && followUpJobs.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500 text-sm">
+                    No activity yet
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
+                      .sort((a: any, b: any) => {
+                        const timeA = new Date(a.created_at || a.scheduled_for).getTime()
+                        const timeB = new Date(b.created_at || b.scheduled_for).getTime()
+                        return timeB - timeA
+                      })
+                      .slice(0, 8)
+                      .map((item: any, index: number) => {
+                        const isLead = 'caller_phone' in item
+                        const isJob = 'message_body' in item
+                        
+                        let icon = ''
+                        let text = ''
+                        let time = ''
+                        
+                        if (isLead) {
+                          icon = '📞'
+                          text = `Missed call from ${formatLeadPhone(item.caller_phone)}`
+                          time = formatRelativeTime(item.created_at)
+                        } else if (isJob) {
+                          if (item.status === 'pending') {
+                            icon = '⏱'
+                            text = 'Follow-up scheduled'
+                          } else if (item.status === 'cancelled') {
+                            icon = '✅'
+                            text = 'Follow-up cancelled'
+                          } else {
+                            icon = '⏱'
+                            text = 'Follow-up job'
+                          }
+                          time = formatRelativeTime(item.created_at)
+                        }
+                        
+                        return (
+                          <div key={index} className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                            <span className="text-xl">{icon}</span>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900">{text}</p>
+                            </div>
+                            <p className="text-xs text-gray-500">{time}</p>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {leads.length === 0 ? (
               <div className="bg-white p-8 rounded-lg shadow text-center">
-                <p className="text-gray-600 mb-4">No leads yet</p>
-                <p className="text-sm text-gray-500">Call your business number and hang up to test the missed call flow.</p>
+                <p className="text-gray-600 mb-4">No missed call leads yet</p>
+                <p className="text-sm text-gray-500">Call your ReplyFlow number to see your first lead appear here.</p>
               </div>
             ) : (
               <div>
@@ -194,9 +273,11 @@ export default function DashboardContent() {
                     const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
                     const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
                     const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
+                    const hasBlockedOutbound = lead.messages?.some((m: any) => m.direction === 'outbound' && m.error_code === '30007')
                     
                     let statusBadge = 'New'
-                    if (hasReplied) statusBadge = 'Replied'
+                    if (hasBlockedOutbound) statusBadge = 'Blocked'
+                    else if (hasReplied) statusBadge = 'Replied'
                     else if (hasTexted) statusBadge = 'Texted'
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
