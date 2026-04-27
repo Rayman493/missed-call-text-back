@@ -5,6 +5,8 @@ import { sendSms } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[SYSTEM] [INCOMING-SMS] Received SMS');
+    
     const body = await req.text()
     const params = new URLSearchParams(body)
     
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
     const Body = params.get('Body')
     
     if (!From || !To || !Body) {
-      console.error('[incoming-sms] Missing required fields:', { From, To, Body })
+      console.error('[SYSTEM] [INCOMING-SMS] Missing required fields:', { From, To, Body })
       
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -28,21 +30,21 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    console.log(`[incoming-sms] From: ${From}, To: ${To}, Body: ${Body}`)
+    console.log('[SYSTEM] [INCOMING-SMS] From:', From, 'To:', To, 'Body:', Body)
     
     // Find business by Twilio phone number
     const business = await db.getBusinessByPhone(To)
     
     // Log resolved business details
     if (business) {
-      console.log(`[incoming-sms] Resolved business:`, {
+      console.log('[SYSTEM] [INCOMING-SMS] Resolved business:', {
         id: business.id,
         name: business.name,
         phone_number: business.twilio_phone_number
       })
     }
     if (!business) {
-      console.error(`[incoming-sms] Business not found for phone: ${To}`)
+      console.error('[SYSTEM] [INCOMING-SMS] Business not found for phone:', To)
       
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    console.log(`[incoming-sms] Found business: ${business.name} (${business.id})`)
+    console.log('[SYSTEM] [INCOMING-SMS] Found business:', business.name, '(', business.id, ')')
     
     // Normalize customer phone number
     const normalizedCustomerPhone = normalizePhoneNumber(From)
@@ -72,8 +74,8 @@ export async function POST(req: NextRequest) {
     
     if (!lead) {
       // Create new lead with status 'contacted' since customer replied
-      console.log(`[incoming-sms] No existing lead found, creating new lead`)
-      console.log(`[incoming-sms] Inserting lead...`, {
+      console.log('[SYSTEM] [INCOMING-SMS] No existing lead, creating new lead')
+      console.log('[SYSTEM] [INCOMING-SMS] Inserting lead...', {
         business_id: business.id,
         caller_phone: normalizedCustomerPhone,
         status: 'contacted'
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
       })
       
       if (!lead) {
-        console.error('[incoming-sms] Failed to create lead')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to create lead')
         
         const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
         })
       }
       
-      console.log(`[incoming-sms] Lead inserted successfully:`, {
+      console.log('[SYSTEM] [INCOMING-SMS] Lead created:', {
         lead_id: lead.id,
         business_id: lead.business_id,
         caller_phone: lead.caller_phone
@@ -118,31 +120,31 @@ export async function POST(req: NextRequest) {
       })
       
       if (!updatedLead) {
-        console.error('[incoming-sms] Failed to update lead')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to update lead')
       } else {
-        console.log(`[incoming-sms] Updated existing lead: ${updatedLead.id}`)
+        console.log('[SYSTEM] [INCOMING-SMS] Updated lead:', updatedLead.id)
         lead = updatedLead
       }
     }
     
     // Handle opt-out requests
     if (isOptOut) {
-      console.log(`[incoming-sms] Opt-out request received from lead: ${lead.id}`)
+      console.log('[SYSTEM] [INCOMING-SMS] Opt-out request from lead:', lead.id)
       
       // Update lead to set opted_out = true
       const updatedLead = await db.updateLead(lead.id, { opted_out: true })
       
       if (updatedLead) {
-        console.log(`[incoming-sms] Lead opted out: ${lead.id}`)
+        console.log('[SYSTEM] [INCOMING-SMS] Lead opted out:', lead.id)
         lead = updatedLead
       } else {
-        console.error('[incoming-sms] Failed to update lead opted_out status')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to update lead opted_out status')
       }
       
       // Cancel all pending follow-up jobs for this lead
       const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_opted_out')
       
-      console.log(`[incoming-sms] Cancelled ${jobsCancelledCount} pending follow-up jobs for opted-out lead: ${lead.id} (From: ${From})`)
+      console.log('[SYSTEM] [INCOMING-SMS] Cancelled', jobsCancelledCount, 'follow-up jobs for opted-out lead:', lead.id)
       
       // Send confirmation reply SMS
       const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
@@ -151,9 +153,9 @@ export async function POST(req: NextRequest) {
       })
 
       if (messageSid) {
-        console.log(`[incoming-sms] Sent opt-out confirmation SMS: ${messageSid}`)
+        console.log('[SYSTEM] [INCOMING-SMS] Sent opt-out confirmation:', messageSid)
       } else {
-        console.error('[incoming-sms] Failed to send opt-out confirmation SMS')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to send opt-out confirmation')
       }
       
       // Return TwiML response for opt-out
@@ -185,7 +187,7 @@ export async function POST(req: NextRequest) {
       })
       
       if (!conversation) {
-        console.error('[incoming-sms] Failed to create conversation')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to create conversation')
         
         const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -200,7 +202,7 @@ export async function POST(req: NextRequest) {
         })
       }
       
-      console.log(`[incoming-sms] Created new conversation: ${conversation.id}`)
+      console.log('[SYSTEM] [INCOMING-SMS] Created conversation:', conversation.id)
     } else {
       // Update existing conversation's last activity
       const updatedConversation = await db.updateConversation(conversation.id, {
@@ -208,9 +210,9 @@ export async function POST(req: NextRequest) {
       })
       
       if (!updatedConversation) {
-        console.error('[incoming-sms] Failed to update conversation')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to update conversation')
       } else {
-        console.log(`[incoming-sms] Updated conversation: ${updatedConversation.id}`)
+        console.log('[SYSTEM] [INCOMING-SMS] Updated conversation:', updatedConversation.id)
         conversation = updatedConversation
       }
     }
@@ -220,16 +222,16 @@ export async function POST(req: NextRequest) {
       const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
       
       if (cancelled) {
-        console.log(`[incoming-sms] Cancelled pending follow-ups for conversation: ${conversation.id}`)
+        console.log('[SYSTEM] [INCOMING-SMS] Cancelled follow-ups for conversation:', conversation.id)
       } else {
-        console.error('[incoming-sms] Failed to cancel follow-ups')
+        console.error('[SYSTEM] [INCOMING-SMS] Failed to cancel follow-ups')
       }
     }
     
     // Cancel all pending follow-up jobs for this lead when customer replies
     const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
     
-    console.log(`[incoming-sms] Cancelled ${jobsCancelledCount} pending follow-up jobs for lead: ${lead.id} (From: ${From})`)
+    console.log('[SYSTEM] [INCOMING-SMS] Cancelled', jobsCancelledCount, 'follow-up jobs for lead:', lead.id)
     
     // At this point, conversation is guaranteed to exist
     // Save inbound message linked to conversation
@@ -244,9 +246,9 @@ export async function POST(req: NextRequest) {
     })
     
     if (!message) {
-      console.error('[incoming-sms] Failed to save message')
+      console.error('[SYSTEM] [INCOMING-SMS] Failed to save message')
     } else {
-      console.log(`[incoming-sms] Saved inbound message: ${message.id}`)
+      console.log('[SYSTEM] [INCOMING-SMS] Saved inbound message:', message.id)
     }
     
     // Return simple TwiML response
@@ -263,7 +265,7 @@ export async function POST(req: NextRequest) {
     })
     
   } catch (error) {
-    console.error('[incoming-sms] Unexpected error:', error)
+    console.error('[SYSTEM] [INCOMING-SMS] Unexpected error:', error)
     
     const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

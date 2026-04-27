@@ -32,7 +32,7 @@ function getStatusPriority(status: string | null): number {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[twilio-status] Received Twilio status callback');
+  console.log('[SYSTEM] [TWILIO-STATUS] Status callback received');
   
   try {
     // Parse the form data from Twilio
@@ -52,18 +52,11 @@ export async function POST(req: NextRequest) {
     const status = MessageStatus || SmsStatus;
     
     // Log before updating
-    console.log('[twilio-status] Status update request:', {
-      sid,
-      status,
-      errorCode: ErrorCode,
-      errorMessage: ErrorMessage,
-    });
-
-    console.log('[status-callback] Incoming SID:', sid);
+    console.log('[SYSTEM] [TWILIO-STATUS] Status update:', { sid, status, errorCode: ErrorCode, errorMessage: ErrorMessage });
     
     // Gracefully handle missing SID
     if (!sid) {
-      console.error('[twilio-status] Missing required SID (MessageSid or SmsSid)');
+      console.error('[SYSTEM] [TWILIO-STATUS] Missing required SID');
       return NextResponse.json({ error: 'Missing SID' }, { status: 400 });
     }
 
@@ -75,13 +68,13 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('[twilio-status] Database fetch failed:', fetchError);
+      console.error('[SYSTEM] [TWILIO-STATUS] Database fetch failed:', fetchError);
       return NextResponse.json({ error: 'Database fetch failed', details: fetchError }, { status: 500 });
     }
 
     // If message not found, return 200 (graceful handling)
     if (!currentMessage) {
-      console.log('[twilio-status] No message found with twilio_message_sid:', sid, '- skipping');
+      console.log('[SYSTEM] [TWILIO-STATUS] Message not found:', sid, '- skipping');
 
       // Log last 5 stored SIDs for comparison
       const { data: recentMessages } = await supabase
@@ -91,7 +84,7 @@ export async function POST(req: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      console.log('[twilio-status] Last 5 stored message SIDs:', recentMessages?.map(m => ({
+      console.log('[SYSTEM] [TWILIO-STATUS] Last 5 message SIDs:', recentMessages?.map(m => ({
         id: m.id,
         sid: m.twilio_message_sid,
         created_at: m.created_at
@@ -104,7 +97,7 @@ export async function POST(req: NextRequest) {
     const currentPriority = getStatusPriority(currentMessage.status);
     const incomingPriority = getStatusPriority(status);
 
-    console.log('[twilio-status] Status priority check:', {
+    console.log('[SYSTEM] [TWILIO-STATUS] Status priority check:', {
       currentStatus: currentMessage.status,
       currentPriority,
       incomingStatus: status,
@@ -113,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // Skip update if incoming status has lower priority than current status
     if (incomingPriority < currentPriority) {
-      console.log('[twilio-status] Skipping stale status update:', {
+      console.log('[SYSTEM] [TWILIO-STATUS] Skipping stale status:', {
         current: currentMessage.status,
         incoming: status,
       });
@@ -131,10 +124,10 @@ export async function POST(req: NextRequest) {
     // Add delivered_at timestamp only if status is 'delivered'
     if (status === 'delivered') {
       updateData.delivered_at = new Date().toISOString();
-      console.log('[twilio-status] Adding delivered_at timestamp');
+      console.log('[SYSTEM] [TWILIO-STATUS] Adding delivered_at timestamp');
     }
 
-    console.log('[twilio-status] Updating message with twilio_message_sid:', sid);
+    console.log('[SYSTEM] [TWILIO-STATUS] Updating message:', sid);
 
     const { data: updatedMessage, error: updateError } = await supabase
       .from('messages')
@@ -144,31 +137,29 @@ export async function POST(req: NextRequest) {
     
     // If Supabase returns an error, log and return 500
     if (updateError) {
-      console.error('[twilio-status] Database update failed:', updateError);
+      console.error('[SYSTEM] [TWILIO-STATUS] Database update failed:', updateError);
       return NextResponse.json({ error: 'Database update failed', details: updateError }, { status: 500 });
     }
     
     // If update succeeds but returns empty data, return 200 with skipped message
     if (!updatedMessage || updatedMessage.length === 0) {
-      console.log('[twilio-status] No message found with twilio_message_sid:', sid, '- skipping');
+      console.log('[SYSTEM] [TWILIO-STATUS] No message found after update:', sid, '- skipping');
       return NextResponse.json({ ok: true, skipped: 'message_not_found' }, { status: 200 });
     }
     
-    console.log('[twilio-status] Successfully updated message:', {
-      messageId: updatedMessage[0].id,
-    });
+    console.log('[SYSTEM] [TWILIO-STATUS] Successfully updated message:', { messageId: updatedMessage[0].id });
     
     return NextResponse.json({ ok: true, message: 'Status updated' });
     
   } catch (error) {
-    console.error('[twilio-status] Unexpected error:', error);
+    console.error('[SYSTEM] [TWILIO-STATUS] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 // GET handler for health check
 export async function GET() {
-  console.log('[twilio-status] GET request - health check');
+  console.log('[SYSTEM] [TWILIO-STATUS] Health check');
   return NextResponse.json({ 
     ok: true, 
     route: "twilio-status",

@@ -30,7 +30,7 @@ export async function sendSms(
   const authToken = process.env.TWILIO_AUTH_TOKEN
 
   if (!accountSid || !authToken) {
-    console.error('Twilio credentials missing')
+    console.error('[SYSTEM] [TWILIO] Credentials missing');
     return null
   }
 
@@ -40,11 +40,11 @@ export async function sendSms(
   );
 
   try {
-    console.log("Twilio SID used:", process.env.TWILIO_ACCOUNT_SID);
+    console.log('[SYSTEM] [TWILIO] Sending SMS to:', to, 'from business:', business.id);
 
     let messageResult;
     if (business.twilio_messaging_service_sid) {
-      console.log("Sending SMS with Messaging Service SID:", business.twilio_messaging_service_sid);
+      console.log('[SYSTEM] [TWILIO] Using messaging service:', business.twilio_messaging_service_sid);
       messageResult = await client.messages.create({
         body: message,
         to,
@@ -52,7 +52,7 @@ export async function sendSms(
         statusCallback: "https://replyflowhq.com/api/twilio/status",
       });
     } else {
-      console.log("Sending SMS with from phone number:", business.twilio_phone_number);
+      console.log('[SYSTEM] [TWILIO] Using phone number:', business.twilio_phone_number);
       messageResult = await client.messages.create({
         body: message,
         to,
@@ -61,11 +61,7 @@ export async function sendSms(
       });
     }
 
-    console.log("[twilio] message sent", {
-      to: to,
-      sid: messageResult.sid,
-      statusCallback: "https://replyflowhq.com/api/twilio/status"
-    });
+    console.log('[SYSTEM] [TWILIO] SMS sent successfully:', { to, sid: messageResult.sid });
 
     // Insert message record into database
     const { error: insertError } = await supabase
@@ -83,16 +79,16 @@ export async function sendSms(
       });
 
     if (insertError) {
-      console.error('[sendSms] Failed to insert message record:', insertError);
+      console.error('[SYSTEM] [TWILIO] Failed to insert message record:', insertError);
       // Guard: If DB insert fails, we still return the SID but log the error
       // In production, you might want to throw here to prevent sending without DB record
     } else {
-      console.log("[sendSms] SID stored in database:", messageResult.sid);
+      console.log('[SYSTEM] [TWILIO] Message record inserted:', messageResult.sid);
     }
 
     return messageResult.sid
   } catch (error) {
-    console.error("Error sending SMS:", error)
+    console.error('[SYSTEM] [TWILIO] Error sending SMS:', error);
     throw error
   }
 }

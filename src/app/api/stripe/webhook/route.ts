@@ -7,20 +7,25 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
+    console.log('[SYSTEM] [STRIPE] Webhook received');
+    
     const stripe = getStripe()
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')
 
     if (!signature) {
+      console.error('[SYSTEM] [STRIPE] Missing signature');
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
     if (!webhookSecret) {
+      console.error('[SYSTEM] [STRIPE] Webhook secret not configured');
       return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
     }
 
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    console.log('[SYSTEM] [STRIPE] Event type:', event.type);
 
     // Use service role key for webhook to bypass RLS
     const supabase = createClient(

@@ -19,7 +19,7 @@ const supabase = createClient(
 
 export async function POST() {
   try {
-    console.log('[process-followup-jobs] Starting follow-up job processing');
+    console.log('[SYSTEM] [FOLLOWUP-CRON] Follow-up job processing started');
     
     // Fetch up to 10 pending jobs where scheduled_for <= now()
     const now = new Date().toISOString();
@@ -32,7 +32,7 @@ export async function POST() {
       .order('scheduled_for', { ascending: true });
 
     if (jobsError) {
-      console.error('[process-followup-jobs] Error fetching jobs:', jobsError);
+      console.error('[SYSTEM] [FOLLOWUP-CRON] Error fetching jobs:', jobsError);
       return NextResponse.json(
         { error: 'Failed to fetch jobs', details: jobsError },
         { status: 500 }
@@ -40,7 +40,7 @@ export async function POST() {
     }
 
     if (!jobs || jobs.length === 0) {
-      console.log('[process-followup-jobs] No pending jobs found');
+      console.log('[SYSTEM] [FOLLOWUP-CRON] No pending jobs found');
       return NextResponse.json({
         processed: 0,
         sent: 0,
@@ -49,7 +49,7 @@ export async function POST() {
       });
     }
 
-    console.log(`[process-followup-jobs] Found ${jobs.length} pending jobs`);
+    console.log(`[SYSTEM] [FOLLOWUP-CRON] Found ${jobs.length} pending jobs`);
 
     let processed = 0;
     let sent = 0;
@@ -59,7 +59,7 @@ export async function POST() {
     // Process each job
     for (const job of jobs) {
       processed++;
-      console.log(`[process-followup-jobs] Processing job: ${job.id}`);
+      console.log(`[SYSTEM] [FOLLOWUP-CRON] Processing job: ${job.id}`);
 
       try {
         // Fetch the corresponding lead
@@ -70,7 +70,7 @@ export async function POST() {
           .single();
 
         if (leadError || !lead) {
-          console.error(`[process-followup-jobs] Lead not found for job ${job.id}:`, leadError);
+          console.error(`[SYSTEM] [FOLLOWUP-CRON] Lead not found for job ${job.id}:`, leadError);
           
           // Mark job as failed (non-retryable error)
           await supabase
@@ -88,7 +88,7 @@ export async function POST() {
 
         // Check if lead has opted out
         if (lead.opted_out) {
-          console.log(`[process-followup-jobs] Lead ${lead.id} has opted out, skipping job ${job.id}`);
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Lead ${lead.id} opted out, skipping job ${job.id}`);
           
           // Mark job as failed with opt-out reason (non-retryable)
           await supabase
@@ -106,7 +106,7 @@ export async function POST() {
 
         // Check if lead has phone number
         if (!lead.caller_phone) {
-          console.error(`[process-followup-jobs] Lead ${lead.id} has no phone number`);
+          console.error(`[SYSTEM] [FOLLOWUP-CRON] Lead ${lead.id} has no phone number`);
           
           // Mark job as failed (non-retryable error)
           await supabase
@@ -130,7 +130,7 @@ export async function POST() {
           .single();
 
         if (businessError || !business) {
-          console.error(`[process-followup-jobs] Business not found for lead ${lead.id}:`, businessError);
+          console.error(`[SYSTEM] [FOLLOWUP-CRON] Business not found for lead ${lead.id}:`, businessError);
           
           // Mark job as failed (non-retryable error)
           await supabase
@@ -147,7 +147,7 @@ export async function POST() {
         }
 
         // Send SMS using centralized sendSms function
-        console.log(`[process-followup-jobs] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP-CRON] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
 
         const messageSid = await sendSms(business, lead.caller_phone, job.message_body, {
           lead_id: job.lead_id,
@@ -157,7 +157,7 @@ export async function POST() {
           throw new Error('SMS send failed: no Twilio message SID returned');
         }
 
-        console.log(`[process-followup-jobs] SMS sent successfully for job ${job.id}, SID: ${messageSid}`);
+        console.log(`[SYSTEM] [FOLLOWUP-CRON] SMS sent for job ${job.id}, SID: ${messageSid}`);
 
         // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         const { error: jobUpdateError } = await supabase
@@ -166,15 +166,15 @@ export async function POST() {
           .eq('id', job.id);
 
         if (jobUpdateError) {
-          console.error(`[process-followup-jobs] Failed to update job ${job.id} status:`, jobUpdateError);
+          console.error(`[SYSTEM] [FOLLOWUP-CRON] Failed to update job ${job.id}:`, jobUpdateError);
           errors++;
         } else {
           sent++;
         }
 
       } catch (error: any) {
-        console.error(`[process-followup-jobs] Error processing job ${job.id}:`, error);
-        console.error(`[process-followup-jobs] Error details:`, {
+        console.error(`[SYSTEM] [FOLLOWUP-CRON] ERROR processing job ${job.id}:`, error);
+        console.error(`[SYSTEM] [FOLLOWUP-CRON] Error details:`, {
           jobId: job.id,
           errorMessage: error.message,
           errorCode: error.code,
@@ -191,7 +191,7 @@ export async function POST() {
         
         if (shouldFail) {
           // Max attempts reached - mark as failed with error details
-          console.log(`[process-followup-jobs] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
           
           await supabase
             .from('follow_up_jobs')
@@ -208,7 +208,7 @@ export async function POST() {
           // Retry with 5-minute delay and store error details
           const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
           
-          console.log(`[process-followup-jobs] Scheduling retry for job ${job.id} at ${retryTime}`);
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Scheduling retry for job ${job.id} at ${retryTime}`);
           
           await supabase
             .from('follow_up_jobs')
@@ -226,7 +226,7 @@ export async function POST() {
       }
     }
 
-    console.log(`[process-followup-jobs] Complete - Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
+    console.log(`[SYSTEM] [FOLLOWUP-CRON] Complete - Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
 
     return NextResponse.json({
       processed,
@@ -236,7 +236,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('[process-followup-jobs] Unexpected error:', error);
+    console.error('[SYSTEM] [FOLLOWUP-CRON] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

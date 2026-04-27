@@ -19,8 +19,7 @@ const supabase = createClient(
 
 export async function POST() {
   try {
-    console.log('[process-followups] Worker started');
-    console.log('[process-followups] Starting follow-up job processing');
+    console.log('[SYSTEM] [FOLLOWUP] Follow-up job processing started');
     
     // Fetch up to 10 pending jobs where scheduled_for <= now()
     const now = new Date().toISOString();
@@ -33,7 +32,7 @@ export async function POST() {
       .order('scheduled_for', { ascending: true });
 
     if (jobsError) {
-      console.error('[process-followups] Error fetching jobs:', jobsError);
+      console.error('[SYSTEM] [FOLLOWUP] Error fetching jobs:', jobsError);
       return NextResponse.json(
         { error: 'Failed to fetch jobs', details: jobsError },
         { status: 500 }
@@ -41,7 +40,7 @@ export async function POST() {
     }
 
     if (!jobs || jobs.length === 0) {
-      console.log('[process-followups] No pending jobs found');
+      console.log('[SYSTEM] [FOLLOWUP] No pending jobs found');
       return NextResponse.json({
         processed: 0,
         sent: 0,
@@ -50,7 +49,7 @@ export async function POST() {
       });
     }
 
-    console.log(`[process-followups] Found ${jobs.length} pending jobs`);
+    console.log(`[SYSTEM] [FOLLOWUP] Found ${jobs.length} pending jobs`);
 
     let processed = 0;
     let sent = 0;
@@ -62,10 +61,10 @@ export async function POST() {
     
     for (const job of jobs) {
       processed++;
-      console.log(`[process-followups] Picked up job: ${job.id}`);
+      console.log(`[SYSTEM] [FOLLOWUP] Processing job: ${job.id}`);
 
       try {
-        console.log(`[process-followups] Fetching lead for job ${job.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Fetching lead for job ${job.id}`);
         
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
@@ -78,11 +77,11 @@ export async function POST() {
           throw new Error(`Lead not found for job ${job.id}: ${leadError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[process-followups] Lead fetched successfully: ${lead.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Lead fetched: ${lead.id}`);
 
         // Check if lead has opted out
         if (lead.opted_out) {
-          console.log(`[process-followups] Lead ${lead.id} has opted out, skipping job ${job.id}`);
+          console.log(`[SYSTEM] [FOLLOWUP] Lead ${lead.id} opted out, skipping job ${job.id}`);
           
           // Mark job as failed with opt-out reason
           const { error: updateError } = await supabase
@@ -95,7 +94,7 @@ export async function POST() {
             .eq('id', job.id);
           
           if (updateError) {
-            console.error(`[process-followups] Failed to update job ${job.id} status:`, updateError);
+            console.error(`[SYSTEM] [FOLLOWUP] Failed to update job ${job.id}:`, updateError);
           }
           
           failed++;
@@ -107,7 +106,7 @@ export async function POST() {
           throw new Error(`Missing phone number for lead ${lead.id}`);
         }
 
-        console.log(`[process-followups] Phone validated: ${lead.caller_phone}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Phone validated: ${lead.caller_phone}`);
 
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
@@ -120,14 +119,14 @@ export async function POST() {
           throw new Error(`Business not found for job ${job.id}: ${businessError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[process-followups] Business fetched successfully: ${business.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Business fetched: ${business.id}`);
         
         // Validate business has messaging service SID
         if (!business.twilio_messaging_service_sid) {
           throw new Error(`Missing twilio_messaging_service_sid for business ${business.id}`);
         }
 
-        console.log(`[process-followups] Attempting Twilio send for job ${job.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
 
         // Send SMS using centralized sendSms function
         const messageSid = await sendSms(business, lead.caller_phone, job.message_body, {
@@ -139,11 +138,11 @@ export async function POST() {
           throw new Error('SMS send failed: no Twilio message SID returned');
         }
 
-        console.log(`[process-followups] Twilio send succeeded for job ${job.id}, SID: ${messageSid}`);
+        console.log(`[SYSTEM] [FOLLOWUP] SMS sent for job ${job.id}, SID: ${messageSid}`);
 
-        console.log(`[process-followups] Message inserted successfully for job ${job.id}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Message inserted for job ${job.id}`);
         
-        console.log(`[process-followups] Marking job ${job.id} as sent`);
+        console.log(`[SYSTEM] [FOLLOWUP] Marking job ${job.id} as sent`);
         
         // Only mark job as sent if BOTH Twilio message creation AND database insertion succeed
         const { error: jobUpdateError } = await supabase
@@ -155,12 +154,12 @@ export async function POST() {
           throw new Error(`Failed to update job status to sent: ${jobUpdateError.message || 'Database error'}`);
         }
 
-        console.log(`[process-followups] Job ${job.id} marked as sent successfully`);
+        console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} marked as sent`);
         sent++;
 
       } catch (error: any) {
-        console.error(`[process-followups] ERROR processing job ${job.id}:`, error);
-        console.error(`[process-followups] Error details:`, {
+        console.error(`[SYSTEM] [FOLLOWUP] ERROR processing job ${job.id}:`, error);
+        console.error(`[SYSTEM] [FOLLOWUP] Error details:`, {
           jobId: job.id,
           errorMessage: error.message,
           errorCode: error.code,
@@ -175,11 +174,11 @@ export async function POST() {
         const errorMessage = String(error?.message || error || 'Unknown error occurred');
         const errorCode = error?.code || null;
         
-        console.log(`[process-followups] Job ${job.id} - current attempt_count: ${job.attempt_count}, newAttemptCount: ${newAttemptCount}, max_attempts: ${job.max_attempts}, shouldFail: ${shouldFail}`);
+        console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} - attempt ${newAttemptCount}/${job.max_attempts}, shouldFail: ${shouldFail}`);
         
         if (shouldFail) {
           // Max attempts reached - mark as failed with error details
-          console.log(`[process-followups] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
+          console.log(`[SYSTEM] [FOLLOWUP] Marking job ${job.id} as failed after ${newAttemptCount} attempts`);
           
           const retryUpdateData = { 
             status: 'failed',
@@ -188,7 +187,7 @@ export async function POST() {
             last_error_code: errorCode,
           };
           
-          console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} update data:`, retryUpdateData);
           
           const { error: updateError, data: updateData } = await supabase
             .from('follow_up_jobs')
@@ -197,10 +196,10 @@ export async function POST() {
             .select()
             .single();
           
-          console.log(`[process-followups] Job ${job.id} - Supabase update result:`, { updateError, updateData });
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} update result:`, { updateError, updateData });
           
           if (updateError) {
-            console.error(`[process-followups] Failed to update job ${job.id} with error details:`, updateError);
+            console.error(`[SYSTEM] [FOLLOWUP] Failed to update job ${job.id}:`, updateError);
             processingErrors.push({
               jobId: job.id,
               error: errorMessage,
@@ -217,10 +216,10 @@ export async function POST() {
             .eq('id', job.id)
             .single();
           
-          console.log(`[process-followups] Job ${job.id} - Verification after update:`, verifyJob);
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} verification:`, verifyJob);
           
           if (verifyError) {
-            console.error(`[process-followups] Failed to verify job ${job.id}:`, verifyError);
+            console.error(`[SYSTEM] [FOLLOWUP] Failed to verify job ${job.id}:`, verifyError);
           }
           
           failed++;
@@ -228,7 +227,7 @@ export async function POST() {
           // Retry with 5-minute delay and store error details
           const retryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
           
-          console.log(`[process-followups] Scheduling retry for job ${job.id} at ${retryTime}`);
+          console.log(`[SYSTEM] [FOLLOWUP] Scheduling retry for job ${job.id} at ${retryTime}`);
           
           const retryUpdateData = { 
             status: 'pending',
@@ -238,7 +237,7 @@ export async function POST() {
             last_error_code: errorCode,
           };
           
-          console.log(`[process-followups] Job ${job.id} - retryUpdateData:`, retryUpdateData);
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} update data:`, retryUpdateData);
           
           const { error: updateError, data: updateData } = await supabase
             .from('follow_up_jobs')
@@ -247,10 +246,10 @@ export async function POST() {
             .select()
             .single();
           
-          console.log(`[process-followups] Job ${job.id} - Supabase update result:`, { updateError, updateData });
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} update result:`, { updateError, updateData });
           
           if (updateError) {
-            console.error(`[process-followups] Failed to update job ${job.id} for retry:`, updateError);
+            console.error(`[SYSTEM] [FOLLOWUP] Failed to schedule retry for job ${job.id}:`, updateError);
             processingErrors.push({
               jobId: job.id,
               error: errorMessage,
@@ -267,10 +266,10 @@ export async function POST() {
             .eq('id', job.id)
             .single();
           
-          console.log(`[process-followups] Job ${job.id} - Verification after update:`, verifyJob);
+          console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} verification:`, verifyJob);
           
           if (verifyError) {
-            console.error(`[process-followups] Failed to verify job ${job.id}:`, verifyError);
+            console.error(`[SYSTEM] [FOLLOWUP] Failed to verify job ${job.id}:`, verifyError);
           }
           
           errors++;
@@ -284,7 +283,7 @@ export async function POST() {
       }
     }
 
-    console.log(`[process-followups] Complete - Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
+    console.log(`[SYSTEM] [FOLLOWUP] Complete - Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
 
     return NextResponse.json({
       processed,
@@ -295,7 +294,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('[process-followups] Unexpected error:', error);
+    console.error('[SYSTEM] [FOLLOWUP] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
