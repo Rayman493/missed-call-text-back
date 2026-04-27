@@ -156,6 +156,9 @@ export default function DashboardContent() {
     return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
   }, 0)
   const followUpsScheduled = followUpJobs.filter((job: any) => job.status === 'pending').length
+  const leadsRecovered = leads.filter((lead) => {
+    return lead.messages?.some((m: any) => m.direction === 'outbound')
+  }).length
 
   return (
     <AuthGuard>
@@ -179,6 +182,31 @@ export default function DashboardContent() {
             </div>
 
             <SmsVerificationBanner business={business} />
+
+            {/* Value Summary Section */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-2">Never Miss a Lead</h2>
+              <p className="text-gray-400 mb-6">Missed Call → Instant Text → Conversation Started</p>
+              
+              {leads.length === 0 ? (
+                <p className="text-gray-400">Once you miss a call, ReplyFlow will automatically text them and track it here.</p>
+              ) : (
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Total Leads:</span>
+                    <span className="text-xl font-semibold text-gray-100">{missedCalls}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Messages Sent:</span>
+                    <span className="text-xl font-semibold text-gray-100">{textsSent}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Leads Recovered:</span>
+                    <span className="text-xl font-semibold text-green-400">{leadsRecovered}</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
