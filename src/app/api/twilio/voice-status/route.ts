@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
     
     // Check for recent outbound messages to avoid spam
     const hasRecentOutbound = await db.hasRecentOutboundMessage(lead.id, 10)
+    console.log(`[voice-status] Lead ID: ${lead.id}`)
     console.log(`[voice-status] Recent outbound message found (last 10 min): ${hasRecentOutbound}`)
     
     let autoReplySent = false
@@ -180,36 +181,42 @@ export async function POST(req: NextRequest) {
     
     // Send auto-reply SMS if no recent outbound message exists
     if (!hasRecentOutbound) {
-      console.log(`[voice-status] Attempting to send auto-reply SMS`)
+      console.log(`[voice-status] Auto-reply send attempt - no recent outbound found`)
       
       // Use business auto_reply_message or fallback
       const autoReplyMessage = business.auto_reply_message || 
         `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help?`
       
       console.log(`[voice-status] Auto-reply message: ${autoReplyMessage}`)
+      console.log(`[voice-status] Business phone: ${business.twilio_phone_number}`)
+      console.log(`[voice-status] Business has messaging_service_sid: ${!!business.twilio_messaging_service_sid}`)
       
-      messageSid = await sendSms(business, From, autoReplyMessage, {
-        lead_id: lead.id,
-        conversation_id: conversation?.id,
-      })
+      try {
+        messageSid = await sendSms(business, From, autoReplyMessage, {
+          lead_id: lead.id,
+          conversation_id: conversation?.id,
+        })
 
-      if (messageSid) {
-        console.log(`[voice-status] Auto-reply SMS sent successfully: ${messageSid}`)
-        autoReplySent = true
+        if (messageSid) {
+          console.log(`[voice-status] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
+          autoReplySent = true
 
-        // Update lead status to contacted after SMS sent
-        const { error: updateError } = await supabase
-          .from('leads')
-          .update({ status: 'contacted' })
-          .eq('id', lead.id)
+          // Update lead status to contacted after SMS sent
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update({ status: 'contacted' })
+            .eq('id', lead.id)
 
-        if (updateError) {
-          console.error('[voice-status] Failed to update lead status:', updateError)
+          if (updateError) {
+            console.error('[voice-status] Failed to update lead status:', updateError)
+          } else {
+            console.log(`[voice-status] Lead status updated to 'contacted': ${lead.id}`)
+          }
         } else {
-          console.log(`[voice-status] Lead status updated to 'contacted': ${lead.id}`)
+          console.error('[voice-status] Failed to send auto-reply SMS - no SID returned')
         }
-      } else {
-        console.error('[voice-status] Failed to send auto-reply SMS')
+      } catch (smsError) {
+        console.error('[voice-status] Exception during SMS send:', smsError)
       }
     } else {
       console.log(`[voice-status] Auto-reply skipped - recent outbound message found for lead: ${lead.id}`)

@@ -34,12 +34,6 @@ export async function sendSms(
     return null
   }
 
-  if (!business.twilio_messaging_service_sid) {
-    throw new Error("Missing messaging service SID for business");
-  }
-
-  console.log("Sending SMS with Messaging Service SID:", business.twilio_messaging_service_sid);
-
   const client = Twilio(
     process.env.TWILIO_ACCOUNT_SID!,
     process.env.TWILIO_AUTH_TOKEN!
@@ -47,14 +41,25 @@ export async function sendSms(
 
   try {
     console.log("Twilio SID used:", process.env.TWILIO_ACCOUNT_SID);
-    console.log("Messaging Service SID:", business.twilio_messaging_service_sid);
 
-    const messageResult = await client.messages.create({
-      body: message,
-      to,
-      messagingServiceSid: business.twilio_messaging_service_sid,
-      statusCallback: "https://replyflowhq.com/api/twilio/status",
-    });
+    let messageResult;
+    if (business.twilio_messaging_service_sid) {
+      console.log("Sending SMS with Messaging Service SID:", business.twilio_messaging_service_sid);
+      messageResult = await client.messages.create({
+        body: message,
+        to,
+        messagingServiceSid: business.twilio_messaging_service_sid,
+        statusCallback: "https://replyflowhq.com/api/twilio/status",
+      });
+    } else {
+      console.log("Sending SMS with from phone number:", business.twilio_phone_number);
+      messageResult = await client.messages.create({
+        body: message,
+        to,
+        from: business.twilio_phone_number,
+        statusCallback: "https://replyflowhq.com/api/twilio/status",
+      });
+    }
 
     console.log("[twilio] message sent", {
       to: to,
