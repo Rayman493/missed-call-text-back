@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
-import { normalizePhoneNumber, formatDisplayPhone } from '@/lib/utils'
+import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle from '@/components/ThemeToggle'
 
 export default function SettingsPage() {
@@ -221,7 +221,7 @@ export default function SettingsPage() {
                   type="tel"
                   id="twilioPhoneNumber"
                   name="twilioPhoneNumber"
-                  defaultValue={formatDisplayPhone(business.twilio_phone_number)}
+                  defaultValue={formatPhoneNumber(business.twilio_phone_number)}
                   required
                   placeholder="(412) 855-3010"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                   type="tel"
                   id="personalPhoneNumber"
                   name="personalPhoneNumber"
-                  defaultValue={business.personal_phone_number ? formatDisplayPhone(business.personal_phone_number) : ''}
+                  defaultValue={business.personal_phone_number ? formatPhoneNumber(business.personal_phone_number) : ''}
                   placeholder="(412) 555-1234"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />

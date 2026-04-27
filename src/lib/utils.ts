@@ -71,12 +71,18 @@ export function isValidPhone(phone: string): boolean {
 
 export function formatPhoneNumber(phone: string): string {
   const normalized = phone.replace(/\D/g, '')
-  
+
+  // Handle E.164 format (+1XXXXXXXXXX) - strip leading 1
+  if (normalized.length === 11 && normalized.startsWith('1')) {
+    const digits = normalized.slice(1)
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
   // Format as (XXX) XXX-XXXX for 10-digit US numbers
   if (normalized.length === 10) {
     return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`
   }
-  
+
   // Return as is for other formats
   return phone
 }
@@ -97,21 +103,6 @@ export function normalizePhoneNumber(input: string): string | null {
   }
 
   return null
-}
-
-export function formatDisplayPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-
-  if (digits.length === 11 && digits.startsWith('1')) {
-    const d = digits.slice(1)
-    return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
-  }
-
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-
-  return phone
 }
 
 export function getLeadStatusColor(status: string): string {
