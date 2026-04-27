@@ -7,6 +7,7 @@ import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
+import AuthGuard from '@/components/AuthGuard'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -114,114 +115,116 @@ export default function DashboardContent() {
   const contactedLeads = leads.filter(lead => lead.status === 'contacted').length
 
   return (
-    <BusinessGuard>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">{business?.name}</p>
+    <AuthGuard>
+      <BusinessGuard>
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-gray-600 mt-1">{business?.name}</p>
+              </div>
+              <div className="flex gap-4">
+                <Link
+                  href="/dashboard/settings"
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Settings
+                </Link>
+              </div>
             </div>
-            <div className="flex gap-4">
-              <Link
-                href="/dashboard/settings"
-                className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Settings
-              </Link>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Total Leads</h3>
+                <p className="text-3xl font-bold text-gray-900">{leads.length}</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">New Leads</h3>
+                <p className="text-3xl font-bold text-blue-600">{newLeads}</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Contacted</h3>
+                <p className="text-3xl font-bold text-green-600">{contactedLeads}</p>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Total Leads</h3>
-              <p className="text-3xl font-bold text-gray-900">{leads.length}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">New Leads</h3>
-              <p className="text-3xl font-bold text-blue-600">{newLeads}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Contacted</h3>
-              <p className="text-3xl font-bold text-green-600">{contactedLeads}</p>
-            </div>
-          </div>
+            {leads.length === 0 ? (
+              <div className="bg-white p-8 rounded-lg shadow text-center">
+                <p className="text-gray-600 mb-4">No leads yet</p>
+                <p className="text-sm text-gray-500">Call your Twilio number and hang up to test the missed call flow.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {leads.map((lead) => {
+                  const latestMessage = lead.messages && lead.messages.length > 0
+                    ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                    : null
 
-          {leads.length === 0 ? (
-            <div className="bg-white p-8 rounded-lg shadow text-center">
-              <p className="text-gray-600 mb-4">No leads yet</p>
-              <p className="text-sm text-gray-500">Call your Twilio number and hang up to test the missed call flow.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {leads.map((lead) => {
-                const latestMessage = lead.messages && lead.messages.length > 0
-                  ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                  : null
+                  console.log("LATEST MESSAGE for lead", lead.id, ":", latestMessage)
 
-                console.log("LATEST MESSAGE for lead", lead.id, ":", latestMessage)
+                  const messageStatus = getLeadMessageStatus(latestMessage)
 
-                const messageStatus = getLeadMessageStatus(latestMessage)
-
-                return (
-                  <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                            messageStatus.color === 'green' ? 'bg-green-100' :
-                            messageStatus.color === 'red' ? 'bg-red-100' :
-                            messageStatus.color === 'orange' ? 'bg-orange-100' :
-                            'bg-blue-100'
-                          }`}>
-                            <span className="text-xl">{messageStatus.icon}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900">{formatLeadPhone(lead.caller_phone)}</p>
-                            <p className="text-sm text-gray-500">{messageStatus.text}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getLeadStatusColor(lead.status)}`}>
-                          {lead.status}
-                        </span>
-                        <Link
-                          href={`/dashboard/leads/${lead.id}`}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        >
-                          View →
-                        </Link>
-                      </div>
-                    </div>
-
-                    {latestMessage && (
-                      <div className="bg-white rounded-lg p-3 border border-gray-200">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-700 break-words">{latestMessage.body}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <StatusBadge status={latestMessage.status} errorCode={latestMessage.error_code} />
-                              <span className="text-xs text-gray-500">
-                                {formatMessageTimestamp(latestMessage)}
-                              </span>
+                  return (
+                    <div key={lead.id} className="bg-gray-50 rounded-lg p-4 hover:bg-white transition-colors duration-200 border border border-gray-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              messageStatus.color === 'green' ? 'bg-green-100' :
+                              messageStatus.color === 'red' ? 'bg-red-100' :
+                              messageStatus.color === 'orange' ? 'bg-orange-100' :
+                              'bg-blue-100'
+                            }`}>
+                              <span className="text-xl">{messageStatus.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900">{formatLeadPhone(lead.caller_phone)}</p>
+                              <p className="text-sm text-gray-500">{messageStatus.text}</p>
                             </div>
                           </div>
                         </div>
-                        {latestMessage.error_message && (
-                          <p className="text-xs text-red-600 mt-2">
-                            {getFriendlyErrorMessage(latestMessage.error_code, latestMessage.error_message)}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getLeadStatusColor(lead.status)}`}>
+                            {lead.status}
+                          </span>
+                          <Link
+                            href={`/dashboard/leads/${lead.id}`}
+                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          >
+                            View →
+                          </Link>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+
+                      {latestMessage && (
+                        <div className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-700 break-words">{latestMessage.body}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <StatusBadge status={latestMessage.status} errorCode={latestMessage.error_code} />
+                                <span className="text-xs text-gray-500">
+                                  {formatMessageTimestamp(latestMessage)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          {latestMessage.error_message && (
+                            <p className="text-xs text-red-600 mt-2">
+                              {getFriendlyErrorMessage(latestMessage.error_code, latestMessage.error_message)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </BusinessGuard>
+      </BusinessGuard>
+    </AuthGuard>
   )
 }

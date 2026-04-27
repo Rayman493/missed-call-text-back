@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { db } from '@/lib/supabase'
+import { db, supabaseAdmin } from '@/lib/supabase'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 
 // Define all missed call statuses that Twilio can send
@@ -15,9 +15,11 @@ export async function POST(req: NextRequest) {
     const CallStatus = params.get('CallStatus')
     
     // Log request details
-    console.log("CallStatus:", CallStatus)
-    console.log("From:", From)
-    console.log("To:", To)
+    console.log('[voice-status] Incoming webhook:')
+    console.log('[voice-status]   CallStatus:', CallStatus)
+    console.log('[voice-status]   From:', From)
+    console.log('[voice-status]   To:', To)
+    console.log('[voice-status]   CallSid:', params.get('CallSid'))
     
     if (!From || !To || !CallStatus) {
       console.error('[voice-status] Missing required fields:', { From, To, CallStatus })
@@ -36,30 +38,28 @@ export async function POST(req: NextRequest) {
     console.log(`[voice-status] Processing missed call with status: ${CallStatus}`)
     
     // Find business by Twilio phone number
+    console.log(`[voice-status] Looking up business by phone: ${To}`)
     const business = await db.getBusinessByPhone(To)
     if (!business) {
-      console.error(`[voice-status] Business not found for phone: ${To}`)
+      console.error(`[voice-status] No business found for To number: ${To}`)
       return new Response("OK", { status: 200 })
     }
     
-    console.log(`[voice-status] Found business: ${business.name} (${business.id})`)
-    
-    // Log resolved business details
-    console.log(`[voice-status] Resolved business:`, {
-      id: business.id,
-      name: business.name,
-      phone_number: business.twilio_phone_number
-    })
+    console.log(`[voice-status] Matched business: ${business.name} (id: ${business.id})`)
+    console.log(`[voice-status] Business phone: ${business.twilio_phone_number}`)
     
     // Normalize customer phone number
     const normalizedCallerPhone = normalizePhoneNumber(From)
+    console.log(`[voice-status] Normalized caller phone: ${normalizedCallerPhone}`)
     
     // Find or create lead for this customer
+    console.log(`[voice-status] Looking up lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
     let leadWasCreated = false
     
     if (!lead) {
       // Create new lead with status 'new' for missed call
+      console.log(`[voice-status] No existing lead found, creating new lead`)
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       }
       
       leadWasCreated = true
-      console.log(`[voice-status] Created new lead: ${lead.id}`)
+      console.log(`[voice-status] Created new lead: ${lead.id} for business: ${business.id}`)
     } else {
       console.log(`[voice-status] Found existing lead: ${lead.id} (status: ${lead.status})`)
       
@@ -177,44 +177,67 @@ export async function POST(req: NextRequest) {
     }
     
     // ========================================
-    // NEW FOLLOW-UP LOGIC (INDEPENDENT OF LEAD STATUS)
+    // NEW FOLLOW-UP JOB LOGIC (INDEPENDENT OF LEAD STATUS)
     // ========================================
     
-    // ALWAYS attempt follow-up creation for missed calls, regardless of lead status
+    // ALWAYS attempt follow-up job creation for missed calls, regardless of lead status
     if (conversation) {
-      console.log(`[voice-status] Attempting follow-up creation for conversation: ${conversation.id}`)
+      console.log(`[voice-status] Attempting follow-up job creation for conversation: ${conversation.id}`)
       
-      // Check for existing pending follow-up to prevent duplicates
-      const hasPendingFollowUp = await db.hasPendingFollowUpForConversation(conversation.id, 'missed_call_followup_1')
+      // Check for existing pending follow-up job to prevent duplicates
+      const { data: existingJob } = await supabaseAdmin
+        .from('follow_up_jobs')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .eq('status', 'pending')
+        .limit(1)
+        .single()
       
-      console.log(`[voice-status] Has existing pending follow-up: ${hasPendingFollowUp}`)
+      const hasPendingJob = !!existingJob
+      console.log(`[voice-status] Has existing pending follow-up job: ${hasPendingJob}`)
       
-      if (!hasPendingFollowUp) {
-        // Schedule follow-up for 1 hour later
+      if (!hasPendingJob) {
+        // Schedule follow-up job for 1 hour later
         const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
         
-        console.log(`[voice-status] Inserting follow-up scheduled for: ${scheduledFor}`)
+        // Use business's auto-reply message if available, otherwise use fallback
+        const messageBody = business.auto_reply_message || 
+          `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
         
-        const followUp = await db.createFollowUp({
-          conversation_id: conversation.id,
-          lead_id: lead.id,
-          business_id: business.id,
-          kind: 'missed_call_followup_1',
-          status: 'pending',
-          scheduled_for: scheduledFor,
-          message_body: `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-        })
+        console.log(`[voice-status] Inserting follow-up job scheduled for: ${scheduledFor}`)
+        console.log(`[voice-status] Message body: ${messageBody}`)
         
-        if (!followUp) {
-          console.error('[voice-status] Follow-up insert failed - no data returned')
+        const { data: followUpJob, error: jobError } = await supabaseAdmin
+          .from('follow_up_jobs')
+          .insert({
+            lead_id: lead.id,
+            business_id: business.id,
+            message_body: messageBody,
+            status: 'pending',
+            scheduled_for: scheduledFor,
+            attempt_count: 0,
+            max_attempts: 3,
+          })
+          .select('id')
+          .single()
+        
+        if (jobError) {
+          console.error('[voice-status] Follow-up job insert failed:', jobError)
         } else {
-          console.log(`[voice-status] Follow-up insert successful: ${followUp.id}`)
+          console.log(`[voice-status] Follow-up job insert successful: ${followUpJob?.id}`)
+          console.log(`[voice-status] Follow-up job details:`, {
+            job_id: followUpJob?.id,
+            lead_id: lead.id,
+            business_id: business.id,
+            scheduled_for: scheduledFor,
+            message_body: messageBody
+          })
         }
       } else {
-        console.log(`[voice-status] Follow-up insert skipped - existing pending follow-up for conversation ${conversation.id}`)
+        console.log(`[voice-status] Follow-up job insert skipped - existing pending job for lead ${lead.id}`)
       }
     } else {
-      console.error('[voice-status] No conversation available for follow-up creation')
+      console.error('[voice-status] No conversation available for follow-up job creation')
     }
     
     // Update conversation activity if outbound message was sent

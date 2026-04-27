@@ -3,9 +3,10 @@ export interface Business {
   user_id?: string | null;
   name: string;
   twilio_phone_number: string;
-  twilio_messaging_service_sid: string;
+  twilio_messaging_service_sid?: string | null;
   auto_reply_message: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Lead {
