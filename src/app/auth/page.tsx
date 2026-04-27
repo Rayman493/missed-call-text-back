@@ -17,6 +17,7 @@ function AuthContent() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [existingAccount, setExistingAccount] = useState(false)
 
   // Update mode when URL changes
   useEffect(() => {
@@ -54,6 +55,7 @@ function AuthContent() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setExistingAccount(false)
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -63,6 +65,13 @@ function AuthContent() {
 
       if (error) throw error
 
+      // Check if user exists but has empty identities (indicates existing account)
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setExistingAccount(true)
+        setError('An account with this email may already exist. Please sign in instead.')
+        return
+      }
+
       // Redirect to onboarding after successful signup
       router.push('/onboarding')
     } catch (err: any) {
@@ -70,6 +79,7 @@ function AuthContent() {
       const errorMessage = err.message || 'Failed to sign up'
       if (errorMessage.toLowerCase().includes('user already registered') || 
           errorMessage.toLowerCase().includes('already exists')) {
+        setExistingAccount(true)
         setError('Account already exists. Please sign in.')
       } else {
         setError(errorMessage)
@@ -93,7 +103,15 @@ function AuthContent() {
         
         {error && (
           <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
-            <p className="text-sm text-red-300">{error}</p>
+            <p className="text-sm text-red-300 mb-3">{error}</p>
+            {existingAccount && (
+              <button
+                onClick={() => router.push('/auth?mode=signin')}
+                className="text-sm text-blue-400 hover:text-blue-300 font-medium underline"
+              >
+                Go to Sign In
+              </button>
+            )}
           </div>
         )}
 
