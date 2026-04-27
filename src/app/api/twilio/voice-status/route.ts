@@ -28,20 +28,37 @@ export async function POST(req: NextRequest) {
     console.log('[voice-status] Creating lead regardless of call status:', CallStatus)
     console.log(`[voice-status] Processing inbound call with status: ${CallStatus}`)
     
-    // Find business by Twilio phone number
-    console.log(`[voice-status] Looking up business by phone: ${To}`)
+    // Find business by Twilio phone number - fetch all and match manually
+    console.log(`[voice-status] Raw To from Twilio: ${To}`)
     const normalizedTo = normalizePhoneNumber(To)
-    console.log(`[voice-status] Normalized To number: ${normalizedTo}`)
-    const business = await db.getBusinessByPhone(normalizedTo)
+    console.log(`[voice-status] Normalized To: ${normalizedTo}`)
+    
+    // Fetch all businesses to match manually
+    const { data: businesses } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+    
+    console.log(`[voice-status] All businesses in DB:`, businesses?.map(b => ({
+      id: b.id,
+      name: b.name,
+      phone: b.twilio_phone_number,
+      normalized_phone: normalizePhoneNumber(b.twilio_phone_number)
+    })))
+    
+    // Match business by normalized phone number
+    const business = businesses?.find(b => normalizePhoneNumber(b.twilio_phone_number) === normalizedTo)
+    
     if (!business) {
-      console.error(`[voice-status] No business found for To number: ${To} (normalized: ${normalizedTo})`)
+      console.error(`[voice-status] No business matched for To number: ${To} (normalized: ${normalizedTo})`)
+      console.error(`[voice-status] Available normalized phones:`, businesses?.map(b => normalizePhoneNumber(b.twilio_phone_number)))
       console.error(`[voice-status] Early return: no business matched`)
       return new Response("OK", { status: 200 })
     }
     
     console.log(`[voice-status] Matched business: ${business.name} (id: ${business.id})`)
     console.log(`[voice-status] Business phone in DB: ${business.twilio_phone_number}`)
-    console.log(`[voice-status] Phone match check: ${normalizedTo} === ${business.twilio_phone_number} = ${normalizedTo === business.twilio_phone_number}`)
+    console.log(`[voice-status] Normalized DB phone: ${normalizePhoneNumber(business.twilio_phone_number)}`)
+    console.log(`[voice-status] Match confirmed: ${normalizePhoneNumber(business.twilio_phone_number)} === ${normalizedTo}`)
     
     // Normalize customer phone number
     const normalizedCallerPhone = normalizePhoneNumber(From)
