@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
@@ -62,12 +62,14 @@ export default function DashboardContent() {
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const supabase = createBrowserClient()
+
   useEffect(() => {
-    if (!business) return
+    if (!business || !supabase) return
 
     const fetchLeads = async () => {
       setLoading(true)
-      const { data: leadsData } = await supabaseAdmin
+      const { data: leadsData } = await supabase
         .from('leads')
         .select(`
           *,
@@ -102,7 +104,7 @@ export default function DashboardContent() {
     }
 
     fetchLeads()
-  }, [business])
+  }, [business, supabase])
 
   if (loading) {
     return (

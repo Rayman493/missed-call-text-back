@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { formatPhoneNumber, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'

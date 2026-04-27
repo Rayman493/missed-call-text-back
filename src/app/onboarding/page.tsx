@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'

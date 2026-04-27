@@ -1,5 +1,6 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
-import { Business, Lead, Message, CallEvent, Conversation, FollowUp, LeadWithMessages } from './types'
+import { Business, Lead, Message, CallEvent, Conversation, FollowUp, LeadWithMessages } from '../types'
 
 // Helper function to validate environment variables (server-side only)
 function getRequiredEnvVar(name: string): string {
@@ -16,21 +17,6 @@ const supabaseServiceKey = getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 
 // Admin client for server-side operations (required for all server routes)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
-// Safe browser client - returns null if env vars are missing (doesn't throw)
-export function createBrowserClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null
-  }
-
-  return createClient(supabaseUrl, supabaseAnonKey)
-}
-
-// Legacy export for backward compatibility (now uses safe client)
-export const supabase = createBrowserClient()
 
 // Database helpers
 export const db = {

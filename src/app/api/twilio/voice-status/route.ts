@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { db } from '@/lib/supabase'
+import { db } from '@/lib/supabase/admin'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 
 export async function POST(req: NextRequest) {

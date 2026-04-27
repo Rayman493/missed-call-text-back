@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import SetupError from '@/components/SetupError'
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   console.log('[status-callback] Received Twilio status callback')
