@@ -11,6 +11,12 @@ export async function POST(request: Request) {
     console.log('[SYSTEM] [STRIPE] Webhook received');
     
     const stripe = getStripe()
+    
+    if (!stripe) {
+      console.error('[SYSTEM] [STRIPE] Stripe is not configured');
+      return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
+    }
+    
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')
 

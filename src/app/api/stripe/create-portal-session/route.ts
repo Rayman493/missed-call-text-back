@@ -9,6 +9,15 @@ export async function POST(request: Request) {
     console.log('[stripe-portal] Starting portal session creation')
     
     const stripe = getStripe()
+    
+    if (!stripe) {
+      console.error('[stripe-portal] Stripe is not configured')
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 500 }
+      )
+    }
+    
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
