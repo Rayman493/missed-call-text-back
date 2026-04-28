@@ -85,8 +85,11 @@ export default function SettingsPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete account')
+        const errorData = await response.json()
+        const errorMessage = errorData.step 
+          ? `Failed at step: ${errorData.step}. ${errorData.error}`
+          : errorData.error || 'Failed to delete account'
+        throw new Error(errorMessage)
       }
 
       // Sign out and redirect
