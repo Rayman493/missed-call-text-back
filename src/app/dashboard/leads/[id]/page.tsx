@@ -87,6 +87,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
 
   // ALL hooks must be declared here before any conditional returns
+  // Merge messages by ID to prevent overwriting local state with stale data
+  const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
+    console.log('[Merge] Existing messages count:', existingMessages.length)
+    console.log('[Merge] New messages count:', newMessages.length)
+    
+    const messageMap = new Map()
+    
+    // Add existing messages first (preserve local state)
+    existingMessages.forEach(msg => {
+      messageMap.set(msg.id, msg)
+    })
+    
+    // Merge/overwrite with new messages (use latest data)
+    newMessages.forEach(msg => {
+      messageMap.set(msg.id, msg)
+    })
+    
+    const merged = Array.from(messageMap.values())
+    console.log('[Merge] Final merged messages count:', merged.length)
+    
+    return merged.sort((a: any, b: any) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }
+
   // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
   const allMessages = useMemo(() => {
     const messages = leadData?.messages || []
@@ -246,10 +271,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Update optimistic message with real message data using clientTempId
       if (result.clientTempId === clientTempId && result.message) {
+        console.log('[Send] Messages before send:', leadData?.messages?.length || 0)
+        console.log('[Send] API returned message id:', result.message.id, 'status:', result.message.status)
+        
         setOptimisticMessage((prev: any) => {
           // Only update if this is the same message
           if (prev?.clientTempId === clientTempId) {
-            return {
+            const updatedMessage = {
               ...prev,
               id: result.message.id,
               status: result.message.status || 'sent',
@@ -257,11 +285,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               // Keep other properties from the real message
               ...result.message
             }
+            
+            console.log('[Send] Updated optimistic message:', updatedMessage.id, updatedMessage.status)
+            return updatedMessage
           }
           return prev
         })
         
-        // Clear optimistic message after real message is integrated
+        // Merge the returned message into local state to prevent disappearing
+        setTimeout(() => {
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            
+            const currentMessages = prev.messages || []
+            const mergedMessages = mergeMessagesById(currentMessages, [result.message])
+            
+            console.log('[Send] Messages after local update:', mergedMessages.length)
+            
+            return {
+              ...prev,
+              messages: mergedMessages
+            }
+          })
+        }, 100)
+        
+        // Clear optimistic message after it's merged into local state
         setTimeout(() => {
           setOptimisticMessage(null)
         }, 500)
@@ -375,10 +423,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Update optimistic message with real message data using clientTempId
       if (result.clientTempId === retryClientTempId && result.message) {
+        console.log('[Retry] API returned message id:', result.message.id, 'status:', result.message.status)
+        
         setOptimisticMessage((prev: any) => {
           // Only update if this is the same message
           if (prev?.clientTempId === retryClientTempId) {
-            return {
+            const updatedMessage = {
               ...prev,
               id: result.message.id,
               status: result.message.status || 'sent',
@@ -386,22 +436,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               // Keep other properties from the real message
               ...result.message
             }
+            
+            console.log('[Retry] Updated optimistic message:', updatedMessage.id, updatedMessage.status)
+            return updatedMessage
           }
           return prev
         })
         
-        // Clear optimistic message after real message is integrated
+        // Merge the returned message into local state to prevent disappearing
+        setTimeout(() => {
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            
+            const currentMessages = prev.messages || []
+            const mergedMessages = mergeMessagesById(currentMessages, [result.message])
+            
+            console.log('[Retry] Messages after local update:', mergedMessages.length)
+            
+            return {
+              ...prev,
+              messages: mergedMessages
+            }
+          })
+        }, 100)
+        
+        // Clear optimistic message after it's merged into local state
         setTimeout(() => {
           setOptimisticMessage(null)
         }, 500)
       }
-
-      // Refresh data and clear optimistic message after delay
-      setTimeout(() => {
-        if (optimisticMessage?.clientTempId === retryClientTempId) {
-          setOptimisticMessage(null)
-        }
-      }, 100)
     } catch (err) {
       // Update optimistic message back to failed
       if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
