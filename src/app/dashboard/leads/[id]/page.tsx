@@ -86,6 +86,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [successMessage, setSuccessMessage] = useState('')
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
 
+  // ALL hooks must be declared here before any conditional returns
+  // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
+  const allMessages = useMemo(() => {
+    const messages = leadData?.messages || []
+    if (!optimisticMessage) return messages
+    
+    // If optimistic message exists, check if there's already a message with the same content
+    const hasDuplicate = messages.some(
+      (msg: any) => msg.body === optimisticMessage.body && 
+                 msg.direction === 'outbound' && 
+                 Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000
+    )
+    
+    // If duplicate found, don't add optimistic message
+    if (hasDuplicate) return messages
+    
+    // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
+    const combined = [...messages, optimisticMessage]
+    return combined.sort((a: any, b: any) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [leadData?.messages, optimisticMessage])
+  
+  const messagesArray = allMessages || []
+  const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
+  const latestMessageStatus = latestMessage?.status || 'No messages'
+
+  // Determine automation status
+  const followUpJobs = leadData?.followUpJobs || []
+  const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
+  const hasPendingFollowUps = followUpJobs.some((job: any) => job.status === 'pending')
+  const hasSentFollowUps = followUpJobs.some((job: any) => job.status === 'sent')
+  const hasInboundReply = messagesArray.some((msg: any) => msg.direction === 'inbound')
+
+  let automationStatus = ''
+  if (hasCancelledFollowUps && hasInboundReply) {
+    automationStatus = 'Follow-ups cancelled after customer reply'
+  } else if (hasPendingFollowUps) {
+    automationStatus = 'Follow-ups active'
+  } else if (hasSentFollowUps) {
+    automationStatus = 'Follow-ups completed'
+  }
+
   // Fetch lead data on mount
   useEffect(() => {
     console.log('[Lead View] Opening lead details for leadId:', params.id)
@@ -341,49 +384,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       </main>
     )
-  }
-
-  // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
-  // Note: All hooks must be called unconditionally before any early returns
-  const allMessages = useMemo(() => {
-    const messages = leadData?.messages || []
-    if (!optimisticMessage) return messages
-    
-    // If optimistic message exists, check if there's already a message with the same content
-    const hasDuplicate = messages.some(
-      (msg: any) => msg.body === optimisticMessage.body && 
-                 msg.direction === 'outbound' && 
-                 Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000
-    )
-    
-    // If duplicate found, don't add optimistic message
-    if (hasDuplicate) return messages
-    
-    // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
-    const combined = [...messages, optimisticMessage]
-    return combined.sort((a: any, b: any) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
-  }, [leadData?.messages, optimisticMessage])
-  
-  const messagesArray = allMessages || []
-  const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
-  const latestMessageStatus = latestMessage?.status || 'No messages'
-
-  // Determine automation status
-  const followUpJobs = leadData?.followUpJobs || []
-  const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
-  const hasPendingFollowUps = followUpJobs.some((job: any) => job.status === 'pending')
-  const hasSentFollowUps = followUpJobs.some((job: any) => job.status === 'sent')
-  const hasInboundReply = messagesArray.some((msg: any) => msg.direction === 'inbound')
-
-  let automationStatus = ''
-  if (hasCancelledFollowUps && hasInboundReply) {
-    automationStatus = 'Follow-ups cancelled after customer reply'
-  } else if (hasPendingFollowUps) {
-    automationStatus = 'Follow-ups active'
-  } else if (hasSentFollowUps) {
-    automationStatus = 'Follow-ups completed'
   }
 
   // Now safely destructure after hooks are called
