@@ -74,16 +74,23 @@ export async function GET(request: NextRequest) {
       `)
       .eq('id', leadId)
       .eq('business_id', business.id)
-      .single()
+      .maybeSingle()
 
-    console.log('[API] Lead query result:', { lead, leadError })
+    console.log('[API] Lead query data:', lead)
+    console.log('[API] Lead query error:', leadError)
 
-    if (leadError || !lead) {
-      console.log('[API] Lead not found - error:', leadError)
-      console.log('[API] This means the lead either does not exist or does not belong to this business')
-      console.log('[API] Debug info - leadId:', leadId, 'businessId:', business.id)
+    if (leadError) {
+      console.error('[API] Database error:', leadError)
       return NextResponse.json(
-        { error: 'Lead not found' },
+        { error: 'Database error', details: leadError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!lead) {
+      console.log('[API] No lead found for debug info - leadId:', leadId, 'businessId:', business.id)
+      return NextResponse.json(
+        { error: `No lead found for id: ${leadId}, businessId: ${business.id}` },
         { status: 404 }
       )
     }
