@@ -106,23 +106,29 @@ export async function POST(request: NextRequest) {
     }
     
     // Create call event for analytics (every call counts)
+    const callSid = params.get('CallSid')
     try {
       const callEvent = await db.createCallEvent({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         call_status: 'missed',
-        twilio_call_sid: params.get('CallSid'),
+        twilio_call_sid: callSid,
         raw_payload: Object.fromEntries(params.entries()),
         created_at: new Date().toISOString(),
       });
       
       if (callEvent) {
-        console.log('[Analytics] New call event created:', callEvent.id);
+        console.log('[call_events] Created call event:', callEvent.id);
       } else {
-        console.error('[Analytics] Failed to create call event');
+        console.log('[call_events] Duplicate call SID detected, skipping insert:', callSid);
       }
-    } catch (callEventError) {
-      console.error('[Analytics] Error creating call event:', callEventError);
+    } catch (callEventError: any) {
+      // Handle duplicate key error gracefully
+      if (callEventError.message?.includes('duplicate key') || callEventError.code === '23505') {
+        console.log('[call_events] Duplicate prevented by DB index:', callSid);
+      } else {
+        console.error('[call_events] Error creating call event:', callEventError);
+      }
     }
 
     // Check if lead already exists
