@@ -373,20 +373,14 @@ export default function DashboardContent() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-4 sm:px-8">
-              <div className="flex items-center justify-between h-14 sm:h-16">
-                <div className="flex items-center">
-                  <Link href="/dashboard" className="flex items-center">
-                    <Image
-                      src="/replyflow-logo.svg"
-                      alt="ReplyFlow"
-                      width={200}
-                      height={60}
-                      priority
-                      className="h-10 w-auto object-contain"
-                    />
-                  </Link>
-                </div>
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center justify-between">
+                <Link href="/" className="flex items-center hover:opacity-90 transition">
+                  <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                    <span className="text-gray-200 dark:text-gray-200">Reply</span>
+                    <span className="text-blue-500 dark:text-blue-400">Flow</span>
+                  </span>
+                </Link>
                 <div className="flex items-center gap-2">
                   <ThemeToggle />
                   <Link
