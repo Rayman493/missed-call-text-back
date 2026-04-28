@@ -47,8 +47,29 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Lead found:", lead)
 
-    // Return simple success response
-    return NextResponse.json({ ok: true, lead })
+    // Fetch conversation for this lead
+    const { data: conversation } = await supabaseAdmin
+      .from("conversations")
+      .select("*")
+      .eq("lead_id", leadId)
+      .maybeSingle()
+
+    // Fetch follow-up jobs for this lead
+    const { data: followUpJobs } = await supabaseAdmin
+      .from("follow_up_jobs")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+
+    // Return enhanced response
+    return NextResponse.json({ 
+      ok: true, 
+      lead: {
+        ...lead,
+        conversation,
+        followUpJobs: followUpJobs || []
+      }
+    })
   } catch (error) {
     console.error('Error in lead-details API:', error)
     return NextResponse.json(

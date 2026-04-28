@@ -195,6 +195,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const lead = leadData
   const messages = leadData.messages || []
+  const conversation = leadData.conversation || null
+  const followUpJobs = leadData.followUpJobs || []
   const source = leadData.source || null
 
   // Get latest message status with safe guards
@@ -305,73 +307,193 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Messages Timeline */}
+        {/* Follow-up Jobs */}
+        {followUpJobs.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Follow-up Jobs ({followUpJobs.length})
+              </h2>
+            </div>
+            <div className="p-6">
+              {followUpJobs.length === 0 ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+                  No follow-up jobs found.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {followUpJobs.map((job: any) => {
+                    const isPending = job.status === 'pending'
+                    const isSent = job.status === 'sent'
+                    const isCancelled = job.status === 'cancelled'
+                    const isFailed = job.status === 'failed'
+                    
+                    return (
+                      <div
+                        key={job.id}
+                        className={`border rounded-lg p-4 ${
+                          isPending ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20' :
+                          isSent ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' :
+                          isCancelled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20' :
+                          'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                isPending ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                                isSent ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                                isCancelled ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' :
+                                'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                              }`}>
+                                {job.status}
+                              </span>
+                              {job.cancelled_reason && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  ({job.cancelled_reason})
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
+                              {job.message_body}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                              <span>Scheduled: {formatRelativeTime(job.scheduled_for)}</span>
+                              {job.sent_at && (
+                                <span>Sent: {formatRelativeTime(job.sent_at)}</span>
+                              )}
+                              {job.cancelled_at && (
+                                <span>Cancelled: {formatRelativeTime(job.cancelled_at)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Message Thread */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Message History ({messagesArray.length})
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Conversation Thread ({messagesArray.length})
+              </h2>
+              {conversation && (
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    conversation.status === 'open' 
+                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                  }`}>
+                    {conversation.status}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    ID: {conversation.id}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Notice for undelivered latest message */}
           {latestMessage && (latestMessage.status === 'undelivered' || latestMessage.status === 'failed') && (
             <div className="mx-6 mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                Delivery limited during verification — this will resolve once approved.
+                ⚠️ Delivery limited during verification — this will resolve once approved.
               </p>
             </div>
           )}
 
           <div className="p-6">
             {messagesArray.length === 0 ? (
-              <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No messages found yet.
-              </p>
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">💬</div>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                  No messages yet
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                  Start the conversation by sending a message below.
+                </p>
+              </div>
             ) : (
-              <div className="space-y-4">
-                {messagesArray.map((msg: any) => {
+              <div className="space-y-6">
+                {messagesArray.map((msg: any, index: number) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
-
+                  const isInbound = msg.direction === 'inbound'
+                  const isOutbound = msg.direction === 'outbound'
+                  const isFollowUp = msg.body?.includes('Just following up') || msg.body?.includes('Good morning')
+                  
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${msg.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}
+                      className={`flex items-start gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
                     >
-                      <div className="max-w-[80%]">
+                      {/* Avatar */}
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                        isInbound 
+                          ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
+                          : 'bg-blue-600 text-white'
+                      }`}>
+                        {isInbound ? '👤' : '🤖'}
+                      </div>
+                      
+                      {/* Message Bubble */}
+                      <div className={`max-w-[70%] ${isOutbound ? 'text-right' : ''}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatRelativeTime(msg.created_at)}
+                          </span>
+                          {isFollowUp && (
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
+                              Follow-up
+                            </span>
+                          )}
+                          {msg.status && (
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              msg.status === 'sent' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                              msg.status === 'delivered' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                              msg.status === 'failed' || msg.status === 'undelivered' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
+                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                            }`}>
+                              {msg.status}
+                            </span>
+                          )}
+                        </div>
+                        
                         <div
-                          className={`rounded-lg p-4 ${
-                            msg.direction === 'inbound'
+                          className={`rounded-2xl px-4 py-3 ${
+                            isInbound
                               ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                               : 'bg-blue-600 text-white'
                           }`}
                         >
-                          <p className="text-sm break-words">{msg.body || 'No content'}</p>
-                          <div className="flex items-center justify-between gap-2 mt-2">
-                            <span className="text-xs opacity-70">
-                              {formatRelativeTime(msg.created_at)}
-                            </span>
-                            {msg.status && (
-                              <span className="text-xs opacity-70 capitalize">
-                                {msg.status}
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-sm leading-relaxed break-words">
+                            {msg.body || 'No content'}
+                          </p>
                         </div>
+                        
                         {hasError && errorMessage && (
                           <div className="mt-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                            <p className="text-xs text-amber-800 dark:text-amber-300">
+                            <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
                               {errorMessage}
                             </p>
                             <button
                               onClick={() => handleRetry(msg.body)}
                               disabled={sending}
-                              className="mt-2 text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:bg-gray-400"
+                              className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:bg-gray-400"
                             >
-                              {sending ? 'Retrying...' : 'Retry'}
+                              {sending ? 'Retrying...' : 'Retry Send'}
                             </button>
-                            <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
-                              Retry may still fail until verification completes.
+                            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                              May fail until verification completes
                             </p>
                           </div>
                         )}
