@@ -69,16 +69,16 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
   if (!business) {
     return (
-      <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 hover:border-gray-600 transition">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
         <div className="animate-pulse">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 hover:border-gray-600 transition">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-100 mb-4">Business Phone Setup</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Business Phone Setup</h3>
         <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}>
           {getStatusText()}
         </div>
@@ -86,7 +86,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Business Phone Number
           </label>
           <div className="flex gap-2">
@@ -96,7 +96,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="+1 (555) 123-4567"
-              className="flex-1 px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-400"
               disabled={isSaving}
             />
             <button
@@ -110,17 +110,17 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
         </div>
 
         {showInstructions && business?.twilio_phone_number && (
-          <div className="mt-6 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-            <h4 className="font-semibold text-blue-100 mb-3">Call Forwarding Instructions</h4>
-            <div className="space-y-3 text-sm text-blue-200">
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Call Forwarding Instructions</h4>
+            <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
               <p><strong>Step 1:</strong> On your business phone, dial <strong>*#61#</strong></p>
               <p><strong>Step 2:</strong> When prompted, enter your ReplyFlow number: <strong>{business.twilio_phone_number}</strong></p>
               <p><strong>Step 3:</strong> Save the forwarding settings</p>
               <p><strong>Step 4:</strong> Test by calling your business number and letting it go unanswered</p>
             </div>
             
-            <div className="mt-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
-              <h5 className="font-semibold text-green-100 mb-2">Test Your Setup</h5>
+            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Test Your Setup</h5>
               <button
                 onClick={() => setSetupStatus('awaiting_test')}
                 className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
@@ -132,9 +132,9 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
         )}
 
         {setupStatus === 'working' && (
-          <div className="mt-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
-            <h5 className="font-semibold text-green-100 mb-2">✅ Setup Complete!</h5>
-            <p className="text-sm text-green-200">Call forwarding is working. Missed calls will be automatically processed.</p>
+          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">✅ Setup Complete!</h5>
+            <p className="text-sm text-green-800 dark:text-green-200">Call forwarding is working. Missed calls will be automatically processed.</p>
           </div>
         )}
       </div>

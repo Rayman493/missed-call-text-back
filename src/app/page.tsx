@@ -8,20 +8,20 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-200">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-900 dark:text-gray-200">Loading...</div>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gray-900">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         <Link href="/" className="flex items-center hover:opacity-90 transition">
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
-            <span className="text-gray-200">Reply</span>
-            <span className="text-blue-500">Flow</span>
+            <span className="text-gray-900 dark:text-gray-100">Reply</span>
+            <span className="text-blue-600 dark:text-blue-500">Flow</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">
@@ -107,14 +107,14 @@ export default function Home() {
       </section>
 
       {/* Social Proof Section */}
-      <section className="bg-gray-800 py-20 px-4">
+      <section className="bg-gray-100 dark:bg-gray-800 py-20 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-xl text-gray-400 mb-4">
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
             Trusted by service businesses to capture missed leads
           </p>
           <span className="text-2xl font-semibold tracking-tight">
-            <span className="text-gray-100">Reply</span>
-            <span className="text-blue-500">Flow</span>
+            <span className="text-gray-900 dark:text-gray-100">Reply</span>
+            <span className="text-blue-600 dark:text-blue-500">Flow</span>
           </span>
         </div>
       </section>
