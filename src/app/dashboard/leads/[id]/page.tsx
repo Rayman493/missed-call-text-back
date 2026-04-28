@@ -10,9 +10,57 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 function getErrorMessage(errorCode?: string | null): string | null {
   if (!errorCode) return null
   if (errorCode === '30007') {
-    return 'Sent (delivery pending). Carrier verification may still be in progress.'
+    return 'Carrier verification still pending. Delivery may fail until approved.'
   }
-  return `Twilio error code: ${errorCode}`
+  if (errorCode === '21614') {
+    return 'Number is not a valid mobile number.'
+  }
+  if (errorCode === '21612') {
+    return 'Phone number not enabled for SMS.'
+  }
+  return `Twilio error: ${errorCode}`
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case 'sending':
+      return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+    case 'sent':
+      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+    case 'delivered':
+      return 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+    case 'undelivered':
+      return 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200'
+    case 'failed':
+      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+    case 'pending':
+      return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+    case 'simulated':
+      return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+    default:
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+  }
+}
+
+function getStatusText(status: string): string {
+  switch (status) {
+    case 'sending':
+      return 'Sending...'
+    case 'sent':
+      return 'Sent'
+    case 'delivered':
+      return 'Delivered'
+    case 'undelivered':
+      return 'Undelivered'
+    case 'failed':
+      return 'Failed'
+    case 'pending':
+      return 'Pending'
+    case 'simulated':
+      return 'Simulated'
+    default:
+      return status
+  }
 }
 
 async function getLeadDetails(leadId: string) {
@@ -36,6 +84,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
 
   // Fetch lead data on mount
   useEffect(() => {
@@ -74,8 +123,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim()) return
+    if (!message.trim() || sending) return
 
+    // Create optimistic message
+    const tempId = `temp-${Date.now()}`
+    const optimisticMsg = {
+      id: tempId,
+      direction: 'outbound',
+      body: message.trim(),
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      isOptimistic: true
+    }
+    
+    setOptimisticMessage(optimisticMsg)
     setSending(true)
     setError('')
     setSuccessMessage('')
@@ -97,14 +158,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        setError('Failed to send message. Please try again.')
+        // Update optimistic message to failed state
+        setOptimisticMessage({
+          ...optimisticMsg,
+          status: 'failed',
+          error_message: result.error || 'Failed to send message'
+        })
+        
+        // Show verification warning for carrier issues
+        if (result.error?.includes('verification') || result.error?.includes('carrier')) {
+          setError('Carrier verification still pending. Delivery may fail until approved.')
+        } else {
+          setError('Failed to send message. Please try again.')
+        }
         return
       }
 
+      // Clear input and optimistic message on success
       setMessage('')
+      setOptimisticMessage(null)
       setSuccessMessage('Message sent successfully')
+      
+      // Refetch data to get the real message
       router.refresh()
-      // Refetch data
       const data = await getLeadDetails(params.id)
       setLeadData(data)
 
@@ -113,15 +189,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setSuccessMessage('')
       }, 3000)
     } catch (err) {
+      // Update optimistic message to failed state
+      setOptimisticMessage({
+        ...optimisticMsg,
+        status: 'failed',
+        error_message: 'Network error occurred'
+      })
       setError('Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
   }
 
-  const handleRetry = async (messageBody: string) => {
+  const handleRetry = async (messageBody: string, messageId?: string) => {
+    if (sending) return
+    
     setSending(true)
     setError('')
+
+    // If retrying an optimistic message, update its status
+    if (messageId?.startsWith('temp-')) {
+      setOptimisticMessage((prev: any) => prev?.id === messageId ? { ...prev, status: 'sending' } : prev)
+    }
 
     try {
       const supabase = createBrowserClient()
@@ -140,14 +229,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result.error || 'Failed to send message')
+        // Update optimistic message back to failed
+        if (messageId?.startsWith('temp-')) {
+          setOptimisticMessage((prev: any) => prev?.id === messageId ? { 
+            ...prev, 
+            status: 'failed',
+            error_message: result.error || 'Failed to send message'
+          } : prev)
+        }
+        
+        if (result.error?.includes('verification') || result.error?.includes('carrier')) {
+          setError('Carrier verification still pending. Delivery may fail until approved.')
+        } else {
+          setError(result.error || 'Failed to send message')
+        }
         return
+      }
+
+      // Clear optimistic message on successful retry
+      if (messageId?.startsWith('temp-')) {
+        setOptimisticMessage(null)
       }
 
       router.refresh()
       const data = await getLeadDetails(params.id)
       setLeadData(data)
     } catch (err) {
+      // Update optimistic message back to failed
+      if (messageId?.startsWith('temp-')) {
+        setOptimisticMessage((prev: any) => prev?.id === messageId ? { 
+          ...prev, 
+          status: 'failed',
+          error_message: 'Network error occurred'
+        } : prev)
+      }
       setError('Failed to send message')
     } finally {
       setSending(false)
@@ -199,8 +314,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const followUpJobs = leadData.followUpJobs || []
   const source = leadData.source || null
 
-  // Get latest message status with safe guards
-  const messagesArray = messages || []
+  // Combine real messages with optimistic message
+  const allMessages = optimisticMessage ? [...messages, optimisticMessage] : messages
+  const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
@@ -323,6 +439,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   const isInbound = msg.direction === 'inbound'
                   const isOutbound = msg.direction === 'outbound'
                   const isFollowUp = msg.body?.includes('Just following up') || msg.body?.includes('Good morning')
+                  const isManual = !isFollowUp && isOutbound && !msg.isOptimistic
+                  const isOptimistic = msg.isOptimistic
+                  const isSending = msg.status === 'sending'
                   
                   return (
                     <div
@@ -340,10 +459,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       
                       {/* Message Bubble */}
                       <div className={`max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1 justify-end">
+                        <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {formatRelativeTime(msg.created_at)}
                           </span>
+                          {isOptimistic && (
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full animate-pulse">
+                              Sending...
+                            </span>
+                          )}
+                          {isManual && (
+                            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-xs rounded-full">
+                              Manual
+                            </span>
+                          )}
                           {isFollowUp && (
                             <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
                               Follow-up
@@ -354,46 +483,95 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               Customer replied
                             </span>
                           )}
-                          {isOutbound && msg.status && (
-                            <span className={`px-2 py-0.5 text-xs rounded-full ${
-                              msg.status === 'sent' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
-                              msg.status === 'delivered' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                              msg.status === 'failed' || msg.status === 'undelivered' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
-                              msg.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                            }`}>
-                              {msg.status}
+                          {isOutbound && msg.status && !isOptimistic && (
+                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getStatusColor(msg.status)}`}>
+                              {getStatusText(msg.status)}
                             </span>
                           )}
                         </div>
                         
                         <div
-                          className={`rounded-2xl px-4 py-3 ${
+                          className={`rounded-2xl px-4 py-3 relative ${
                             isInbound
                               ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
+                              : isOptimistic && isSending
+                              ? 'bg-blue-500 text-white rounded-tr-none animate-pulse'
                               : 'bg-blue-600 text-white rounded-tr-none'
                           }`}
                         >
+                          {isOptimistic && isSending && (
+                            <div className="absolute top-2 right-2">
+                              <div className="w-2 h-2 bg-white/30 rounded-full animate-ping"></div>
+                            </div>
+                          )}
                           <p className="text-sm leading-relaxed break-words">
                             {msg.body || 'No content'}
                           </p>
                         </div>
                         
-                        {hasError && errorMessage && (
-                          <div className="mt-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                            <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
-                              {errorMessage}
-                            </p>
-                            <button
-                              onClick={() => handleRetry(msg.body)}
-                              disabled={sending}
-                              className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:bg-gray-400"
-                            >
-                              {sending ? 'Retrying...' : 'Retry Send'}
-                            </button>
-                            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                              May fail until verification completes
-                            </p>
+                        {/* Error/Warning State */}
+                        {hasError && (
+                          <div className="mt-2">
+                            {msg.error_code === '30007' || msg.error_message?.includes('verification') ? (
+                              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                                  {errorMessage || msg.error_message}
+                                </p>
+                                <button
+                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  disabled={sending}
+                                  className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                >
+                                  {sending ? 'Retrying...' : 'Retry'}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                                  {errorMessage || msg.error_message || 'Message failed to send'}
+                                </p>
+                                <button
+                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  disabled={sending}
+                                  className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                >
+                                  {sending ? 'Retrying...' : 'Retry'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Optimistic Failed State */}
+                        {isOptimistic && msg.status === 'failed' && (
+                          <div className="mt-2">
+                            {msg.error_message?.includes('verification') || msg.error_message?.includes('carrier') ? (
+                              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                                  {msg.error_message}
+                                </p>
+                                <button
+                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  disabled={sending}
+                                  className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                >
+                                  {sending ? 'Retrying...' : 'Retry'}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                                  {msg.error_message}
+                                </p>
+                                <button
+                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  disabled={sending}
+                                  className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                >
+                                  {sending ? 'Retrying...' : 'Retry'}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -434,7 +612,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
               {error && (
-                <p className="text-red-600 dark:text-red-400 text-sm mt-2">{error}</p>
+                <div className={`text-sm p-3 rounded-lg border ${
+                  error.includes('verification') || error.includes('carrier')
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+                }`}>
+                  <p>{error}</p>
+                </div>
               )}
             </form>
           </div>
