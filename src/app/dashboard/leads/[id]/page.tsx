@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
@@ -178,15 +178,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Clear input and optimistic message on success
+      // Update optimistic message with real message data before clearing
+      if (result.messageId && optimisticMsg.id.startsWith('temp-')) {
+        setOptimisticMessage({
+          ...optimisticMsg,
+          id: result.messageId,
+          status: 'sent',
+          isOptimistic: false // Mark as real message
+        })
+      }
+
+      // Clear input and set success
       setMessage('')
-      setOptimisticMessage(null)
       setSuccessMessage('Message sent successfully')
       
-      // Refetch data to get the real message
+      // Refetch data to get the complete updated state
       router.refresh()
       const data = await getLeadDetails(params.id)
       setLeadData(data)
+      
+      // Clear optimistic message after data is refreshed
+      setTimeout(() => {
+        setOptimisticMessage(null)
+      }, 100)
 
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
@@ -255,14 +269,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Clear optimistic message on successful retry
-      if (messageId?.startsWith('temp-')) {
-        setOptimisticMessage(null)
+      // Update optimistic message with real message data on successful retry
+      if (result.messageId && messageId?.startsWith('temp-')) {
+        setOptimisticMessage((prev: any) => prev?.id === messageId ? {
+          ...prev,
+          id: result.messageId,
+          status: 'sent',
+          isOptimistic: false
+        } : prev)
       }
 
+      // Refresh data and clear optimistic message after delay
       router.refresh()
       const data = await getLeadDetails(params.id)
       setLeadData(data)
+      
+      setTimeout(() => {
+        if (messageId?.startsWith('temp-')) {
+          setOptimisticMessage(null)
+        }
+      }, 100)
     } catch (err) {
       // Update optimistic message back to failed
       if (messageId?.startsWith('temp-')) {
@@ -323,8 +349,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const followUpJobs = leadData.followUpJobs || []
   const source = leadData.source || null
 
-  // Combine real messages with optimistic message
-  const allMessages = optimisticMessage ? [...messages, optimisticMessage] : messages
+  // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
+  const allMessages = useMemo(() => {
+    if (!optimisticMessage) return messages
+    
+    // If optimistic message exists, check if there's already a message with the same content
+    const hasDuplicate = messages.some(
+      (msg: any) => msg.body === optimisticMessage.body && 
+                 msg.direction === 'outbound' && 
+                 Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000
+    )
+    
+    // If duplicate found, don't add optimistic message
+    if (hasDuplicate) return messages
+    
+    // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
+    const combined = [...messages, optimisticMessage]
+    return combined.sort((a: any, b: any) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [messages, optimisticMessage])
+  
   const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
@@ -527,7 +572,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   {errorMessage || msg.error_message}
                                 </p>
                                 <button
-                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  onClick={() => {
+                                    if (!sending) {
+                                      handleRetry(msg.body, msg.id)
+                                    }
+                                  }}
                                   disabled={sending}
                                   className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
@@ -540,7 +589,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   {errorMessage || msg.error_message || 'Message failed to send'}
                                 </p>
                                 <button
-                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  onClick={() => {
+                                    if (!sending) {
+                                      handleRetry(msg.body, msg.id)
+                                    }
+                                  }}
                                   disabled={sending}
                                   className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
@@ -560,7 +613,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   {msg.error_message}
                                 </p>
                                 <button
-                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  onClick={() => {
+                                    if (!sending) {
+                                      handleRetry(msg.body, msg.id)
+                                    }
+                                  }}
                                   disabled={sending}
                                   className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
@@ -573,7 +630,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   {msg.error_message}
                                 </p>
                                 <button
-                                  onClick={() => handleRetry(msg.body, msg.id)}
+                                  onClick={() => {
+                                    if (!sending) {
+                                      handleRetry(msg.body, msg.id)
+                                    }
+                                  }}
                                   disabled={sending}
                                   className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
