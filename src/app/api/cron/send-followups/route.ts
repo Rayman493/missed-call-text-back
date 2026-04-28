@@ -82,63 +82,70 @@ export async function POST(req: NextRequest) {
       console.log(`[send-followups] Processing follow_up: ${followUp.id}`)
       
       try {
-        console.log(`[followups] Processing due follow-up: ${followUp.id}`)
-        console.log(`[followups] Follow-up details:`, {
-          follow_up_id: followUp.id,
-          lead_id: followUp.lead_id,
-          business_id: followUp.business_id,
-          conversation_id: followUp.conversation_id,
-          scheduled_for: followUp.scheduled_for
-        })
+        console.log(`[send-followups] followUp: ${followUp.id}`)
+        console.log(`[send-followups] lead_id: ${followUp.lead_id}`)
+        console.log(`[send-followups] conversation lookup by lead_id only`)
         
-        // Get open conversation for this lead
+        // Guard: ensure lead_id exists
+        if (!followUp.lead_id) {
+          console.error(`[send-followups] Missing lead_id for follow-up: ${followUp.id}`)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Missing lead_id'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
+          errors++
+          continue
+        }
+        
+        // Get open conversation for this lead (safe lookup by lead_id only)
         const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
           .select('*')
           .eq('lead_id', followUp.lead_id)
           .eq('status', 'open')
-          .single()
+          .maybeSingle()
         
-        if (conversationError || !conversation) {
-          console.warn(`[followups] No open conversation found for lead: ${followUp.lead_id}, cancelling follow-up: ${followUp.id}`)
-          
-          // Mark follow-up as cancelled
-          const { error: cancelError } = await supabase
-            .from('follow_up_jobs')
-            .update({ 
-              status: 'cancelled',
-              cancelled_reason: 'no_conversation',
-              cancelled_at: new Date().toISOString()
-            })
-            .eq('id', followUp.id)
-          
-          if (cancelError) {
-            console.error('[followups] Error cancelling follow-up:', cancelError)
-          }
-          cancelled++
-          continue
+        if (conversationError) {
+          console.error(`[send-followups] Error fetching conversation for lead: ${followUp.lead_id}:`, conversationError)
         }
         
-        console.log(`[followups] Found conversation: ${conversation.id} for lead: ${followUp.lead_id}`)
+        if (!conversation) {
+          console.warn(`[send-followups] No open conversation found for lead: ${followUp.lead_id}, proceeding without conversation`)
+        } else {
+          console.log(`[send-followups] Found conversation: ${conversation.id} for lead: ${followUp.lead_id}`)
+        }
         
         // Check whether the customer already replied after follow-up was created
-        const { data: latestInboundMessage, error: messageError } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversation.id)
-          .eq('direction', 'inbound')
-          .gt('created_at', followUp.created_at)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        
-        if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is "not found" error
-          console.error('[followups] Error checking for replies:', messageError)
+        // Only check if we have a conversation, otherwise proceed with follow-up
+        let latestInboundMessage = null
+        if (conversation) {
+          const { data: messageData, error: messageError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversation.id)
+            .eq('direction', 'inbound')
+            .gt('created_at', followUp.created_at)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is "not found" error
+            console.error('[send-followups] Error checking for replies:', messageError)
+          }
+          
+          latestInboundMessage = messageData
         }
         
         // If customer replied, cancel follow-up
         if (latestInboundMessage) {
-          console.log(`[followups] Customer replied, cancelling follow-up: ${followUp.id}`)
+          console.log(`[send-followups] Customer replied, cancelling follow-up: ${followUp.id}`)
           
           const { error: cancelError } = await supabase
             .from('follow_up_jobs')
@@ -150,22 +157,34 @@ export async function POST(req: NextRequest) {
             .eq('id', followUp.id)
           
           if (cancelError) {
-            console.error('[followups] Error cancelling follow-up:', cancelError)
+            console.error('[send-followups] Error cancelling follow-up:', cancelError)
           }
           cancelled++
           continue
         }
         
-        // If still valid - fetch lead and business
+        // If still valid - fetch lead and business using lead_id as source of truth
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .select('*')
-          .eq('id', conversation.lead_id)
+          .eq('id', followUp.lead_id)
           .single()
         
         if (leadError) {
           console.error('[send-followups] Error fetching lead:', leadError)
-          throw leadError
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Failed to fetch lead'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
+          errors++
+          continue
         }
         
         const { data: business, error: businessError } = await supabase
@@ -176,14 +195,39 @@ export async function POST(req: NextRequest) {
         
         if (businessError) {
           console.error('[send-followups] Error fetching business:', businessError)
-          throw businessError
-        }
-        
-        if (!lead || !business) {
-          console.log(`[send-followups] Error - missing lead or business: ${followUp.id}`)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Failed to fetch business'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
           errors++
           continue
         }
+        
+        if (!lead || !business) {
+          console.error(`[send-followups] Missing lead or business for follow-up: ${followUp.id}`)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Missing lead or business'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
+          errors++
+          continue
+        }
+        
+        console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
         
         // Check if lead has opted out
         if (lead.opted_out) {
@@ -191,8 +235,12 @@ export async function POST(req: NextRequest) {
           
           // Mark follow-up as cancelled
           const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'cancelled',
+              cancelled_reason: 'customer_opted_out',
+              cancelled_at: new Date().toISOString()
+            })
             .eq('id', followUp.id)
           
           if (cancelError) {
@@ -204,10 +252,16 @@ export async function POST(req: NextRequest) {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, {
+        const smsOptions: any = {
           lead_id: lead.id,
-          conversation_id: conversation.id,
-        })
+        }
+        
+        // Only include conversation_id if we have one
+        if (conversation) {
+          smsOptions.conversation_id = conversation.id
+        }
+        
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
@@ -233,17 +287,21 @@ export async function POST(req: NextRequest) {
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
         
-        // Update conversation activity
-        const { error: conversationUpdateError } = await supabase
-          .from('conversations')
-          .update({
-            last_activity_at: new Date().toISOString(),
-          })
-          .eq('id', conversation.id)
-        
-        if (conversationUpdateError) {
-          console.error('[send-followups] Error updating conversation:', conversationUpdateError)
-          throw conversationUpdateError
+        // Update conversation activity only if conversation exists
+        if (conversation) {
+          const { error: conversationUpdateError } = await supabase
+            .from('conversations')
+            .update({
+              last_activity_at: new Date().toISOString(),
+            })
+            .eq('id', conversation.id)
+          
+          if (conversationUpdateError) {
+            console.error('[send-followups] Error updating conversation:', conversationUpdateError)
+            // Don't throw - follow-up was sent successfully
+          } else {
+            console.log(`[send-followups] Updated conversation activity: ${conversation.id}`)
+          }
         }
         
       } catch (error) {
@@ -405,16 +463,28 @@ export async function GET(req: NextRequest) {
           continue
         }
         
-        // If still valid - fetch lead and business
+        // If still valid - fetch lead and business using lead_id as source of truth
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .select('*')
-          .eq('id', conversation.lead_id)
+          .eq('id', followUp.lead_id)
           .single()
         
         if (leadError) {
           console.error('[send-followups] Error fetching lead:', leadError)
-          throw leadError
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Failed to fetch lead'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
+          errors++
+          continue
         }
         
         const { data: business, error: businessError } = await supabase
@@ -425,14 +495,39 @@ export async function GET(req: NextRequest) {
         
         if (businessError) {
           console.error('[send-followups] Error fetching business:', businessError)
-          throw businessError
-        }
-        
-        if (!lead || !business) {
-          console.log(`[send-followups] Error - missing lead or business: ${followUp.id}`)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Failed to fetch business'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
           errors++
           continue
         }
+        
+        if (!lead || !business) {
+          console.error(`[send-followups] Missing lead or business for follow-up: ${followUp.id}`)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Missing lead or business'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
+          }
+          errors++
+          continue
+        }
+        
+        console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
         
         // Check if lead has opted out
         if (lead.opted_out) {
@@ -440,8 +535,12 @@ export async function GET(req: NextRequest) {
           
           // Mark follow-up as cancelled
           const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'cancelled',
+              cancelled_reason: 'customer_opted_out',
+              cancelled_at: new Date().toISOString()
+            })
             .eq('id', followUp.id)
           
           if (cancelError) {
@@ -453,10 +552,16 @@ export async function GET(req: NextRequest) {
         }
         
         // Send SMS using the existing sendSms helper
-        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, {
+        const smsOptions: any = {
           lead_id: lead.id,
-          conversation_id: conversation.id,
-        })
+        }
+        
+        // Only include conversation_id if we have one
+        if (conversation) {
+          smsOptions.conversation_id = conversation.id
+        }
+        
+        const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
           console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
@@ -482,17 +587,21 @@ export async function GET(req: NextRequest) {
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
         
-        // Update conversation activity
-        const { error: conversationUpdateError } = await supabase
-          .from('conversations')
-          .update({
-            last_activity_at: new Date().toISOString(),
-          })
-          .eq('id', conversation.id)
-        
-        if (conversationUpdateError) {
-          console.error('[send-followups] Error updating conversation:', conversationUpdateError)
-          throw conversationUpdateError
+        // Update conversation activity only if conversation exists
+        if (conversation) {
+          const { error: conversationUpdateError } = await supabase
+            .from('conversations')
+            .update({
+              last_activity_at: new Date().toISOString(),
+            })
+            .eq('id', conversation.id)
+          
+          if (conversationUpdateError) {
+            console.error('[send-followups] Error updating conversation:', conversationUpdateError)
+            // Don't throw - follow-up was sent successfully
+          } else {
+            console.log(`[send-followups] Updated conversation activity: ${conversation.id}`)
+          }
         }
         
       } catch (error) {
