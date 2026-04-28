@@ -193,7 +193,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const { lead, messages, source } = leadData
+  const lead = leadData
+  const messages = leadData.messages || []
+  const source = leadData.source || null
 
   // Get latest message status with safe guards
   const messagesArray = messages || []
@@ -221,11 +223,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {formatPhoneNumber(lead.caller_phone || '')}
+                {formatPhoneNumber(lead?.caller_phone || '')}
               </h1>
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLeadStatusColor(lead.status)}`}>
-                  {lead.status}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLeadStatusColor(lead?.status)}`}>
+                  {lead?.status}
                 </span>
                 {source && (
                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
@@ -243,21 +245,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Created</p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.created_at)}</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead?.created_at)}</p>
             </div>
-            {lead.first_contact_at && (
+            {lead?.first_contact_at && (
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">First Contact</p>
                 <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.first_contact_at)}</p>
               </div>
             )}
-            {lead.last_message_at && (
+            {lead?.last_message_at && (
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Message</p>
                 <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_message_at)}</p>
               </div>
             )}
-            {lead.last_reply_at && (
+            {lead?.last_reply_at && (
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Reply</p>
                 <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_reply_at)}</p>

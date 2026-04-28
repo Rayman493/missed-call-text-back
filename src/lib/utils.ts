@@ -69,7 +69,9 @@ export function isValidPhone(phone: string): boolean {
   return cleaned.length >= 10 && cleaned.length <= 15
 }
 
-export function formatPhoneNumber(phone: string): string {
+export function formatPhoneNumber(phone: string | null | undefined): string {
+  if (!phone) return 'Unknown caller'
+  
   const normalized = phone.replace(/\D/g, '')
 
   // Handle E.164 format (+1XXXXXXXXXX) - strip leading 1
