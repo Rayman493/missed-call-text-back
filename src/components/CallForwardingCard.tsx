@@ -49,16 +49,16 @@ export default function CallForwardingCard({ business }: CallForwardingCardProps
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-600 dark:hover:border-gray-500 transition">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <span className="text-xl sm:text-2xl">📞</span>
           </div>
           <div className="ml-3 sm:ml-4 flex-1">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Connect Your Existing Business Number
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-400 mb-4">
               Keep using your current business number. Set up missed-call forwarding so unanswered calls are sent to your ReplyFlow number. When ReplyFlow receives the missed call, we automatically text the caller and save the lead.
             </p>
             

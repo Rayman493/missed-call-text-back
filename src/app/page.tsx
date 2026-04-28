@@ -113,6 +113,15 @@ export default function Home() {
           <p className="text-xl text-gray-400">
             Trusted by service businesses to capture missed leads
           </p>
+          <Image
+            src="/replyflow-logo.svg"
+            alt="ReplyFlow"
+            width={200}
+            height={60}
+            priority
+            className="h-8 w-auto object-contain"
+          />
+          <span className="ml-3 text-xl font-bold text-gray-100">ReplyFlow</span>
         </div>
       </section>
 
