@@ -36,19 +36,21 @@ export default function OnboardingPage() {
       setUserId(user.id)
 
       // Check if user already has a business
-      const { data } = await supabase
+      const { data: existingBusiness, error: existingError } = await supabase
         .from('businesses')
-        .select('id')
+        .select('id, name')
         .eq('user_id', user.id)
         .limit(1)
+        .single()
 
-      const businesses = data as any[]
-
-      if (businesses && businesses.length > 0) {
+      if (existingBusiness && !existingError) {
+        console.log('[Onboarding] User already has business:', existingBusiness.id, 'redirecting to dashboard')
         // User already has a business, redirect to dashboard
         router.push('/dashboard')
+        return
       } else {
         // User needs onboarding, show the form
+        console.log('[Onboarding] User needs onboarding, showing form')
         setCheckingBusiness(false)
       }
     }
@@ -75,6 +77,21 @@ export default function OnboardingPage() {
         return
       }
 
+      // Final check - ensure user doesn't already have a business
+      const { data: finalCheck, error: finalCheckError } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+        .single()
+
+      if (finalCheck && !finalCheckError) {
+        console.log('[Onboarding] Business already exists during form submission:', finalCheck.id)
+        setError('You already have a business. Redirecting to dashboard...')
+        router.push('/dashboard')
+        return
+      }
+
       // Normalize phone number
       const normalizedPhone = normalizePhoneNumber(businessPhone)
       if (!normalizedPhone) {
@@ -82,6 +99,7 @@ export default function OnboardingPage() {
         return
       }
 
+      console.log('[Onboarding] Creating business for user:', userId)
       // Insert business with user_id
       const businessPayload = {
         user_id: userId,
@@ -90,11 +108,18 @@ export default function OnboardingPage() {
         auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
       }
 
-      const { error: insertError } = await supabase
+      const { data: createdBusiness, error: insertError } = await supabase
         .from('businesses')
         .insert(businessPayload as any)
+        .select()
+        .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('[Onboarding] Error creating business:', insertError)
+        throw insertError
+      }
+
+      console.log('[Onboarding] Business created successfully:', createdBusiness?.id)
 
       // Refresh business context to update state
       await refreshBusiness()

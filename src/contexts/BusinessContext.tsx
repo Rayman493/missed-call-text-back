@@ -62,8 +62,35 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          // No business found - auto-create one
-          console.log('[BusinessContext] No business found for user, auto-creating...')
+          // No business found - check if we should auto-create one
+          console.log('[BusinessContext] No business found for user:', user.id, 'checking if auto-creation is appropriate...')
+          
+          // Double-check if a business exists (prevent race conditions)
+          const { data: doubleCheck, error: doubleCheckError } = await supabase
+            .from('businesses')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .single()
+          
+          if (doubleCheck && !doubleCheckError) {
+            console.log('[BusinessContext] Existing business found on double-check:', doubleCheck.id)
+            // A business was created by another process, fetch it
+            const { data: existingBusiness, error: refetchError } = await supabase
+              .from('businesses')
+              .select('*')
+              .eq('user_id', user.id)
+              .limit(1)
+              .single()
+            
+            if (!refetchError && existingBusiness) {
+              console.log('[BusinessContext] Using existing business found on double-check:', existingBusiness.id)
+              setBusiness(existingBusiness as Business)
+              return
+            }
+          }
+          
+          console.log('[BusinessContext] No existing business found, proceeding with auto-creation...')
           
           const newBusiness = {
             user_id: user.id,
@@ -73,6 +100,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
             subscription_status: 'inactive',
           }
 
+          console.log('[BusinessContext] Creating new business for user:', user.id)
           const { data: createdBusiness, error: createError } = await supabase
             .from('businesses')
             .insert(newBusiness)
@@ -103,10 +131,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
                 setBusiness(createdBusinessNoPhone as Business)
               }
             } else {
+              console.error('[BusinessContext] Business creation failed, setting business to null')
               setBusiness(null)
             }
           } else {
-            console.log('[BusinessContext] Business auto-created:', createdBusiness?.id)
+            console.log('[BusinessContext] Business auto-created successfully:', createdBusiness?.id)
             setBusiness(createdBusiness as Business)
           }
         } else {
@@ -114,8 +143,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           throw fetchError
         }
       } else {
-        console.log('[BusinessContext] Business result:', businessData)
-        console.log('[BusinessContext] Business found:', businessData?.id)
+        console.log('[BusinessContext] Business found:', businessData?.id, 'for user:', user.id)
         console.log('[BusinessContext] Business subscription status:', businessData?.subscription_status)
         setBusiness(businessData)
       }

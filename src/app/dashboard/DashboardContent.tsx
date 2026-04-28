@@ -142,13 +142,22 @@ export default function DashboardContent() {
       })
       const data = await response.json()
       
+      if (!response.ok) {
+        console.error('[checkout] API error:', data)
+        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`)
+        return
+      }
+      
       if (data.url) {
+        console.log('[checkout] Redirecting to Stripe checkout:', data.url)
         window.location.href = data.url
       } else {
         console.error('[checkout] No URL returned:', data)
+        alert(`No checkout URL returned: ${JSON.stringify(data)}`)
       }
     } catch (error) {
-      console.error('[checkout] Error:', error)
+      console.error('[checkout] Network error:', error)
+      alert('Network error creating checkout session. Please try again.')
     } finally {
       setCheckoutLoading(false)
     }
@@ -243,7 +252,7 @@ export default function DashboardContent() {
   }
 
   useEffect(() => {
-    console.log('[DashboardContent] Business loading:', businessLoading, 'Business:', business?.id, 'Supabase:', !!supabase)
+    console.log('[DashboardContent] Business loading:', businessLoading, 'Business ID:', business?.id, 'Business Name:', business?.name, 'Supabase:', !!supabase)
     
     // If business is still loading, don't fetch leads yet
     if (businessLoading) {

@@ -7,7 +7,16 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
+    console.log('[stripe-checkout] Starting checkout session creation');
+    
     const stripe = getStripe()
+    console.log('[stripe-checkout] Stripe client initialized:', !!stripe);
+    
+    if (!stripe) {
+      console.error('[stripe-checkout] Failed to initialize Stripe client');
+      return NextResponse.json({ error: 'Stripe initialization failed' }, { status: 500 })
+    }
+    
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,10 +34,15 @@ export async function POST(request: Request) {
         },
       }
     )
+    
+    console.log('[stripe-checkout] Supabase client initialized');
 
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('[stripe-checkout] User authentication result:', { user: !!user, userId: user?.id, email: user?.email });
+    
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.error('[stripe-checkout] No authenticated user found');
+      return NextResponse.json({ error: 'Unauthorized - no user found' }, { status: 401 })
     }
 
     // Find user's business
@@ -38,8 +52,19 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .limit(1)
       .single()
+      
+    console.log('[stripe-checkout] Business lookup result:', { 
+      business: !!business, 
+      businessId: business?.id,
+      businessName: business?.name,
+      businessError: businessError?.message,
+      userId: user.id 
+    });
+    
+    console.log('[stripe-checkout] Using business ID for checkout:', business?.id);
 
     if (businessError || !business) {
+      console.error('[stripe-checkout] Business not found for user:', user.id, 'Error:', businessError);
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -64,11 +89,27 @@ export async function POST(request: Request) {
 
     const origin = request.headers.get('origin') || 'http://localhost:3000'
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
+    
+    console.log('[stripe-checkout] Environment check:', {
+      origin,
+      priceId: !!priceId,
+      priceIdValue: priceId,
+      nodeEnv: process.env.NODE_ENV,
+      hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY
+    });
 
     if (!priceId) {
-      return NextResponse.json({ error: 'Price ID not configured' }, { status: 500 })
+      console.error('[stripe-checkout] NEXT_PUBLIC_STRIPE_PRICE_ID not configured');
+      return NextResponse.json({ error: 'Price ID not configured - NEXT_PUBLIC_STRIPE_PRICE_ID missing' }, { status: 500 })
     }
 
+    console.log('[stripe-checkout] Creating Stripe checkout session with:', {
+      customerId,
+      priceId,
+      origin,
+      businessId: business.id
+    });
+    
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -92,10 +133,24 @@ export async function POST(request: Request) {
         },
       },
     })
+    
+    console.log('[stripe-checkout] Checkout session created successfully:', { 
+      sessionId: session.id, 
+      url: session.url 
+    });
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
-    console.error('[stripe-checkout] Error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[stripe-checkout] Error creating checkout session:', {
+      error: error.message,
+      stack: error.stack,
+      type: error.type,
+      code: error.code
+    });
+    return NextResponse.json({ 
+      error: error.message || 'Unknown error creating checkout session',
+      type: error.type,
+      code: error.code
+    }, { status: 500 })
   }
 }
