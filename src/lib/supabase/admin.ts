@@ -73,17 +73,19 @@ export const db = {
   },
 
   async createBusiness(business: Omit<Business, 'id' | 'created_at' | 'updated_at'>): Promise<Business | null> {
+    console.log('[createBusiness] Inserting business with keys:', Object.keys(business))
     const { data, error } = await supabaseAdmin
       .from('businesses')
       .insert(business)
       .select()
       .single()
-    
+
     if (error) {
-      console.error('Error creating business:', error)
-      return null
+      console.error('[createBusiness] Insert error:', error)
+      throw new Error(`Insert failed: ${error.message} (code: ${error.code})`)
     }
-    
+
+    console.log('[createBusiness] Business created:', data?.id)
     return data
   },
 

@@ -6,9 +6,26 @@ import { db } from '@/lib/supabase/admin'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  console.log('[get-or-create] route hit')
+
   try {
-    console.log('[api/business/get-or-create] Starting business resolution')
-    
+    // Check required env vars
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.error('[get-or-create] Missing NEXT_PUBLIC_SUPABASE_URL')
+      return NextResponse.json(
+        { ok: false, step: 'env_check', error: 'Missing NEXT_PUBLIC_SUPABASE_URL' },
+        { status: 500 }
+      )
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('[get-or-create] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      return NextResponse.json(
+        { ok: false, step: 'env_check', error: 'Missing NEXT_PUBLIC_SUPABASE_ANON_KEY' },
+        { status: 500 }
+      )
+    }
+
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,35 +44,54 @@ export async function POST(request: Request) {
       }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      console.error('[api/business/get-or-create] No authenticated user found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.error('[get-or-create] Auth error:', authError)
+      return NextResponse.json(
+        { ok: false, step: 'auth', error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    console.log('[api/business/get-or-create] User authenticated:', user.id)
+    console.log('[get-or-create] user:', user.id)
 
-    // Parse request body for optional business data
-    const body = await request.json().catch(() => ({}))
-    const businessData = body.businessData || {}
+    // Parse request body
+    let body = {}
+    try {
+      body = await request.json()
+    } catch (parseErr) {
+      console.log('[get-or-create] No JSON body, using defaults')
+    }
+    const businessData = (body as any).businessData || {}
 
-    console.log('[api/business/get-or-create] Business data provided:', Object.keys(businessData))
+    console.log('[get-or-create] request body keys:', Object.keys(businessData))
+    console.log('[get-or-create] businessData:', JSON.stringify(businessData, null, 2))
 
     // Use centralized getOrCreateBusiness function
+    console.log('[get-or-create] calling db.getOrCreateBusiness...')
     const business = await db.getOrCreateBusiness(user.id, businessData)
-    
+
     if (!business) {
-      console.error('[api/business/get-or-create] Failed to resolve business for user:', user.id)
-      return NextResponse.json({ error: 'Failed to create business' }, { status: 500 })
+      console.error('[get-or-create] Failed to resolve business for user:', user.id)
+      return NextResponse.json(
+        { ok: false, step: 'resolve_business', error: 'Failed to create or find business' },
+        { status: 500 }
+      )
     }
 
-    console.log('[api/business/get-or-create] Business resolved successfully:', business.id)
+    console.log('[get-or-create] Business resolved successfully:', business.id)
 
-    return NextResponse.json({ business })
+    return NextResponse.json({ ok: true, business })
   } catch (error: any) {
-    console.error('[api/business/get-or-create] Error:', error)
-    return NextResponse.json({ 
-      error: error.message || 'Internal server error' 
-    }, { status: 500 })
+    console.error('[get-or-create] Unexpected error:', error)
+    return NextResponse.json(
+      {
+        ok: false,
+        step: 'unexpected',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error
+      },
+      { status: 500 }
+    )
   }
 }

@@ -106,16 +106,20 @@ export default function OnboardingPage() {
       })
 
       if (!response.ok) {
-        console.error('[Onboarding] API call failed:', response.status)
-        throw new Error('Failed to create business')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Onboarding] API call failed:', response.status, errorData)
+        const errorMessage = errorData.step
+          ? `Failed at step: ${errorData.step}. ${errorData.error}`
+          : errorData.error || 'Failed to create business'
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
       const business = data.business
 
       if (!business) {
-        console.error('[Onboarding] No business returned from API')
-        throw new Error('Failed to create business')
+        console.error('[Onboarding] No business returned from API. Response:', data)
+        throw new Error('Failed to create business: no business in response')
       }
 
       console.log('[Onboarding] Business resolved successfully:', business.id)
