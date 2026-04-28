@@ -204,8 +204,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
+  // Debug info
+  const debugInfo = {
+    leadId: params.id,
+    conversationId: conversation?.id || 'none',
+    messagesCount: messagesArray.length,
+    queryMethod: 'messages.lead_id',
+    latestMessage: latestMessage?.body || 'none',
+    messages: messagesArray
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {/* Debug Box - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 m-4 rounded-lg">
+          <h3 className="font-bold text-sm mb-2">Debug Info</h3>
+          <pre className="text-xs overflow-auto">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </div>
+      )}
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
