@@ -21,9 +21,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -110,6 +112,54 @@ export default function SettingsPage() {
     }
   }
 
+  const handleResetDemoData = async () => {
+    if (!confirm('Are you sure you want to reset all demo data? This will delete all leads, messages, conversations, and follow-ups. This action cannot be undone.')) {
+      return
+    }
+
+    setIsResetting(true)
+    setError('')
+    setSuccess(false)
+    setSuccessMessage('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch('/api/dev/reset-demo-data?secret=dev-reset-secret', {
+        method: 'POST',
+        headers
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to reset demo data')
+        setIsResetting(false)
+        return
+      }
+
+      setSuccess(true)
+      setSuccessMessage(`Demo data reset successfully! Deleted: ${result.deleted.leads} leads, ${result.deleted.messages} messages, ${result.deleted.conversations} conversations, ${result.deleted.follow_up_jobs} follow-ups`)
+      
+      // Refresh business data
+      await refreshBusiness()
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setSuccess(false)
+        setSuccessMessage('')
+      }, 5000)
+    } catch (err) {
+      setError('Failed to reset demo data. Please try again.')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   if (!business) {
     return (
       <AuthGuard>
@@ -170,7 +220,9 @@ export default function SettingsPage() {
 
               {success && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8">
-                  <p className="text-sm text-green-800 dark:text-green-300">Settings updated successfully!</p>
+                  <p className="text-sm text-green-800 dark:text-green-300">
+                    {successMessage || 'Settings updated successfully!'}
+                  </p>
                 </div>
               )}
 
@@ -427,6 +479,29 @@ export default function SettingsPage() {
                 {/* Danger Zone */}
                 <div id="danger-zone" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-4 sm:p-6">
                   <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-5">Danger Zone</h2>
+                  
+                  {/* Reset Demo Data - Dev Only */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Reset all demo data (leads, messages, conversations, follow-ups)
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1.5">
+                          Preserves business, account, and subscription data
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetDemoData}
+                        disabled={isResetting}
+                        className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                      >
+                        {isResetting ? 'Resetting...' : 'Reset Demo Data'}
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
