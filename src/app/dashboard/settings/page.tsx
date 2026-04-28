@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
-import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/utils'
+import { formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
@@ -16,10 +16,8 @@ export default function SettingsPage() {
   const router = useRouter()
   const { business, refreshBusiness } = useBusiness()
   const [loading, setLoading] = useState(false)
-  const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [testSmsMessage, setTestSmsMessage] = useState('')
 
   const supabase = createBrowserClient()
 
@@ -34,24 +32,21 @@ export default function SettingsPage() {
     try {
       const formData = new FormData(e.currentTarget)
       const businessName = formData.get('businessName') as string
-      const twilioPhoneNumber = formData.get('twilioPhoneNumber') as string
-      const personalPhoneNumber = formData.get('personalPhoneNumber') as string
+      const timezone = formData.get('timezone') as string
       const autoReplyMessage = formData.get('autoReplyMessage') as string
-
-      // Normalize phone numbers
-      const normalizedPhone = normalizePhoneNumber(twilioPhoneNumber)
-      if (!normalizedPhone) {
-        setError('Please enter a valid business phone number.')
-        return
-      }
-
-      const normalizedPersonalPhone = personalPhoneNumber ? normalizePhoneNumber(personalPhoneNumber) : null
+      const instantReplyEnabled = formData.get('instantReplyEnabled') === 'on'
+      const followUp1Time = formData.get('followUp1Time') as string
+      const followUp2Time = formData.get('followUp2Time') as string
+      const stopOnReply = formData.get('stopOnReply') === 'on'
 
       const updatePayload = {
         name: businessName,
-        twilio_phone_number: normalizedPhone,
-        personal_phone_number: normalizedPersonalPhone,
+        timezone: timezone,
         auto_reply_message: autoReplyMessage,
+        instant_reply_enabled: instantReplyEnabled,
+        follow_up_1_time: followUp1Time,
+        follow_up_2_time: followUp2Time,
+        stop_on_reply: stopOnReply,
       }
 
       console.log('[Settings] Updating business:', business.id, 'with payload:', updatePayload)
@@ -64,82 +59,17 @@ export default function SettingsPage() {
 
       if (updateError) {
         console.error('[Settings] Update failed:', updateError)
-        throw new Error(updateError.message || 'Failed to update business')
+        throw new Error(updateError.message || 'Failed to update settings')
       }
 
       setSuccess(true)
       await refreshBusiness()
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
-      console.error('[Settings] Unexpected error updating business:', err)
-      setError(err.message || 'Failed to update business')
+      console.error('[Settings] Unexpected error updating settings:', err)
+      setError(err.message || 'Failed to update settings')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSendTestSms = async () => {
-    if (!business || !supabase) return
-
-    setTestSmsLoading(true)
-    setTestSmsMessage('')
-    setError('')
-
-    try {
-      // Use personal phone number from business
-      const personalPhone = business.personal_phone_number
-      if (!personalPhone) {
-        setTestSmsMessage('Please add your personal phone number to receive test SMS.')
-        return
-      }
-
-      // Create a temporary lead for the test SMS
-      const { data: lead, error: leadError } = await (supabase as any)
-        .from('leads')
-        .insert({
-          business_id: business.id,
-          caller_phone: personalPhone,
-          status: 'test',
-        })
-        .select()
-        .single()
-
-      if (leadError || !lead) {
-        console.log('[Test SMS] Failed: Could not create test lead')
-        setTestSmsMessage('Failed to send test SMS. Please try again.')
-        return
-      }
-
-      // Send test SMS via API
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
-
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          leadId: lead.id,
-          message: business.auto_reply_message,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        console.log('[Test SMS] Sent successfully')
-        setTestSmsMessage('Test SMS sent successfully! Check your phone.')
-      } else {
-        console.log('[Test SMS] Failed:', data.error)
-        setTestSmsMessage(`Failed to send test SMS: ${data.error || 'Unknown error'}`)
-      }
-    } catch (err: any) {
-      console.log('[Test SMS] Failed:', err)
-      setTestSmsMessage(`Failed to send test SMS: ${err.message || 'Unknown error'}`)
-    } finally {
-      setTestSmsLoading(false)
     }
   }
 
@@ -189,106 +119,209 @@ export default function SettingsPage() {
           <div className="p-4 sm:p-8">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-8">Configure your business information and auto-reply message.</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-8">Control how ReplyFlow works for your business.</p>
 
-            {success && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
-                <p className="text-sm text-green-800 dark:text-green-300">Settings updated successfully!</p>
-              </div>
-            )}
+              {success && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-green-800 dark:text-green-300">Settings updated successfully!</p>
+                </div>
+              )}
 
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-                <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
-              </div>
-            )}
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+                </div>
+              )}
 
-            {testSmsMessage && (
-              <div className={`rounded-lg p-4 mb-6 ${testSmsMessage.includes('successfully') ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'}`}>
-                <p className={`text-sm ${testSmsMessage.includes('successfully') ? 'text-green-800 dark:text-green-300' : 'text-yellow-800 dark:text-yellow-300'}`}>{testSmsMessage}</p>
-              </div>
-            )}
+              <form onSubmit={handleUpdate} className="space-y-6">
+                {/* Business Info Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Business Info</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Business Name
+                      </label>
+                      <input
+                        type="text"
+                        id="businessName"
+                        name="businessName"
+                        defaultValue={business.name}
+                        required
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Timezone
+                      </label>
+                      <select
+                        id="timezone"
+                        name="timezone"
+                        defaultValue={(business as any).timezone || 'America/New_York'}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="America/New_York">Eastern Time</option>
+                        <option value="America/Chicago">Central Time</option>
+                        <option value="America/Denver">Mountain Time</option>
+                        <option value="America/Los_Angeles">Pacific Time</option>
+                        <option value="America/Phoenix">Arizona Time</option>
+                        <option value="America/Anchorage">Alaska Time</option>
+                        <option value="America/Honolulu">Hawaii Time</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Settings Form */}
-            <form onSubmit={handleUpdate} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
-              <div>
-                <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Business Name
-                </label>
-                <input
-                  type="text"
-                  id="businessName"
-                  name="businessName"
-                  defaultValue={business.name}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
+                {/* Phone & Messaging Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Phone & Messaging</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Your ReplyFlow Number
+                      </label>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                          {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                        </span>
+                        <span className={`text-sm px-2 py-1 rounded-full ${
+                          business.twilio_phone_number 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        }`}>
+                          {business.twilio_phone_number ? 'Active' : 'Pending verification'}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="autoReplyMessage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Auto-Reply Message
+                      </label>
+                      <textarea
+                        id="autoReplyMessage"
+                        name="autoReplyMessage"
+                        defaultValue={business.auto_reply_message}
+                        rows={4}
+                        required
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-              <div>
-                <label htmlFor="twilioPhoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Business Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="twilioPhoneNumber"
-                  name="twilioPhoneNumber"
-                  defaultValue={formatPhoneNumber(business.twilio_phone_number)}
-                  required
-                  placeholder="(412) 855-3010"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter your business phone number. We'll format it automatically.</p>
-              </div>
+                {/* Automation Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Automation</h2>
+                  <div className="space-y-6">
+                    {/* Instant Reply */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label htmlFor="instantReplyEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Instant Reply
+                        </label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            id="instantReplyEnabled"
+                            name="instantReplyEnabled"
+                            defaultChecked={(business as any).instant_reply_enabled !== false}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Automatically reply to missed calls</p>
+                    </div>
 
-              <div>
-                <label htmlFor="personalPhoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Your Phone Number (for test SMS)
-                </label>
-                <input
-                  type="tel"
-                  id="personalPhoneNumber"
-                  name="personalPhoneNumber"
-                  defaultValue={business.personal_phone_number ? formatPhoneNumber(business.personal_phone_number) : ''}
-                  placeholder="(412) 555-1234"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional: Add your personal phone number to receive test SMS messages.</p>
-              </div>
+                    {/* Follow-ups */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Follow-ups</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label htmlFor="followUp1Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                            Follow-up #1
+                          </label>
+                          <select
+                            id="followUp1Time"
+                            name="followUp1Time"
+                            defaultValue={(business as any).follow_up_1_time || '15m'}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          >
+                            <option value="5m">5 minutes</option>
+                            <option value="15m">15 minutes</option>
+                            <option value="1h">1 hour</option>
+                            <option value="4h">4 hours</option>
+                            <option value="1d">1 day</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor="followUp2Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                            Follow-up #2
+                          </label>
+                          <select
+                            id="followUp2Time"
+                            name="followUp2Time"
+                            defaultValue={(business as any).follow_up_2_time || '1d'}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          >
+                            <option value="1h">1 hour</option>
+                            <option value="4h">4 hours</option>
+                            <option value="1d">1 day</option>
+                            <option value="3d">3 days</option>
+                            <option value="1w">1 week</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
 
-              <div>
-                <label htmlFor="autoReplyMessage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Auto-Reply Message
-                </label>
-                <textarea
-                  id="autoReplyMessage"
-                  name="autoReplyMessage"
-                  defaultValue={business.auto_reply_message}
-                  rows={4}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This message will be sent to missed callers.</p>
-              </div>
+                    {/* Stop Conditions */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Stop Conditions</h3>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="stopOnReply"
+                          name="stopOnReply"
+                          defaultChecked={(business as any).stop_on_reply !== false}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <label htmlFor="stopOnReply" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                          Stop follow-ups if customer replies
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex items-center justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={handleSendTestSms}
-                  disabled={testSmsLoading}
-                  className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
-                >
-                  {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+                {/* Billing Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Billing</h2>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pro Plan - $47/month</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Manage Subscription
+                    </button>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
