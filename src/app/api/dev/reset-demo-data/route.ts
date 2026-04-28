@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 // SECURITY: This is a development-only utility for resetting demo data
 // Never expose this endpoint to production customers
 // Requires DEV_RESET_SECRET environment variable
+// Requires ALLOW_DEMO_RESET_EMAILS environment variable for production access
 
 export async function POST(req: NextRequest) {
   console.log('[DEV] Reset demo data request received')
@@ -12,6 +13,7 @@ export async function POST(req: NextRequest) {
     // Environment validation
     const isDevelopment = process.env.NODE_ENV === 'development'
     const resetSecret = process.env.DEV_RESET_SECRET
+    const allowedEmails = process.env.ALLOW_DEMO_RESET_EMAILS?.split(',').map(e => e.trim()) || []
     
     if (!isDevelopment && !resetSecret) {
       console.error('[DEV] Reset demo data blocked - not in development and no secret configured')
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get current user session to identify business
+    // Verify session and get business ID
     const authHeader = req.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('[DEV] Reset demo data blocked - no valid session')
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '')
     
-    // Verify session and get business ID
+    // Verify session and get user
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
       console.error('[DEV] Reset demo data blocked - invalid session')
@@ -53,6 +55,18 @@ export async function POST(req: NextRequest) {
         { error: 'Invalid user session' },
         { status: 401 }
       )
+    }
+
+    // Check if user email is in allowlist (for production access)
+    if (!isDevelopment && allowedEmails.length > 0) {
+      if (!user.email || !allowedEmails.includes(user.email)) {
+        console.error('[DEV] Reset demo data blocked - user email not in allowlist:', user.email)
+        return NextResponse.json(
+          { error: 'You do not have permission to reset demo data' },
+          { status: 403 }
+        )
+      }
+      console.log('[DEV] Reset demo data allowed for admin email:', user.email)
     }
 
     // Get business for this user

@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [showResetModal, setShowResetModal] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -113,10 +115,6 @@ export default function SettingsPage() {
   }
 
   const handleResetDemoData = async () => {
-    if (!confirm('Are you sure you want to reset all demo data? This will delete all leads, messages, conversations, and follow-ups. This action cannot be undone.')) {
-      return
-    }
-
     setIsResetting(true)
     setError('')
     setSuccess(false)
@@ -148,6 +146,10 @@ export default function SettingsPage() {
       // Refresh business data
       await refreshBusiness()
       
+      // Close modal
+      setShowResetModal(false)
+      setResetConfirmText('')
+      
       // Auto-hide success message after 5 seconds
       setTimeout(() => {
         setSuccess(false)
@@ -159,6 +161,9 @@ export default function SettingsPage() {
       setIsResetting(false)
     }
   }
+
+  // Check if user is admin for demo reset visibility
+  const isAdmin = user?.email && process.env.ALLOW_DEMO_RESET_EMAILS?.includes(user.email)
 
   if (!business) {
     return (
@@ -480,24 +485,23 @@ export default function SettingsPage() {
                 <div id="danger-zone" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-4 sm:p-6">
                   <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-5">Danger Zone</h2>
                   
-                  {/* Reset Demo Data - Dev Only */}
-                  {process.env.NODE_ENV === 'development' && (
+                  {/* Reset Demo Data - Admin Only */}
+                  {isAdmin && (
                     <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Reset all demo data (leads, messages, conversations, follow-ups)
+                          Reset Demo Data
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-500 mt-1.5">
-                          Preserves business, account, and subscription data
+                          Deletes leads, conversations, messages, and follow-up jobs for this business only. Business settings and subscription stay intact.
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={handleResetDemoData}
-                        disabled={isResetting}
-                        className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                        onClick={() => setShowResetModal(true)}
+                        className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors"
                       >
-                        {isResetting ? 'Resetting...' : 'Reset Demo Data'}
+                        Reset Demo Data
                       </button>
                     </div>
                   )}
@@ -564,6 +568,51 @@ export default function SettingsPage() {
                 className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isDeleting ? 'Deleting...' : 'Permanently Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Demo Data Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Reset Demo Data
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              This will delete all leads, conversations, messages, and follow-up jobs for this business. Business settings and subscription will remain intact. This action cannot be undone.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">
+                Type <span className="font-mono font-bold">RESET</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:text-white"
+                placeholder="RESET"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowResetModal(false)
+                  setResetConfirmText('')
+                }}
+                disabled={isResetting}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetDemoData}
+                disabled={resetConfirmText !== 'RESET' || isResetting}
+                className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isResetting ? 'Resetting...' : 'Reset Demo Data'}
               </button>
             </div>
           </div>
