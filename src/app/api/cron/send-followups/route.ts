@@ -20,11 +20,10 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     // Verify CRON_SECRET for cron job protection
+    const { searchParams } = new URL(req.url)
+    const secret = searchParams.get('secret')
     const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      console.error('[Security] Unauthorized request to /api/cron/send-followups - missing CRON_SECRET')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const cronHeader = req.headers.get('x-vercel-cron')
 
     const expectedSecret = process.env.CRON_SECRET
     if (!expectedSecret) {
@@ -32,13 +31,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    const providedSecret = authHeader.replace('Bearer ', '')
-    if (providedSecret !== expectedSecret) {
-      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/send-followups')
+    const isAuthorized =
+      cronHeader === '1' ||
+      secret === expectedSecret ||
+      authHeader === `Bearer ${expectedSecret}`
+
+    if (!isAuthorized) {
+      console.error('[Security] Unauthorized request to /api/cron/send-followups')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups');
+    console.log('[cron] Manual trigger authorized:', secret === expectedSecret);
     console.log('[send-followups] Starting follow-up processing')
     
     // Query due follow_up_jobs where: status = 'pending', scheduled_for <= now()
@@ -262,11 +266,10 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     // Verify CRON_SECRET for cron job protection
+    const { searchParams } = new URL(req.url)
+    const secret = searchParams.get('secret')
     const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      console.error('[Security] Unauthorized request to /api/cron/send-followups GET - missing CRON_SECRET')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const cronHeader = req.headers.get('x-vercel-cron')
 
     const expectedSecret = process.env.CRON_SECRET
     if (!expectedSecret) {
@@ -274,13 +277,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    const providedSecret = authHeader.replace('Bearer ', '')
-    if (providedSecret !== expectedSecret) {
-      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/send-followups GET')
+    const isAuthorized =
+      cronHeader === '1' ||
+      secret === expectedSecret ||
+      authHeader === `Bearer ${expectedSecret}`
+
+    if (!isAuthorized) {
+      console.error('[Security] Unauthorized request to /api/cron/send-followups GET')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups GET');
+    console.log('[cron] Manual trigger authorized:', secret === expectedSecret);
     console.log('[send-followups] GET request - processing follow-ups')
 
     // For GET, also process follow-ups (same logic as POST)
