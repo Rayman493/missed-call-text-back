@@ -75,10 +75,12 @@ export async function provisionNumberForBusiness(businessId: string): Promise<Pr
 
       if (existingNumber) {
         console.log('[Twilio Number Manager] Returning existing active number:', existingNumber.phone_number);
+        console.log('[Twilio Number Manager] Provisioning: Using existing active number for business:', businessId);
         return { success: true, twilioNumber: existingNumber };
       }
     }
 
+    console.log('[Twilio Number Manager] Provisioning: Purchasing new Twilio number for business:', businessId);
     console.log('[Twilio Number Manager] Searching for available Twilio number');
 
     // Search for available US local numbers with voice + SMS enabled
@@ -105,6 +107,7 @@ export async function provisionNumberForBusiness(businessId: string): Promise<Pr
       smsUrl: 'https://replyflowhq.com/api/twilio/incoming-sms',
     });
 
+    console.log('[Twilio Number Manager] Provisioning: Successfully purchased number:', purchasedNumber.phoneNumber, 'for business:', businessId);
     console.log('[Twilio Number Manager] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid);
 
     // Insert into twilio_numbers table
@@ -173,6 +176,7 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
   const client = Twilio(accountSid, authToken);
 
   try {
+    console.log('[Twilio Number Manager] Release: Starting number release for business:', businessId);
     console.log('[Twilio Number Manager] Releasing number for business:', businessId);
 
     // Find the active twilio_numbers row for this business
@@ -184,7 +188,7 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
       .single();
 
     if (fetchError || !twilioNumber) {
-      console.log('[Twilio Number Manager] No active number found for business:', businessId);
+      console.log('[Twilio Number Manager] Release: No active number found for business:', businessId);
       return { success: true }; // Success - nothing to release
     }
 
@@ -197,9 +201,12 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
 
     // Call Twilio to release the number
     try {
+      console.log('[Twilio Number Manager] Release: Removing number from Twilio account:', twilioNumber.twilio_sid);
       await client.incomingPhoneNumbers(twilioNumber.twilio_sid).remove();
+      console.log('[Twilio Number Manager] Release: Successfully released number from Twilio:', twilioNumber.twilio_sid);
       console.log('[Twilio Number Manager] Released number from Twilio:', twilioNumber.twilio_sid);
     } catch (twilioError) {
+      console.error('[Twilio Number Manager] Release: Failed to release number from Twilio:', twilioError);
       console.error('[Twilio Number Manager] Failed to release number from Twilio:', twilioError);
       
       // Update last_error but don't throw (called from Stripe webhook)
@@ -245,6 +252,7 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
       console.log('[Twilio Number Manager] Cleared business assignment');
     }
 
+    console.log('[Twilio Number Manager] Release: Successfully completed release for business:', businessId);
     console.log('[Twilio Number Manager] Release complete for business:', businessId);
     return { success: true };
   } catch (error) {
@@ -257,13 +265,16 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
  * Retry Twilio number provisioning for a business
  */
 export async function retryNumberProvisioning(businessId: string): Promise<ProvisionResult> {
+  console.log('[Twilio Number Manager] Retry: Starting retry provisioning for business:', businessId);
   console.log('[Twilio Number Manager] Retry provisioning for business:', businessId);
   
   const result = await provisionNumberForBusiness(businessId);
   
   if (result.success) {
+    console.log('[Twilio Number Manager] Retry: Provisioning retry succeeded for business:', businessId);
     console.log('[Twilio Number Manager] Retry provisioning succeeded');
   } else {
+    console.error('[Twilio Number Manager] Retry: Provisioning retry failed for business:', businessId, 'Error:', result.error);
     console.error('[Twilio Number Manager] Retry provisioning failed:', result.error);
   }
   

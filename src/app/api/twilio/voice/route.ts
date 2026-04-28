@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
     const business = result.business;
     console.log('[Twilio Voice] Business found:', business.id, 'via:', result.source);
     
+    // Add routing logs as specified
+    if (result.source === 'twilio_numbers') {
+      console.log('[Twilio Voice] routing via twilio_numbers');
+    } else {
+      console.log('[Twilio Voice] routing via legacy fallback');
+    }
+    
     // Normalize caller phone for lead lookup/creation
     const normalizedCallerPhone = normalizePhoneNumber(From);
     
