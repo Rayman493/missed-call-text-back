@@ -1,5 +1,12 @@
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
+import { validateTwilioForVoice } from './env';
+
+// Validate Twilio environment for voice operations
+const voiceValidation = validateTwilioForVoice();
+if (!voiceValidation.isValid) {
+  console.error('[Number Manager] Twilio validation failed:', voiceValidation.error);
+}
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN

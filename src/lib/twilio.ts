@@ -1,15 +1,20 @@
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
+import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID
-const authToken = process.env.TWILIO_AUTH_TOKEN
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+// Log Twilio environment status on module import
+logTwilioEnvStatus();
 
 // Initialize Supabase client for DB operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// Get environment variables
+const accountSid = process.env.TWILIO_ACCOUNT_SID
+const authToken = process.env.TWILIO_AUTH_TOKEN
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
 
 // Only initialize Twilio client if credentials are available and valid
 export const twilioClient = accountSid && authToken && accountSid.startsWith('AC')
@@ -25,45 +30,114 @@ export async function sendSms(
     conversation_id?: string;
   }
 ): Promise<string | null> {
+  // Validate Twilio environment for SMS operations
+  const smsValidation = validateTwilioForSms();
+  
+  if (!smsValidation.isValid) {
+    console.error('[SMS] Twilio validation failed:', smsValidation.error);
+    // Still log the failed attempt
+    await logFailedMessage(business, to, message, options, smsValidation.error || 'Twilio validation failed');
+    return null;
+  }
+
+  console.log('[SMS] Sending SMS to:', to, 'from business:', business.id, 'method:', smsValidation.method);
+
+  // Handle simulation mode
+  if (smsValidation.method === 'simulated') {
+    console.log('[SMS] 🧪 Simulated SMS sent:', { to, body: message.substring(0, 50) + '...' });
+    
+    // Insert simulated message record into database
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound',
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        status: 'simulated',
+        error_message: null,
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('[SMS] Failed to insert simulated message record:', insertError);
+    } else {
+      console.log('[SMS] Simulated message record inserted successfully');
+    }
+
+    return `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   // Create fresh Twilio client for this SMS
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
+  const globalMessagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
 
-  if (!accountSid || !authToken) {
-    console.error('[SYSTEM] [TWILIO] Credentials missing');
-    return null
-  }
+  console.log('[SMS] Messaging Service SID exists:', !!globalMessagingServiceSid, 'value:', globalMessagingServiceSid ? globalMessagingServiceSid.substring(0, 8) + '...' : 'none');
+  console.log('[SMS] Business messaging service SID exists:', !!business.twilio_messaging_service_sid);
 
   const client = Twilio(
     process.env.TWILIO_ACCOUNT_SID!,
     process.env.TWILIO_AUTH_TOKEN!
   );
 
-  try {
-    console.log('[SYSTEM] [TWILIO] Sending SMS to:', to, 'from business:', business.id);
+  let messageResult;
+  let sendMethod = '';
+  let errorMessage = '';
+  let errorCode = '';
 
-    let messageResult;
-    if (business.twilio_messaging_service_sid) {
-      console.log('[SYSTEM] [TWILIO] Using messaging service:', business.twilio_messaging_service_sid);
+  try {
+    // Priority 1: Use global messaging service SID if available (10DLC ready)
+    if (globalMessagingServiceSid) {
+      console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
+      sendMethod = 'global-messaging-service';
+      messageResult = await client.messages.create({
+        body: message,
+        to,
+        messagingServiceSid: globalMessagingServiceSid,
+        statusCallback: "https://replyflowhq.com/api/twilio/status",
+      });
+    } 
+    // Priority 2: Use business-specific messaging service SID
+    else if (business.twilio_messaging_service_sid) {
+      console.log('[SMS] Using business messaging service:', business.twilio_messaging_service_sid);
+      sendMethod = 'business-messaging-service';
       messageResult = await client.messages.create({
         body: message,
         to,
         messagingServiceSid: business.twilio_messaging_service_sid,
         statusCallback: "https://replyflowhq.com/api/twilio/status",
       });
-    } else {
-      console.log('[SYSTEM] [TWILIO] Using phone number:', business.twilio_phone_number);
+    } 
+    // Priority 3: Fallback to phone number (not 10DLC ready)
+    else if (business.twilio_phone_number) {
+      console.log('[SMS] Using phone number fallback:', business.twilio_phone_number);
+      sendMethod = 'phone-number-fallback';
       messageResult = await client.messages.create({
         body: message,
         to,
         from: business.twilio_phone_number,
         statusCallback: "https://replyflowhq.com/api/twilio/status",
       });
+    } 
+    // No valid sending method available
+    else {
+      console.error('[SMS] No valid sending method available - no messaging service SID or phone number');
+      errorMessage = 'No valid Twilio sending method available';
+      await logFailedMessage(business, to, message, options, errorMessage);
+      return null;
     }
 
-    console.log('[SYSTEM] [TWILIO] SMS sent successfully:', { to, sid: messageResult.sid });
+    console.log('[SMS] SMS sent successfully via', sendMethod, ':', { 
+      to, 
+      sid: messageResult.sid,
+      status: messageResult.status 
+    });
 
-    // Insert message record into database
+    // Insert successful message record into database
     const { error: insertError } = await supabase
       .from('messages')
       .insert({
@@ -74,22 +148,109 @@ export async function sendSms(
         from_phone: business.twilio_phone_number,
         to_phone: to,
         twilio_message_sid: messageResult.sid,
-        status: 'queued',
+        status: messageResult.status || 'queued',
+        error_message: null,
         created_at: new Date().toISOString(),
       });
 
     if (insertError) {
-      console.error('[SYSTEM] [TWILIO] Failed to insert message record:', insertError);
-      // Guard: If DB insert fails, we still return the SID but log the error
-      // In production, you might want to throw here to prevent sending without DB record
+      console.error('[SMS] Failed to insert message record:', insertError);
     } else {
-      console.log('[SYSTEM] [TWILIO] Message record inserted:', messageResult.sid);
+      console.log('[SMS] Message record inserted successfully:', messageResult.sid);
     }
 
     return messageResult.sid
-  } catch (error) {
-    console.error('[SYSTEM] [TWILIO] Error sending SMS:', error);
-    throw error
+  } catch (error: any) {
+    console.error('[SMS] Error sending SMS:', {
+      to,
+      businessId: business.id,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      errorStatus: error?.status,
+      moreInfo: error?.moreInfo
+    });
+    
+    // Extract error details for logging
+    errorCode = error?.code || 'UNKNOWN';
+    errorMessage = error?.message || 'Unknown error occurred';
+    
+    // Log specific Twilio error codes for debugging
+    if (error?.code) {
+      console.error('[SMS] Twilio error code:', error.code, '- Common issues:');
+      switch (error.code) {
+        case 21614:
+          console.error('[SMS] - To number is not a valid mobile number');
+          break;
+        case 21612:
+          console.error('[SMS] - From number not enabled for SMS');
+          break;
+        case 21610:
+          console.error('[SMS] - Attempt to send to unsubscribed recipient');
+          break;
+        case 21611:
+          console.error('[SMS] - Message cannot be sent to the To number');
+          break;
+        case 21408:
+          console.error('[SMS] - Permission to send an SMS has not been enabled');
+          break;
+        case 30001:
+          console.error('[SMS] - Queue overflow');
+          break;
+        case 30002:
+          console.error('[SMS] - Account suspended');
+          break;
+        default:
+          console.error('[SMS] - Unknown Twilio error code');
+      }
+    }
+    
+    // Log the failed message attempt - this won't throw, ensuring webhook continues
+    await logFailedMessage(business, to, message, options, errorMessage, errorCode);
+    
+    // Return null instead of throwing to prevent webhooks from crashing
+    return null
+  }
+}
+
+// Helper function to log failed message attempts
+async function logFailedMessage(
+  business: any,
+  to: string,
+  message: string,
+  options?: {
+    lead_id?: string;
+    conversation_id?: string;
+  },
+  errorMessage?: string,
+  errorCode?: string
+): Promise<void> {
+  try {
+    console.log('[SMS] Logging failed message attempt for business:', business.id, 'to:', to);
+    
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound',
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: null,
+        status: 'failed',
+        error_message: errorMessage || 'Failed to send SMS',
+        error_code: errorCode || 'UNKNOWN',
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('[SMS] Failed to insert failed message record:', insertError);
+    } else {
+      console.log('[SMS] Failed message record inserted successfully');
+    }
+  } catch (logError) {
+    console.error('[SMS] Error logging failed message:', logError);
+    // Don't throw - this is just logging
   }
 }
 
