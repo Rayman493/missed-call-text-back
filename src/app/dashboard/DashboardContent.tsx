@@ -378,12 +378,12 @@ export default function DashboardContent() {
                 <div className="flex items-center">
                   <Link href="/dashboard" className="flex items-center">
                     <Image
-                      src="ReplyFlow-Logo.png"
+                      src="/ReplyFlow-Logo.png"
                       alt="ReplyFlow"
-                      width={140}
-                      height={32}
+                      width={200}
+                      height={60}
                       priority
-                      className="h-6 w-auto"
+                      className="h-10 w-auto object-contain"
                     />
                   </Link>
                 </div>
