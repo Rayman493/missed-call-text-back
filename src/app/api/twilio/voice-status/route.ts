@@ -307,6 +307,7 @@ export async function POST(req: NextRequest) {
           .insert([{
             lead_id: lead.id,
             business_id: business.id,
+            conversation_id: conversation.id,
             message_body: followUp1Message,
             scheduled_for: followUp1Time.toISOString(),
             status: "pending"
@@ -327,6 +328,7 @@ export async function POST(req: NextRequest) {
           .insert([{
             lead_id: lead.id,
             business_id: business.id,
+            conversation_id: conversation.id,
             message_body: followUp2Message,
             scheduled_for: followUp2Time.toISOString(),
             status: "pending"

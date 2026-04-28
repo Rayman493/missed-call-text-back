@@ -83,6 +83,13 @@ export async function POST(req: NextRequest) {
       
       try {
         console.log(`[followups] Processing due follow-up: ${followUp.id}`)
+        console.log(`[followups] Follow-up details:`, {
+          follow_up_id: followUp.id,
+          lead_id: followUp.lead_id,
+          business_id: followUp.business_id,
+          conversation_id: followUp.conversation_id,
+          scheduled_for: followUp.scheduled_for
+        })
         
         // Get open conversation for this lead
         const { data: conversation, error: conversationError } = await supabase
@@ -93,7 +100,7 @@ export async function POST(req: NextRequest) {
           .single()
         
         if (conversationError || !conversation) {
-          console.log(`[followups] No open conversation found, cancelling follow-up: ${followUp.id}`)
+          console.warn(`[followups] No open conversation found for lead: ${followUp.lead_id}, cancelling follow-up: ${followUp.id}`)
           
           // Mark follow-up as cancelled
           const { error: cancelError } = await supabase
@@ -111,6 +118,8 @@ export async function POST(req: NextRequest) {
           cancelled++
           continue
         }
+        
+        console.log(`[followups] Found conversation: ${conversation.id} for lead: ${followUp.lead_id}`)
         
         // Check whether the customer already replied after follow-up was created
         const { data: latestInboundMessage, error: messageError } = await supabase
