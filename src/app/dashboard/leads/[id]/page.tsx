@@ -23,7 +23,7 @@ async function getLeadDetails(leadId: string) {
     headers['Authorization'] = `Bearer ${session.access_token}`
   }
 
-  const response = await fetch(`/api/lead-details?leadId=${leadId}`, { headers })
+  const response = await fetch(`/api/lead-details?id=${leadId}`, { headers })
   if (!response.ok) return null
   return response.json()
 }
@@ -43,37 +43,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     console.log('[Lead View] LeadId type:', typeof params.id)
     console.log('[Lead View] LeadId length:', params.id?.length)
     
-    getLeadDetails(params.id).then(response => {
-      console.log('[Lead View] API response:', response)
+    getLeadDetails(params.id).then(result => {
+      console.log('[Lead View] API response:', result)
       
-      if (!response) {
+      if (!result) {
         console.log('[Lead View] No response returned from API - this is the issue!')
         setLeadData(null)
         setLoading(false)
         return
       }
 
-      if (response.ok === false) {
-        console.log('[Lead View] API returned error:', response)
-        // Store the error response to display it
-        setLeadData({ error: response })
+      if (result.ok && result.lead) {
+        console.log('[Lead View] API returned lead data:', result.lead)
+        setLeadData(result.lead)
         setLoading(false)
         return
       }
 
-      if (response.ok === true && response.lead) {
-        console.log('[Lead View] API returned lead data:', response.lead)
-        setLeadData(response.lead)
-        setLoading(false)
-        return
-      }
-
-      console.log('[Lead View] Unexpected API response format:', response)
-      setLeadData({ error: { source: "unexpected_format", response } })
+      console.log('[Lead View] API returned error:', result)
+      setError(result.error || "Lead not found")
+      setLeadData(null)
       setLoading(false)
     }).catch(error => {
       console.error('[Lead View] Error fetching lead details:', error)
-      setLeadData({ error: { source: "fetch_error", error: error.message } })
+      setError('Failed to fetch lead details')
+      setLeadData(null)
       setLoading(false)
     })
   }, [params.id])
@@ -170,8 +164,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
-  if (!leadData || leadData.error) {
-    const errorInfo = leadData?.error || {}
+  if (!leadData) {
     return (
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
@@ -184,40 +177,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </Link>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">API Error Details</h1>
-            <div className="text-left bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-              <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                Lead ID: {params.id}
-              </p>
-              <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                ID Type: {typeof params.id}
-              </p>
-              <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                ID Length: {params.id?.length}
-              </p>
-              {errorInfo && (
-                <>
-                  <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                    Error Source: {errorInfo.source || 'unknown'}
-                  </p>
-                  {errorInfo.error && (
-                    <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                      Error: {errorInfo.error}
-                    </p>
-                  )}
-                  {errorInfo.details && (
-                    <p className="text-sm text-red-800 dark:text-red-200 font-mono mb-2">
-                      Details: {JSON.stringify(errorInfo.details)}
-                    </p>
-                  )}
-                </>
-              )}
-              <p className="text-sm text-red-800 dark:text-red-200 mt-2">
-                Check browser console and server logs for detailed debugging information.
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Lead not found</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              The API call to fetch lead details failed. See error details above.
+              {error || 'The lead you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
             </p>
             <Link
               href="/dashboard"
