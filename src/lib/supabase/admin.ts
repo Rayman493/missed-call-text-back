@@ -132,20 +132,25 @@ export const db = {
     
     console.log('[getOrCreateBusiness] No existing business found, creating new business for user:', userId)
     
+    // Calculate trial end date (14 days from now)
+    const trialEndsAt = new Date()
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+    
     // Create new business with provided data or defaults
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       name: businessData?.name || 'My Business',
       twilio_phone_number: businessData?.twilio_phone_number || '',
       auto_reply_message: businessData?.auto_reply_message || 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
-      subscription_status: businessData?.subscription_status || 'inactive',
+      subscription_status: businessData?.subscription_status || 'trialing',
       stripe_customer_id: businessData?.stripe_customer_id || null,
+      trial_ends_at: trialEndsAt.toISOString(),
     }
     
     const createdBusiness = await this.createBusiness(newBusinessData)
     
     if (createdBusiness) {
-      console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
+      console.log('[getOrCreateBusiness] Creating new business with trial:', createdBusiness.id, 'trial ends:', trialEndsAt.toISOString())
     } else {
       console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
     }

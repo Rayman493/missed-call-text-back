@@ -35,6 +35,16 @@ function getFriendlyErrorMessage(errorCode: string | null, errorMessage: string 
   return 'Delivery failed'
 }
 
+// Helper to calculate days remaining for trial
+function getDaysRemaining(trialEndsAt: string | null | undefined): number {
+  if (!trialEndsAt) return 0
+  const now = new Date()
+  const trialEnd = new Date(trialEndsAt)
+  const diffTime = trialEnd.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return Math.max(0, diffDays)
+}
+
 // Helper to get lead-level status indicator
 function getLeadMessageStatus(latestMessage: any): { text: string; color: string; icon: string } {
   if (!latestMessage || !latestMessage.status) {
@@ -409,6 +419,56 @@ export default function DashboardContent() {
           {/* Main Content */}
           <div className="p-4 sm:p-8">
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
+                        
+            {/* Trial Banner */}
+            {business?.subscription_status === 'trialing' && business?.trial_ends_at && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎉</span>
+                    <div>
+                      <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
+                        Your free trial is active
+                      </p>
+                      <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                        {getDaysRemaining(business.trial_ends_at)} days remaining
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/settings#billing"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Upgrade Now
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Trial Expired Warning */}
+            {business?.subscription_status === 'trialing' && business?.trial_ends_at && getDaysRemaining(business.trial_ends_at) === 0 && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                      <p className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100">
+                        Your trial has expired
+                      </p>
+                      <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+                        Upgrade to continue using ReplyFlow
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/settings#billing"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Upgrade Now
+                  </Link>
+                </div>
+              </div>
+            )}
                         
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
