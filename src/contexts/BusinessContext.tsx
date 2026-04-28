@@ -18,6 +18,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const supabase = createBrowserClient()
 
@@ -37,9 +38,17 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       if (!user) {
         console.log('[BusinessContext] No user found')
         setBusiness(null)
+        setUserId(null)
         setLoading(false)
         return
       }
+
+      // If user changed, clear old business data
+      if (userId && userId !== user.id) {
+        console.log('[BusinessContext] User changed, clearing old business data')
+        setBusiness(null)
+      }
+      setUserId(user.id)
 
       console.log('[BusinessContext] User found, fetching business for user:', user.id)
       const { data, error: fetchError } = await supabase
@@ -119,6 +128,28 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Listen to auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      console.log('[BusinessContext] Auth state changed:', event, session?.user?.id)
+      
+      if (event === 'SIGNED_OUT') {
+        console.log('[BusinessContext] User signed out, clearing business data')
+        setBusiness(null)
+        setUserId(null)
+        setLoading(false)
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('[BusinessContext] User signed in or token refreshed, fetching business')
+        fetchBusiness()
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  // Initial fetch
   useEffect(() => {
     fetchBusiness()
   }, [])

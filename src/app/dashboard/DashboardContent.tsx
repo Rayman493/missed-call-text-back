@@ -69,6 +69,7 @@ export default function DashboardContent() {
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [testSmsMessage, setTestSmsMessage] = useState('')
+  const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams.get('checkout')
   const router = useRouter()
@@ -155,6 +156,12 @@ export default function DashboardContent() {
 
   const handleSignOut = async () => {
     try {
+      // Clear local dashboard state
+      setLeads([])
+      setFollowUpJobs([])
+      setCurrentBusinessId(null)
+      setTestSmsMessage('')
+      
       await supabase.auth.signOut()
       console.log('[Auth] User signed out')
       router.push('/')
@@ -251,6 +258,15 @@ export default function DashboardContent() {
       return
     }
 
+    // If business changed, clear old data
+    if (currentBusinessId && currentBusinessId !== business.id) {
+      console.log('[DashboardContent] Business changed, clearing old data')
+      setLeads([])
+      setFollowUpJobs([])
+      setCurrentBusinessId(business.id)
+    }
+    setCurrentBusinessId(business.id)
+
     const fetchLeads = async () => {
       console.log('[DashboardContent] Fetching leads for business:', business.id)
       setLoading(true)
@@ -313,7 +329,7 @@ export default function DashboardContent() {
     }
 
     fetchLeads()
-  }, [business, businessLoading, supabase])
+  }, [business, businessLoading, supabase, currentBusinessId])
 
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
