@@ -10,7 +10,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 function getErrorMessage(errorCode?: string | null): string | null {
   if (!errorCode) return null
   if (errorCode === '30007') {
-    return 'Sent (delivery pending). This may happen while toll-free verification is pending.'
+    return 'Sent (delivery pending). Carrier verification may still be in progress.'
   }
   return `Twilio error code: ${errorCode}`
 }

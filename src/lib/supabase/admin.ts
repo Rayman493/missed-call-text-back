@@ -145,6 +145,8 @@ export const db = {
       subscription_status: businessData?.subscription_status || 'trialing',
       stripe_customer_id: businessData?.stripe_customer_id || null,
       trial_ends_at: trialEndsAt.toISOString(),
+      sms_type: businessData?.sms_type || 'toll_free',
+      messaging_status: businessData?.messaging_status || 'not_assigned',
     }
     
     const createdBusiness = await this.createBusiness(newBusinessData)

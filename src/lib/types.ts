@@ -6,8 +6,9 @@ export interface Business {
   personal_phone_number?: string | null;
   twilio_messaging_service_sid?: string | null;
   auto_reply_message: string;
-  sms_type?: string | null;
+  sms_type?: 'toll_free' | 'local_a2p' | string | null;
   a2p_status?: string | null;
+  messaging_status?: 'not_assigned' | 'pending_verification' | 'active' | 'failed' | string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;

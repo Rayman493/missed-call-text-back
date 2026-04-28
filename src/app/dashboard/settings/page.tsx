@@ -161,56 +161,59 @@ export default function SettingsPage() {
           </header>
 
           {/* Main Content */}
-          <div className="p-4 sm:p-8">
+          <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-8">Control how ReplyFlow works for your business.</p>
+              <div className="mb-10">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
+                <p className="text-gray-600 dark:text-gray-400">Control how ReplyFlow works for your business.</p>
+              </div>
 
               {success && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8">
                   <p className="text-sm text-green-800 dark:text-green-300">Settings updated successfully!</p>
                 </div>
               )}
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-8">
                   <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
                 </div>
               )}
 
-              {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Account</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{user?.email || 'Not available'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Account Status
-                    </label>
-                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">Active</p>
-                  </div>
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      Sign Out
-                    </button>
+              <div className="space-y-6">
+                {/* Account Section */}
+                <div id="account" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Account</h2>
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Email
+                      </label>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{user?.email || 'Not available'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Account Status
+                      </label>
+                      <p className="text-sm text-green-600 dark:text-green-400 font-medium">Active</p>
+                    </div>
+                    <div className="pt-5 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <form onSubmit={handleUpdate} className="space-y-6">
+                <form onSubmit={handleUpdate} className="space-y-6">
                 {/* Business Info Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Business Info</h2>
-                  <div className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Business Info</h2>
+                  <div className="space-y-5">
                     <div>
                       <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Business Name
@@ -247,9 +250,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Phone & Messaging Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Phone & Messaging</h2>
-                  <div className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Phone & Messaging</h2>
+                  <div className="space-y-5">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Your ReplyFlow Number
@@ -257,19 +260,28 @@ export default function SettingsPage() {
                       <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                            {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                            {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Number not assigned yet'}
                           </span>
                           <span className={`text-sm px-2 py-1 rounded-full ${
-                            business.twilio_phone_number 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            (business as any).messaging_status === 'active' || (business as any).a2p_status === 'verified' || (business as any).a2p_status === 'approved'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : (business as any).messaging_status === 'failed'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                           }`}>
-                            {business.twilio_phone_number ? 'Active' : 'Pending verification'}
+                            {(business as any).messaging_status === 'active' || (business as any).a2p_status === 'verified' || (business as any).a2p_status === 'approved'
+                              ? 'Active'
+                              : (business as any).messaging_status === 'failed'
+                                ? 'Action needed'
+                                : (business as any).sms_type === 'local_a2p'
+                                  ? 'Pending campaign approval'
+                                  : 'Pending carrier approval'
+                            }
                           </span>
                         </div>
-                        {(business as any).sms_type === 'toll_free' && (business as any).a2p_status !== 'verified' && (business as any).a2p_status !== 'approved' && (
+                        {!business.twilio_phone_number && (
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Status: Pending carrier approval
+                            Your number will be assigned during setup.
                           </p>
                         )}
                       </div>
@@ -299,8 +311,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Automation Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Automation</h2>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Automation</h2>
                   <div className="space-y-8">
                     {/* Instant Reply */}
                     <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
@@ -383,8 +395,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Billing Section */}
-                <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Billing</h2>
+                <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Billing</h2>
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
@@ -400,7 +412,7 @@ export default function SettingsPage() {
                   </div>
                   
                   {/* Save Button */}
-                  <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                       type="submit"
                       disabled={loading}
@@ -410,16 +422,17 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+              </form>
 
                 {/* Danger Zone */}
-                <div id="danger-zone" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-6">
-                  <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
+                <div id="danger-zone" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-5">Danger Zone</h2>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Permanently delete your account and all associated data
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1.5">
                         This action cannot be undone
                       </p>
                     </div>
@@ -432,7 +445,7 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
