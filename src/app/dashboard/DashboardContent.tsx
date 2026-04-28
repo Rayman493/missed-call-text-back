@@ -532,14 +532,14 @@ export default function DashboardContent() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
                   <button
                     onClick={handleStartSubscription}
                     disabled={checkoutLoading}
                     className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
                   >
-                    {checkoutLoading ? 'Processing...' : 'Activate for $29/month'}
+                    {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
                   </button>
                 </>
               )}
