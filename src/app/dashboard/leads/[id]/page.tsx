@@ -92,19 +92,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const messages = leadData?.messages || []
     if (!optimisticMessage) return messages
     
-    // Check if optimistic message should be displayed (not yet in real messages)
-    const isOptimisticStillNeeded = optimisticMessage.isOptimistic || 
-      !messages.some((msg: any) => 
-        // Match by real message ID if optimistic has been updated
-        (optimisticMessage.id !== msg.id && 
-         optimisticMessage.id.startsWith('temp-') && 
-         msg.body === optimisticMessage.body && 
-         msg.direction === 'outbound' &&
-         Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 10000)
-      )
+    // Check for duplicates using multiple strategies
+    const hasDuplicate = messages.some((msg: any) => {
+      // 1. Match by exact ID (if optimistic has real ID)
+      if (optimisticMessage.id === msg.id) return true
+      
+      // 2. Match by clientTempId (most reliable)
+      if (optimisticMessage.clientTempId && msg.clientTempId === optimisticMessage.clientTempId) return true
+      
+      // 3. Match by content + direction + timing (fallback for older messages)
+      if (msg.body === optimisticMessage.body && 
+          msg.direction === optimisticMessage.direction &&
+          Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 10000) {
+        return true
+      }
+      
+      return false
+    })
     
-    // If optimistic message is no longer needed (real message exists), don't add it
-    if (!isOptimisticStillNeeded) return messages
+    // If duplicate found, don't add optimistic message
+    if (hasDuplicate) return messages
     
     // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
     const combined = [...messages, optimisticMessage]
@@ -177,10 +184,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Don't send if message is empty, whitespace, or already sending
     if (!message.trim() || sending) return
 
-    // Create optimistic message
-    const tempId = `temp-${Date.now()}`
+    // Create stable client temp ID
+    const clientTempId = crypto.randomUUID()
+    
+    // Create optimistic message with stable ID
     const optimisticMsg = {
-      id: tempId,
+      id: clientTempId,
+      clientTempId,
       direction: 'outbound',
       body: message.trim(),
       status: 'sending',
@@ -204,7 +214,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ leadId: params.id, message: message.trim() })
+        body: JSON.stringify({ 
+          leadId: params.id, 
+          message: message.trim(),
+          clientTempId
+        })
       })
 
       const result = await response.json()
@@ -230,16 +244,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data
-      if (result.messageId && optimisticMsg.id.startsWith('temp-')) {
-        setOptimisticMessage({
-          ...optimisticMsg,
-          id: result.messageId,
-          status: 'sent',
-          isOptimistic: false // Mark as real message
+      // Update optimistic message with real message data using clientTempId
+      if (result.clientTempId === clientTempId && result.message) {
+        setOptimisticMessage((prev: any) => {
+          // Only update if this is the same message
+          if (prev?.clientTempId === clientTempId) {
+            return {
+              ...prev,
+              id: result.message.id,
+              status: result.message.status || 'sent',
+              isOptimistic: false,
+              // Keep other properties from the real message
+              ...result.message
+            }
+          }
+          return prev
         })
         
-        // Clear optimistic message after a slightly longer delay to allow real message to appear
+        // Clear optimistic message after real message is integrated
         setTimeout(() => {
           setOptimisticMessage(null)
         }, 500)
@@ -280,15 +302,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Allow Shift+Enter to create new line (default behavior)
   }
 
-  const handleRetry = async (messageBody: string, messageId?: string) => {
+  const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
     if (sending) return
     
     setSending(true)
     setError('')
 
+    // Generate a new clientTempId for this retry attempt if not provided
+    const retryClientTempId = clientTempId || crypto.randomUUID()
+
     // If retrying an optimistic message, update its status
-    if (messageId?.startsWith('temp-')) {
-      setOptimisticMessage((prev: any) => prev?.id === messageId ? { ...prev, status: 'sending' } : prev)
+    if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
+      setOptimisticMessage((prev: any) => {
+        if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
+          return {
+            ...prev,
+            clientTempId: retryClientTempId,
+            status: 'sending'
+          }
+        }
+        return prev
+      })
     }
 
     try {
@@ -302,19 +336,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ leadId: params.id, message: messageBody })
+        body: JSON.stringify({ 
+          leadId: params.id, 
+          message: messageBody,
+          clientTempId: retryClientTempId
+        })
       })
 
       const result = await response.json()
 
       if (!response.ok) {
         // Update optimistic message back to failed
-        if (messageId?.startsWith('temp-')) {
-          setOptimisticMessage((prev: any) => prev?.id === messageId ? { 
-            ...prev, 
-            status: 'failed',
-            error_message: result.error || 'Failed to send message'
-          } : prev)
+        if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
+          setOptimisticMessage((prev: any) => {
+            if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
+              return {
+                ...prev,
+                status: 'failed',
+                error_message: result.error || 'Failed to send message'
+              }
+            }
+            return prev
+          })
         }
         
         // Show appropriate error message based on response
@@ -330,34 +373,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data on successful retry
-      if (result.messageId && messageId?.startsWith('temp-')) {
-        setOptimisticMessage((prev: any) => prev?.id === messageId ? {
-          ...prev,
-          id: result.messageId,
-          status: 'sent',
-          isOptimistic: false
-        } : prev)
+      // Update optimistic message with real message data using clientTempId
+      if (result.clientTempId === retryClientTempId && result.message) {
+        setOptimisticMessage((prev: any) => {
+          // Only update if this is the same message
+          if (prev?.clientTempId === retryClientTempId) {
+            return {
+              ...prev,
+              id: result.message.id,
+              status: result.message.status || 'sent',
+              isOptimistic: false,
+              // Keep other properties from the real message
+              ...result.message
+            }
+          }
+          return prev
+        })
+        
+        // Clear optimistic message after real message is integrated
+        setTimeout(() => {
+          setOptimisticMessage(null)
+        }, 500)
       }
 
       // Refresh data and clear optimistic message after delay
-      router.refresh()
-      const data = await getLeadDetails(params.id)
-      setLeadData(data)
-      
       setTimeout(() => {
-        if (messageId?.startsWith('temp-')) {
+        if (optimisticMessage?.clientTempId === retryClientTempId) {
           setOptimisticMessage(null)
         }
       }, 100)
     } catch (err) {
       // Update optimistic message back to failed
-      if (messageId?.startsWith('temp-')) {
-        setOptimisticMessage((prev: any) => prev?.id === messageId ? { 
-          ...prev, 
-          status: 'failed',
-          error_message: 'Network error occurred'
-        } : prev)
+      if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
+        setOptimisticMessage((prev: any) => {
+          if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
+            return {
+              ...prev,
+              status: 'failed',
+              error_message: 'Network error occurred'
+            }
+          }
+          return prev
+        })
       }
       setError('Failed to send message')
     } finally {
@@ -595,7 +652,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <button
                                   onClick={() => {
                                     if (!sending) {
-                                      handleRetry(msg.body, msg.id)
+                                      handleRetry(msg.body, msg.id, msg.clientTempId)
                                     }
                                   }}
                                   disabled={sending}
@@ -612,7 +669,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <button
                                   onClick={() => {
                                     if (!sending) {
-                                      handleRetry(msg.body, msg.id)
+                                      handleRetry(msg.body, msg.id, msg.clientTempId)
                                     }
                                   }}
                                   disabled={sending}
@@ -636,7 +693,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <button
                                   onClick={() => {
                                     if (!sending) {
-                                      handleRetry(msg.body, msg.id)
+                                      handleRetry(msg.body, msg.id, msg.clientTempId)
                                     }
                                   }}
                                   disabled={sending}
@@ -653,7 +710,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <button
                                   onClick={() => {
                                     if (!sending) {
-                                      handleRetry(msg.body, msg.id)
+                                      handleRetry(msg.body, msg.id, msg.clientTempId)
                                     }
                                   }}
                                   disabled={sending}

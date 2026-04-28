@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: 'Unauthorized' })
       }
 
-      const { leadId, message } = req.body
+      const { leadId, message, clientTempId } = req.body
 
       if (!leadId || !message) {
         console.error('[Manual SMS] Missing required fields:', { leadId, hasMessage: !!message })
@@ -219,7 +219,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('id', leadId)
 
       console.log('[Manual SMS] Send completed successfully')
-      return res.status(200).json({ success: true, messageSid, messageId: messageRecord.id })
+      return res.status(200).json({ 
+        success: true, 
+        messageSid, 
+        messageId: messageRecord.id,
+        clientTempId,
+        message: messageRecord
+      })
     } catch (error) {
       console.error('[Manual SMS] Error:', error)
       return res.status(500).json(
