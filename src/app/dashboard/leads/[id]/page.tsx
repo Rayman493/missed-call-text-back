@@ -87,6 +87,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
 
   // ALL hooks must be declared here before any conditional returns
+  // Auto-scroll to newest message
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    // Only scroll if user is near bottom (within 200px) or if it's a new message
+    const scrollThreshold = 200
+    const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
+    
+    if (isNearBottom || behavior === 'auto') {
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior
+        })
+      }, 100)
+    }
+  }
+
+  
+  // Scroll to bottom after sending a message
+  useEffect(() => {
+    if (!sending && successMessage) {
+      scrollToBottom('smooth')
+    }
+  }, [sending, successMessage])
+
   // Merge messages by ID to prevent overwriting local state with stale data
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
     console.log('[Merge] Existing messages count:', existingMessages.length)
@@ -149,7 +173,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
-  // Determine automation status
+  // Scroll to bottom after messages load
+  useEffect(() => {
+    if (!loading && messagesArray.length > 0) {
+      scrollToBottom('auto')
+    }
+  }, [loading, messagesArray.length])
+
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
   const hasPendingFollowUps = followUpJobs.some((job: any) => job.status === 'pending')
@@ -489,7 +519,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return (
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
-          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+          {/* Skeleton Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+          </div>
+          
+          {/* Skeleton Messages */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className={`h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                  <div className={`h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mt-1 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
     )
@@ -659,29 +707,53 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             {formatRelativeTime(msg.created_at)}
                           </span>
                           {isOptimistic && (
-                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full animate-pulse">
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
                               Sending...
                             </span>
                           )}
                           {isManual && (
-                            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-xs rounded-full">
+                            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs rounded-full font-medium">
                               Manual
                             </span>
                           )}
                           {isFollowUp && (
-                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
-                              Follow-up
+                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
+                              Auto
                             </span>
                           )}
                           {isInbound && (
-                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
-                              Customer replied
+                            <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-full font-medium">
+                              Customer
                             </span>
                           )}
-                          {isOutbound && msg.status && !isOptimistic && (
-                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getStatusColor(msg.status)}`}>
-                              {getStatusText(msg.status)}
-                            </span>
+                          {isOutbound && !isOptimistic && (
+                            <>
+                              {msg.status === 'sent' && (
+                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
+                                  Sent
+                                </span>
+                              )}
+                              {msg.status === 'delivered' && (
+                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
+                                  Delivered
+                                </span>
+                              )}
+                              {msg.status === 'pending' && (
+                                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-full font-medium">
+                                  Pending
+                                </span>
+                              )}
+                              {msg.status === 'undelivered' && (
+                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-full font-medium">
+                                  Undelivered
+                                </span>
+                              )}
+                              {msg.status === 'failed' && (
+                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-full font-medium">
+                                  Failed
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                         
@@ -708,8 +780,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {hasError && (
                           <div className="mt-2">
                             {msg.error_code === '30007' || msg.error_message?.includes('verification') ? (
-                              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                                <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-2">
+                                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
                                   {errorMessage || msg.error_message}
                                 </p>
                                 <button
@@ -719,14 +791,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     }
                                   }}
                                   disabled={sending}
-                                  className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                  className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
                                   {sending ? 'Retrying...' : 'Retry'}
                                 </button>
                               </div>
                             ) : (
-                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                                <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
+                                <p className="text-xs text-red-700 dark:text-red-300 mb-2">
                                   {errorMessage || msg.error_message || 'Message failed to send'}
                                 </p>
                                 <button
@@ -736,7 +808,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     }
                                   }}
                                   disabled={sending}
-                                  className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                  className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
                                   {sending ? 'Retrying...' : 'Retry'}
                                 </button>
@@ -749,8 +821,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {isOptimistic && msg.status === 'failed' && (
                           <div className="mt-2">
                             {msg.error_message?.includes('verification') || msg.error_message?.includes('carrier') ? (
-                              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                                <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-2">
+                                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
                                   {msg.error_message}
                                 </p>
                                 <button
@@ -760,14 +832,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     }
                                   }}
                                   disabled={sending}
-                                  className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                  className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
                                   {sending ? 'Retrying...' : 'Retry'}
                                 </button>
                               </div>
                             ) : (
-                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                                <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
+                                <p className="text-xs text-red-700 dark:text-red-300 mb-2">
                                   {msg.error_message}
                                 </p>
                                 <button
@@ -777,7 +849,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     }
                                   }}
                                   disabled={sending}
-                                  className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                                  className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
                                 >
                                   {sending ? 'Retrying...' : 'Retry'}
                                 </button>
