@@ -126,30 +126,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           )
         }
         conversation = newConversation
-        console.log('[Manual SMS] Conversation created:', conversation.id)
+        console.log('[Manual SMS] Conversation found:', conversation.id)
       }
 
-      // Insert message with pending status
+      // Insert message with pending status using same schema as working implementations
+      const messagePayload = {
+        lead_id: leadId,
+        conversation_id: conversation.id,
+        direction: 'outbound' as const,
+        body: message.trim(),
+        from_phone: business.twilio_phone_number,
+        to_phone: lead.caller_phone,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      }
+
+      console.log('[Manual SMS] Message insert payload:', JSON.stringify(messagePayload, null, 2))
+      
       const { data: messageRecord, error: messageError } = await supabaseAdmin
         .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          lead_id: leadId,
-          business_id: lead.business_id,
-          direction: 'outbound',
-          body: message.trim(),
-          from_phone: business.twilio_phone_number,
-          to_phone: lead.caller_phone,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        })
+        .insert(messagePayload)
         .select()
         .single()
 
-      if (messageError || !messageRecord) {
-        console.error('[Manual SMS] Failed to insert message:', messageError)
+      console.log('[Manual SMS] Message insert result:', { data: messageRecord, error: messageError })
+
+      if (messageError) {
+        console.error('[Manual SMS] Message insert error:', messageError)
         return res.status(500).json(
-          { error: 'Failed to create message record' }
+          { error: 'Failed to create message record', details: messageError.message }
+        )
+      }
+
+      if (!messageRecord) {
+        console.error('[Manual SMS] Message insert returned no data')
+        return res.status(500).json(
+          { error: 'Failed to create message record - no data returned' }
         )
       }
 
