@@ -8,7 +8,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true, route: "send-sms exists" })
   }
 
-  if (req.method !== 'POST') {
+  if (req.method === 'POST') {
+    // Temporary test response for POST
+    return res.status(200).json({ 
+      ok: true, 
+      route: "send-sms POST exists",
+      method: req.method,
+      body: req.body
+    })
+  }
+
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
