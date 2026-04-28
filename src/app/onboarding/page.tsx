@@ -85,7 +85,7 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Using getOrCreateBusiness API for user:', userId)
-      // Use centralized getOrCreateBusiness API
+      // Use centralized getOrCreateBusiness API with default ReplyFlow test number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -94,8 +94,13 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           businessData: {
             name: businessName,
-            twilio_phone_number: normalizedPhone,
+            twilio_phone_number: '+18336584303',
+            forwarding_phone_number: normalizedPhone,
             auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+            sms_type: 'toll_free',
+            messaging_status: 'pending_verification',
+            onboarding_status: 'completed',
+            subscription_status: 'trialing',
           }
         })
       })

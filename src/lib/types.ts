@@ -19,6 +19,7 @@ export interface Business {
   forwarding_phone_number?: string | null;
   setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
   setup_completed_at?: string | null;
+  onboarding_status?: 'started' | 'completed' | string | null;
   created_at: string;
   updated_at?: string;
 }
