@@ -64,6 +64,7 @@ function formatMessageTimestamp(message: any): string {
 
 export default function DashboardContent() {
   const { business, loading: businessLoading, refreshBusiness } = useBusiness()
+  const { setBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
