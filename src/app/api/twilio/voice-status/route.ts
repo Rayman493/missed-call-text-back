@@ -147,23 +147,53 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Save call event linked to conversation
+    // Update or create call event linked to conversation
     if (conversation) {
-      console.log(`[voice-status] Creating call event for conversation: ${conversation.id}`)
-      const callEvent = await db.createCallEventWithConversation({
-        business_id: business.id,
-        conversation_id: conversation.id,
-        caller_phone: normalizedCallerPhone,
-        call_status: CallStatus || 'unknown',
-        twilio_call_sid: params.get('CallSid'),
-        raw_payload: Object.fromEntries(params.entries()),
-        created_at: new Date().toISOString(),
-      })
+      const callSid = params.get('CallSid')
+      console.log(`[voice-status] Looking for existing call event with CallSid: ${callSid}`)
       
-      if (!callEvent) {
-        console.error('[voice-status] Failed to save call event')
+      // First try to find existing call event
+      const { data: existingCallEvent } = await supabase
+        .from('call_events')
+        .select('id')
+        .eq('twilio_call_sid', callSid)
+        .maybeSingle()
+      
+      if (existingCallEvent) {
+        // Update existing call event with conversation_id and latest status
+        console.log(`[call_events] Updating existing call event: ${existingCallEvent.id}`)
+        const { error: updateError } = await supabase
+          .from('call_events')
+          .update({
+            conversation_id: conversation.id,
+            call_status: CallStatus || 'unknown',
+            raw_payload: Object.fromEntries(params.entries()),
+          })
+          .eq('id', existingCallEvent.id)
+        
+        if (updateError) {
+          console.error('[call_events] Failed to update call event:', updateError)
+        } else {
+          console.log(`[call_events] Updated call status to: ${CallStatus || 'unknown'}`)
+        }
       } else {
-        console.log(`[voice-status] Saved call event: ${callEvent.id}`)
+        // Create new call event (should only happen if voice webhook didn't create one)
+        console.log(`[call_events] Creating new call event for conversation: ${conversation.id}`)
+        const callEvent = await db.createCallEventWithConversation({
+          business_id: business.id,
+          conversation_id: conversation.id,
+          caller_phone: normalizedCallerPhone,
+          call_status: CallStatus || 'unknown',
+          twilio_call_sid: callSid,
+          raw_payload: Object.fromEntries(params.entries()),
+          created_at: new Date().toISOString(),
+        })
+        
+        if (!callEvent) {
+          console.error('[voice-status] Failed to save call event')
+        } else {
+          console.log(`[call_events] Created call event: ${callEvent.id}`)
+        }
       }
     } else {
       console.error('[voice-status] No conversation available for call event')

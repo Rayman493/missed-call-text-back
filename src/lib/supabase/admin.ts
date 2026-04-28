@@ -269,6 +269,20 @@ export const db = {
   },
 
   async createCallEvent(callEvent: Omit<CallEvent, 'id'>): Promise<CallEvent | null> {
+    // Check if call event already exists for this call_sid (idempotency)
+    if (callEvent.twilio_call_sid) {
+      const { data: existing } = await supabaseAdmin
+        .from('call_events')
+        .select('id')
+        .eq('twilio_call_sid', callEvent.twilio_call_sid)
+        .maybeSingle()
+      
+      if (existing) {
+        console.log('[call_events] Existing call event found, skipping duplicate:', callEvent.twilio_call_sid)
+        return null
+      }
+    }
+    
     const { data, error } = await supabaseAdmin
       .from('call_events')
       .insert(callEvent)
@@ -276,10 +290,11 @@ export const db = {
       .single()
     
     if (error) {
-      console.error('Error creating call event:', error)
+      console.error('[call_events] Error creating call event:', error)
       return null
     }
     
+    console.log('[call_events] Created call event:', data.id)
     return data
   },
 
