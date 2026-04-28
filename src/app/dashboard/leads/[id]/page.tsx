@@ -343,14 +343,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const lead = leadData
-  const messages = leadData.messages || []
-  const conversation = leadData.conversation || null
-  const followUpJobs = leadData.followUpJobs || []
-  const source = leadData.source || null
-
   // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
+  // Note: All hooks must be called unconditionally before any early returns
   const allMessages = useMemo(() => {
+    const messages = leadData?.messages || []
     if (!optimisticMessage) return messages
     
     // If optimistic message exists, check if there's already a message with the same content
@@ -368,13 +364,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return combined.sort((a: any, b: any) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
-  }, [messages, optimisticMessage])
+  }, [leadData?.messages, optimisticMessage])
   
   const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
   // Determine automation status
+  const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
   const hasPendingFollowUps = followUpJobs.some((job: any) => job.status === 'pending')
   const hasSentFollowUps = followUpJobs.some((job: any) => job.status === 'sent')
@@ -388,6 +385,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   } else if (hasSentFollowUps) {
     automationStatus = 'Follow-ups completed'
   }
+
+  // Now safely destructure after hooks are called
+  const lead = leadData
+  const messages = leadData?.messages || []
+  const conversation = leadData?.conversation || null
+  const source = leadData?.source || null
 
   // Debug info
   const debugInfo = {
