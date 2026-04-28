@@ -24,6 +24,7 @@ export default function MobileMenu() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        aria-label="Toggle menu"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {isOpen ? (
@@ -37,10 +38,10 @@ export default function MobileMenu() {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-16 z-20 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+          <div className="absolute left-0 top-16 z-20 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 transform transition-all duration-200 ease-in-out">
             {menuItems.map((item) => (
               <Link
                 key={item.href}

@@ -400,17 +400,25 @@ export default function DashboardContent() {
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 md:gap-8">
+                {/* Left side - Mobile menu and logo */}
+                <div className="flex items-center gap-3 md:gap-8">
+                  {/* Mobile menu - only visible on mobile/tablet */}
+                  <div className="md:hidden">
+                    <MobileMenu />
+                  </div>
                   <Link href="/" className="flex items-center hover:opacity-90 transition">
                     <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
                       <span className="text-gray-900 dark:text-gray-100">Reply</span>
                       <span className="text-blue-600 dark:text-blue-500">Flow</span>
                     </span>
                   </Link>
+                  {/* Desktop navigation - only visible on desktop */}
                   <div className="hidden md:block">
                     <Navigation />
                   </div>
                 </div>
+                
+                {/* Right side - Theme toggle, user dropdown, etc. */}
                 <div className="flex items-center gap-2 md:gap-3">
                   <Link
                     href="/home"
@@ -425,7 +433,8 @@ export default function DashboardContent() {
                     <MobileThemeToggle />
                   </div>
                   <UserDropdown />
-                  <MobileMenu />
+                  {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
+                  <div className="hidden md:block w-10"></div>
                 </div>
               </div>
             </div>
