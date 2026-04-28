@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
-import ThemeToggle from '@/components/ThemeToggle'
+import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
@@ -114,7 +114,12 @@ export default function LeadsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
-                  <ThemeToggle />
+                  <div className="hidden sm:block">
+                    <ThemeToggle />
+                  </div>
+                  <div className="sm:hidden">
+                    <MobileThemeToggle />
+                  </div>
                   <UserDropdown />
                   <MobileMenu />
                 </div>

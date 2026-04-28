@@ -10,7 +10,7 @@ import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
-import ThemeToggle from '@/components/ThemeToggle'
+import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
@@ -393,7 +393,12 @@ export default function DashboardContent() {
                   >
                     View Homepage
                   </Link>
-                  <ThemeToggle />
+                  <div className="hidden sm:block">
+                    <ThemeToggle />
+                  </div>
+                  <div className="sm:hidden">
+                    <MobileThemeToggle />
+                  </div>
                   <UserDropdown />
                   <MobileMenu />
                 </div>
