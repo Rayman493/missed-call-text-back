@@ -92,15 +92,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const messages = leadData?.messages || []
     if (!optimisticMessage) return messages
     
-    // If optimistic message exists, check if there's already a message with the same content
-    const hasDuplicate = messages.some(
-      (msg: any) => msg.body === optimisticMessage.body && 
-                 msg.direction === 'outbound' && 
-                 Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000
-    )
+    // Check if optimistic message should be displayed (not yet in real messages)
+    const isOptimisticStillNeeded = optimisticMessage.isOptimistic || 
+      !messages.some((msg: any) => 
+        // Match by real message ID if optimistic has been updated
+        (optimisticMessage.id !== msg.id && 
+         optimisticMessage.id.startsWith('temp-') && 
+         msg.body === optimisticMessage.body && 
+         msg.direction === 'outbound' &&
+         Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 10000)
+      )
     
-    // If duplicate found, don't add optimistic message
-    if (hasDuplicate) return messages
+    // If optimistic message is no longer needed (real message exists), don't add it
+    if (!isOptimisticStillNeeded) return messages
     
     // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
     const combined = [...messages, optimisticMessage]
@@ -234,6 +238,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           status: 'sent',
           isOptimistic: false // Mark as real message
         })
+        
+        // Clear optimistic message after a slightly longer delay to allow real message to appear
+        setTimeout(() => {
+          setOptimisticMessage(null)
+        }, 500)
       }
 
       // Clear input and set success
@@ -244,11 +253,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setTimeout(() => {
         setSuccessMessage('')
       }, 3000)
-      
-      // Clear optimistic message after a short delay
-      setTimeout(() => {
-        setOptimisticMessage(null)
-      }, 100)
       
       // Scroll to bottom to show the new message
       setTimeout(() => {
