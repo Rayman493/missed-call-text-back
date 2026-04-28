@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
@@ -16,6 +17,7 @@ import MobileMenu from '@/components/MobileMenu'
 export default function SettingsPage() {
   const router = useRouter()
   const { business, refreshBusiness } = useBusiness()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -96,6 +98,15 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
+
   if (!business) {
     return (
       <AuthGuard>
@@ -163,6 +174,34 @@ export default function SettingsPage() {
                   <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
                 </div>
               )}
+
+              {/* Account Section */}
+              <div id="account" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Account</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{user?.email || 'Not available'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Account Status
+                    </label>
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">Active</p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <form onSubmit={handleUpdate} className="space-y-6">
                 {/* Business Info Section */}
@@ -341,7 +380,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Billing Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Billing</h2>
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -370,7 +409,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Danger Zone */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-6">
+                <div id="danger-zone" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-6">
                   <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
                   <div className="flex items-center justify-between">
                     <div>

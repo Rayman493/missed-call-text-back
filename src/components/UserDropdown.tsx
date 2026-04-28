@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const { user } = useAuth()
+  const router = useRouter()
 
   const handleSignOut = async () => {
     try {
@@ -19,6 +21,11 @@ export default function UserDropdown() {
       console.error('Sign out error:', error)
     }
     setIsOpen(false)
+  }
+
+  const navigateToSettings = (hash: string) => {
+    setIsOpen(false)
+    router.push(`/dashboard/settings#${hash}`)
   }
 
   return (
@@ -49,13 +56,13 @@ export default function UserDropdown() {
               </p>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={() => navigateToSettings('account')}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               Account
             </button>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={() => navigateToSettings('billing')}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               Billing
