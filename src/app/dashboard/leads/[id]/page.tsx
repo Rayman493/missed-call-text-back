@@ -204,6 +204,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
+  // Determine automation status
+  const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
+  const hasPendingFollowUps = followUpJobs.some((job: any) => job.status === 'pending')
+  const hasSentFollowUps = followUpJobs.some((job: any) => job.status === 'sent')
+  const hasInboundReply = messagesArray.some((msg: any) => msg.direction === 'inbound')
+
+  let automationStatus = ''
+  if (hasCancelledFollowUps && hasInboundReply) {
+    automationStatus = 'Follow-ups cancelled after customer reply'
+  } else if (hasPendingFollowUps) {
+    automationStatus = 'Follow-ups active'
+  } else if (hasSentFollowUps) {
+    automationStatus = 'Follow-ups completed'
+  }
+
   // Debug info
   const debugInfo = {
     leadId: params.id,
@@ -254,6 +269,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}>
                       {conversation.status}
+                    </span>
+                  )}
+                  {automationStatus && (
+                    <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-xs rounded-full">
+                      {automationStatus}
                     </span>
                   )}
                 </div>
@@ -329,11 +349,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               Follow-up
                             </span>
                           )}
-                          {msg.status && (
+                          {isInbound && (
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
+                              Customer replied
+                            </span>
+                          )}
+                          {isOutbound && msg.status && (
                             <span className={`px-2 py-0.5 text-xs rounded-full ${
                               msg.status === 'sent' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
                               msg.status === 'delivered' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
                               msg.status === 'failed' || msg.status === 'undelivered' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
+                              msg.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
                               'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                             }`}>
                               {msg.status}
