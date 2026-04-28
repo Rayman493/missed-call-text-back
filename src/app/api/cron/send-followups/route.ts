@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
     console.log('[Cron] Authorized cron request to /api/cron/send-followups');
     console.log('[send-followups] Starting follow-up processing')
     
-    // Query due follow_ups where: status = 'pending', scheduled_for <= now()
+    // Query due follow_up_jobs where: status = 'pending', scheduled_for <= now()
     const now = new Date().toISOString()
     const { data: dueFollowUps, error: followUpsError } = await supabase
-      .from('follow_ups')
+      .from('follow_up_jobs')
       .select('*')
       .eq('status', 'pending')
       .lte('scheduled_for', now)
@@ -78,71 +78,66 @@ export async function POST(req: NextRequest) {
       console.log(`[send-followups] Processing follow_up: ${followUp.id}`)
       
       try {
-        // Fetch conversation
+        console.log(`[followups] Processing due follow-up: ${followUp.id}`)
+        
+        // Get open conversation for this lead
         const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
           .select('*')
-          .eq('id', followUp.conversation_id)
+          .eq('lead_id', followUp.lead_id)
+          .eq('status', 'open')
           .single()
         
-        if (conversationError) {
-          console.error('[send-followups] Error fetching conversation:', conversationError)
-          throw conversationError
-        }
-        
-        // If conversation missing or conversation.status != 'open'
-        if (!conversation || conversation.status !== 'open') {
-          console.log(`[send-followups] Cancelling - conversation not open: ${followUp.id}`)
+        if (conversationError || !conversation) {
+          console.log(`[followups] No open conversation found, cancelling follow-up: ${followUp.id}`)
           
-          // Mark follow_up as `cancelled`
+          // Mark follow-up as cancelled
           const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'cancelled',
+              cancelled_reason: 'no_conversation',
+              cancelled_at: new Date().toISOString()
+            })
             .eq('id', followUp.id)
           
           if (cancelError) {
-            console.error('[send-followups] Error cancelling follow-up:', cancelError)
-            throw cancelError
+            console.error('[followups] Error cancelling follow-up:', cancelError)
           }
           cancelled++
           continue
         }
         
-        // Check whether the customer already replied
-        // Query public.messages for any message in the same conversation where:
-        // direction = 'inbound' and created_at > follow_up.created_at
-        let query = supabase
+        // Check whether the customer already replied after follow-up was created
+        const { data: latestInboundMessage, error: messageError } = await supabase
           .from('messages')
           .select('*')
-          .eq('conversation_id', followUp.conversation_id)
+          .eq('conversation_id', conversation.id)
           .eq('direction', 'inbound')
+          .gt('created_at', followUp.created_at)
           .order('created_at', { ascending: false })
           .limit(1)
-        
-        if (followUp.created_at) {
-          query = query.gt('created_at', followUp.created_at)
-        }
-        
-        const { data: latestInboundMessage, error: messageError } = await query.single()
+          .single()
         
         if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is "not found" error
-          console.error('[send-followups] Error fetching latest inbound message:', messageError)
-          throw messageError
+          console.error('[followups] Error checking for replies:', messageError)
         }
         
-        // If found
+        // If customer replied, cancel follow-up
         if (latestInboundMessage) {
-          console.log(`[send-followups] Cancelling - customer already replied: ${followUp.id}`)
+          console.log(`[followups] Customer replied, cancelling follow-up: ${followUp.id}`)
           
-          // Mark follow_up as `cancelled`
           const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'cancelled',
+              cancelled_reason: 'customer_replied',
+              cancelled_at: new Date().toISOString()
+            })
             .eq('id', followUp.id)
           
           if (cancelError) {
-            console.error('[send-followups] Error cancelling follow-up:', cancelError)
-            throw cancelError
+            console.error('[followups] Error cancelling follow-up:', cancelError)
           }
           cancelled++
           continue
@@ -209,9 +204,9 @@ export async function POST(req: NextRequest) {
 
         console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
 
-        // After successful send - update follow_up
+        // After successful send - update follow_up_job
         const { error: updateError } = await supabase
-          .from('follow_ups')
+          .from('follow_up_jobs')
           .update({
             status: 'sent',
             sent_at: new Date().toISOString()
@@ -219,9 +214,10 @@ export async function POST(req: NextRequest) {
           .eq('id', followUp.id)
         
         if (updateError) {
-          console.error('[send-followups] Error marking follow-up as sent:', updateError)
+          console.error('[followups] Error marking follow-up as sent:', updateError)
           throw updateError
         }
+        console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
         
         // Update conversation activity
@@ -290,7 +286,7 @@ export async function GET(req: NextRequest) {
     // For GET, also process follow-ups (same logic as POST)
     const now = new Date().toISOString()
     const { data: dueFollowUps, error: followUpsError } = await supabase
-      .from('follow_ups')
+      .from('follow_up_jobs')
       .select('*')
       .eq('status', 'pending')
       .lte('scheduled_for', now)
@@ -453,9 +449,9 @@ export async function GET(req: NextRequest) {
 
         console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
 
-        // After successful send - update follow_up
+        // After successful send - update follow_up_job
         const { error: updateError } = await supabase
-          .from('follow_ups')
+          .from('follow_up_jobs')
           .update({
             status: 'sent',
             sent_at: new Date().toISOString()
@@ -463,9 +459,10 @@ export async function GET(req: NextRequest) {
           .eq('id', followUp.id)
         
         if (updateError) {
-          console.error('[send-followups] Error marking follow-up as sent:', updateError)
+          console.error('[followups] Error marking follow-up as sent:', updateError)
           throw updateError
         }
+        console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
         
         // Update conversation activity

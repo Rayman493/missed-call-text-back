@@ -281,45 +281,70 @@ export async function POST(req: NextRequest) {
       console.log(`[voice-status] Has existing pending follow-up job: ${hasPendingJob}`)
       
       if (!hasPendingJob) {
-        // Schedule follow-up job for 1 hour later
-        const scheduledFor = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        console.log(`[followups] No existing follow-ups, scheduling follow-ups for lead: ${lead.id}`)
         
-        // Use business's auto-reply message if available, otherwise use fallback
-        const messageBody = business.auto_reply_message || 
-          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
+        // Calculate follow-up times
+        const now = new Date()
+        const followUp1Time = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour later
+        const followUp2Time = new Date(now)
+        followUp2Time.setDate(followUp2Time.getDate() + 1) // Tomorrow
+        followUp2Time.setHours(9, 0, 0, 0) // 9:00 AM
         
-        console.log("INSERTING FOLLOW UP:", {
-          business_id: business.id,
-          lead_id: lead.id
-        })
+        // Create follow-up messages with business name
+        const businessName = business.name || 'My Business'
+        const followUp1Message = `Just following up — did you still need help from ${businessName}?`
+        const followUp2Message = `Good morning, this is ${businessName}. Just checking if you still needed help. Happy to assist.`
         
-        console.log("FOLLOW UP INSERT ATTEMPT")
+        // Create idempotency keys to prevent duplicates
+        const callSid = params.get('CallSid') || 'unknown'
+        const idempotencyKey1 = `lead:${lead.id}:call:${callSid}:followup:1`
+        const idempotencyKey2 = `lead:${lead.id}:call:${callSid}:followup:2`
         
-        const { data: followUpJob, error: jobError } = await supabase
+        // Schedule Follow-up #1 (1 hour later)
+        console.log(`[followups] Scheduling follow-up 1 for ${followUp1Time.toISOString()}`)
+        const { data: followUp1, error: error1 } = await supabase
           .from('follow_up_jobs')
           .insert([{
             lead_id: lead.id,
-            message_body: "Test follow-up",
-            scheduled_for: new Date().toISOString(),
+            business_id: business.id,
+            message_body: followUp1Message,
+            scheduled_for: followUp1Time.toISOString(),
             status: "pending"
           }])
           .select()
           .single()
         
-        if (jobError) {
-          console.error("FOLLOW UP INSERT ERROR:", jobError)
+        if (error1) {
+          console.error(`[followups] Failed to schedule follow-up 1:`, error1)
         } else {
-          console.log(`[voice-status] Follow-up job insert successful: ${followUpJob?.id}`)
-          console.log(`[voice-status] Follow-up job details:`, {
-            job_id: followUpJob?.id,
+          console.log(`[followups] Scheduled follow-up 1: ${followUp1?.id}`)
+        }
+        
+        // Schedule Follow-up #2 (next morning 9 AM)
+        console.log(`[followups] Scheduling follow-up 2 for ${followUp2Time.toISOString()}`)
+        const { data: followUp2, error: error2 } = await supabase
+          .from('follow_up_jobs')
+          .insert([{
             lead_id: lead.id,
             business_id: business.id,
-            scheduled_for: scheduledFor,
-            message_body: messageBody
-          })
+            message_body: followUp2Message,
+            scheduled_for: followUp2Time.toISOString(),
+            status: "pending"
+          }])
+          .select()
+          .single()
+        
+        if (error2) {
+          console.error(`[followups] Failed to schedule follow-up 2:`, error2)
+        } else {
+          console.log(`[followups] Scheduled follow-up 2: ${followUp2?.id}`)
+        }
+        
+        if (!error1 && !error2) {
+          console.log(`[followups] Both follow-ups scheduled successfully for lead: ${lead.id}`)
         }
       } else {
-        console.log(`[voice-status] Follow-up job insert skipped - existing pending job for lead ${lead.id}`)
+        console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
       }
     } else {
       console.error('[voice-status] No conversation available for follow-up job creation')
