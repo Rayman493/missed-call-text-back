@@ -534,7 +534,7 @@ export default function DashboardContent() {
                     disabled={checkoutLoading}
                     className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
                   >
-                    {checkoutLoading ? 'Processing...' : 'Activate for $47/month'}
+                    {checkoutLoading ? 'Processing...' : 'Activate for $29/month'}
                   </button>
                 </>
               )}

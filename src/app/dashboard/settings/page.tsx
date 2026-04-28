@@ -320,7 +320,7 @@ export default function SettingsPage() {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pro Plan</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">$47/month — Active</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">$29/month — Active</p>
                     </div>
                     <button
                       type="button"
