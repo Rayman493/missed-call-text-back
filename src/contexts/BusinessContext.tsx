@@ -26,11 +26,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     refreshBusiness: async () => {
-      // This will be implemented by the caller
-      console.log('[BusinessContext] Refresh business called - this should trigger a refetch')
-      // In a real implementation, this would refetch from the database
-      // For now, we'll trigger a context update to force re-render
-      // The actual refetch logic should be implemented by the caller
+      await fetchBusiness()
     },
     setBusiness
   }
@@ -149,10 +145,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchBusiness()
   }, [])
-
-  const refreshBusiness = async () => {
-    await fetchBusiness()
-  }
 
   return (
     <BusinessContext.Provider value={contextValue}>
