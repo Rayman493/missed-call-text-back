@@ -28,16 +28,16 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
 
   if (!hasNumber) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-600 dark:hover:border-gray-500 transition">
+      <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 hover:border-gray-600 transition">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <span className="text-2xl">⏳</span>
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-lg font-semibold text-gray-100 mb-2">
               Your ReplyFlow Number
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               Your ReplyFlow number is being prepared. Refresh shortly or contact support if this takes too long.
             </p>
           </div>
@@ -47,8 +47,8 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-600 dark:hover:border-gray-500 transition">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+    <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 hover:border-gray-600 transition">
+      <h3 className="text-lg font-semibold text-gray-100 mb-4">
         Your ReplyFlow Number
       </h3>
       <p className="text-sm text-gray-400 mb-6">
@@ -56,10 +56,10 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
       </p>
 
       {/* Number Display */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
+      <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+        <p className="text-xs sm:text-sm text-gray-400 mb-1">Your ReplyFlow number:</p>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">
+          <p className="text-xl sm:text-2xl font-bold text-blue-100">
             {formatPhoneNumber(phoneNumber)}
           </p>
           <button
@@ -75,22 +75,22 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Call tracking: Active</span>
+          <span className="text-xs sm:text-sm text-gray-400">Call tracking: Active</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Text replies: Active</span>
+          <span className="text-xs sm:text-sm text-gray-400">Text replies: Active</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Call forwarding: Setup needed</span>
+          <span className="text-xs sm:text-sm text-gray-400">Call forwarding: Setup needed</span>
         </div>
       </div>
 
       {/* Setup Steps */}
-      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Setup steps:</h4>
-        <ol className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
+      <div className="bg-gray-700 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+        <h4 className="text-sm font-semibold text-gray-100 mb-3">Setup steps:</h4>
+        <ol className="space-y-2 text-xs sm:text-sm text-gray-400 list-decimal list-inside">
           <li>Copy your ReplyFlow number</li>
           <li>Set up missed-call forwarding from your business phone</li>
           <li>Test by calling your business number and letting it go unanswered</li>
@@ -107,7 +107,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
         </button>
         <button
           onClick={() => setShowInstructions(true)}
-          className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
+          className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 text-gray-300 font-medium rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
         >
           View Forwarding Instructions
         </button>

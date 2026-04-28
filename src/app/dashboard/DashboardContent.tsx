@@ -373,8 +373,8 @@ export default function DashboardContent() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-6 py-4">
-              <div className="flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-6 py-2">
+              <div className="flex items-center justify-between h-10">
                 <Link href="/" className="flex items-center hover:opacity-90 transition">
                   <span className="text-xl md:text-2xl font-semibold tracking-tight">
                     <span className="text-gray-200 dark:text-gray-200">Reply</span>
@@ -409,7 +409,7 @@ export default function DashboardContent() {
 
           {/* Main Content */}
           <div className="p-4 sm:p-8">
-            <div className="max-w-4xl mx-auto flex flex-col gap-8">
+            <div className="max-w-5xl mx-auto flex flex-col gap-8">
             <SmsVerificationBanner business={business} />
             
             {/* Dashboard Cards Container */}
@@ -478,20 +478,20 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - MOVED TO TOP */}
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700 text-center hover:border-gray-600 transition">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-100 mb-2">No missed calls yet</h2>
+                <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
 
                 {business?.twilio_phone_number && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
-                    <p className="text-base sm:text-lg font-semibold text-blue-900 dark:text-blue-100">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                  <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                    <p className="text-xs sm:text-sm text-gray-400 mb-1">Your ReplyFlow number:</p>
+                    <p className="text-base sm:text-lg font-semibold text-blue-100">{formatPhoneNumber(business.twilio_phone_number)}</p>
                   </div>
                 )}
 
-                <div className="text-left bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">To test it now:</h3>
-                  <ol className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
+                <div className="text-left bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                  <h3 className="text-sm font-semibold text-gray-100 mb-3 sm:mb-4">To test it now:</h3>
+                  <ol className="space-y-2 text-xs sm:text-sm text-gray-400 list-decimal list-inside">
                     <li>Call your ReplyFlow number</li>
                     <li>Let it ring (don't answer)</li>
                     <li>You should receive an automatic text</li>
@@ -508,15 +508,15 @@ export default function DashboardContent() {
                 </button>
 
                 {testSmsMessage && (
-                  <div className={`mt-3 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  <div className={`mt-3 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-400' : 'text-green-400'}`}>
                     {testSmsMessage}
                   </div>
                 )}
               </div>
             ) : (
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Your Leads</h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">People who called but did not reach you.</p>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-100 mb-3">Your Leads</h2>
+                <p className="text-xs sm:text-sm text-gray-400 mb-6">People who called but did not reach you.</p>
                 <div className="space-y-3 sm:space-y-4">
                   {leads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
@@ -629,14 +629,14 @@ export default function DashboardContent() {
 
             {/* Live Activity Feed */}
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Live Activity</h2>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-600 dark:hover:border-gray-500 transition">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-100 mb-3">Live Activity</h2>
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 hover:border-gray-600 transition">
                 {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                  <div className="p-4 sm:p-6 text-center text-gray-400 text-sm">
                     No activity yet
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  <div className="divide-y divide-gray-700">
                     {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
                       .sort((a: any, b: any) => {
                         const timeA = new Date(a.created_at || a.scheduled_for).getTime()
@@ -671,12 +671,12 @@ export default function DashboardContent() {
                         }
 
                         return (
-                          <div key={index} className="flex items-center justify-between gap-2 py-2.5 px-3 sm:px-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <div key={index} className="flex items-center justify-between gap-2 py-2.5 px-3 sm:px-4 hover:bg-gray-700">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-base sm:text-lg flex-shrink-0 leading-none">{icon}</span>
-                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate leading-relaxed">{text}</p>
+                              <p className="text-xs sm:text-sm text-gray-100 truncate leading-relaxed">{text}</p>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0 ml-2">{time}</p>
+                            <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0 ml-2">{time}</p>
                           </div>
                         )
                       })}
@@ -687,36 +687,36 @@ export default function DashboardContent() {
 
             {/* Stats Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Missed Calls</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700 hover:border-gray-600 transition">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Missed Calls</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Texts Sent</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{textsSent}</p>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700 hover:border-gray-600 transition">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Texts Sent</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-400">{textsSent}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Replies</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-green-600">{replies}</p>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700 hover:border-gray-600 transition">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Replies</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-green-400">{replies}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Follow-ups Scheduled</h3>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{followUpsScheduled}</p>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700 hover:border-gray-600 transition">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Follow-ups Scheduled</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-400">{followUpsScheduled}</p>
               </div>
             </div>
 
             {/* Test Your Setup Section */}
             {business?.twilio_phone_number && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center hover:border-gray-600 dark:hover:border-gray-500 transition">
-                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Test your setup</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 text-center hover:border-gray-600 transition">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 mb-3">Test your setup</h2>
+                <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
                   Call your ReplyFlow number to test the missed call text back feature.
                 </p>
                 <div className="mb-4 sm:mb-6">
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
+                <p className="text-xs sm:text-sm text-gray-400 mb-4 sm:mb-6">
                   Let it ring — you'll receive an automatic text.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -732,13 +732,13 @@ export default function DashboardContent() {
                       console.log('[Dashboard] Refresh leads clicked')
                       router.refresh()
                     }}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gray-700 border border-gray-600 text-gray-300 font-medium rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
                   >
                     Refresh leads
                   </button>
                 </div>
                 {testSmsMessage && (
-                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-400' : 'text-green-400'}`}>
                     {testSmsMessage}
                   </div>
                 )}
@@ -746,24 +746,24 @@ export default function DashboardContent() {
             )}
 
             {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-600 dark:hover:border-gray-500 transition">
+            <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 hover:border-gray-600 transition">
               {webhookConfirming ? (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-2">Setting up your subscription</h2>
+                  <p className="text-gray-400 mb-4">Please wait while we confirm your payment...</p>
                 </>
               ) : isActive ? (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-2">Subscription active</h2>
+                  <p className="text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
                   <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                    <span className="text-2xl font-bold text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
                   </div>
                   {business?.cancel_at_period_end && (
-                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">Subscription will cancel at period end</p>
+                    <p className="text-sm text-orange-400 mb-4">Subscription will cancel at period end</p>
                   )}
                   {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                    <p className="text-sm text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
                   )}
                   <button
                     onClick={handleManageBilling}
@@ -775,13 +775,13 @@ export default function DashboardContent() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <p className="text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
                   <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
+                    <span className="text-2xl font-bold text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
                   </div>
                   {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
+                    <p className="text-sm text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
                   )}
                   <button
                     onClick={handleStartSubscription}

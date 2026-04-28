@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
@@ -110,18 +109,13 @@ export default function Home() {
       {/* Social Proof Section */}
       <section className="bg-gray-800 py-20 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-xl text-gray-400">
+          <p className="text-xl text-gray-400 mb-4">
             Trusted by service businesses to capture missed leads
           </p>
-          <Image
-            src="/replyflow-logo.svg"
-            alt="ReplyFlow"
-            width={200}
-            height={60}
-            priority
-            className="h-8 w-auto object-contain"
-          />
-          <span className="ml-3 text-xl font-bold text-gray-100">ReplyFlow</span>
+          <span className="text-2xl font-semibold tracking-tight">
+            <span className="text-gray-100">Reply</span>
+            <span className="text-blue-500">Flow</span>
+          </span>
         </div>
       </section>
 
