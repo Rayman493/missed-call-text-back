@@ -164,8 +164,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     })
   }, [params.id])
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    // Prevent form submission and page refresh
+    if (e) {
+      e.preventDefault()
+    }
+    
+    // Don't send if message is empty, whitespace, or already sending
     if (!message.trim() || sending) return
 
     // Create optimistic message
@@ -221,7 +226,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data before clearing
+      // Update optimistic message with real message data
       if (result.messageId && optimisticMsg.id.startsWith('temp-')) {
         setOptimisticMessage({
           ...optimisticMsg,
@@ -235,20 +240,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setMessage('')
       setSuccessMessage('Message sent successfully')
       
-      // Refetch data to get the complete updated state
-      router.refresh()
-      const data = await getLeadDetails(params.id)
-      setLeadData(data)
-      
-      // Clear optimistic message after data is refreshed
-      setTimeout(() => {
-        setOptimisticMessage(null)
-      }, 100)
-
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('')
       }, 3000)
+      
+      // Clear optimistic message after a short delay
+      setTimeout(() => {
+        setOptimisticMessage(null)
+      }, 100)
+      
+      // Scroll to bottom to show the new message
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+      }, 50)
     } catch (err) {
       // Update optimistic message to failed state
       setOptimisticMessage({
@@ -260,6 +265,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter sends the message, Shift+Enter creates a new line
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault() // Prevent new line
+      handleSendMessage() // Send the message
+    }
+    // Allow Shift+Enter to create new line (default behavior)
   }
 
   const handleRetry = async (messageBody: string, messageId?: string) => {
@@ -657,18 +671,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Send Message Input */}
           <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-            <form onSubmit={handleSendMessage}>
               <div className="flex gap-3">
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type your message..."
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
                   className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   rows={2}
                   disabled={sending}
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleSendMessage()}
                   disabled={sending || !message.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl font-medium transition-colors self-end"
                 >
@@ -693,8 +708,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <p>{error}</p>
                 </div>
               )}
-            </form>
-          </div>
+            </div>
         </div>
 
         {/* Success Message */}
