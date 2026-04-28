@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   
   try {
     const searchParams = request.nextUrl.searchParams
-    const leadId = searchParams.get('leadId')
+    const leadId = searchParams.get('id')
 
     console.log("[lead-details API] id:", leadId)
 
