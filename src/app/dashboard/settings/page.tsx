@@ -9,6 +9,8 @@ import BusinessGuard from '@/components/BusinessGuard'
 import Link from 'next/link'
 import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle from '@/components/ThemeToggle'
+import Navigation from '@/components/Navigation'
+import UserDropdown from '@/components/UserDropdown'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -161,23 +163,33 @@ export default function SettingsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-          <div className="max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors"
-                >
-                  <span className="text-lg">←</span>
-                  <span className="font-medium">Back to Dashboard</span>
-                </button>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Business Settings</h1>
-                <p className="text-gray-600 dark:text-gray-400">Configure your business information and auto-reply message.</p>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          {/* App Header */}
+          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="max-w-7xl mx-auto px-6 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                  <Link href="/" className="flex items-center hover:opacity-90 transition">
+                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                      <span className="text-gray-900 dark:text-gray-100">Reply</span>
+                      <span className="text-blue-600 dark:text-blue-500">Flow</span>
+                    </span>
+                  </Link>
+                  <Navigation />
+                </div>
+                <div className="flex items-center gap-3">
+                  <ThemeToggle />
+                  <UserDropdown />
+                </div>
               </div>
-              <ThemeToggle />
             </div>
+          </header>
+
+          {/* Main Content */}
+          <div className="p-4 sm:p-8">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-8">Configure your business information and auto-reply message.</p>
 
             {success && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
@@ -277,6 +289,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       </BusinessGuard>

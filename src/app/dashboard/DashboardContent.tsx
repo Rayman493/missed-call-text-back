@@ -11,6 +11,8 @@ import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import ThemeToggle from '@/components/ThemeToggle'
+import Navigation from '@/components/Navigation'
+import UserDropdown from '@/components/UserDropdown'
 import Image from 'next/image'
 
 // Helper to hide test numbers
@@ -370,15 +372,18 @@ export default function DashboardContent() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-6 py-2">
-              <div className="flex items-center justify-between h-10">
-                <Link href="/" className="flex items-center hover:opacity-90 transition">
-                  <span className="text-xl md:text-2xl font-semibold tracking-tight">
-                    <span className="text-gray-900 dark:text-gray-100">Reply</span>
-                    <span className="text-blue-600 dark:text-blue-500">Flow</span>
-                  </span>
-                </Link>
-                <div className="flex items-center gap-2">
+            <div className="max-w-7xl mx-auto px-6 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                  <Link href="/" className="flex items-center hover:opacity-90 transition">
+                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                      <span className="text-gray-900 dark:text-gray-100">Reply</span>
+                      <span className="text-blue-600 dark:text-blue-500">Flow</span>
+                    </span>
+                  </Link>
+                  <Navigation />
+                </div>
+                <div className="flex items-center gap-3">
                   <Link
                     href="/home"
                     className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -386,25 +391,7 @@ export default function DashboardContent() {
                     View Homepage
                   </Link>
                   <ThemeToggle />
-                  <Link
-                    href="/dashboard/settings"
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Settings"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Sign out"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                  </button>
+                  <UserDropdown />
                 </div>
               </div>
             </div>
@@ -423,6 +410,7 @@ export default function DashboardContent() {
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -430,6 +418,7 @@ export default function DashboardContent() {
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -437,6 +426,7 @@ export default function DashboardContent() {
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -444,6 +434,7 @@ export default function DashboardContent() {
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
 
@@ -453,7 +444,7 @@ export default function DashboardContent() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 {leads.length === 0 && followUpJobs.length === 0 ? (
                   <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                    No activity yet
+                    We'll log activity here as your missed calls come in
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -519,13 +510,40 @@ export default function DashboardContent() {
               </div>
             )}
 
+            {/* Billing card - always shown for testing */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
+              {webhookConfirming ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                </>
+              ) : isActive ? (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
+                  <button
+                    onClick={handleStartSubscription}
+                    disabled={checkoutLoading}
+                    className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                  >
+                    {checkoutLoading ? 'Processing...' : 'Activate for $47/month'}
+                  </button>
+                </>
+              )}
+            </div>
+
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
                 <div className="max-w-md mx-auto">
                   <div className="text-4xl mb-4">📞</div>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Your missed calls will start appearing here automatically</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">We'll text your customers instantly when you miss a call</p>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Never miss a customer again</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">We automatically text back missed calls instantly and capture them as leads</p>
                 </div>
               </div>
             ) : (
@@ -621,57 +639,8 @@ export default function DashboardContent() {
                 </div>
               </div>
             )}
-
-            {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
-              {webhookConfirming ? (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Setting up your subscription</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
-                </>
-              ) : isActive ? (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
-                  </div>
-                  {business?.cancel_at_period_end && (
-                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">Subscription will cancel at period end</p>
-                  )}
-                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
-                  )}
-                  <button
-                    onClick={handleManageBilling}
-                    disabled={checkoutLoading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {checkoutLoading ? 'Loading...' : 'Manage billing'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Start your subscription to keep missed-call text back active.</p>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">$29<span className="text-sm font-normal text-gray-500">/month</span></span>
-                  </div>
-                  {process.env.NEXT_PUBLIC_BYPASS_BILLING === 'true' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Billing bypass enabled (testing mode)</p>
-                  )}
-                  <button
-                    onClick={handleStartSubscription}
-                    disabled={checkoutLoading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {checkoutLoading ? 'Loading...' : 'Start Subscription'}
-                  </button>
-                </>
-              )}
-            </div>
-            </div>
           </div>
+        </div>
         </div>
       </BusinessGuard>
     </AuthGuard>
