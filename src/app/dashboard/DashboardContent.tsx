@@ -400,8 +400,7 @@ export default function DashboardContent() {
           {/* Main Content */}
           <div className="p-4 sm:p-8">
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
-            <SmsVerificationBanner business={business} />
-            
+                        
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">

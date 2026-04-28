@@ -181,17 +181,24 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Your ReplyFlow Number
                       </label>
-                      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                          {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                        </span>
-                        <span className={`text-sm px-2 py-1 rounded-full ${
-                          business.twilio_phone_number 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        }`}>
-                          {business.twilio_phone_number ? 'Active' : 'Pending verification'}
-                        </span>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                            {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                          </span>
+                          <span className={`text-sm px-2 py-1 rounded-full ${
+                            business.twilio_phone_number 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          }`}>
+                            {business.twilio_phone_number ? 'Active' : 'Pending verification'}
+                          </span>
+                        </div>
+                        {(business as any).sms_type === 'toll_free' && (business as any).a2p_status !== 'verified' && (business as any).a2p_status !== 'approved' && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Status: Pending carrier approval
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -202,10 +209,18 @@ export default function SettingsPage() {
                         id="autoReplyMessage"
                         name="autoReplyMessage"
                         defaultValue={business.auto_reply_message}
-                        rows={4}
+                        rows={6}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="w-full px-4 py-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
                       />
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        Test My Number
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -213,9 +228,9 @@ export default function SettingsPage() {
                 {/* Automation Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Automation</h2>
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {/* Instant Reply */}
-                    <div>
+                    <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-2">
                         <label htmlFor="instantReplyEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Instant Reply
@@ -235,11 +250,11 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Follow-ups */}
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Follow-ups</h3>
-                      <div className="space-y-3">
+                    <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Follow-ups</h3>
+                      <div className="space-y-4">
                         <div>
-                          <label htmlFor="followUp1Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="followUp1Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
                             Follow-up #1
                           </label>
                           <select
@@ -256,7 +271,7 @@ export default function SettingsPage() {
                           </select>
                         </div>
                         <div>
-                          <label htmlFor="followUp2Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="followUp2Time" className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
                             Follow-up #2
                           </label>
                           <select
@@ -277,7 +292,7 @@ export default function SettingsPage() {
 
                     {/* Stop Conditions */}
                     <div>
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Stop Conditions</h3>
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Stop Conditions</h3>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
@@ -297,10 +312,11 @@ export default function SettingsPage() {
                 {/* Billing Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Billing</h2>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pro Plan - $47/month</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pro Plan</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">$47/month — Active</p>
                     </div>
                     <button
                       type="button"
@@ -309,17 +325,17 @@ export default function SettingsPage() {
                       Manage Subscription
                     </button>
                   </div>
-                </div>
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  
+                  {/* Save Button */}
+                  <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
