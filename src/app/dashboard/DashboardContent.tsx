@@ -12,6 +12,7 @@ import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import ThemeToggle from '@/components/ThemeToggle'
 import ReplyFlowNumberCard from '@/components/ReplyFlowNumberCard'
+import CallForwardingCard from '@/components/CallForwardingCard'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -414,6 +415,9 @@ export default function DashboardContent() {
               testSmsLoading={testSmsLoading}
               testSmsMessage={testSmsMessage}
             />
+
+            {/* Call Forwarding Card */}
+            <CallForwardingCard business={business} />
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
