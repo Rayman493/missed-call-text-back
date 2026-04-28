@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { createClient } from '@supabase/supabase-js'
 
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "send-sms exists" })
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[Manual SMS] Send request received')
