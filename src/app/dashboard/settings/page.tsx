@@ -19,6 +19,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -32,45 +35,64 @@ export default function SettingsPage() {
 
     try {
       const formData = new FormData(e.currentTarget)
-      const businessName = formData.get('businessName') as string
-      const timezone = formData.get('timezone') as string
-      const autoReplyMessage = formData.get('autoReplyMessage') as string
-      const instantReplyEnabled = formData.get('instantReplyEnabled') === 'on'
-      const followUp1Time = formData.get('followUp1Time') as string
-      const followUp2Time = formData.get('followUp2Time') as string
-      const stopOnReply = formData.get('stopOnReply') === 'on'
+      const updates: any = {}
 
-      const updatePayload = {
-        name: businessName,
-        timezone: timezone,
-        auto_reply_message: autoReplyMessage,
-        instant_reply_enabled: instantReplyEnabled,
-        follow_up_1_time: followUp1Time,
-        follow_up_2_time: followUp2Time,
-        stop_on_reply: stopOnReply,
-      }
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        if (key.startsWith('followUp')) {
+          const followUpNum = key.replace('followUp', '').replace('Time', '')
+          updates[`follow_up_${followUpNum}_time`] = value
+        } else if (key === 'stopOnReply') {
+          updates.stop_on_reply = (e.currentTarget as any).stopOnReply.checked
+        }
+      })
 
-      console.log('[Settings] Updating business:', business.id, 'with payload:', updatePayload)
-
-      const supabaseAny = supabase as any
-      const { error: updateError } = await supabaseAny
-        .from('businesses')
-        .update(updatePayload)
+      const { error } = await supabase
+        .from('business')
+        .update(updates)
         .eq('id', business.id)
 
-      if (updateError) {
-        console.error('[Settings] Update failed:', updateError)
-        throw new Error(updateError.message || 'Failed to update settings')
-      }
+      if (error) throw error
 
-      setSuccess(true)
       await refreshBusiness()
+      setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
-    } catch (err: any) {
-      console.error('[Settings] Unexpected error updating settings:', err)
-      setError(err.message || 'Failed to update settings')
+    } catch (err) {
+      setError('Failed to update settings')
+      console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return
+
+    setIsDeleting(true)
+    setError('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete account')
+      }
+
+      // Sign out and redirect
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete account')
+      setIsDeleting(false)
     }
   }
 
@@ -346,10 +368,77 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Danger Zone */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900 p-6">
+                  <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Permanently delete your account and all associated data
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        This action cannot be undone
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
           </div>
         </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Delete Account
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              This permanently deletes your account, business, leads, messages, conversations, and follow-ups. This cannot be undone.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">
+                Type <span className="font-mono font-bold">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+                placeholder="DELETE"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setDeleteConfirmText('')
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Permanently Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </BusinessGuard>
     </AuthGuard>
   )
