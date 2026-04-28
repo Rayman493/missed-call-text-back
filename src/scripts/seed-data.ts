@@ -118,7 +118,7 @@ async function seedDemoBusiness() {
           {
             lead_id: lead.id,
             direction: 'outbound' as const,
-            body: `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+            body: `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
           },
