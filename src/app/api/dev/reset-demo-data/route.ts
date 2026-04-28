@@ -69,6 +69,15 @@ export async function POST(req: NextRequest) {
       console.log('[DEV] Reset demo data allowed for admin email:', user.email)
     }
 
+    // Always check for specific admin email (wolfieemail@gmail.com)
+    if (user.email !== 'wolfieemail@gmail.com') {
+      console.error('[DEV] Reset demo data blocked - user not authorized:', user.email)
+      return NextResponse.json(
+        { error: 'You do not have permission to reset demo data' },
+        { status: 403 }
+      )
+    }
+
     // Get business for this user
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')

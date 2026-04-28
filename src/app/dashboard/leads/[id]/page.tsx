@@ -205,225 +205,79 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors"
-          >
-            ← Back to dashboard
-          </Link>
-        </div>
-
-        {/* Lead Summary */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
-            Lead Summary
-          </h2>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {formatPhoneNumber(lead?.caller_phone || '')}
-              </h1>
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLeadStatusColor(lead?.status)}`}>
-                  {lead?.status}
-                </span>
-                {source && (
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                    {source}
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {formatPhoneNumber(lead?.caller_phone || '')}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
+                    {lead?.status}
                   </span>
-                )}
+                  {conversation && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      conversation.status === 'open' 
+                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {conversation.status}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Latest Message</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium capitalize">{latestMessageStatus}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Created</p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead?.created_at)}</p>
-            </div>
-            {lead?.first_contact_at && (
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">First Contact</p>
-                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.first_contact_at)}</p>
-              </div>
-            )}
-            {lead?.last_message_at && (
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Message</p>
-                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_message_at)}</p>
-              </div>
-            )}
-            {lead?.last_reply_at && (
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Reply</p>
-                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{formatRelativeTime(lead.last_reply_at)}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Send Message */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Send Message
-          </h2>
-          <form onSubmit={handleSendMessage}>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              disabled={sending}
-            />
-            {!message.trim() && (
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Message cannot be empty</p>
-            )}
-            {error && (
-              <p className="text-red-600 dark:text-red-400 text-sm mt-2">{error}</p>
-            )}
-            <button
-              type="submit"
-              disabled={sending || !message.trim()}
-              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
-            >
-              {sending ? 'Sending...' : 'Send SMS'}
-            </button>
-          </form>
-        </div>
-
-        {/* Success Message */}
-        {successMessage && (
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
-            <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
-          </div>
-        )}
-
-        {/* Follow-up Jobs */}
-        {followUpJobs.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Follow-up Jobs ({followUpJobs.length})
-              </h2>
-            </div>
-            <div className="p-6">
-              {followUpJobs.length === 0 ? (
-                <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  No follow-up jobs found.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {followUpJobs.map((job: any) => {
-                    const isPending = job.status === 'pending'
-                    const isSent = job.status === 'sent'
-                    const isCancelled = job.status === 'cancelled'
-                    const isFailed = job.status === 'failed'
-                    
-                    return (
-                      <div
-                        key={job.id}
-                        className={`border rounded-lg p-4 ${
-                          isPending ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20' :
-                          isSent ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' :
-                          isCancelled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20' :
-                          'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                isPending ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                                isSent ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                                isCancelled ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' :
-                                'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                              }`}>
-                                {job.status}
-                              </span>
-                              {job.cancelled_reason && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  ({job.cancelled_reason})
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
-                              {job.message_body}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                              <span>Scheduled: {formatRelativeTime(job.scheduled_for)}</span>
-                              {job.sent_at && (
-                                <span>Sent: {formatRelativeTime(job.sent_at)}</span>
-                              )}
-                              {job.cancelled_at && (
-                                <span>Cancelled: {formatRelativeTime(job.cancelled_at)}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Message Thread */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Conversation Thread ({messagesArray.length})
-              </h2>
-              {conversation && (
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    conversation.status === 'open' 
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                  }`}>
-                    {conversation.status}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    ID: {conversation.id}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Notice for undelivered latest message */}
-          {latestMessage && (latestMessage.status === 'undelivered' || latestMessage.status === 'failed') && (
-            <div className="mx-6 mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                ⚠️ Delivery limited during verification — this will resolve once approved.
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Created {formatRelativeTime(lead?.created_at)}
               </p>
+              {lead?.last_message_at && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Last activity {formatRelativeTime(lead.last_message_at)}
+                </p>
+              )}
             </div>
-          )}
+          </div>
+        </div>
+      </div>
 
-          <div className="p-6">
-            {messagesArray.length === 0 ? (
+      {/* Conversation Thread */}
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Message Thread */}
+          <div className="p-4 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : messagesArray.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">💬</div>
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                   No messages yet
-                </p>
-                <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   Start the conversation by sending a message below.
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Messages will appear here after missed calls or replies.
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {messagesArray.map((msg: any, index: number) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -439,27 +293,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {/* Avatar */}
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         isInbound 
-                          ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
-                          : 'bg-blue-600 text-white'
+                          ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                          : 'bg-gradient-to-br from-gray-400 to-gray-500 text-white'
                       }`}>
                         {isInbound ? '👤' : '🤖'}
                       </div>
                       
                       {/* Message Bubble */}
-                      <div className={`max-w-[70%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className={`max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
+                        <div className="flex items-center gap-2 mb-1 justify-end">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {formatRelativeTime(msg.created_at)}
                           </span>
                           {isFollowUp && (
-                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
+                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
                               Follow-up
                             </span>
                           )}
                           {msg.status && (
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              msg.status === 'sent' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                              msg.status === 'delivered' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              msg.status === 'sent' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                              msg.status === 'delivered' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
                               msg.status === 'failed' || msg.status === 'undelivered' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
                               'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                             }`}>
@@ -471,8 +325,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <div
                           className={`rounded-2xl px-4 py-3 ${
                             isInbound
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                              : 'bg-blue-600 text-white'
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
+                              : 'bg-blue-600 text-white rounded-tr-none'
                           }`}
                         >
                           <p className="text-sm leading-relaxed break-words">
@@ -504,7 +358,109 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </div>
+
+          {/* Send Message Input */}
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
+            <form onSubmit={handleSendMessage}>
+              <div className="flex gap-3">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  rows={2}
+                  disabled={sending}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !message.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl font-medium transition-colors self-end"
+                >
+                  {sending ? (
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {error && (
+                <p className="text-red-600 dark:text-red-400 text-sm mt-2">{error}</p>
+              )}
+            </form>
+          </div>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Follow-up Jobs */}
+        {followUpJobs.length > 0 && (
+          <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Follow-up Jobs ({followUpJobs.length})
+            </h3>
+            <div className="space-y-2">
+              {followUpJobs.map((job: any) => {
+                const isPending = job.status === 'pending'
+                const isSent = job.status === 'sent'
+                const isCancelled = job.status === 'cancelled'
+                const isFailed = job.status === 'failed'
+                
+                return (
+                  <div
+                    key={job.id}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      isPending ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' :
+                      isSent ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
+                      isCancelled ? 'bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700' :
+                      'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          isPending ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                          isSent ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                          isCancelled ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' :
+                          'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                        }`}>
+                          {job.status}
+                        </span>
+                        {job.cancelled_reason && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            ({job.cancelled_reason})
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                        {job.message_body}
+                      </p>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatRelativeTime(job.scheduled_for)}
+                      </p>
+                      {job.sent_at && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          Sent {formatRelativeTime(job.sent_at)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

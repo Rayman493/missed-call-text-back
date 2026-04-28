@@ -127,7 +127,7 @@ export default function SettingsPage() {
         headers['Authorization'] = `Bearer ${session.access_token}`
       }
 
-      const response = await fetch('/api/dev/reset-demo-data?secret=dev-reset-secret', {
+      const response = await fetch(`/api/dev/reset-demo-data?secret=${process.env.NEXT_PUBLIC_DEV_RESET_SECRET}`, {
         method: 'POST',
         headers
       })
@@ -163,7 +163,8 @@ export default function SettingsPage() {
   }
 
   // Check if user is admin for demo reset visibility
-  const isAdmin = user?.email && process.env.ALLOW_DEMO_RESET_EMAILS?.includes(user.email)
+  const isDemoResetEnabled = process.env.NEXT_PUBLIC_DEV_RESET_SECRET && 
+                            user?.email === 'wolfieemail@gmail.com'
 
   if (!business) {
     return (
@@ -486,7 +487,7 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-5">Danger Zone</h2>
                   
                   {/* Reset Demo Data - Admin Only */}
-                  {isAdmin && (
+                  {isDemoResetEnabled && (
                     <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
