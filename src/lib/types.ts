@@ -14,6 +14,9 @@ export interface Business {
   subscription_price_id?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean | null;
+  forwarding_phone_number?: string | null;
+  setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
+  setup_completed_at?: string | null;
   created_at: string;
   updated_at?: string;
 }

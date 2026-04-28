@@ -13,6 +13,7 @@ import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import ThemeToggle from '@/components/ThemeToggle'
 import ReplyFlowNumberCard from '@/components/ReplyFlowNumberCard'
 import CallForwardingCard from '@/components/CallForwardingCard'
+import BusinessPhoneSetupCard from '@/components/BusinessPhoneSetupCard'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -418,6 +419,15 @@ export default function DashboardContent() {
 
             {/* Call Forwarding Card */}
             <CallForwardingCard business={business} />
+            
+            {/* Business Phone Setup Card */}
+            <BusinessPhoneSetupCard 
+              business={business} 
+              onUpdate={(updatedBusiness) => {
+                console.log('[Dashboard] Business phone updated:', updatedBusiness.id)
+                setBusiness(updatedBusiness)
+              }}
+            />
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (

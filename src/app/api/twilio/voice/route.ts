@@ -80,9 +80,30 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
-    
-    // Normalize caller phone for lead lookup/creation
+
+    // Check if this is a setup completion call (caller matches business forwarding phone)
     const normalizedCallerPhone = normalizePhoneNumber(From);
+    const businessForwardingPhone = business.forwarding_phone_number ? normalizePhoneNumber(business.forwarding_phone_number) : null;
+    
+    if (businessForwardingPhone && normalizedCallerPhone === businessForwardingPhone) {
+      console.log('[Twilio Voice] Setup completion detected - caller matches business forwarding phone:', normalizedCallerPhone);
+      
+      // Mark setup as complete by updating the business
+      try {
+        const updatedBusiness = await db.updateBusiness(business.id, {
+          setup_completed_at: new Date().toISOString(),
+          setup_status: 'working'
+        });
+        
+        if (updatedBusiness) {
+          console.log('[Twilio Voice] Business setup marked as complete:', updatedBusiness.id);
+        } else {
+          console.error('[Twilio Voice] Failed to update business setup status');
+        }
+      } catch (error) {
+        console.error('[Twilio Voice] Error updating business setup status:', error);
+      }
+    }
     
     // Check if lead already exists
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);

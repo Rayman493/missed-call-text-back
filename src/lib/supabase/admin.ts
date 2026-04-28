@@ -87,6 +87,22 @@ export const db = {
     return data
   },
 
+  async updateBusiness(businessId: string, updates: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .update(updates)
+      .eq('id', businessId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('[updateBusiness] Error updating business:', error)
+      return null
+    }
+    
+    return data
+  },
+
   async getBusinessByUserId(userId: string): Promise<Business | null> {
     const { data, error } = await supabaseAdmin
       .from('businesses')
