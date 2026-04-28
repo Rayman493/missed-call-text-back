@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   title: 'ReplyFlow',
   description: 'Automatically respond to missed calls',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
+    apple: '/apple-touch-icon.svg',
   },
 }
 
