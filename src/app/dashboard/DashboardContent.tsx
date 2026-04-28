@@ -13,6 +13,7 @@ import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import ThemeToggle from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
+import MobileMenu from '@/components/MobileMenu'
 import Image from 'next/image'
 
 // Helper to hide test numbers
@@ -369,29 +370,32 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4 md:gap-8">
                   <Link href="/" className="flex items-center hover:opacity-90 transition">
-                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                    <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
                       <span className="text-gray-900 dark:text-gray-100">Reply</span>
                       <span className="text-blue-600 dark:text-blue-500">Flow</span>
                     </span>
                   </Link>
-                  <Navigation />
+                  <div className="hidden md:block">
+                    <Navigation />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   <Link
                     href="/home"
-                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                    className="hidden text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors md:block"
                   >
                     View Homepage
                   </Link>
                   <ThemeToggle />
                   <UserDropdown />
+                  <MobileMenu />
                 </div>
               </div>
             </div>
@@ -402,37 +406,37 @@ export default function DashboardContent() {
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
                         
             {/* Hero Metrics Section */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">📞</span>
+                  <span className="text-lg sm:text-xl">📞</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">👥</span>
+                  <span className="text-lg sm:text-xl">👥</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">💬</span>
+                  <span className="text-lg sm:text-xl">💬</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">⏰</span>
+                  <span className="text-lg sm:text-xl">⏰</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
@@ -510,25 +514,25 @@ export default function DashboardContent() {
             )}
 
             {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
               {webhookConfirming ? (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
                 </>
               ) : isActive ? (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activate ReplyFlow</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
                   <button
                     onClick={handleStartSubscription}
                     disabled={checkoutLoading}
-                    className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                    className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
                   >
                     {checkoutLoading ? 'Processing...' : 'Activate for $47/month'}
                   </button>
@@ -538,11 +542,11 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
+              <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
                 <div className="max-w-md mx-auto">
-                  <div className="text-4xl mb-4">📞</div>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Never miss a customer again</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">We automatically text back missed calls instantly and capture them as leads</p>
+                  <div className="text-3xl sm:text-4xl mb-4">📞</div>
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Never miss a customer again</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">We automatically text back missed calls instantly and capture them as leads</p>
                 </div>
               </div>
             ) : (

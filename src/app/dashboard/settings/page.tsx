@@ -11,6 +11,7 @@ import { formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
+import MobileMenu from '@/components/MobileMenu'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -93,23 +94,26 @@ export default function SettingsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4 md:gap-8">
                   <Link href="/" className="flex items-center hover:opacity-90 transition">
-                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                    <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
                       <span className="text-gray-900 dark:text-gray-100">Reply</span>
                       <span className="text-blue-600 dark:text-blue-500">Flow</span>
                     </span>
                   </Link>
-                  <Navigation />
+                  <div className="hidden md:block">
+                    <Navigation />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   <ThemeToggle />
                   <UserDropdown />
+                  <MobileMenu />
                 </div>
               </div>
             </div>
