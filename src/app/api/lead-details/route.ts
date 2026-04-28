@@ -34,23 +34,51 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch lead with business ownership check
-    const { data: lead, error: leadError } = await supabaseAdmin
+    // First, try to fetch the lead without business join to see if it exists
+    console.log('[API] Fetching lead with ID:', leadId)
+    console.log('[API] LeadId type:', typeof leadId)
+    console.log('[API] User ID:', user.id)
+    
+    const { data: simpleLead, error: simpleLeadError } = await supabaseAdmin
       .from('leads')
-      .select('*, business!inner(user_id)')
+      .select('*')
       .eq('id', leadId)
       .single()
 
-    if (leadError || !lead) {
+    console.log('[API] Simple lead query result:', { simpleLead, simpleLeadError })
+
+    if (simpleLeadError || !simpleLead) {
+      console.log('[API] Lead not found in simple query - error:', simpleLeadError)
+      console.log('[API] Lead not found in simple query - lead exists:', !!simpleLead)
       return NextResponse.json(
         { error: 'Lead not found' },
         { status: 404 }
       )
     }
 
+    console.log('[API] Lead found! Business ID:', simpleLead.business_id)
+
+    // Now fetch with business ownership check
+    const { data: lead, error: leadError } = await supabaseAdmin
+      .from('leads')
+      .select('*, business!inner(user_id)')
+      .eq('id', leadId)
+      .single()
+
+    console.log('[API] Lead query with business result:', { lead, leadError })
+
+    if (leadError || !lead) {
+      console.log('[API] Lead not found with business join - error:', leadError)
+      console.log('[API] This suggests a business ownership issue')
+      return NextResponse.json(
+        { error: 'Lead not found or access denied' },
+        { status: 404 }
+      )
+    }
+
     // Verify user owns the business
     if (lead.business?.user_id !== user.id) {
-      console.error('[Security] Forbidden business access - user', user.id, 'attempted to access lead', leadId, 'belonging to business', lead.business_id)
+      console.error('[Security] Forbidden business access - user', user.id, 'attempted to access lead', leadId, 'belonging to business', lead.business_id, 'business owner:', lead.business?.user_id)
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

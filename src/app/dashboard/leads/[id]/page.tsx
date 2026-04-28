@@ -40,8 +40,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Fetch lead data on mount
   useEffect(() => {
     console.log('[Lead View] Opening lead details for leadId:', params.id)
+    console.log('[Lead View] LeadId type:', typeof params.id)
+    console.log('[Lead View] LeadId length:', params.id?.length)
+    
     getLeadDetails(params.id).then(data => {
+      console.log('[Lead View] API response:', data)
+      if (!data) {
+        console.log('[Lead View] No data returned from API - this is the issue!')
+      }
       setLeadData(data)
+      setLoading(false)
+    }).catch(error => {
+      console.error('[Lead View] Error fetching lead details:', error)
       setLoading(false)
     })
   }, [params.id])
