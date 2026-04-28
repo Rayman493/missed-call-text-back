@@ -69,14 +69,14 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
   if (!business) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
         <div className="animate-pulse">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Business Phone Setup</h3>
         <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}>

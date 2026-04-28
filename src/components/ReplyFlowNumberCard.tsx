@@ -28,7 +28,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
 
   if (!hasNumber) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <span className="text-2xl">⏳</span>
@@ -47,7 +47,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
       <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
         Your ReplyFlow Number
       </h3>

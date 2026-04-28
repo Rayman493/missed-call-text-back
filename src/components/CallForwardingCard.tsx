@@ -49,7 +49,7 @@ export default function CallForwardingCard({ business }: CallForwardingCardProps
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <span className="text-xl sm:text-2xl">📞</span>

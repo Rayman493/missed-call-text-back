@@ -412,25 +412,28 @@ export default function DashboardContent() {
             <div className="max-w-7xl mx-auto">
             <SmsVerificationBanner business={business} />
             
-            {/* ReplyFlow Number Card */}
-            <ReplyFlowNumberCard 
-              business={business} 
-              onTestNumber={handleTestSms}
-              testSmsLoading={testSmsLoading}
-              testSmsMessage={testSmsMessage}
-            />
+            {/* Dashboard Cards Container */}
+            <div className="flex flex-col gap-6 mb-6 sm:mb-8">
+              {/* ReplyFlow Number Card */}
+              <ReplyFlowNumberCard 
+                business={business} 
+                onTestNumber={handleTestSms}
+                testSmsLoading={testSmsLoading}
+                testSmsMessage={testSmsMessage}
+              />
 
-            {/* Call Forwarding Card */}
-            <CallForwardingCard business={business} />
-            
-            {/* Business Phone Setup Card */}
-            <BusinessPhoneSetupCard 
-              business={business} 
-              onUpdate={(updatedBusiness) => {
-                console.log('[Dashboard] Business phone updated:', updatedBusiness.id)
-                setBusiness(updatedBusiness)
-              }}
-            />
+              {/* Call Forwarding Card */}
+              <CallForwardingCard business={business} />
+              
+              {/* Business Phone Setup Card */}
+              <BusinessPhoneSetupCard 
+                business={business} 
+                onUpdate={(updatedBusiness) => {
+                  console.log('[Dashboard] Business phone updated:', updatedBusiness.id)
+                  setBusiness(updatedBusiness)
+                }}
+              />
+            </div>
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
