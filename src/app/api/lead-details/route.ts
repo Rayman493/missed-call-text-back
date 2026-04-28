@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.log("[lead-details API] Lead found:", lead)
 
     // Return simple success response
-    return NextResponse.json({ ok: true, lead: data })
+    return NextResponse.json({ ok: true, lead })
   } catch (error) {
     console.error('Error in lead-details API:', error)
     return NextResponse.json(
