@@ -36,6 +36,42 @@ export const db = {
     return data
   },
 
+  async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: 'twilio_numbers' | 'legacy' } | null> {
+    // First try to find via twilio_numbers table (new architecture)
+    const { data: twilioNumber, error: twilioError } = await supabaseAdmin
+      .from('twilio_numbers')
+      .select('business_id, phone_number')
+      .eq('phone_number', phone)
+      .eq('status', 'active')
+      .single()
+
+    if (twilioNumber && twilioNumber.business_id) {
+      // Found in twilio_numbers, fetch the business
+      const { data: business, error: businessError } = await supabaseAdmin
+        .from('businesses')
+        .select('*')
+        .eq('id', twilioNumber.business_id)
+        .single()
+
+      if (business) {
+        return { business, source: 'twilio_numbers' }
+      }
+    }
+
+    // Fallback to legacy businesses.twilio_phone_number lookup
+    const { data: business, error: legacyError } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('twilio_phone_number', phone)
+      .single()
+
+    if (business) {
+      return { business, source: 'legacy' }
+    }
+
+    return null
+  },
+
   async createBusiness(business: Omit<Business, 'id' | 'created_at' | 'updated_at'>): Promise<Business | null> {
     const { data, error } = await supabaseAdmin
       .from('businesses')

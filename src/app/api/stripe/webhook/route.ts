@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import Stripe from 'stripe'
-import { provisionTwilioNumber } from '@/lib/twilio'
+import { provisionNumberForBusiness, releaseNumberForBusiness } from '@/lib/twilio/numberManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,24 +115,24 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Successfully updated business:', businessId, 'for user:', userId)
         }
 
-        // Provision Twilio number if business doesn't have one or SID is missing
+        // Provision Twilio number if business doesn't have one
         try {
           const { data: business } = await supabase
             .from('businesses')
-            .select('id, twilio_phone_number, twilio_phone_number_sid')
+            .select('id, assigned_twilio_number_id')
             .eq('id', businessId)
             .single()
 
-          if (business && (!business.twilio_phone_number || !business.twilio_phone_number_sid)) {
-            console.log('[stripe-webhook] Business has no Twilio number or SID is missing, provisioning one...')
-            const provisioned = await provisionTwilioNumber(businessId)
-            if (provisioned) {
-              console.log('[stripe-webhook] Successfully provisioned Twilio number:', provisioned.phoneNumber)
+          if (business && !business.assigned_twilio_number_id) {
+            console.log('[stripe-webhook] Business has no assigned Twilio number, provisioning one...')
+            const result = await provisionNumberForBusiness(businessId)
+            if (result.success) {
+              console.log('[stripe-webhook] Successfully provisioned Twilio number:', result.twilioNumber?.phone_number)
             } else {
-              console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId)
+              console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId, 'Error:', result.error)
             }
-          } else if (business && business.twilio_phone_number && business.twilio_phone_number_sid) {
-            console.log('[stripe-webhook] Business already has valid Twilio number and SID, skipping provisioning')
+          } else if (business && business.assigned_twilio_number_id) {
+            console.log('[stripe-webhook] Business already has assigned Twilio number, skipping provisioning')
           }
         } catch (provisionError) {
           console.error('[stripe-webhook] Error during Twilio provisioning:', provisionError)
@@ -292,6 +292,21 @@ export async function POST(request: Request) {
             console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)
           } else {
             console.log('[stripe-webhook] Successfully set subscription status to canceled for business:', business.id)
+          }
+
+          // Release Twilio number
+          try {
+            console.log('[stripe-webhook] Releasing Twilio number for business:', business.id)
+            const releaseResult = await releaseNumberForBusiness(business.id)
+            
+            if (releaseResult.success) {
+              console.log('[stripe-webhook] Successfully released Twilio number for business:', business.id)
+            } else {
+              console.error('[stripe-webhook] Failed to release Twilio number for business:', business.id, 'Error:', releaseResult.error)
+            }
+          } catch (releaseError) {
+            console.error('[stripe-webhook] Error during Twilio number release:', releaseError)
+            // Don't fail the webhook - subscription is already canceled
           }
         } else {
           console.error('[stripe-webhook] Business not found for subscription:', subscription.id)

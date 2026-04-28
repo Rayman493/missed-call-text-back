@@ -11,6 +11,7 @@ import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import ThemeToggle from '@/components/ThemeToggle'
+import ReplyFlowNumberCard from '@/components/ReplyFlowNumberCard'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -380,6 +381,14 @@ export default function DashboardContent() {
           <div className="p-4 sm:p-8">
             <div className="max-w-7xl mx-auto">
             <SmsVerificationBanner business={business} />
+            
+            {/* ReplyFlow Number Card */}
+            <ReplyFlowNumberCard 
+              business={business} 
+              onTestNumber={handleTestSms}
+              testSmsLoading={testSmsLoading}
+              testSmsMessage={testSmsMessage}
+            />
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (

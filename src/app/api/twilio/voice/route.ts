@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Normalized From:', normalizedFrom);
     console.log('[Twilio Voice] Normalized To:', normalizedTo);
     
-    // Find business by Twilio phone number
-    const business = await db.getBusinessByPhone(normalizedTo);
+    // Find business by Twilio phone number (try twilio_numbers first, fallback to legacy)
+    const result = await db.getBusinessByTwilioNumber(normalizedTo);
     
-    if (!business) {
+    if (!result || !result.business) {
       console.log('[Twilio Voice] No business found for number:', normalizedTo);
       
       const twiml = `
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    console.log('[Twilio Voice] Business found:', business.id);
+    const business = result.business;
+    console.log('[Twilio Voice] Business found:', business.id, 'via:', result.source);
     
     // Normalize caller phone for lead lookup/creation
     const normalizedCallerPhone = normalizePhoneNumber(From);
