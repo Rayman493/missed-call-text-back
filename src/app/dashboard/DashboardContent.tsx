@@ -382,6 +382,12 @@ export default function DashboardContent() {
                   </span>
                 </Link>
                 <div className="flex items-center gap-2">
+                  <Link
+                    href="/home"
+                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                  >
+                    View Homepage
+                  </Link>
                   <ThemeToggle />
                   <Link
                     href="/dashboard/settings"
