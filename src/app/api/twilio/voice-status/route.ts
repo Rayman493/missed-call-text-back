@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       
       // Use business auto_reply_message or fallback
       const autoReplyMessage = business.auto_reply_message || 
-        `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help?`
+        `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
       
       console.log(`[voice-status] Auto-reply message: ${autoReplyMessage}`)
       console.log(`[voice-status] Business phone: ${business.twilio_phone_number}`)
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
         
         // Use business's auto-reply message if available, otherwise use fallback
         const messageBody = business.auto_reply_message || 
-          `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
+          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`
         
         console.log("INSERTING FOLLOW UP:", {
           business_id: business.id,

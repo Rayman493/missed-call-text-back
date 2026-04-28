@@ -96,7 +96,7 @@ export default function OnboardingPage() {
             name: businessName,
             twilio_phone_number: '+18336584303',
             forwarding_phone_number: normalizedPhone,
-            auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+            auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'toll_free',
             messaging_status: 'pending_verification',
             onboarding_status: 'completed',

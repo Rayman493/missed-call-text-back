@@ -170,10 +170,10 @@ export async function POST(request: NextRequest) {
         
         // Prepare auto-reply message
         const autoReplyMessage = business.auto_reply_message || 
-          'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you? Reply STOP to opt out.';
+          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`;
         
-        // Replace business name placeholder
-        const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'ReplyFlow');
+        // Replace business name placeholder if present
+        const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'My Business');
         
         console.log('[Twilio Voice] Sending auto-reply SMS to:', From);
         console.log('[Twilio Voice] Message:', personalizedMessage.substring(0, 100) + '...');

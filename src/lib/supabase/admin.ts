@@ -144,7 +144,7 @@ export const db = {
       name: businessData?.name || 'My Business',
       twilio_phone_number: businessData?.twilio_phone_number || '',
       forwarding_phone_number: businessData?.forwarding_phone_number || null,
-      auto_reply_message: businessData?.auto_reply_message || 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
+      auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || 'trialing',
       stripe_customer_id: businessData?.stripe_customer_id || null,
       trial_ends_at: businessData?.trial_ends_at || trialEndsAt.toISOString(),
