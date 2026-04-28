@@ -35,7 +35,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
           </div>
           <div className="ml-3 flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Step 1: Your ReplyFlow Number
+              ReplyFlow is Active
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Your ReplyFlow number is being prepared. Refresh shortly or contact support if this takes too long.
@@ -48,12 +48,17 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        Step 1: Your ReplyFlow Number
-      </h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        This is your ReplyFlow number. Calls here will trigger automatic text replies.
-      </p>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            ReplyFlow is Active
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Handling missed calls automatically
+          </p>
+        </div>
+        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+      </div>
 
       {/* Number Display */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 sm:p-6 mb-6">
@@ -78,7 +83,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
           disabled={testSmsLoading}
           className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
         >
-          {testSmsLoading ? 'Testing...' : 'Test My Number'}
+          {testSmsLoading ? 'Testing...' : 'Test SMS'}
         </button>
       </div>
 

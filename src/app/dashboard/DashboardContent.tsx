@@ -419,8 +419,8 @@ export default function DashboardContent() {
             <SmsVerificationBanner business={business} />
             
             {/* Dashboard Cards Container */}
-            <div className="flex flex-col gap-10">
-              {/* ReplyFlow Number Card */}
+            <div className="flex flex-col gap-8">
+              {/* ReplyFlow Number Card - Status */}
               <ReplyFlowNumberCard 
                 business={business} 
                 onTestNumber={handleTestSms}
@@ -482,42 +482,11 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Missed Call Leads Section - MOVED TO TOP */}
+            {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No missed calls yet</h2>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
-
-                {business?.twilio_phone_number && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
-                    <p className="text-base sm:text-lg font-semibold text-blue-900 dark:text-blue-100">{formatPhoneNumber(business.twilio_phone_number)}</p>
-                  </div>
-                )}
-
-                <div className="text-left bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">To test it now:</h3>
-                  <ol className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
-                    <li>Call your ReplyFlow number</li>
-                    <li>Let it ring (don't answer)</li>
-                    <li>You should receive an automatic text</li>
-                    <li>Refresh this page to see the lead</li>
-                  </ol>
-                </div>
-
-                <button
-                  onClick={handleTestSms}
-                  disabled={testSmsLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
-                >
-                  {testSmsLoading ? 'Sending...' : 'Test my number'}
-                </button>
-
-                {testSmsMessage && (
-                  <div className={`mt-3 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {testSmsMessage}
-                  </div>
-                )}
+                <p className="text-sm text-gray-600 dark:text-gray-400">When someone calls your ReplyFlow number and you miss it, they'll appear here automatically.</p>
               </div>
             ) : (
               <div>
@@ -633,64 +602,6 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Live Activity Feed */}
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Live Activity</h2>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition">
-                {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                    No activity yet
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
-                      .sort((a: any, b: any) => {
-                        const timeA = new Date(a.created_at || a.scheduled_for).getTime()
-                        const timeB = new Date(b.created_at || b.scheduled_for).getTime()
-                        return timeB - timeA
-                      })
-                      .slice(0, 8)
-                      .map((item: any, index: number) => {
-                        const isLead = 'caller_phone' in item
-                        const isJob = 'message_body' in item
-
-                        let icon = ''
-                        let text = ''
-                        let time = ''
-
-                        if (isLead) {
-                          icon = '📞'
-                          text = `Missed call from ${formatLeadPhone(item.caller_phone)}`
-                          time = formatRelativeTime(item.created_at)
-                        } else if (isJob) {
-                          if (item.status === 'pending') {
-                            icon = '⏱'
-                            text = 'Follow-up scheduled'
-                          } else if (item.status === 'cancelled') {
-                            icon = '✅'
-                            text = 'Follow-up cancelled'
-                          } else {
-                            icon = '⏱'
-                            text = 'Follow-up job'
-                          }
-                          time = formatRelativeTime(item.created_at)
-                        }
-
-                        return (
-                          <div key={index} className="flex items-center justify-between gap-2 py-2.5 px-3 sm:px-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-base sm:text-lg flex-shrink-0 leading-none">{icon}</span>
-                              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate leading-relaxed">{text}</p>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0 ml-2">{time}</p>
-                          </div>
-                        )
-                      })}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Stats Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition">
@@ -714,22 +625,19 @@ export default function DashboardContent() {
             {/* Test Your Setup Section */}
             {business?.twilio_phone_number && (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
-                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Test your setup</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Test your setup</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Call your ReplyFlow number to test the missed call text back feature.
                 </p>
-                <div className="mb-4 sm:mb-6">
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Your ReplyFlow number:</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Your ReplyFlow number:</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{formatPhoneNumber(business.twilio_phone_number)}</p>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-                  Let it ring — you'll receive an automatic text.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
                     onClick={handleTestSms}
                     disabled={testSmsLoading}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
+                    className="w-full sm:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors text-sm"
                   >
                     {testSmsLoading ? 'Sending...' : 'Send Test SMS'}
                   </button>
@@ -738,13 +646,13 @@ export default function DashboardContent() {
                       console.log('[Dashboard] Refresh leads clicked')
                       router.refresh()
                     }}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
+                    className="w-full sm:w-auto px-6 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm"
                   >
                     Refresh leads
                   </button>
                 </div>
                 {testSmsMessage && (
-                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  <div className={`mt-3 text-sm ${testSmsMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {testSmsMessage}
                   </div>
                 )}
