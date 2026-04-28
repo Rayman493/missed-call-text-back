@@ -10,8 +10,8 @@ const supabase = createBrowserClient()
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const mode = searchParams.get('mode') || 'signup'
-  const emailParam = searchParams.get('email')
+  const mode = searchParams?.get('mode') || 'signup'
+  const emailParam = searchParams?.get('email')
   
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState(emailParam || '')

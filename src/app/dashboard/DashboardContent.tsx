@@ -87,7 +87,7 @@ export default function DashboardContent() {
   const [testSmsMessage, setTestSmsMessage] = useState('')
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
   const searchParams = useSearchParams()
-  const checkoutStatus = searchParams.get('checkout')
+  const checkoutStatus = searchParams?.get('checkout')
   const router = useRouter()
 
   const supabase = createBrowserClient()

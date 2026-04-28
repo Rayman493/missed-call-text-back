@@ -9,7 +9,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const checkoutStatus = searchParams.get('checkout')
+  const checkoutStatus = searchParams?.get('checkout')
 
   useEffect(() => {
     console.log('[BusinessGuard] State:', { loading, businessId: business?.id, pathname, checkoutStatus })

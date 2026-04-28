@@ -1,21 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { createClient } from '@supabase/supabase-js'
 
-export async function GET() {
-  return NextResponse.json({ ok: true, route: "send-sms exists" })
-}
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, route: "send-sms exists" })
+  }
 
-export async function POST(request: NextRequest) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   try {
     console.log('[Manual SMS] Send request received')
 
     // Get auth header
-    const authHeader = request.headers.get('authorization')
+    const authHeader = req.headers.authorization
     if (!authHeader) {
       console.error('[Manual SMS] Unauthorized - missing auth header')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
     // Get user from auth header
@@ -28,25 +32,22 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       console.error('[Manual SMS] Unauthorized - invalid token')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const body = await request.json()
-    const { leadId, message } = body
+    const { leadId, message } = req.body
 
     if (!leadId || !message) {
       console.error('[Manual SMS] Missing required fields:', { leadId, hasMessage: !!message })
-      return NextResponse.json(
-        { error: 'leadId and message are required' },
-        { status: 400 }
+      return res.status(400).json(
+        { error: 'leadId and message are required' }
       )
     }
 
     if (typeof message !== 'string' || message.trim().length === 0) {
       console.error('[Manual SMS] Empty message provided')
-      return NextResponse.json(
-        { error: 'Message cannot be empty' },
-        { status: 400 }
+      return res.status(400).json(
+        { error: 'Message cannot be empty' }
       )
     }
 
@@ -61,9 +62,8 @@ export async function POST(request: NextRequest) {
 
     if (leadError || !lead) {
       console.error('[Manual SMS] Lead not found:', { leadId, error: leadError })
-      return NextResponse.json(
-        { error: 'Lead not found' },
-        { status: 404 }
+      return res.status(404).json(
+        { error: 'Lead not found' }
       )
     }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Verify user owns the business
     if (lead.business?.user_id !== user.id) {
       console.error('[Manual SMS] Forbidden - user does not own business')
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return res.status(403).json({ error: 'Forbidden' })
     }
 
     // Fetch business
@@ -84,9 +84,8 @@ export async function POST(request: NextRequest) {
 
     if (businessError || !business) {
       console.error('[Manual SMS] Business not found:', { businessId: lead.business_id, error: businessError })
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
+      return res.status(404).json(
+        { error: 'Business not found' }
       )
     }
 
@@ -118,9 +117,8 @@ export async function POST(request: NextRequest) {
 
       if (createError || !newConversation) {
         console.error('[Manual SMS] Failed to create conversation:', createError)
-        return NextResponse.json(
-          { error: 'Failed to create conversation' },
-          { status: 500 }
+        return res.status(500).json(
+          { error: 'Failed to create conversation' }
         )
       }
       conversation = newConversation
@@ -146,9 +144,8 @@ export async function POST(request: NextRequest) {
 
     if (messageError || !messageRecord) {
       console.error('[Manual SMS] Failed to insert message:', messageError)
-      return NextResponse.json(
-        { error: 'Failed to create message record' },
-        { status: 500 }
+      return res.status(500).json(
+        { error: 'Failed to create message record' }
       )
     }
 
@@ -172,9 +169,8 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', messageRecord.id)
 
-      return NextResponse.json(
-        { error: 'Message could not be sent. Your Twilio number may still be pending verification.' },
-        { status: 500 }
+      return res.status(500).json(
+        { error: 'Message could not be sent. Your Twilio number may still be pending verification.' }
       )
     }
 
@@ -207,12 +203,11 @@ export async function POST(request: NextRequest) {
       .eq('id', leadId)
 
     console.log('[Manual SMS] Send completed successfully')
-    return NextResponse.json({ success: true, messageSid, messageId: messageRecord.id })
+    return res.status(200).json({ success: true, messageSid, messageId: messageRecord.id })
   } catch (error) {
     console.error('[Manual SMS] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return res.status(500).json(
+      { error: 'Internal server error' }
     )
   }
 }
