@@ -161,7 +161,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </Link>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Lead not found</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">DEBUG: Lead Not Found</h1>
+            <div className="text-left bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-800 dark:text-red-200 font-mono">
+                Lead ID: {params.id}
+              </p>
+              <p className="text-sm text-red-800 dark:text-red-200 font-mono">
+                ID Type: {typeof params.id}
+              </p>
+              <p className="text-sm text-red-800 dark:text-red-200 font-mono">
+                ID Length: {params.id?.length}
+              </p>
+              <p className="text-sm text-red-800 dark:text-red-200 mt-2">
+                Check browser console and server logs for detailed debugging information.
+              </p>
+            </div>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               The lead you're looking for doesn't exist or you don't have permission to view it.
             </p>

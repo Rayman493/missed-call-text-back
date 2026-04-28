@@ -34,87 +34,85 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // First, try to fetch the lead without business join to see if it exists
+    // First, get the user's business to match the leads list approach
     console.log('[API] Fetching lead with ID:', leadId)
     console.log('[API] LeadId type:', typeof leadId)
     console.log('[API] User ID:', user.id)
     
-    const { data: simpleLead, error: simpleLeadError } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('id', leadId)
+    // Get user's business first (same approach as leads list)
+    const { data: business, error: businessError } = await supabaseAdmin
+      .from('business')
+      .select('id')
+      .eq('user_id', user.id)
       .single()
 
-    console.log('[API] Simple lead query result:', { simpleLead, simpleLeadError })
+    console.log('[API] Business query result:', { business, businessError })
 
-    if (simpleLeadError || !simpleLead) {
-      console.log('[API] Lead not found in simple query - error:', simpleLeadError)
-      console.log('[API] Lead not found in simple query - lead exists:', !!simpleLead)
+    if (businessError || !business) {
+      console.log('[API] Business not found for user - error:', businessError)
+      return NextResponse.json(
+        { error: 'Business not found' },
+        { status: 404 }
+      )
+    }
+
+    console.log('[API] Business found! Business ID:', business.id)
+
+    // Now fetch lead using same approach as leads list: business_id filter with messages
+    const { data: lead, error: leadError } = await supabaseAdmin
+      .from('leads')
+      .select(`
+        *,
+        messages (
+          id,
+          body,
+          direction,
+          status,
+          error_code,
+          created_at
+        )
+      `)
+      .eq('id', leadId)
+      .eq('business_id', business.id)
+      .single()
+
+    console.log('[API] Lead query result:', { lead, leadError })
+
+    if (leadError || !lead) {
+      console.log('[API] Lead not found - error:', leadError)
+      console.log('[API] This means the lead either does not exist or does not belong to this business')
+      console.log('[API] Debug info - leadId:', leadId, 'businessId:', business.id)
       return NextResponse.json(
         { error: 'Lead not found' },
         { status: 404 }
       )
     }
 
-    console.log('[API] Lead found! Business ID:', simpleLead.business_id)
-
-    // Now fetch with business ownership check
-    const { data: lead, error: leadError } = await supabaseAdmin
-      .from('leads')
-      .select('*, business!inner(user_id)')
-      .eq('id', leadId)
-      .single()
-
-    console.log('[API] Lead query with business result:', { lead, leadError })
-
-    if (leadError || !lead) {
-      console.log('[API] Lead not found with business join - error:', leadError)
-      console.log('[API] This suggests a business ownership issue')
-      return NextResponse.json(
-        { error: 'Lead not found or access denied' },
-        { status: 404 }
-      )
-    }
-
-    // Verify user owns the business
-    if (lead.business?.user_id !== user.id) {
-      console.error('[Security] Forbidden business access - user', user.id, 'attempted to access lead', leadId, 'belonging to business', lead.business_id, 'business owner:', lead.business?.user_id)
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // Try to get conversation first
-    const { data: conversation } = await supabaseAdmin
-      .from('conversations')
-      .select('id, source')
-      .eq('lead_id', leadId)
-      .single()
-
-    let messages: any[] = []
-
-    if (conversation) {
-      // Fetch messages by conversation_id
-      const { data: conversationMessages } = await supabaseAdmin
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: true })
-
-      messages = conversationMessages || []
-    } else {
-      // Fallback: fetch messages by lead_id
-      const { data: leadMessages } = await supabaseAdmin
-        .from('messages')
-        .select('*')
+    // Extract messages from the lead query and try to get conversation source
+    const messages = lead.messages || []
+    let source = null
+    
+    try {
+      console.log('[API] Fetching conversation source for lead:', leadId)
+      const { data: conversation } = await supabaseAdmin
+        .from('conversations')
+        .select('source')
         .eq('lead_id', leadId)
-        .order('created_at', { ascending: true })
+        .single()
 
-      messages = leadMessages || []
+      console.log('[API] Conversation result:', { conversation })
+      source = conversation?.source || null
+    } catch (conversationError) {
+      console.log('[API] Could not fetch conversation (this is OK):', conversationError)
+      // Continue without conversation source - lead should still load
     }
+
+    console.log('[API] Final result - returning lead with', messages.length, 'messages')
 
     return NextResponse.json({
       lead,
       messages,
-      source: conversation?.source || null
+      source
     })
   } catch (error) {
     console.error('Error in lead-details API:', error)
