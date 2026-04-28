@@ -14,6 +14,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import ReplyFlowNumberCard from '@/components/ReplyFlowNumberCard'
 import CallForwardingCard from '@/components/CallForwardingCard'
 import BusinessPhoneSetupCard from '@/components/BusinessPhoneSetupCard'
+import Image from 'next/image'
 
 // Helper to hide test numbers
 function formatLeadPhone(phone: string): string {
@@ -375,8 +376,15 @@ export default function DashboardContent() {
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
               <div className="flex items-center justify-between h-14 sm:h-16">
                 <div className="flex items-center">
-                  <Link href="/dashboard" className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    ReplyFlow
+                  <Link href="/dashboard" className="flex items-center">
+                    <Image
+                      src="/replyflow-logo.png"
+                      alt="ReplyFlow"
+                      width={140}
+                      height={32}
+                      priority
+                      className="h-6 w-auto"
+                    />
                   </Link>
                 </div>
                 <div className="flex items-center gap-2">

@@ -110,36 +110,31 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
         </div>
 
         {showInstructions && business?.twilio_phone_number && (
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-3">Call Forwarding Instructions</h4>
-            <div className="space-y-3 text-sm text-blue-800">
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Call Forwarding Instructions</h4>
+            <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
               <p><strong>Step 1:</strong> On your business phone, dial <strong>*#61#</strong></p>
               <p><strong>Step 2:</strong> When prompted, enter your ReplyFlow number: <strong>{business.twilio_phone_number}</strong></p>
               <p><strong>Step 3:</strong> Save the forwarding settings</p>
-              <p><strong>Step 4:</strong> Test by calling your business number and not answering</p>
+              <p><strong>Step 4:</strong> Test by calling your business number and letting it go unanswered</p>
             </div>
             
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <h5 className="font-semibold text-green-900 mb-2">Test Your Setup</h5>
+            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Test Your Setup</h5>
               <button
                 onClick={() => setSetupStatus('awaiting_test')}
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
               >
                 Call Your Business Number
               </button>
-              <p className="text-xs text-green-700 mt-2 text-center">
-                Call your business number and let it ring unanswered to test call forwarding
-              </p>
             </div>
           </div>
         )}
 
         {setupStatus === 'working' && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <h5 className="font-semibold text-green-900 mb-2">✅ Setup Complete!</h5>
-            <p className="text-sm text-green-800">
-              Call forwarding is working. Missed calls will be automatically processed.
-            </p>
+          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">✅ Setup Complete!</h5>
+            <p className="text-sm text-green-800 dark:text-green-200">Call forwarding is working. Missed calls will be automatically processed.</p>
           </div>
         )}
       </div>
