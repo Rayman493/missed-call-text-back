@@ -50,83 +50,48 @@ export default function CallForwardingCard({ business }: CallForwardingCardProps
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <span className="text-xl sm:text-2xl">📞</span>
-          </div>
-          <div className="ml-3 sm:ml-4 flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Connect Your Existing Business Number
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Keep using your current business number. Set up missed-call forwarding so unanswered calls are sent to your ReplyFlow number. When ReplyFlow receives the missed call, we automatically text the caller and save the lead.
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Step 2: Connect Your Business Number
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          Set up missed-call forwarding from your business number to your ReplyFlow number.
+        </p>
+
+        {/* ReplyFlow Number Display */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 sm:p-6 mb-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Your ReplyFlow forwarding number:</p>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">
+              {replyFlowNumber ? formatPhoneNumber(replyFlowNumber) : 'Not assigned'}
             </p>
-            
-            <div className="mt-3 sm:mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  Business phone number:
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {businessNumber ? formatPhoneNumber(businessNumber) : 'Not set'}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  ReplyFlow forwarding number:
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {replyFlowNumber ? formatPhoneNumber(replyFlowNumber) : 'Not assigned'}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  Call forwarding status:
-                </span>
-                <span className={`text-xs sm:text-sm font-medium px-2 py-1 rounded-full ${getStatusColor(forwardingStatus.color)}`}>
-                  {forwardingStatus.status}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 sm:mt-6">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Steps to set up:
-              </h4>
-              <ol className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-                <li>Copy your ReplyFlow number</li>
-                <li>Set up conditional call forwarding from your business phone to this number</li>
-                <li>Call your business number and let it go unanswered to test</li>
-              </ol>
-            </div>
-
-            <div className="mt-4 sm:mt-6 flex flex-wrap gap-2">
-              <button
-                onClick={copyReplyFlowNumber}
-                disabled={!replyFlowNumber}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-xs sm:text-sm font-medium rounded-md transition-colors"
-              >
-                {copiedNumber ? 'Copied!' : 'Copy ReplyFlow Number'}
-              </button>
-              
-              <button
-                onClick={() => setShowInstructions(true)}
-                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm font-medium rounded-md transition-colors"
-              >
-                View Forwarding Instructions
-              </button>
-              
-              <button
-                onClick={testForwarding}
-                disabled={!replyFlowNumber || !businessNumber}
-                className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs sm:text-sm font-medium rounded-md transition-colors"
-              >
-                I Set Up Forwarding — Test It
-              </button>
-            </div>
+            <button
+              onClick={copyReplyFlowNumber}
+              disabled={!replyFlowNumber}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex-shrink-0"
+            >
+              {copiedNumber ? 'Copied!' : 'Copy'}
+            </button>
           </div>
+        </div>
+
+        {/* Steps */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Steps to set up:</h4>
+          <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside">
+            <li>Copy your ReplyFlow number</li>
+            <li>Set up missed-call forwarding</li>
+            <li>Test it</li>
+          </ol>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setShowInstructions(true)}
+            className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm"
+          >
+            View Forwarding Instructions
+          </button>
         </div>
       </div>
 

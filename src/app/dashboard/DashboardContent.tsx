@@ -419,7 +419,7 @@ export default function DashboardContent() {
             <SmsVerificationBanner business={business} />
             
             {/* Dashboard Cards Container */}
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-10">
               {/* ReplyFlow Number Card */}
               <ReplyFlowNumberCard 
                 business={business} 
