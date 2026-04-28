@@ -195,8 +195,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const { lead, messages, source } = leadData
 
-  // Get latest message status
-  const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null
+  // Get latest message status with safe guards
+  const messagesArray = messages || []
+  const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
   return (
@@ -220,7 +221,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {formatPhoneNumber(lead.caller_phone)}
+                {formatPhoneNumber(lead.caller_phone || '')}
               </h1>
               <div className="flex items-center gap-3">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLeadStatusColor(lead.status)}`}>
@@ -306,7 +307,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Message History ({messages.length})
+              Message History ({messagesArray.length})
             </h2>
           </div>
 
@@ -320,13 +321,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
 
           <div className="p-6">
-            {messages.length === 0 ? (
+            {messagesArray.length === 0 ? (
               <p className="text-center text-gray-500 dark:text-gray-400 py-8">
                 No messages found yet.
               </p>
             ) : (
               <div className="space-y-4">
-                {messages.map((msg: any) => {
+                {messagesArray.map((msg: any) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
 
