@@ -78,6 +78,8 @@ export default function DashboardContent() {
   const { setBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
+  const [missedCalls, setMissedCalls] = useState(0)
+  const [callEvents, setCallEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
@@ -345,6 +347,21 @@ export default function DashboardContent() {
         setFollowUpJobs(jobsData || [])
       } catch (error) {
         console.error('[DashboardContent] Error fetching follow-up jobs:', error)
+      }
+
+      // Fetch call events for missed calls count
+      try {
+        const { data: callEventsData } = await supabase
+          .from('call_events')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+
+        console.log('[DashboardContent] Fetched', callEventsData?.length || 0, 'call events')
+        setCallEvents(callEventsData || [])
+        setMissedCalls(callEventsData?.length || 0)
+      } catch (error) {
+        console.error('[DashboardContent] Error fetching call events:', error)
       } finally {
         console.log('[DashboardContent] Setting loading to false')
         setLoading(false)
@@ -365,7 +382,7 @@ export default function DashboardContent() {
     )
   }
 
-  const missedCalls = leads.length
+  // missedCalls is now tracked in state
   const textsSent = leads.reduce((count, lead) => {
     return count + (lead.messages?.filter((m: any) => m.direction === 'outbound').length || 0)
   }, 0)
@@ -373,9 +390,7 @@ export default function DashboardContent() {
     return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
   }, 0)
   const followUpsScheduled = followUpJobs.filter((job: any) => job.status === 'pending').length
-  const leadsRecovered = leads.filter((lead) => {
-    return lead.messages?.some((m: any) => m.direction === 'outbound')
-  }).length
+  const leadsRecovered = leads.length // Now represents unique callers captured
 
   return (
     <AuthGuard>

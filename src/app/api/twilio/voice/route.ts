@@ -105,6 +105,26 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Create call event for analytics (every call counts)
+    try {
+      const callEvent = await db.createCallEvent({
+        business_id: business.id,
+        caller_phone: normalizedCallerPhone,
+        call_status: 'missed',
+        twilio_call_sid: params.get('CallSid'),
+        raw_payload: Object.fromEntries(params.entries()),
+        created_at: new Date().toISOString(),
+      });
+      
+      if (callEvent) {
+        console.log('[Analytics] New call event created:', callEvent.id);
+      } else {
+        console.error('[Analytics] Failed to create call event');
+      }
+    } catch (callEventError) {
+      console.error('[Analytics] Error creating call event:', callEventError);
+    }
+
     // Check if lead already exists
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
@@ -112,7 +132,7 @@ export async function POST(request: NextRequest) {
     let shouldSendSms = false;
     
     if (!existingLead) {
-      console.log('[Twilio Voice] No existing lead found, creating new lead');
+      console.log('[Analytics] No existing lead found, creating new lead');
       
       // Create new lead
       lead = await db.createLead({
@@ -126,18 +146,18 @@ export async function POST(request: NextRequest) {
       });
       
       if (lead) {
-        console.log('[Twilio Voice] Lead created:', lead.id);
+        console.log('[Analytics] New lead created:', lead.id);
         shouldSendSms = true; // Send SMS for new leads
       } else {
-        console.error('[Twilio Voice] Failed to create lead');
+        console.error('[Analytics] Failed to create lead');
       }
     } else {
-      console.log('[Twilio Voice] Lead already exists:', existingLead.id);
+      console.log('[Analytics] Existing lead reused:', existingLead.id);
       lead = existingLead;
       // For testing, we'll send SMS even for existing leads to ensure the flow works
       // TODO: Add logic to determine if SMS should be sent for existing leads based on business rules
       shouldSendSms = true;
-      console.log('[Twilio Voice] Will send auto-reply SMS for existing lead (testing mode)');
+      console.log('[Analytics] Will send auto-reply SMS for existing lead (testing mode)');
     }
     
     // Send auto-reply SMS if appropriate
