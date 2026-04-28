@@ -87,6 +87,56 @@ export const db = {
     return data
   },
 
+  async getBusinessByUserId(userId: string): Promise<Business | null> {
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('user_id', userId)
+      .limit(1)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('[getBusinessByUserId] Error fetching business:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
+    console.log('[getOrCreateBusiness] Starting for user:', userId)
+    
+    // First, try to find existing business
+    const existingBusiness = await this.getBusinessByUserId(userId)
+    
+    if (existingBusiness) {
+      console.log('[getOrCreateBusiness] Existing business reused:', existingBusiness.id)
+      return existingBusiness
+    }
+    
+    console.log('[getOrCreateBusiness] No existing business found, creating new business for user:', userId)
+    
+    // Create new business with provided data or defaults
+    const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
+      user_id: userId,
+      name: businessData?.name || 'My Business',
+      twilio_phone_number: businessData?.twilio_phone_number || '',
+      auto_reply_message: businessData?.auto_reply_message || 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
+      subscription_status: businessData?.subscription_status || 'inactive',
+      stripe_customer_id: businessData?.stripe_customer_id || null,
+    }
+    
+    const createdBusiness = await this.createBusiness(newBusinessData)
+    
+    if (createdBusiness) {
+      console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
+    } else {
+      console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
+    }
+    
+    return createdBusiness
+  },
+
   // Lead operations
   async getLeadByPhone(businessId: string, callerPhone: string): Promise<Lead | null> {
     const { data, error } = await supabaseAdmin

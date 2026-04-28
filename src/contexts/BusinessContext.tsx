@@ -62,81 +62,34 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          // No business found - check if we should auto-create one
-          console.log('[BusinessContext] No business found for user:', user.id, 'checking if auto-creation is appropriate...')
+          // No business found - use centralized getOrCreateBusiness API
+          console.log('[BusinessContext] No business found for user:', user.id, 'using centralized business creation API...')
           
-          // Double-check if a business exists (prevent race conditions)
-          const { data: doubleCheck, error: doubleCheckError } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('user_id', user.id)
-            .limit(1)
-            .single()
-          
-          if (doubleCheck && !doubleCheckError) {
-            console.log('[BusinessContext] Existing business found on double-check:', doubleCheck.id)
-            // A business was created by another process, fetch it
-            const { data: existingBusiness, error: refetchError } = await supabase
-              .from('businesses')
-              .select('*')
-              .eq('user_id', user.id)
-              .limit(1)
-              .single()
-            
-            if (!refetchError && existingBusiness) {
-              console.log('[BusinessContext] Using existing business found on double-check:', existingBusiness.id)
-              setBusiness(existingBusiness as Business)
-              return
-            }
-          }
-          
-          console.log('[BusinessContext] No existing business found, proceeding with auto-creation...')
-          
-          const newBusiness = {
-            user_id: user.id,
-            name: user.email || 'My Business',
-            twilio_phone_number: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '',
-            auto_reply_message: 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
-            subscription_status: 'inactive',
-          }
-
-          console.log('[BusinessContext] Creating new business for user:', user.id)
-          const { data: createdBusiness, error: createError } = await supabase
-            .from('businesses')
-            .insert(newBusiness)
-            .select()
-            .single()
-
-          if (createError) {
-            console.error('[BusinessContext] Error auto-creating business:', createError)
-            // If twilio_phone_number is not unique, try without it
-            if (createError.code === '23505') {
-              console.log('[BusinessContext] Duplicate twilio_phone_number, retrying without it')
-              const { data: createdBusinessNoPhone, error: createErrorNoPhone } = await supabase
-                .from('businesses')
-                .insert({
-                  user_id: user.id,
-                  name: user.email || 'My Business',
-                  auto_reply_message: 'Hi, this is {{business_name}}. Sorry we missed your call—how can we help you?',
-                  subscription_status: 'inactive',
-                })
-                .select()
-                .single()
-
-              if (createErrorNoPhone) {
-                console.error('[BusinessContext] Error auto-creating business without phone:', createErrorNoPhone)
-                setBusiness(null)
-              } else {
-                console.log('[BusinessContext] Business created without phone:', createdBusinessNoPhone?.id)
-                setBusiness(createdBusinessNoPhone as Business)
+          const response = await fetch('/api/business/get-or-create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessData: {
+                name: user.email || 'My Business',
+                twilio_phone_number: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '',
               }
+            })
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.business) {
+              console.log('[BusinessContext] Business resolved via getOrCreateBusiness API:', data.business.id)
+              setBusiness(data.business as Business)
             } else {
-              console.error('[BusinessContext] Business creation failed, setting business to null')
+              console.error('[BusinessContext] No business returned from API')
               setBusiness(null)
             }
           } else {
-            console.log('[BusinessContext] Business auto-created successfully:', createdBusiness?.id)
-            setBusiness(createdBusiness as Business)
+            console.error('[BusinessContext] API call failed:', response.status)
+            setBusiness(null)
           }
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)

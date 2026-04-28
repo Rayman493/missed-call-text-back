@@ -77,21 +77,6 @@ export default function OnboardingPage() {
         return
       }
 
-      // Final check - ensure user doesn't already have a business
-      const { data: finalCheck, error: finalCheckError } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('user_id', userId)
-        .limit(1)
-        .single()
-
-      if (finalCheck && !finalCheckError) {
-        console.log('[Onboarding] Business already exists during form submission:', finalCheck.id)
-        setError('You already have a business. Redirecting to dashboard...')
-        router.push('/dashboard')
-        return
-      }
-
       // Normalize phone number
       const normalizedPhone = normalizePhoneNumber(businessPhone)
       if (!normalizedPhone) {
@@ -99,27 +84,36 @@ export default function OnboardingPage() {
         return
       }
 
-      console.log('[Onboarding] Creating business for user:', userId)
-      // Insert business with user_id
-      const businessPayload = {
-        user_id: userId,
-        name: businessName,
-        twilio_phone_number: normalizedPhone,
-        auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+      console.log('[Onboarding] Using getOrCreateBusiness API for user:', userId)
+      // Use centralized getOrCreateBusiness API
+      const response = await fetch('/api/business/get-or-create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessData: {
+            name: businessName,
+            twilio_phone_number: normalizedPhone,
+            auto_reply_message: 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+          }
+        })
+      })
+
+      if (!response.ok) {
+        console.error('[Onboarding] API call failed:', response.status)
+        throw new Error('Failed to create business')
       }
 
-      const { data: createdBusiness, error: insertError } = await supabase
-        .from('businesses')
-        .insert(businessPayload as any)
-        .select()
-        .single()
+      const data = await response.json()
+      const business = data.business
 
-      if (insertError) {
-        console.error('[Onboarding] Error creating business:', insertError)
-        throw insertError
+      if (!business) {
+        console.error('[Onboarding] No business returned from API')
+        throw new Error('Failed to create business')
       }
 
-      console.log('[Onboarding] Business created successfully:', createdBusiness?.id)
+      console.log('[Onboarding] Business resolved successfully:', business.id)
 
       // Refresh business context to update state
       await refreshBusiness()

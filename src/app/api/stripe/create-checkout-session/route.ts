@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
+import { db } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,26 +46,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized - no user found' }, { status: 401 })
     }
 
-    // Find user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .limit(1)
-      .single()
-      
-    console.log('[stripe-checkout] Business lookup result:', { 
+    // Get or create user's business using centralized function
+    const business = await db.getOrCreateBusiness(user.id)
+    
+    console.log('[stripe-checkout] Business resolved:', { 
       business: !!business, 
       businessId: business?.id,
       businessName: business?.name,
-      businessError: businessError?.message,
       userId: user.id 
     });
     
-    console.log('[stripe-checkout] Using business ID for checkout:', business?.id);
+    console.log('[stripe-checkout] Business ID used for checkout:', business?.id);
 
-    if (businessError || !business) {
-      console.error('[stripe-checkout] Business not found for user:', user.id, 'Error:', businessError);
+    if (!business) {
+      console.error('[stripe-checkout] Failed to resolve business for user:', user.id);
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
