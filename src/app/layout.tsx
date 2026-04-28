@@ -8,8 +8,11 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Missed Call Text Back',
-  description: 'Automated text response for missed calls',
+  title: 'ReplyFlow',
+  description: 'Automatically respond to missed calls',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
