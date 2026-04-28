@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
@@ -18,13 +19,27 @@ export default function Home() {
     <main className="min-h-screen bg-gray-900">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 md:px-8 md:py-6 max-w-7xl mx-auto">
-        <div className="text-xl font-bold text-gray-100">ReplyFlow</div>
-        <Link
-          href="/auth?mode=signin"
-          className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
-        >
-          Sign In
-        </Link>
+        <div className="flex items-center">
+          <Link href="/dashboard" className="flex items-center">
+            <Image
+              src="/replyflow-logo.svg"
+              alt="ReplyFlow"
+              width={200}
+              height={60}
+              priority
+              className="h-8 w-auto object-contain"
+            />
+            <span className="ml-3 text-xl font-bold text-gray-100">ReplyFlow</span>
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/auth?mode=signin"
+            className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+          >
+            Sign In
+          </Link>
+        </div>
       </header>
 
       {/* Hero Section */}
