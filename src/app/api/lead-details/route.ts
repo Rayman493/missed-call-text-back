@@ -54,6 +54,17 @@ export async function GET(request: NextRequest) {
       .eq("lead_id", leadId)
       .maybeSingle()
 
+    console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
+
+    // Fetch messages for this lead (same approach as dashboard)
+    const { data: messages, error: messagesError } = await supabaseAdmin
+      .from("messages")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: true })
+
+    console.log("[lead-details API] Messages fetched:", messages?.length || 0, "query method: messages.lead_id")
+
     // Fetch follow-up jobs for this lead
     const { data: followUpJobs } = await supabaseAdmin
       .from("follow_up_jobs")
@@ -67,6 +78,7 @@ export async function GET(request: NextRequest) {
       lead: {
         ...lead,
         conversation,
+        messages: messages || [],
         followUpJobs: followUpJobs || []
       }
     })
