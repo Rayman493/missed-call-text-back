@@ -395,69 +395,82 @@ export async function GET(req: NextRequest) {
       console.log(`[send-followups] Processing follow_up: ${followUp.id}`)
       
       try {
-        // Fetch conversation
-        const { data: conversation, error: conversationError } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('id', followUp.conversation_id)
-          .single()
+        console.log(`[send-followups] followUp: ${followUp.id}`)
+        console.log(`[send-followups] lead_id: ${followUp.lead_id}`)
         
-        if (conversationError) {
-          console.error('[send-followups] Error fetching conversation:', conversationError)
-          throw conversationError
-        }
-        
-        // If conversation missing or conversation.status != 'open'
-        if (!conversation || conversation.status !== 'open') {
-          console.log(`[send-followups] Cancelling - conversation not open: ${followUp.id}`)
-          
-          // Mark follow_up as `cancelled`
-          const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+        // Hard guard: ensure lead_id exists
+        if (!followUp.lead_id) {
+          console.error("[send-followups] Missing lead_id", followUp.id)
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'Missing lead_id'
+            })
             .eq('id', followUp.id)
           
-          if (cancelError) {
-            console.error('[send-followups] Error cancelling follow-up:', cancelError)
-            throw cancelError
+          if (failError) {
+            console.error('[send-followups] Error marking follow-up as failed:', failError)
           }
-          cancelled++
+          errors++
           continue
         }
         
-        // Check whether the customer already replied
-        let query = supabase
-          .from('messages')
+        // Get open conversation for this lead (safe lookup by lead_id only)
+        console.log("[send-followups] Looking up conversation by lead_id:", followUp.lead_id)
+        const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
           .select('*')
-          .eq('conversation_id', followUp.conversation_id)
-          .eq('direction', 'inbound')
-          .order('created_at', { ascending: false })
-          .limit(1)
+          .eq('lead_id', followUp.lead_id)
+          .eq('status', 'open')
+          .maybeSingle()
         
-        if (followUp.created_at) {
-          query = query.gt('created_at', followUp.created_at)
+        if (conversationError) {
+          console.error('[send-followups] Error fetching conversation:', conversationError)
         }
         
-        const { data: latestInboundMessage, error: messageError } = await query.single()
-        
-        if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is "not found" error
-          console.error('[send-followups] Error fetching latest inbound message:', messageError)
-          throw messageError
+        if (!conversation) {
+          console.warn(`[send-followups] No open conversation found for lead: ${followUp.lead_id}, proceeding without conversation`)
+        } else {
+          console.log(`[send-followups] Found conversation: ${conversation.id} for lead: ${followUp.lead_id}`)
         }
         
-        // If found
-        if (latestInboundMessage) {
-          console.log(`[send-followups] Cancelling - customer already replied: ${followUp.id}`)
+        // Check whether the customer already replied after follow-up was created
+        // Only check if we have a conversation, otherwise proceed with follow-up
+        let latestInboundMessage = null
+        if (conversation) {
+          const { data: messageData, error: messageError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversation.id)
+            .eq('direction', 'inbound')
+            .gt('created_at', followUp.created_at)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
           
-          // Mark follow_up as `cancelled`
+          if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is "not found" error
+            console.error('[send-followups] Error checking for replies:', messageError)
+          }
+          
+          latestInboundMessage = messageData
+        }
+        
+        // If customer replied, cancel follow-up
+        if (latestInboundMessage) {
+          console.log(`[send-followups] Customer replied, cancelling follow-up: ${followUp.id}`)
+          
           const { error: cancelError } = await supabase
-            .from('follow_ups')
-            .update({ status: 'cancelled' })
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'cancelled',
+              cancelled_reason: 'customer_replied',
+              cancelled_at: new Date().toISOString()
+            })
             .eq('id', followUp.id)
           
           if (cancelError) {
             console.error('[send-followups] Error cancelling follow-up:', cancelError)
-            throw cancelError
           }
           cancelled++
           continue
