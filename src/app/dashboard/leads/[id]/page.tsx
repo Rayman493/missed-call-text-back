@@ -87,22 +87,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
 
   // ALL hooks must be declared here before any conditional returns
-  // Auto-scroll to newest message
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    // Only scroll if user is near bottom (within 200px) or if it's a new message
+  // Auto-scroll to newest message with jump button logic
+  const [showJumpButton, setShowJumpButton] = useState(false)
+  
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false) => {
+    // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
     const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
     
-    if (isNearBottom || behavior === 'auto') {
+    if (force || isNearBottom || behavior === 'auto') {
       setTimeout(() => {
         window.scrollTo({
           top: document.body.scrollHeight,
           behavior
         })
+        setShowJumpButton(false)
       }, 100)
+    } else if (!force) {
+      // Show jump button if user scrolled up and new message arrives
+      setShowJumpButton(true)
     }
   }
 
+  
   
   // Scroll to bottom after sending a message
   useEffect(() => {
@@ -179,6 +186,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       scrollToBottom('auto')
     }
   }, [loading, messagesArray.length])
+
+  // Check scroll position to show/hide jump button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollThreshold = 200
+      const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
+      setShowJumpButton(!isNearBottom && messagesArray.length > 0)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    handleScroll() // Check initial position
+    
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [messagesArray.length])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
@@ -614,39 +635,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </Link>
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
               <div>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {formatPhoneNumber(lead?.caller_phone || '')}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span className={`px-1.5 py-0.5 rounded-md text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
                     {lead?.status}
                   </span>
                   {conversation && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`px-1.5 py-0.5 rounded-md text-xs font-medium ${
                       conversation.status === 'open' 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}>
                       {conversation.status}
                     </span>
                   )}
                   {automationStatus && (
-                    <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-xs rounded-full">
+                    <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-md font-medium">
                       {automationStatus}
                     </span>
                   )}
                 </div>
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                  {lead?.last_message_at && (
+                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Created {formatRelativeTime(lead?.created_at)}
-              </p>
-              {lead?.last_message_at && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Last activity {formatRelativeTime(lead.last_message_at)}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -662,16 +679,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : messagesArray.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">💬</div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">💬</div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                   No messages yet
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                  Start the conversation by sending a message below.
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 max-w-md mx-auto">
+                  Messages will appear here after missed calls, replies, or manual sends.
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Messages will appear here after missed calls or replies.
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  Start the conversation by sending a message below.
                 </p>
               </div>
             ) : (
@@ -702,54 +719,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       
                       {/* Message Bubble */}
                       <div className={`max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5 mb-1 justify-end flex-wrap">
+                          <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
                             {formatRelativeTime(msg.created_at)}
                           </span>
                           {isOptimistic && (
-                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
+                            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
                               Sending...
                             </span>
                           )}
                           {isManual && (
-                            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs rounded-full font-medium">
+                            <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs rounded-md font-medium">
                               Manual
                             </span>
                           )}
                           {isFollowUp && (
-                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
+                            <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs rounded-md font-medium">
                               Auto
                             </span>
                           )}
                           {isInbound && (
-                            <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-full font-medium">
+                            <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-md font-medium">
                               Customer
                             </span>
                           )}
                           {isOutbound && !isOptimistic && (
                             <>
                               {msg.status === 'sent' && (
-                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
+                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium">
                                   Sent
                                 </span>
                               )}
                               {msg.status === 'delivered' && (
-                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
+                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium">
                                   Delivered
                                 </span>
                               )}
                               {msg.status === 'pending' && (
-                                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-full font-medium">
+                                <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-md font-medium">
                                   Pending
                                 </span>
                               )}
                               {msg.status === 'undelivered' && (
-                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-full font-medium">
-                                  Undelivered
+                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium">
+                                  Failed
                                 </span>
                               )}
                               {msg.status === 'failed' && (
-                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-full font-medium">
+                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium">
                                   Failed
                                 </span>
                               )}
@@ -865,16 +882,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
+        {/* Jump to Latest Button */}
+        {showJumpButton && (
+          <button
+            onClick={() => scrollToBottom('smooth', true)}
+            className="fixed bottom-24 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-105"
+            aria-label="Jump to latest message"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
+        )}
+
           {/* Send Message Input */}
           <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
               <div className="flex gap-3">
                 <textarea
+                  ref={(textarea) => {
+                    if (textarea) {
+                      // Auto-resize textarea
+                      textarea.style.height = 'auto'
+                      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+                    }
+                  }}
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={(e) => {
+                    setMessage(e.target.value)
+                    // Auto-resize on change
+                    const textarea = e.target
+                    textarea.style.height = 'auto'
+                    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-                  className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  rows={2}
+                  className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
+                  rows={1}
+                  style={{ minHeight: '44px', maxHeight: '120px' }}
                   disabled={sending}
                 />
                 <button
