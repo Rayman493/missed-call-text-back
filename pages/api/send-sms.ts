@@ -48,45 +48,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         )
       }
 
-      console.log('[Manual SMS] Fetching lead:', leadId)
+      console.log('[Manual SMS] Incoming leadId:', leadId)
+      console.log('[Manual SMS] Authenticated user:', { id: user.id, email: user.email })
 
-      // Fetch lead with business ownership check
-      const { data: lead, error: leadError } = await supabaseAdmin
-        .from('leads')
-        .select('*, business!inner(user_id)')
-        .eq('id', leadId)
-        .single()
-
-      if (leadError || !lead) {
-        console.error('[Manual SMS] Lead not found:', { leadId, error: leadError })
-        return res.status(404).json(
-          { error: 'Lead not found' }
-        )
-      }
-
-      console.log('[Manual SMS] Lead found:', { leadId, phone: lead.caller_phone })
-
-      // Verify user owns the business
-      if (lead.business?.user_id !== user.id) {
-        console.error('[Manual SMS] Forbidden - user does not own business')
-        return res.status(403).json({ error: 'Forbidden' })
-      }
-
-      // Fetch business
+      // First, fetch the user's business
       const { data: business, error: businessError } = await supabaseAdmin
         .from('businesses')
         .select('*')
-        .eq('id', lead.business_id)
+        .eq('user_id', user.id)
         .single()
 
       if (businessError || !business) {
-        console.error('[Manual SMS] Business not found:', { businessId: lead.business_id, error: businessError })
+        console.error('[Manual SMS] Business not found for user:', { userId: user.id, error: businessError })
         return res.status(404).json(
           { error: 'Business not found' }
         )
       }
 
-      console.log('[Manual SMS] Business found:', { businessId: business.id })
+      console.log('[Manual SMS] Business found:', { businessId: business.id, name: business.name })
+
+      // Then fetch lead using the same approach as lead-details API
+      console.log('[Manual SMS] Lead query result - querying leads table for id:', leadId)
+      
+      const { data: lead, error: leadError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .maybeSingle()
+
+      console.log('[Manual SMS] Lead query result:', { data: lead, error: leadError })
+
+      if (leadError) {
+        console.error('[Manual SMS] Supabase error:', leadError)
+        return res.status(500).json(
+          { error: 'Database error', details: leadError.message }
+        )
+      }
+
+      if (!lead) {
+        console.log('[Manual SMS] No lead found for id:', leadId, 'businessId:', business.id)
+        return res.status(404).json(
+          { error: 'Lead not found' }
+        )
+      }
+
+      console.log('[Manual SMS] Lead found:', { leadId, phone: lead.caller_phone, businessId: lead.business_id })
 
       // Fetch or create conversation
       let conversation

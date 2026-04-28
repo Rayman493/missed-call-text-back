@@ -165,8 +165,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           error_message: result.error || 'Failed to send message'
         })
         
-        // Show verification warning for carrier issues
-        if (result.error?.includes('verification') || result.error?.includes('carrier')) {
+        // Show appropriate error message based on response
+        if (result.error === 'Lead not found') {
+          setError('Lead not found. Please refresh the page and try again.')
+        } else if (result.error === 'Business not found') {
+          setError('Business not found. Please contact support.')
+        } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
           setError('Carrier verification still pending. Delivery may fail until approved.')
         } else {
           setError('Failed to send message. Please try again.')
@@ -238,7 +242,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           } : prev)
         }
         
-        if (result.error?.includes('verification') || result.error?.includes('carrier')) {
+        // Show appropriate error message based on response
+        if (result.error === 'Lead not found') {
+          setError('Lead not found. Please refresh the page and try again.')
+        } else if (result.error === 'Business not found') {
+          setError('Business not found. Please contact support.')
+        } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
           setError('Carrier verification still pending. Delivery may fail until approved.')
         } else {
           setError(result.error || 'Failed to send message')
