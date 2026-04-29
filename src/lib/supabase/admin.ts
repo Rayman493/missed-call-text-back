@@ -26,6 +26,7 @@ export const db = {
       .from('businesses')
       .select('*')
       .eq('twilio_phone_number', phone)
+      .limit(1) // Get first business if multiple exist
       .single()
     
     if (error) {
@@ -34,6 +35,60 @@ export const db = {
     }
     
     return data
+  },
+
+  // New function to get all businesses with a given phone number
+  async getBusinessesByPhone(phone: string): Promise<Business[]> {
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('twilio_phone_number', phone)
+    
+    if (error) {
+      console.error('Error fetching businesses:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
+  // New function to find lead by phone number across businesses with shared phone number
+  async findLeadByPhoneAcrossBusinesses(phone: string, phoneNumber: string): Promise<{ lead: any; business: Business } | null> {
+    // First get all businesses with this phone number
+    const businesses = await this.getBusinessesByPhone(phoneNumber)
+    
+    if (businesses.length === 0) {
+      return null
+    }
+    
+    // Search for leads across all these businesses
+    const businessIds = businesses.map(b => b.id)
+    
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .select('*')
+      .in('business_id', businessIds)
+      .eq('caller_phone', phone)
+      .limit(1) // Get first match if multiple exist
+      .single()
+    
+    if (error) {
+      console.error('Error finding lead across businesses:', error)
+      return null
+    }
+    
+    if (!data) {
+      return null
+    }
+    
+    // Find the business for this lead
+    const business = businesses.find(b => b.id === data.business_id)
+    if (!business) {
+      console.error('Business not found for lead:', data.business_id)
+      return null
+    }
+    
+    return { lead: data, business }
   },
 
   async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: 'twilio_numbers' | 'legacy' } | null> {

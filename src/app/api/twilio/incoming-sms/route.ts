@@ -44,45 +44,47 @@ export async function POST(req: NextRequest) {
     
     console.log('[SYSTEM] [INCOMING-SMS] From:', From, 'To:', To, 'Body:', Body)
     
-    // Find business by Twilio phone number
-    const business = await db.getBusinessByPhone(To)
-    
-    // Log resolved business details
-    if (business) {
-      console.log('[SYSTEM] [INCOMING-SMS] Resolved business:', {
-        id: business.id,
-        name: business.name,
-        phone_number: business.twilio_phone_number
-      })
-    }
-    if (!business) {
-      console.error('[SYSTEM] [INCOMING-SMS] Business not found for phone:', To)
-      
-      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Service unavailable</Message>
-</Response>`
-
-      return new Response(errorTwiml, {
-        status: 404,
-        headers: {
-          'Content-Type': 'text/xml',
-        },
-      })
-    }
-    
-    console.log('[SYSTEM] [INCOMING-SMS] Found business:', business.name, '(', business.id, ')')
-    
     // Normalize customer phone number
     const normalizedCustomerPhone = normalizePhoneNumber(From)
     
     // Check for opt-out keywords (case-insensitive)
     const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
-    const normalizedBody = Body.trim().toUpperCase()
-    const isOptOut = optOutKeywords.some(keyword => normalizedBody === keyword)
+    const originalBody = Body.trim().toUpperCase()
+    const isOptOut = optOutKeywords.some(keyword => originalBody === keyword)
     
-    // Find or create lead for this customer
-    let lead = await db.getLeadByPhone(business.id, normalizedCustomerPhone)
+    // Try to find existing lead across all businesses with this phone number
+    const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, To)
+    
+    let business: any
+    let lead: any
+    
+    if (leadResult) {
+      // Found existing lead, use its business
+      business = leadResult.business
+      lead = leadResult.lead
+      console.log('[SYSTEM] [INCOMING-SMS] Found existing lead:', lead.id, 'for business:', business.id)
+    } else {
+      // No existing lead, get first business with this phone number
+      business = await db.getBusinessByPhone(To)
+      
+      if (!business) {
+        console.error('[SYSTEM] [INCOMING-SMS] Business not found for phone:', To)
+        
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Service unavailable</Message>
+</Response>`
+
+        return new Response(errorTwiml, {
+          status: 404,
+          headers: {
+            'Content-Type': 'text/xml',
+          },
+        })
+      }
+      
+      console.log('[SYSTEM] [INCOMING-SMS] Using business for new lead:', business.id)
+    }
     
     if (!lead) {
       // Create new lead with status 'contacted' since customer replied

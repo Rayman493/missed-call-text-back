@@ -1,7 +1,7 @@
 create table if not exists businesses (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  twilio_phone_number text not null unique,
+  twilio_phone_number text not null,
   auto_reply_message text not null default 'Hi, this is ReplyFlow. Sorry we missed your call—how can we help? Reply STOP to opt out.',
   created_at timestamptz not null default now()
 );
