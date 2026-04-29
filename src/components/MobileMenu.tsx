@@ -44,7 +44,6 @@ export default function MobileMenu() {
   const privateMenuItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
-    { href: '/dashboard/settings', label: 'Settings' },
     { href: '/', label: 'View Homepage' },
   ]
 
