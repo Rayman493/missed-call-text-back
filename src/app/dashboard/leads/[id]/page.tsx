@@ -86,6 +86,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
+  const [refreshing, setRefreshing] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -496,13 +497,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter sends the message, Shift+Enter creates a new line
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault() // Prevent new line
-      handleSendMessage() // Send the message
-    }
-    // Allow Shift+Enter to create new line (default behavior)
   }
 
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
@@ -738,6 +732,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </svg>
               </Link>
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh Messages"
+              >
+                {refreshing ? (
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-transparent border-solid"></div>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5a.586.587 0 01.424.424.586V6a2 2 0 002 2h6a2 2 0 002-2V6a2 2 0 01-2-2v-.586A2 2 0 01-.424-.424L4 4z" />
+                  </svg>
+                )}
+              </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {formatPhoneNumber(lead?.caller_phone || '')}
@@ -1106,14 +1114,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </p>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatRelativeTime(job.scheduled_for)}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        ({job.cancelled_reason})
                       </p>
-                      {job.sent_at && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Sent {formatRelativeTime(job.sent_at)}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        Sent {formatRelativeTime(job.sent_at)}
+                      </p>
                     </div>
                   </div>
                 )
