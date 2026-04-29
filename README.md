@@ -67,6 +67,11 @@ TWILIO_PHONE_NUMBER=+1your_twilio_phone_number
 # App Configuration
 APP_BASE_URL=http://localhost:3005
 AUTO_REPLY_COOLDOWN_MINUTES=15
+
+# Stripe Billing
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PRICE_ID=price_1...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 ### Production Environment Variables
@@ -87,12 +92,18 @@ TWILIO_PHONE_NUMBER=+15551234567
 # App Configuration (Required)
 APP_BASE_URL=https://your-app-name.vercel.app
 AUTO_REPLY_COOLDOWN_MINUTES=15
+
+# Stripe Billing (Required)
+STRIPE_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_STRIPE_PRICE_ID=price_1...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 **Important Notes:**
 - `NEXT_PUBLIC_*` variables are exposed to the browser
-- `SUPABASE_SERVICE_ROLE_KEY` and `TWILIO_AUTH_TOKEN` are server-side only
+- `SUPABASE_SERVICE_ROLE_KEY`, `TWILIO_AUTH_TOKEN`, and `STRIPE_SECRET_KEY` are server-side only
 - `APP_BASE_URL` must match your deployed URL for webhooks to work
+- `NEXT_PUBLIC_STRIPE_PRICE_ID` should be set to your $49/month subscription price ID with 14-day trial
 
 ## Testing with ngrok
 

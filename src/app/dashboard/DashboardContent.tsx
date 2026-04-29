@@ -119,14 +119,27 @@ function getFriendlyErrorMessage(errorCode: string | null, errorMessage: string 
   return 'Delivery failed'
 }
 
-// Helper to calculate days remaining for trial
-function getDaysRemaining(trialEndsAt: string | null | undefined): number {
-  if (!trialEndsAt) return 0
-  const now = new Date()
-  const trialEnd = new Date(trialEndsAt)
-  const diffTime = trialEnd.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(0, diffDays)
+// Helper to check if subscription is in trial period (Stripe-managed)
+function isInTrialPeriod(subscriptionStatus: string | null | undefined): boolean {
+  return subscriptionStatus === 'trialing'
+}
+
+// Helper to get subscription status text
+function getSubscriptionStatusText(subscriptionStatus: string | null | undefined): string {
+  switch (subscriptionStatus) {
+    case 'trialing':
+      return 'Free Trial Active'
+    case 'active':
+      return 'Active'
+    case 'past_due':
+      return 'Payment Due'
+    case 'canceled':
+      return 'Canceled'
+    case 'unpaid':
+      return 'Unpaid'
+    default:
+      return 'Inactive'
+  }
 }
 
 // Helper to get lead-level status indicator
@@ -665,7 +678,7 @@ export default function DashboardContent() {
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
                         
             {/* Trial Banner */}
-            {business?.subscription_status === 'trialing' && business?.trial_ends_at && (
+            {isInTrialPeriod(business?.subscription_status) && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -675,7 +688,7 @@ export default function DashboardContent() {
                         Your 14-day free trial is active
                       </p>
                       <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                        {getDaysRemaining(business.trial_ends_at)} days remaining • $49/month after trial
+                        $49/month after trial
                       </p>
                     </div>
                   </div>
@@ -689,18 +702,18 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Trial Expired Warning */}
-            {business?.subscription_status === 'trialing' && business?.trial_ends_at && getDaysRemaining(business.trial_ends_at) === 0 && (
+            {/* Trial Expired Warning - Show when subscription is past_due or canceled */}
+            {(business?.subscription_status === 'past_due' || business?.subscription_status === 'canceled') && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⚠️</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100">
-                        Your 14-day free trial has expired
+                        Action required
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        Upgrade for $49/month to continue using ReplyFlow
+                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for $49/month to continue using ReplyFlow
                       </p>
                     </div>
                   </div>
@@ -708,7 +721,7 @@ export default function DashboardContent() {
                     href="/dashboard/settings#billing"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    Upgrade Now
+                    Manage Billing
                   </Link>
                 </div>
               </div>
