@@ -75,18 +75,9 @@ export default function DashboardEmptyState() {
 
       {/* Additional Help */}
       <div className="mt-8 text-center max-w-md">
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Need help getting started?
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Your missed calls and customer replies will appear here.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center text-sm">
-          <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
-            View Documentation
-          </a>
-          <span className="text-gray-400 dark:text-gray-600">•</span>
-          <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Contact Support
-          </a>
-        </div>
       </div>
 
       {/* Test My Setup Modal */}
