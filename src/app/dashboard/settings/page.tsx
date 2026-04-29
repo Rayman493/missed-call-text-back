@@ -714,6 +714,33 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+          {/* Legal & Compliance */}
+          <div className="mt-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Legal & Compliance</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Link
+                  href="/privacy"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Terms of Service
+                </Link>
+                <Link
+                  href="/compliance"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  SMS Compliance
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
 
       {/* Delete Account Modal */}
