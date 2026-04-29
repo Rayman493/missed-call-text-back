@@ -30,6 +30,7 @@ import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import DashboardEmptyState from '@/components/DashboardEmptyState'
+import SetupHealth from '@/components/SetupHealth'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -818,6 +819,9 @@ export default function DashboardContent() {
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
+
+            {/* Setup Health Section */}
+            <SetupHealth />
 
             {/* Recent Activity Section */}
             <div>
