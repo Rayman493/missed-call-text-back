@@ -497,6 +497,58 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleRefresh = async () => {
+    if (refreshing) return
+    
+    setRefreshing(true)
+    setError('')
+    
+    try {
+      console.log('[Refresh] Refreshing conversation data for lead:', params.id)
+      
+      const result = await getLeadDetails(params.id)
+      
+      if (!result) {
+        console.log('[Refresh] No response returned from API')
+        setError('Failed to refresh conversation')
+        return
+      }
+
+      if (result.ok && result.lead) {
+        console.log('[Refresh] Successfully refreshed conversation data')
+        
+        // Merge new messages with existing ones to preserve optimistic state
+        setLeadData((prev: any) => {
+          if (!prev) return result.lead
+          
+          const existingMessages = prev.messages || []
+          const newMessages = result.lead.messages || []
+          
+          // Use the same merge logic as realtime updates
+          const mergedMessages = mergeMessagesById(existingMessages, newMessages)
+          
+          return {
+            ...result.lead,
+            messages: mergedMessages
+          }
+        })
+      } else {
+        console.log('[Refresh] API returned error:', result)
+        setError(result.error || 'Failed to refresh conversation')
+      }
+    } catch (error) {
+      console.error('[Refresh] Error refreshing conversation:', error)
+      setError('Failed to refresh conversation')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
   }
 
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
@@ -742,7 +794,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-transparent border-solid"></div>
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5a.586.587 0 01.424.424.586V6a2 2 0 002 2h6a2 2 0 002-2V6a2 2 0 01-2-2v-.586A2 2 0 01-.424-.424L4 4z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 )}
               </button>
