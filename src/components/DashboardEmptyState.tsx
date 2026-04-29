@@ -1,15 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { formatPhoneNumber } from '@/lib/utils'
 
 export default function DashboardEmptyState() {
   const router = useRouter()
   const { business } = useBusiness()
+  const [showTestModal, setShowTestModal] = useState(false)
 
   const handleTestSetup = () => {
-    // Navigate to test mode or open test instructions
-    router.push('/dashboard?test=true')
+    setShowTestModal(true)
   }
 
   const handleViewInstructions = () => {
@@ -81,6 +83,92 @@ export default function DashboardEmptyState() {
           </a>
         </div>
       </div>
+
+      {/* Test My Setup Modal */}
+      {showTestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Test Your Setup
+            </h2>
+
+            {/* Phone Numbers Display */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Your Business Number</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {business?.forwarding_phone_number ? formatPhoneNumber(business.forwarding_phone_number) : 'Not set'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ReplyFlow Number</p>
+                <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                  {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Assigning...'}
+                </p>
+              </div>
+            </div>
+
+            {/* Test Instructions */}
+            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">1</span>
+                </div>
+                <p className="leading-relaxed">
+                  <strong>Call your business number</strong> from another phone.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">2</span>
+                </div>
+                <p className="leading-relaxed">
+                  <strong>Do not answer the call.</strong> Let it ring and go to voicemail.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">3</span>
+                </div>
+                <p className="leading-relaxed">
+                  Your missed call should forward to ReplyFlow.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
+                </div>
+                <p className="leading-relaxed">
+                  ReplyFlow should automatically text the caller.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">5</span>
+                </div>
+                <p className="leading-relaxed">
+                  Check your inbox/dashboard for the conversation.
+                </p>
+              </div>
+            </div>
+
+            {/* Fallback Guidance */}
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
+                <strong>Tip:</strong> If forwarding isn't set up yet, you can test by calling the ReplyFlow number directly.
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowTestModal(false)}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
