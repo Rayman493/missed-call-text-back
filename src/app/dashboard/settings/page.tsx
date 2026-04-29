@@ -337,29 +337,9 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {error && (
+              {error && !showUpgradePrompt && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-8">
-                  <p className="text-sm text-red-800 dark:text-red-300 mb-3">{error}</p>
-                  {showUpgradePrompt && (
-                    <div className="flex gap-3 mt-3">
-                      <button
-                        onClick={handleUpgradePlan}
-                        disabled={isStartingCheckout}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isStartingCheckout ? 'Starting...' : 'Upgrade Plan'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setError('')
-                          setShowUpgradePrompt(false)
-                        }}
-                        className="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                  <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
                 </div>
               )}
 
@@ -642,6 +622,31 @@ export default function SettingsPage() {
                       {isOpeningPortal ? 'Opening…' : 'Manage Subscription'}
                     </button>
                   </div>
+                  
+                  {/* Billing Alert */}
+                  {showUpgradePrompt && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                      <p className="text-sm text-red-800 dark:text-red-300 mb-3">You haven't started a paid subscription yet.</p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleUpgradePlan}
+                          disabled={isStartingCheckout}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isStartingCheckout ? 'Starting...' : 'Upgrade Plan'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setError('')
+                            setShowUpgradePrompt(false)
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Save Button */}
                   <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
