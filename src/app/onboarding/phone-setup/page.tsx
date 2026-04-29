@@ -93,25 +93,54 @@ function PhoneSetupContent() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
+        console.error('[Phone Setup] No authenticated user found')
         router.push('/auth?mode=signin')
         return
       }
 
-      // Update business with phone setup information
-      const { error: updateError } = await supabase
-        .from('businesses')
-        .update({
-          forwarding_phone_number: phoneNumber,
-          carrier: carrier,
-          onboarding_status: 'phone_setup_completed'
-        })
-        .eq('user_id', user.id)
-
-      if (updateError) {
-        console.error('[Phone Setup] Error updating business:', updateError)
-        setError('Failed to save your information. Please try again.')
+      if (!business) {
+        console.error('[Phone Setup] No business found in context')
+        setError('Business not found. Please try refreshing the page.')
         return
       }
+
+      console.log('[Phone Setup] Attempting to update business:', {
+        businessId: business.id,
+        userId: user.id,
+        phoneNumber,
+        carrier
+      })
+
+      // Update business with phone setup information using business id
+      const updatePayload = {
+        forwarding_phone_number: phoneNumber,
+        carrier: carrier,
+        call_forwarding_enabled: true,
+        phone_setup_completed_at: new Date().toISOString(),
+        onboarding_step: 'phone_setup_completed',
+        onboarding_status: 'phone_setup_completed',
+        updated_at: new Date().toISOString()
+      }
+
+      console.log('[Phone Setup] Update payload:', updatePayload)
+
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update(updatePayload)
+        .eq('id', business.id)
+
+      if (updateError) {
+        console.error('[Phone Setup] Error updating business:', {
+          message: updateError.message,
+          code: updateError.code,
+          details: updateError.details,
+          hint: updateError.hint
+        })
+        setError(`Failed to save: ${updateError.message || 'Unknown error'}`)
+        return
+      }
+
+      console.log('[Phone Setup] Successfully updated business:', business.id)
 
       // Refresh business context
       await refreshBusiness()
@@ -119,8 +148,12 @@ function PhoneSetupContent() {
       // Continue to next onboarding step
       router.push('/onboarding/success')
     } catch (err: any) {
-      console.error('[Phone Setup] Unexpected error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      console.error('[Phone Setup] Unexpected error:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      })
+      setError(`An unexpected error occurred: ${err.message || 'Please try again'}`)
     } finally {
       setIsSaving(false)
     }

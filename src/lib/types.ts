@@ -18,9 +18,14 @@ export interface Business {
   trial_ends_at?: string | null;
   forwarding_phone_number?: string | null;
   carrier?: string | null;
+  call_forwarding_enabled?: boolean | null;
+  phone_setup_completed_at?: string | null;
+  onboarding_step?: string | null;
+  business_phone_number?: string | null;
+  phone_carrier?: string | null;
   setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
   setup_completed_at?: string | null;
-  onboarding_status?: 'started' | 'completed' | string | null;
+  onboarding_status?: 'started' | 'phone_setup_completed' | 'completed' | string | null;
   created_at: string;
   updated_at?: string;
 }
