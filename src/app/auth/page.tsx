@@ -157,11 +157,8 @@ function AuthContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="off"
-              name={`email-${Date.now()}`}
-              data-form-type="other"
-              readOnly
-              onFocus={(e) => e.currentTarget.removeAttribute('readonly')}
+              autoComplete="email"
+              name="email"
               className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
             />
           </div>
@@ -178,11 +175,8 @@ function AuthContent() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              autoComplete="off"
-              name={`password-${Date.now()}`}
-              data-form-type="other"
-              readOnly
-              onFocus={(e) => e.currentTarget.removeAttribute('readonly')}
+              autoComplete={isSignIn ? "current-password" : "new-password"}
+              name="password"
               className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
             />
           </div>
