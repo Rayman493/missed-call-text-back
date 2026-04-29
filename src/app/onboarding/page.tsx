@@ -37,13 +37,37 @@ export default function OnboardingPage() {
   }
 
   useEffect(() => {
-    // Get current user
+    // Get current user and validate session
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setCheckingBusiness(false)
-        return // AuthGuard will handle redirect
+      console.log('[Onboarding] Validating session and user...')
+      
+      // First validate session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session) {
+        console.error('[Onboarding] Session validation failed:', sessionError)
+        // Clear any stale session
+        await supabase.auth.signOut()
+        setError('Your session expired. Please sign in again.')
+        setTimeout(() => {
+          router.push('/auth?mode=signin')
+        }, 2000)
+        return
       }
+      
+      // Then validate user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        console.error('[Onboarding] User validation failed:', userError)
+        // Clear any stale session
+        await supabase.auth.signOut()
+        setError('Your session expired. Please sign in again.')
+        setTimeout(() => {
+          router.push('/auth?mode=signin')
+        }, 2000)
+        return
+      }
+      
+      console.log('[Onboarding] Session and user validated successfully:', user.id)
       setUserId(user.id)
 
       // Check if user already has a business
@@ -90,26 +114,54 @@ export default function OnboardingPage() {
 
   const handleOnboarding = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!userId) return
-
+    console.log('[Onboarding] Complete Setup clicked')
+    
     setLoading(true)
     setError('')
 
     try {
       // Guard: ensure supabase client exists
       if (!supabase) {
+        console.error('[Onboarding] Supabase client not available')
         setError('App is not configured correctly. Missing Supabase client.')
+        return
+      }
+
+      // Validate current session and user before proceeding
+      console.log('[Onboarding] Validating current session before saving...')
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      console.log('[Onboarding] Current session:', session ? 'valid' : 'invalid')
+      console.log('[Onboarding] Current user:', user ? user.id : 'none')
+      
+      if (sessionError || !session || userError || !user) {
+        console.error('[Onboarding] Invalid session/user during save:', { sessionError, userError })
+        // Clear stale session and redirect
+        await supabase.auth.signOut()
+        setError('Your session expired. Please sign in again.')
+        setTimeout(() => {
+          router.push('/auth?mode=signin')
+        }, 2000)
+        return
+      }
+
+      // Validate form inputs
+      if (!businessName.trim()) {
+        console.error('[Onboarding] Missing business name')
+        setError('Please enter a business name.')
         return
       }
 
       // Normalize phone number
       const normalizedPhone = normalizePhoneNumber(businessPhone)
       if (!normalizedPhone) {
+        console.error('[Onboarding] Invalid phone number:', businessPhone)
         setError('Please enter a valid phone number.')
         return
       }
 
-      console.log('[Onboarding] Using getOrCreateBusiness API for user:', userId)
+      console.log('[Onboarding] Saving business for user:', user.id)
       // Use centralized getOrCreateBusiness API without assigning Twilio number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
@@ -132,7 +184,7 @@ export default function OnboardingPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[Onboarding] API call failed:', response.status, errorData)
+        console.error('[Onboarding] Save error:', response.status, errorData)
         const errorMessage = errorData.step
           ? `Failed at step: ${errorData.step}. ${errorData.error}`
           : errorData.error || 'Failed to create business'
@@ -147,7 +199,7 @@ export default function OnboardingPage() {
         throw new Error('Failed to create business: no business in response')
       }
 
-      console.log('[Onboarding] Business resolved successfully:', business.id)
+      console.log('[Onboarding] Save success: business created/updated:', business.id)
 
       // Refresh business context to update state
       await refreshBusiness()
@@ -158,7 +210,9 @@ export default function OnboardingPage() {
       // Redirect to success screen
       router.push('/onboarding/success')
     } catch (err: any) {
-      setError(err.message || 'Failed to create business')
+      console.error('[Onboarding] Save failed:', err)
+      const errorMessage = err.message || 'Failed to create business'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
