@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
@@ -15,6 +15,7 @@ import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import Image from 'next/image'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
@@ -175,6 +176,9 @@ export default function DashboardContent() {
   const router = useRouter()
 
   const supabase = createBrowserClient()
+  
+  // Realtime subscription management
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
 
   // Process leads whenever raw leads, search, or filter changes
   useEffect(() => {
@@ -460,6 +464,130 @@ export default function DashboardContent() {
 
     fetchLeads()
   }, [business, businessLoading, supabase, currentBusinessId])
+
+  // Realtime subscription for dashboard updates
+  useEffect(() => {
+    if (!business?.id || !supabase) return
+
+    console.log('[Dashboard Realtime] Setting up subscriptions for business:', business.id)
+
+    // Clean up existing subscription
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current)
+    }
+
+    // Set up new subscription for messages and leads
+    const channel = supabase
+      .channel(`dashboard:${business.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `business_id=eq.${business.id}`
+        },
+        (payload: any) => {
+          console.log('[Dashboard Realtime] Message change:', payload)
+          
+          if (payload.eventType === 'INSERT') {
+            // New message - update the lead with new message
+            const newMessage = payload.new
+            setLeads(prev => {
+              if (!prev) return prev
+              
+              return prev.map(lead => {
+                if (lead.id === newMessage.lead_id) {
+                  const updatedMessages = [...(lead.messages || []), newMessage]
+                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  
+                  return {
+                    ...lead,
+                    messages: updatedMessages,
+                    last_message_at: newMessage.created_at
+                  }
+                }
+                return lead
+              })
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            // Message status updated - update the specific message
+            const updatedMessage = payload.new
+            setLeads(prev => {
+              if (!prev) return prev
+              
+              return prev.map(lead => {
+                if (lead.id === updatedMessage.lead_id) {
+                  const updatedMessages = lead.messages?.map((msg: any) => 
+                    msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+                  )
+                  
+                  return {
+                    ...lead,
+                    messages: updatedMessages
+                  }
+                }
+                return lead
+              })
+            })
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `business_id=eq.${business.id}`
+        },
+        (payload: any) => {
+          console.log('[Dashboard Realtime] Lead change:', payload)
+          
+          if (payload.eventType === 'INSERT') {
+            // New lead - add to the list
+            const newLead = payload.new
+            setLeads(prev => {
+              if (!prev) return [newLead]
+              
+              // Check if lead already exists
+              const existingLead = prev.find(lead => lead.id === newLead.id)
+              if (existingLead) return prev
+              
+              return [newLead, ...prev]
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            // Lead updated - update the specific lead
+            const updatedLead = payload.new
+            setLeads(prev => {
+              if (!prev) return prev
+              
+              return prev.map(lead => 
+                lead.id === updatedLead.id ? { ...lead, ...updatedLead } : lead
+              )
+            })
+          }
+        }
+      )
+      .subscribe((status: any) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Dashboard Realtime] Subscribed to dashboard updates for business:', business.id)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Dashboard Realtime] Channel error')
+        }
+      })
+
+    realtimeChannelRef.current = channel
+
+    // Cleanup on unmount
+    return () => {
+      if (realtimeChannelRef.current) {
+        console.log('[Dashboard Realtime] Cleaning up dashboard subscription')
+        supabase.removeChannel(realtimeChannelRef.current)
+        realtimeChannelRef.current = null
+      }
+    }
+  }, [business?.id, supabase])
 
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {

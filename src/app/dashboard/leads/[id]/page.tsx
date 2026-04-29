@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 function getErrorMessage(errorCode?: string | null): string | null {
   if (!errorCode) return null
@@ -85,6 +86,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
+  
+  // Realtime subscription management
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
+  const supabase = createBrowserClient()
 
   // ALL hooks must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
@@ -250,6 +255,106 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setLoading(false)
     })
   }, [params.id])
+
+  // Realtime subscription for messages
+  useEffect(() => {
+    if (!leadData?.id || !supabase) return
+
+    console.log('[Realtime] Setting up message subscription for lead:', leadData.id)
+
+    // Clean up existing subscription
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current)
+    }
+
+    // Set up new subscription
+    const channel = supabase
+      .channel(`messages:${leadData.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `lead_id=eq.${leadData.id}`
+        },
+        (payload: any) => {
+          console.log('[Realtime] Message change:', payload)
+          
+          if (payload.eventType === 'INSERT') {
+            // New message inserted
+            const newMessage = payload.new
+            setLeadData((prev: any) => {
+              if (!prev) return prev
+              
+              // Check if message already exists to prevent duplicates
+              const existingMessage = prev.messages?.find((msg: any) => msg.id === newMessage.id)
+              if (existingMessage) {
+                console.log('[Realtime] Message already exists, skipping')
+                return prev
+              }
+              
+              const updatedMessages = [...(prev.messages || []), newMessage]
+                .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+              
+              console.log('[Realtime] Added new message, total:', updatedMessages.length)
+              
+              // Auto-scroll if user is near bottom
+              setTimeout(() => {
+                const scrollThreshold = 200
+                const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
+                if (isNearBottom) {
+                  scrollToBottom('smooth')
+                } else {
+                  setShowJumpButton(true)
+                }
+              }, 100)
+              
+              return {
+                ...prev,
+                messages: updatedMessages,
+                last_message_at: newMessage.created_at
+              }
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            // Message status updated
+            const updatedMessage = payload.new
+            setLeadData((prev: any) => {
+              if (!prev) return prev
+              
+              const updatedMessages = prev.messages?.map((msg: any) => 
+                msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+              )
+              
+              console.log('[Realtime] Updated message status:', updatedMessage.status)
+              
+              return {
+                ...prev,
+                messages: updatedMessages
+              }
+            })
+          }
+        }
+      )
+      .subscribe((status: any) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Realtime] Subscribed to messages for lead:', leadData.id)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Realtime] Channel error')
+        }
+      })
+
+    realtimeChannelRef.current = channel
+
+    // Cleanup on unmount
+    return () => {
+      if (realtimeChannelRef.current) {
+        console.log('[Realtime] Cleaning up message subscription')
+        supabase.removeChannel(realtimeChannelRef.current)
+        realtimeChannelRef.current = null
+      }
+    }
+  }, [leadData?.id, supabase])
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     // Prevent form submission and page refresh
