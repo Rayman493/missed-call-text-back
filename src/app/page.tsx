@@ -189,6 +189,18 @@ export default function Home() {
           </div>
           <div className="flex gap-6 text-sm">
             <Link 
+              href="/privacy" 
+              className="text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href="/terms" 
+              className="text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              Terms of Service
+            </Link>
+            <Link 
               href="/compliance" 
               className="text-gray-400 hover:text-gray-300 transition-colors"
             >
