@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
       direction: 'inbound',
       body: Body,
       from_phone: normalizedCustomerPhone,
-      to_phone: business.twilio_phone_number,
+      to_phone: To, // Use the To phone number from webhook payload
       created_at: new Date().toISOString(),
     })
     

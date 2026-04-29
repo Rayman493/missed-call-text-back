@@ -2,7 +2,7 @@ export interface Business {
   id: string;
   user_id?: string | null;
   name: string;
-  twilio_phone_number: string;
+  twilio_phone_number: string | null;
   personal_phone_number?: string | null;
   twilio_messaging_service_sid?: string | null;
   auto_reply_message: string;

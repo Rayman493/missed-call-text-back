@@ -85,7 +85,7 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Using getOrCreateBusiness API for user:', userId)
-      // Use centralized getOrCreateBusiness API with default ReplyFlow test number
+      // Use centralized getOrCreateBusiness API without assigning Twilio number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -94,7 +94,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           businessData: {
             name: businessName,
-            twilio_phone_number: '+18336584303',
+            twilio_phone_number: null, // Allow NULL for new accounts
             forwarding_phone_number: normalizedPhone,
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'toll_free',
@@ -147,6 +147,20 @@ export default function OnboardingPage() {
           <h1 className="text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
           <p className="text-gray-400 mb-6">Let's set up your business</p>
           
+          <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-400 mt-0.5">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-blue-200 font-medium mb-1">ReplyFlow Number Assignment</p>
+                <p className="text-xs text-blue-300">Your ReplyFlow texting number will be assigned after setup. You'll be able to receive missed calls and send automated texts.</p>
+              </div>
+            </div>
+          </div>
+          
           {error && (
             <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
               <p className="text-sm text-red-300">{error}</p>
@@ -171,7 +185,7 @@ export default function OnboardingPage() {
 
             <div>
               <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                Business Phone Number
+                Your Business Phone Number
               </label>
               <input
                 id="businessPhone"
@@ -183,7 +197,7 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-1 text-xs text-gray-400">
-                Enter your business phone number. We'll format it automatically.
+                This is where you want to receive customer calls. We'll forward missed calls to ReplyFlow.
               </p>
             </div>
 
@@ -192,7 +206,7 @@ export default function OnboardingPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Creating business...' : 'Set Up My Auto-Reply'}
+              {loading ? 'Setting up your business...' : 'Complete Setup'}
             </button>
             <p className="text-sm text-gray-400 text-center mt-2">Takes less than 2 minutes</p>
           </form>

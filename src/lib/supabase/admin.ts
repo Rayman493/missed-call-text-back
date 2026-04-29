@@ -142,7 +142,7 @@ export const db = {
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       name: businessData?.name || 'My Business',
-      twilio_phone_number: businessData?.twilio_phone_number || '',
+      twilio_phone_number: businessData?.twilio_phone_number || null,
       forwarding_phone_number: businessData?.forwarding_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || 'trialing',
