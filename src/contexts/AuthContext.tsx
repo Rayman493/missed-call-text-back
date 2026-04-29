@@ -70,13 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return
 
-    // If user is authenticated and on root home page, redirect to dashboard
-    // But allow /home for logged-in users to view the landing page
-    if (user && pathname === '/') {
-      console.log('[Auth] Redirecting to dashboard')
-      router.push('/dashboard')
-    }
-
     // If user is NOT authenticated and on dashboard, redirect to auth
     if (!user && pathname?.startsWith('/dashboard')) {
       console.log('[Auth] Redirecting to login')

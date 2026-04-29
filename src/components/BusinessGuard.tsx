@@ -20,6 +20,12 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       return
     }
     
+    // Don't redirect if on homepage - allow logged-in users to see public homepage
+    if (pathname === '/') {
+      console.log('[BusinessGuard] On homepage, skipping redirect')
+      return
+    }
+    
     // Don't redirect if checkout=success is present (waiting for webhook)
     if (checkoutStatus === 'success') {
       console.log('[BusinessGuard] Checkout success mode active, skipping redirect')
