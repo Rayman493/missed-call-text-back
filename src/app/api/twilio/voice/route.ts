@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     
     const body = await request.text();
     
+    // TODO: Ensure TWILIO_AUTH_TOKEN is properly configured in production
     // Validate Twilio webhook signature
     if (!requireTwilioAuth(request, body)) {
       console.error('[Twilio Voice] Invalid webhook signature')
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
 </Response>
 `;
 
+      console.log('[Twilio Voice] Returning fallback TwiML for missing fields');
       return new NextResponse(twiml, {
         status: 200,
         headers: { "Content-Type": "text/xml" },
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Normalized To:', normalizedTo);
     
     // Find business by Twilio phone number (try twilio_numbers first, fallback to legacy)
+    console.log('[Twilio Voice] Looking up business for Twilio number:', normalizedTo);
     const result = await db.getBusinessByTwilioNumber(normalizedTo);
     
     if (!result || !result.business) {
@@ -73,6 +76,7 @@ export async function POST(request: NextRequest) {
 </Response>
 `;
 
+      console.log('[Twilio Voice] Returning fallback TwiML for no business found');
       return new NextResponse(twiml, {
         status: 200,
         headers: { "Content-Type": "text/xml" },
@@ -80,7 +84,11 @@ export async function POST(request: NextRequest) {
     }
     
     const business = result.business;
-    console.log('[Twilio Voice] Business found:', business.id, 'via:', result.source);
+    console.log('[Twilio Voice] Business found:', {
+      businessId: business.id,
+      businessName: business.name,
+      via: result.source
+    });
     
     // Add routing logs as specified
     if (result.source === 'twilio_numbers') {
@@ -244,6 +252,7 @@ export async function POST(request: NextRequest) {
 </Response>
 `;
 
+    console.log('[Twilio Voice] Generated final TwiML response');
     return new NextResponse(twiml, {
       status: 200,
       headers: { "Content-Type": "text/xml" },
@@ -259,6 +268,7 @@ export async function POST(request: NextRequest) {
 </Response>
 `;
 
+    console.log('[Twilio Voice] Returning fallback TwiML due to error');
     return new NextResponse(twiml, {
       status: 200,
       headers: { "Content-Type": "text/xml" },

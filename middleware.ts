@@ -37,8 +37,9 @@ export const config = {
      * - /privacy (public legal page)
      * - /terms (public legal page)
      * - /compliance (public legal page)
+     * - /api/twilio/* (Twilio webhooks - use signature validation instead)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|privacy|terms|compliance).*)',
+    '/((?!_next/static|_next/image|favicon.ico|privacy|terms|compliance|api/twilio).*)',
   ],
 }
