@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+  const authSubscriptionRef = useRef<any>(null)
 
   useEffect(() => {
     // Restore session on app load
@@ -49,21 +50,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     restoreSession()
 
-    // Listen to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      console.log('[Auth] Auth state changed:', _event, session?.user?.id)
-      
-      if (session) {
-        setSession(session)
-        setUser(session.user)
-      } else {
-        setSession(null)
-        setUser(null)
-      }
-    })
+    // Listen to auth state changes - only once
+    if (!authSubscriptionRef.current && supabase) {
+      authSubscriptionRef.current = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+        console.log('[Auth] Auth state changed:', _event, session?.user?.id)
+        
+        if (session) {
+          setSession(session)
+          setUser(session.user)
+        } else {
+          setSession(null)
+          setUser(null)
+        }
+      })
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (authSubscriptionRef.current) {
+        authSubscriptionRef.current.subscription.unsubscribe()
+        authSubscriptionRef.current = null
+      }
     }
   }, [])
 

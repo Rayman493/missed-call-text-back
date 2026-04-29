@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { Business } from '@/lib/types'
 import SetupError from '@/components/SetupError'
@@ -20,6 +20,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const authSubscriptionRef = useRef<any>(null)
 
   const contextValue: BusinessContextType = {
     business,
@@ -120,24 +121,29 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Listen to auth state changes
+  // Listen to auth state changes - only once
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-      console.log('[BusinessContext] Auth state changed:', event, session?.user?.id)
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('[BusinessContext] User signed out, clearing business data')
-        setBusiness(null)
-        setUserId(null)
-        setLoading(false)
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('[BusinessContext] User signed in or token refreshed, fetching business')
-        fetchBusiness()
-      }
-    })
+    if (!authSubscriptionRef.current && supabase) {
+      authSubscriptionRef.current = supabase.auth.onAuthStateChange((event: string, session: any) => {
+        console.log('[BusinessContext] Auth state changed:', event, session?.user?.id)
+        
+        if (event === 'SIGNED_OUT') {
+          console.log('[BusinessContext] User signed out, clearing business data')
+          setBusiness(null)
+          setUserId(null)
+          setLoading(false)
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('[BusinessContext] User signed in or token refreshed, fetching business')
+          fetchBusiness()
+        }
+      })
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (authSubscriptionRef.current) {
+        authSubscriptionRef.current.subscription.unsubscribe()
+        authSubscriptionRef.current = null
+      }
     }
   }, [])
 
