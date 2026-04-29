@@ -306,20 +306,24 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Phone & Messaging Section */}
+                {/* ReplyFlow Number Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Phone & Messaging</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">ReplyFlow Number</h2>
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Your ReplyFlow Number
-                      </label>
-                      <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                            {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Number not assigned yet'}
-                          </span>
-                          <span className={`text-sm px-2 py-1 rounded-full ${
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        This is the number ReplyFlow uses to receive missed calls and send automated texts for your business.
+                      </p>
+                      
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                          <div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned ReplyFlow Number</span>
+                            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                              {business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Pending assignment'}
+                            </div>
+                          </div>
+                          <span className={`text-sm px-3 py-1 rounded-full ${
                             (business as any).messaging_status === 'active' || (business as any).a2p_status === 'verified' || (business as any).a2p_status === 'approved'
                               ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                               : (business as any).messaging_status === 'failed'
@@ -332,17 +336,60 @@ export default function SettingsPage() {
                                 ? 'Action needed'
                                 : (business as any).sms_type === 'local_a2p'
                                   ? 'Pending campaign approval'
-                                  : 'Pending carrier approval'
+                                  : 'Pending verification'
                             }
                           </span>
                         </div>
+                        
+                        {/* Conditional warnings */}
                         {!business.twilio_phone_number && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Your number will be assigned during setup.
-                          </p>
+                          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                            <div className="flex items-center">
+                              <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                Your ReplyFlow number will be assigned after setup.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {business.twilio_phone_number && (
+                          ((business as any).messaging_status !== 'active' && (business as any).a2p_status !== 'verified' && (business as any).a2p_status !== 'approved') && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                              <div className="flex items-center">
+                                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                  SMS delivery may be limited until carrier verification is approved.
+                                </p>
+                              </div>
+                            </div>
+                          )
                         )}
                       </div>
                     </div>
+                    
+                    {/* Business Phone Display */}
+                    {business.forwarding_phone_number && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Business Phone</span>
+                        <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <span className="text-gray-900 dark:text-gray-100">
+                            {formatPhoneNumber(business.forwarding_phone_number)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Messaging Settings Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">Messaging Settings</h2>
+                  <div className="space-y-5">
                     <div>
                       <label htmlFor="autoReplyMessage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Auto-Reply Message
