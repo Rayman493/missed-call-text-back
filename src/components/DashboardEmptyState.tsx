@@ -4,19 +4,24 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import CallForwardingInstructions from './CallForwardingInstructions'
 
 export default function DashboardEmptyState() {
   const router = useRouter()
   const { business } = useBusiness()
   const [showTestModal, setShowTestModal] = useState(false)
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false)
 
   const handleTestSetup = () => {
     setShowTestModal(true)
   }
 
   const handleViewInstructions = () => {
-    // Navigate to setup instructions or help page
-    router.push('/dashboard?help=true')
+    if (!business?.twilio_phone_number) {
+      alert('Your ReplyFlow number is still being assigned. Please try again in a few minutes.')
+      return
+    }
+    setShowInstructionsModal(true)
   }
 
   const hasTwilioNumber = !!business?.twilio_phone_number
@@ -176,6 +181,13 @@ export default function DashboardEmptyState() {
           </div>
         </div>
       )}
+
+      {/* Setup Instructions Modal */}
+      <CallForwardingInstructions
+        phoneNumber={business?.twilio_phone_number || ''}
+        isOpen={showInstructionsModal}
+        onClose={() => setShowInstructionsModal(false)}
+      />
     </div>
   )
 }

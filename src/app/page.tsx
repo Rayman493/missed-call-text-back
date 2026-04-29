@@ -19,44 +19,46 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <Link href="/" className="flex items-center hover:opacity-90 transition">
-          <span className="text-xl md:text-2xl font-semibold tracking-tight">
-            <span className="text-gray-900 dark:text-gray-100">Reply</span>
-            <span className="text-blue-600 dark:text-blue-500">Flow</span>
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
-          {loading || businessLoading ? (
-            <>
-              <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-              <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-            </>
-          ) : (
-            <>
-              <Link
-                href={
-                  user 
-                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
-                    : '/auth?mode=signup'
-                }
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Create Account
-              </Link>
-              <Link
-                href={
-                  user 
-                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
-                    : '/auth?mode=signin'
-                }
-                className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-gray-100 transition-colors"
-              >
-                Sign In
-              </Link>
-            </>
-          )}
+      {/* Full-width header banner */}
+      <header className="w-full bg-slate-800/90 border-b border-slate-700">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center hover:opacity-90 transition">
+            <span className="text-xl md:text-2xl font-semibold tracking-tight">
+              <span className="text-gray-900 dark:text-gray-100">Reply</span>
+              <span className="text-blue-600 dark:text-blue-500">Flow</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-2">
+            {loading || businessLoading ? (
+              <>
+                <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={
+                    user 
+                      ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                      : '/auth?mode=signup'
+                  }
+                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create Account
+                </Link>
+                <Link
+                  href={
+                    user 
+                      ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                      : '/auth?mode=signin'
+                  }
+                  className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                >
+                  Sign In
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
