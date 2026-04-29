@@ -17,7 +17,7 @@ import MobileMenu from '@/components/MobileMenu'
 export default function SettingsPage() {
   const router = useRouter()
   const { business, refreshBusiness } = useBusiness()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -107,8 +107,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut()
-      router.push('/')
+      await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     }

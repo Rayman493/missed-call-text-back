@@ -6,17 +6,12 @@ import { useAuth } from '@/contexts/AuthContext'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const router = useRouter()
 
   const handleSignOut = async () => {
     try {
-      // Import the supabase client and sign out
-      const { createBrowserClient } = await import('@/lib/supabase/browser')
-      const supabase = createBrowserClient()
-      await supabase.auth.signOut()
-      // Redirect to home
-      window.location.href = '/'
+      await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     }

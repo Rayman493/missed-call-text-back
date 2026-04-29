@@ -10,6 +10,7 @@ interface AuthContextType {
   session: any
   loading: boolean
   user: any
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -77,8 +78,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, loading, pathname, router])
 
+  // Sign out function that clears all sensitive data
+  const signOut = async () => {
+    console.log('[Auth] Signing out and clearing sensitive data')
+    
+    try {
+      // Clear any credential-related form data from session storage
+      if (typeof window !== 'undefined') {
+        // Clear any form data that might contain sensitive information
+        const keysToRemove = []
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key'))) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => sessionStorage.removeItem(key))
+        
+        // Clear any credential-related form data from localStorage
+        const localKeysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key'))) {
+            localKeysToRemove.push(key)
+          }
+        }
+        localKeysToRemove.forEach(key => localStorage.removeItem(key))
+      }
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut()
+      
+      // Clear auth state
+      setSession(null)
+      setUser(null)
+      
+      // Redirect to home
+      router.push('/')
+    } catch (error) {
+      console.error('[Auth] Sign out error:', error)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ session, loading, user }}>
+    <AuthContext.Provider value={{ session, loading, user, signOut }}>
       {children}
     </AuthContext.Provider>
   )
