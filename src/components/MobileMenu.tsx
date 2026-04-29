@@ -3,21 +3,39 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const { user, loading } = useAuth()
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
   }
 
-  const menuItems = [
+  // Don't show menu while auth is loading
+  if (loading) {
+    return null
+  }
+
+  // Menu items for logged-out users (public navigation)
+  const publicMenuItems = [
+    { href: '/', label: 'Home' },
+    { href: '/home', label: 'Features' },
+    { href: '/auth?mode=signin', label: 'Sign In' },
+    { href: '/auth?mode=signup', label: 'Get Started' },
+  ]
+
+  // Menu items for logged-in users (dashboard navigation)
+  const privateMenuItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/settings', label: 'Settings' },
     { href: '/home', label: 'View Homepage' },
   ]
+
+  const menuItems = user ? privateMenuItems : publicMenuItems
 
   return (
     <div className="md:hidden">

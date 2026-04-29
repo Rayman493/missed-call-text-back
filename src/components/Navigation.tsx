@@ -2,13 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from './ThemeToggle'
 
 export default function Navigation() {
   const pathname = usePathname()
+  const { user, loading } = useAuth()
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
+  }
+
+  // Don't show navigation while auth is loading
+  if (loading) {
+    return null
+  }
+
+  // Don't show navigation for logged-out users
+  if (!user) {
+    return null
   }
 
   return (
