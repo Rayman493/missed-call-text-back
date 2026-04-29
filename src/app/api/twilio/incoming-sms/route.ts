@@ -3,6 +3,7 @@ import { db } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { sendSms } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
+import { sanitizeMessageContent } from '@/lib/security'
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +38,9 @@ export async function POST(req: NextRequest) {
         },
       })
     }
+    
+    // Sanitize message body to prevent XSS
+    const sanitizedBody = sanitizeMessageContent(Body)
     
     console.log('[SYSTEM] [INCOMING-SMS] From:', From, 'To:', To, 'Body:', Body)
     
@@ -248,7 +252,7 @@ export async function POST(req: NextRequest) {
       lead_id: lead.id,
       conversation_id: conversation.id,
       direction: 'inbound',
-      body: Body,
+      body: sanitizedBody, // Use sanitized body
       from_phone: normalizedCustomerPhone,
       to_phone: To, // Use the To phone number from webhook payload
       created_at: new Date().toISOString(),

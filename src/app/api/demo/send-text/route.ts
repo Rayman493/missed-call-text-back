@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase/admin'
 import { twilioClient } from '@/lib/twilio'
+import { demoSmsRateLimiter, isValidPhoneNumber, sanitizeMessageContent } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,12 +47,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // Apply rate limiting
+    if (!demoSmsRateLimiter.isAllowed(user.id)) {
+      console.error('[demo-send-text] Rate limit exceeded for user:', user.id)
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
     console.log('[demo-send-text] user:', user.id)
 
     // Parse request body
     const body = await request.json()
     const { demoPhone, businessName } = body
 
+    // Validate inputs
     if (!demoPhone) {
       console.error('[demo-send-text] Missing demoPhone')
       return NextResponse.json(
@@ -60,7 +71,15 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('[demo-send-text] demoPhone:', demoPhone, 'businessName:', businessName)
+    if (!isValidPhoneNumber(demoPhone)) {
+      console.error('[demo-send-text] Invalid phone number format')
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      )
+    }
+
+    console.log('[demo-send-text] demoPhone:', demoPhone ? demoPhone.substring(0, 3) + '***' : 'null', 'businessName:', businessName || 'null')
 
     // Get or create business for user
     const business = await db.getBusinessByUserId(user.id)
