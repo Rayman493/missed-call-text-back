@@ -180,6 +180,23 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 dark:bg-gray-950 border-t border-gray-800 py-8 px-4">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-gray-400 text-sm">
+            © 2024 ReplyFlow. All rights reserved.
+          </div>
+          <div className="flex gap-6 text-sm">
+            <Link 
+              href="/compliance" 
+              className="text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              SMS Compliance
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
