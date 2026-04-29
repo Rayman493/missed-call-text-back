@@ -129,13 +129,26 @@ export const db = {
     
     if (existingBusiness) {
       console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
+      console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
       
       // If businessData is provided, update the existing business
       if (businessData && Object.keys(businessData).length > 0) {
         console.log('[getOrCreateBusiness] Updating existing business with data:', Object.keys(businessData))
-        const updatedBusiness = await this.updateBusiness(existingBusiness.id, businessData)
+        
+        // Preserve existing twilio_phone_number if not in update payload
+        const updates = {
+          ...businessData,
+          twilio_phone_number: businessData.twilio_phone_number !== undefined 
+            ? businessData.twilio_phone_number 
+            : existingBusiness.twilio_phone_number
+        }
+        
+        console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
+        
+        const updatedBusiness = await this.updateBusiness(existingBusiness.id, updates)
         if (updatedBusiness) {
           console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
+          console.log('[getOrCreateBusiness] Updated twilio_phone_number:', updatedBusiness.twilio_phone_number)
           return updatedBusiness
         } else {
           console.error('[getOrCreateBusiness] Failed to update business, returning existing')

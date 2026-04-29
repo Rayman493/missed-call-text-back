@@ -85,7 +85,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify({
               businessData: {
                 name: user.email || 'My Business',
-                twilio_phone_number: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '',
+                // Don't set twilio_phone_number here - let backend assign shared number
               }
             })
           })
