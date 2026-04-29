@@ -210,8 +210,8 @@ export default function OnboardingPage() {
       // Refresh the page to ensure all state is updated
       router.refresh()
       
-      // Redirect to success screen
-      router.push('/onboarding/success')
+      // Redirect to phone setup step
+      router.push('/onboarding/phone-setup')
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'

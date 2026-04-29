@@ -17,6 +17,7 @@ export interface Business {
   cancel_at_period_end?: boolean | null;
   trial_ends_at?: string | null;
   forwarding_phone_number?: string | null;
+  carrier?: string | null;
   setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
   setup_completed_at?: string | null;
   onboarding_status?: 'started' | 'completed' | string | null;
