@@ -41,7 +41,7 @@ export default function Home() {
                     ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
                     : '/auth?mode=signup'
                 }
-                className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Create Account
               </Link>
@@ -51,7 +51,7 @@ export default function Home() {
                     ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
                     : '/auth?mode=signin'
                 }
-                className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-gray-100 transition-colors"
               >
                 Sign In
               </Link>
