@@ -153,18 +153,22 @@ export const db = {
     const trialEndsAt = new Date()
     trialEndsAt.setDate(trialEndsAt.getDate() + 14)
     
+    // MVP: Use shared ReplyFlow number for new businesses
+    // Future: Replace with automated per-business number assignment
+    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    
     // Create new business with provided data or defaults
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       name: businessData?.name || 'My Business',
-      twilio_phone_number: businessData?.twilio_phone_number || null,
+      twilio_phone_number: businessData?.twilio_phone_number || sharedReplyFlowNumber,
       forwarding_phone_number: businessData?.forwarding_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || 'trialing',
       stripe_customer_id: businessData?.stripe_customer_id || null,
       trial_ends_at: businessData?.trial_ends_at || trialEndsAt.toISOString(),
       sms_type: businessData?.sms_type || 'toll_free',
-      messaging_status: businessData?.messaging_status || 'not_assigned',
+      messaging_status: businessData?.messaging_status || 'active',
       onboarding_status: businessData?.onboarding_status || 'started',
     }
     
@@ -172,6 +176,7 @@ export const db = {
     
     if (createdBusiness) {
       console.log('[getOrCreateBusiness] Creating new business with trial:', createdBusiness.id, 'trial ends:', trialEndsAt.toISOString())
+      console.log('[getOrCreateBusiness] Assigned shared ReplyFlow number:', createdBusiness.twilio_phone_number)
     } else {
       console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
     }

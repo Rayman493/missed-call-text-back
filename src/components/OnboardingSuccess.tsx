@@ -85,6 +85,9 @@ export default function OnboardingSuccess() {
               <p className={`font-medium ${hasTwilioNumber ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                 {hasTwilioNumber ? formatPhoneNumber(business.twilio_phone_number) : 'Assigning...'}
               </p>
+              {hasTwilioNumber && (
+                <p className="text-xs text-gray-400 mt-1">Forward missed calls to this number</p>
+              )}
             </div>
           </div>
         </div>
@@ -98,6 +101,23 @@ export default function OnboardingSuccess() {
               </svg>
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 SMS delivery may be limited until carrier verification is approved.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Setup Confidence Messaging */}
+        {hasTwilioNumber && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8">
+            <div className="space-y-2">
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ Customers continue calling your normal business number
+              </p>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ When you miss a call, it forwards to ReplyFlow
+              </p>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ ReplyFlow automatically texts the customer
               </p>
             </div>
           </div>
