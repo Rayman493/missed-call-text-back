@@ -15,6 +15,7 @@ import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
+import DashboardEmptyState from '@/components/DashboardEmptyState'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -849,12 +850,8 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center hover:border-gray-300 dark:hover:border-gray-600 transition">
-                <div className="max-w-md mx-auto">
-                  <div className="text-3xl sm:text-4xl mb-4">📞</div>
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Never miss a customer again</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">We automatically text back missed calls instantly and capture them as leads</p>
-                </div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <DashboardEmptyState />
               </div>
             ) : (
               <div>

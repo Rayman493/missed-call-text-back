@@ -155,8 +155,8 @@ export default function OnboardingPage() {
       // Refresh the page to ensure all state is updated
       router.refresh()
       
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Redirect to success screen
+      router.push('/onboarding/success')
     } catch (err: any) {
       setError(err.message || 'Failed to create business')
     } finally {
