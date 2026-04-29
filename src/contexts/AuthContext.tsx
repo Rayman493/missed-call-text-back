@@ -77,10 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return
 
-    // If user is NOT authenticated and on dashboard, redirect to auth
-    if (!user && pathname?.startsWith('/dashboard')) {
-      console.log('[Auth] Redirecting to login')
-      router.push('/auth?mode=signin')
+    // If user is NOT authenticated and on dashboard or onboarding, redirect to homepage
+    if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding'))) {
+      console.log('[Auth] Redirecting to homepage (unauthenticated user on protected route)')
+      router.push('/')
     }
   }, [user, loading, pathname, router])
 
