@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext'
+import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
 
 const supabase = createBrowserClient()
 
@@ -118,7 +119,7 @@ function PhoneSetupContent() {
         call_forwarding_enabled: true,
         phone_setup_completed_at: new Date().toISOString(),
         onboarding_step: 'phone_setup_completed',
-        onboarding_status: 'phone_setup_completed',
+        onboarding_status: SUBSCRIPTION_STATES.TRIALING,
         updated_at: new Date().toISOString()
       }
 

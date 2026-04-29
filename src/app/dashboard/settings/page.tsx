@@ -13,6 +13,14 @@ import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
+import { 
+  getSubscriptionStatusText, 
+  isInTrialPeriod, 
+  needsUpgrade,
+  getPricingDisplay,
+  getTrialDisplay,
+  SUBSCRIPTION_STATES
+} from '@/lib/subscription'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -617,8 +625,8 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pro Plan</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">$29/month — Active</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">ReplyFlow</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{getSubscriptionStatusText(business?.subscription_status)} • {getPricingDisplay()}</p>
                     </div>
                     <button
                       type="button"
@@ -634,14 +642,14 @@ export default function SettingsPage() {
                   {showUpgradePrompt && (
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
                       <p className="text-sm text-red-800 dark:text-red-300 mb-3">Start your paid subscription to continue using ReplyFlow.</p>
-                      <p className="text-xs text-red-700 dark:text-red-400 mb-4">14-day free trial, then $49/month • No contracts</p>
+                      <p className="text-xs text-red-700 dark:text-red-400 mb-4">{getTrialDisplay()}, then {getPricingDisplay()} • No contracts</p>
                       <div className="flex gap-3">
                         <button
                           onClick={handleUpgradePlan}
                           disabled={isStartingCheckout}
                           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isStartingCheckout ? 'Starting...' : 'Upgrade Plan - $49/month'}
+                          {isStartingCheckout ? 'Starting...' : `Upgrade Plan - ${getPricingDisplay()}`}
                         </button>
                         <button
                           onClick={() => {

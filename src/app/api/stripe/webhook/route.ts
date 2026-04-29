@@ -1,8 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import getStripe from '@/lib/stripe'
 import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
+import { SUBSCRIPTION_STATES } from '@/lib/subscription'
 import { provisionNumberForBusiness, releaseNumberForBusiness } from '@/lib/twilio/numberManager'
+import getStripe from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -235,10 +237,10 @@ export async function POST(request: Request) {
           }
 
           // Handle different subscription statuses
-          if (status === 'canceled' || status === 'unpaid' || status === 'past_due' || status === 'incomplete_expired') {
+          if (status === SUBSCRIPTION_STATES.CANCELED || status === SUBSCRIPTION_STATES.UNPAID || status === SUBSCRIPTION_STATES.PAST_DUE || status === 'incomplete_expired') {
             updateData.subscription_status = status
             console.log('[stripe-webhook] Subscription is in failed/canceled state:', status)
-          } else if (status === 'active' || status === 'trialing') {
+          } else if (status === SUBSCRIPTION_STATES.ACTIVE || status === SUBSCRIPTION_STATES.TRIALING) {
             updateData.subscription_status = status
             console.log('[stripe-webhook] Subscription is active:', status)
           } else {
@@ -249,7 +251,7 @@ export async function POST(request: Request) {
 
           // If canceling, override status to 'canceling'
           if (cancelAtPeriodEnd) {
-            updateData.subscription_status = 'canceling'
+            updateData.subscription_status = SUBSCRIPTION_STATES.CANCELING
             console.log('[stripe-webhook] Subscription set to canceling at period end')
           }
 
@@ -288,11 +290,14 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Setting subscription status to canceled for business:', business.id)
 
           const { error: updateError } = await supabase
-            .from('businesses')
-            .update({
-              subscription_status: 'canceled',
-            })
-            .eq('id', business.id)
+          .from('businesses')
+          .update({
+            stripe_subscription_id: null,
+            subscription_status: SUBSCRIPTION_STATES.CANCELED,
+            subscription_price_id: null,
+            current_period_end: null
+          })
+          .eq('id', business.id)
 
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)

@@ -4,7 +4,20 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
+import { 
+  formatPhoneNumber, 
+  formatRelativeTime, 
+  truncateText, 
+  getLeadStatusColor
+} from '@/lib/utils'
+import { 
+  getSubscriptionStatusText, 
+  isInTrialPeriod, 
+  needsUpgrade,
+  getPricingDisplay,
+  getTrialDisplay,
+  SUBSCRIPTION_STATES
+} from '@/lib/subscription'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
@@ -117,29 +130,6 @@ function getFriendlyErrorMessage(errorCode: string | null, errorMessage: string 
     return truncateText(errorMessage, 50)
   }
   return 'Delivery failed'
-}
-
-// Helper to check if subscription is in trial period (Stripe-managed)
-function isInTrialPeriod(subscriptionStatus: string | null | undefined): boolean {
-  return subscriptionStatus === 'trialing'
-}
-
-// Helper to get subscription status text
-function getSubscriptionStatusText(subscriptionStatus: string | null | undefined): string {
-  switch (subscriptionStatus) {
-    case 'trialing':
-      return 'Free Trial Active'
-    case 'active':
-      return 'Active'
-    case 'past_due':
-      return 'Payment Due'
-    case 'canceled':
-      return 'Canceled'
-    case 'unpaid':
-      return 'Unpaid'
-    default:
-      return 'Inactive'
-  }
 }
 
 // Helper to get lead-level status indicator
@@ -685,10 +675,10 @@ export default function DashboardContent() {
                     <span className="text-2xl">🎉</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
-                        Your 14-day free trial is active
+                        Your {getTrialDisplay()} is active
                       </p>
                       <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                        $49/month after trial
+                        {getPricingDisplay()} after trial
                       </p>
                     </div>
                   </div>
@@ -696,7 +686,7 @@ export default function DashboardContent() {
                     href="/dashboard/settings#billing"
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    Upgrade Now
+                    Manage Subscription
                   </Link>
                 </div>
               </div>
@@ -710,10 +700,10 @@ export default function DashboardContent() {
                     <span className="text-2xl">⚠️</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100">
-                        Action required
+                        {getSubscriptionStatusText(business?.subscription_status)} Subscription
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for $49/month to continue using ReplyFlow
+                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for {getPricingDisplay()} to continue using ReplyFlow
                       </p>
                     </div>
                   </div>
@@ -721,7 +711,7 @@ export default function DashboardContent() {
                     href="/dashboard/settings#billing"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    Manage Billing
+                    Manage Subscription
                   </Link>
                 </div>
               </div>

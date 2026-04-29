@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { normalizePhoneNumber } from '@/lib/utils'
+import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
+import { useSearchParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
-import { normalizePhoneNumber } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 
 const supabase = createBrowserClient()
@@ -180,7 +182,7 @@ export default function OnboardingPage() {
             sms_type: 'toll_free',
             messaging_status: 'active',
             onboarding_status: 'completed',
-            subscription_status: 'trialing',
+            subscription_status: SUBSCRIPTION_STATES.TRIALING,
           }
         })
       })
@@ -290,9 +292,9 @@ export default function OnboardingPage() {
           {/* Pricing Information */}
           <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 mb-6">
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-green-400 font-medium">✓ 14-day free trial</span>
+              <span className="text-green-400 font-medium">✓ {getTrialDisplay()}</span>
               <span className="text-gray-300">•</span>
-              <span className="text-gray-300">$49/month after trial</span>
+              <span className="text-gray-300">{getPricingDisplay()} after trial</span>
               <span className="text-gray-300">•</span>
               <span className="text-gray-400">No contracts</span>
             </div>
