@@ -83,20 +83,41 @@ export default function CompliancePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              Customer Consent (Verbal Opt-In)
+              Verbal Opt-In Script
             </h2>
             
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-600 mb-6">
-              <blockquote className="text-gray-100 italic leading-relaxed">
-                "Thanks for calling Wolfie Construction.<br/><br/>
-                If we miss your call, we may send you a text message so we can continue helping you. Message and data rates may apply. Reply STOP to opt out.<br/><br/>
-                Do you agree to receive a text message regarding your inquiry?"
-              </blockquote>
+            <div className="bg-amber-900/20 border-2 border-amber-600 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold text-amber-400 mb-4">Required Verbal Opt-In Dialogue</h3>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <p className="text-amber-300 font-semibold mb-2">Business:</p>
+                  <p className="text-gray-100 leading-relaxed">
+                    "Thanks for calling Wolfie Construction. If we miss your call, we may send you a text message so we can continue helping you. Message and data rates may apply. Reply HELP for help or STOP to opt out. Do you agree to receive a text message about your inquiry?"
+                  </p>
+                </div>
+                
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <p className="text-green-400 font-semibold mb-2">Customer:</p>
+                  <p className="text-gray-100 leading-relaxed">
+                    "Yes."
+                  </p>
+                </div>
+                
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <p className="text-amber-300 font-semibold mb-2">Business:</p>
+                  <p className="text-gray-100 leading-relaxed">
+                    "Thank you. If we miss your call, ReplyFlow may send a text message to continue the conversation."
+                  </p>
+                </div>
+              </div>
             </div>
             
-            <p className="text-gray-300 text-sm">
-              Customers initiate contact by calling the business directly.
-            </p>
+            <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
+              <p className="text-blue-300 text-sm">
+                <strong>Note:</strong> ReplyFlow only sends conversational customer-service messages after a customer initiates contact with a business.
+              </p>
+            </div>
           </div>
         </section>
 
