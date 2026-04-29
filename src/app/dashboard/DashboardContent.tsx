@@ -18,6 +18,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { handleBillingAction } from '@/lib/billing'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
@@ -176,11 +177,36 @@ export default function DashboardContent() {
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [billingError, setBillingError] = useState('')
+  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams?.get('checkout')
   const router = useRouter()
 
   const supabase = createBrowserClient()
+  
+  const handleManageSubscription = async () => {
+    console.log('[Dashboard] Manage Subscription clicked')
+    setIsOpeningBilling(true)
+    setBillingError('')
+
+    try {
+      const result = await handleBillingAction()
+      
+      if (result.success && result.url) {
+        console.log('[Dashboard] Redirecting to:', result.url, result.action)
+        window.location.href = result.url
+      } else {
+        console.error('[Dashboard] Billing action failed:', result.error)
+        setBillingError(result.error || 'Failed to open billing portal')
+        setIsOpeningBilling(false)
+      }
+    } catch (error) {
+      console.error('[Dashboard] Unexpected error:', error)
+      setBillingError('Failed to open billing portal. Please try again.')
+      setIsOpeningBilling(false)
+    }
+  }
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -667,6 +693,31 @@ export default function DashboardContent() {
           <div className="p-4 sm:p-8">
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
                         
+            {/* Billing Error */}
+            {billingError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                      <p className="text-sm sm:text-base font-semibold text-red-900 dark:text-red-100">
+                        Billing Error
+                      </p>
+                      <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">
+                        {billingError}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setBillingError('')}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Trial Banner */}
             {isInTrialPeriod(business?.subscription_status) && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
@@ -682,12 +733,13 @@ export default function DashboardContent() {
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href="/dashboard/settings#billing"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={isOpeningBilling}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Manage Subscription
-                  </Link>
+                    {isOpeningBilling ? 'Opening…' : 'Manage Subscription'}
+                  </button>
                 </div>
               </div>
             )}
@@ -707,12 +759,13 @@ export default function DashboardContent() {
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href="/dashboard/settings#billing"
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={isOpeningBilling}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Manage Subscription
-                  </Link>
+                    {isOpeningBilling ? 'Opening…' : 'Manage Subscription'}
+                  </button>
                 </div>
               </div>
             )}

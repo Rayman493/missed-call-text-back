@@ -21,6 +21,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { handleBillingAction } from '@/lib/billing'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -37,7 +38,6 @@ export default function SettingsPage() {
   const [resetConfirmText, setResetConfirmText] = useState('')
   const [showResetModal, setShowResetModal] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
 
   const supabase = createBrowserClient()
@@ -124,103 +124,46 @@ export default function SettingsPage() {
   }
 
   const handleManageSubscription = async () => {
-    console.log('[Stripe Portal] Manage Subscription clicked')
+    console.log('[Settings] Manage Subscription clicked')
     setIsOpeningPortal(true)
     setError('')
 
     try {
-      // Get current session for auth
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const result = await handleBillingAction()
       
-      if (sessionError || !session) {
-        console.error('[Stripe Portal] No session found:', sessionError)
-        setError('Authentication required. Please sign in again.')
+      if (result.success && result.url) {
+        console.log('[Settings] Redirecting to:', result.url, result.action)
+        window.location.href = result.url
+      } else {
+        console.error('[Settings] Billing action failed:', result.error)
+        setError(result.error || 'Failed to open billing portal')
         setIsOpeningPortal(false)
-        return
-      }
-
-      console.log('[Stripe Portal] Session found, creating portal session')
-      
-      // Call the API to create portal session
-      const response = await fetch('/api/stripe/create-portal-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-
-      const data = await response.json()
-      console.log('[Billing UI] portal response:', data)
-
-      // Handle structured responses
-      if (data.code === "NO_STRIPE_CUSTOMER") {
-        console.log('[Billing UI] no customer, showing upgrade prompt')
-        setError("You haven't started a paid subscription yet.")
-        setShowUpgradePrompt(true)
-        setIsOpeningPortal(false)
-        return
-      }
-
-      // Check for success response with URL
-      if (data.url && response.ok) {
-        console.log('[Billing UI] redirecting to:', data.url)
-        window.location.href = data.url
-        return
-      }
-
-      // Handle error responses
-      if (!response.ok) {
-        console.error('[Billing UI] API error:', response.status, data)
-        setError(data.error || 'Failed to open billing portal')
-        setIsOpeningPortal(false)
-        return
-      }
-
-      // Handle unexpected success without URL
-      if (!data.url) {
-        console.error('[Billing UI] Success response missing URL:', data)
-        setError('Failed to open billing portal. Please try again.')
-        setIsOpeningPortal(false)
-        return
       }
     } catch (error) {
-      console.error('[Stripe Portal] Unexpected error:', error)
+      console.error('[Settings] Unexpected error:', error)
       setError('Failed to open billing portal. Please try again.')
       setIsOpeningPortal(false)
     }
   }
 
   const handleUpgradePlan = async () => {
-    console.log('[Billing UI] Starting upgrade plan flow')
+    console.log('[Settings] Upgrade Plan clicked')
     setIsStartingCheckout(true)
     setError('')
 
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-      })
-
-      const data = await response.json()
-      console.log('[Billing UI] checkout response:', data)
-
-      if (!response.ok) {
-        console.error('[Billing UI] Checkout API error:', response.status, data)
-        setError(data.error || 'Failed to start checkout')
-        setIsStartingCheckout(false)
-        return
-      }
-
-      if (data.url) {
-        console.log('[Billing UI] Redirecting to checkout:', data.url)
-        window.location.href = data.url
+      const result = await handleBillingAction()
+      
+      if (result.success && result.url) {
+        console.log('[Settings] Redirecting to:', result.url, result.action)
+        window.location.href = result.url
       } else {
-        console.error('[Billing UI] No checkout URL returned:', data)
-        setError('Failed to start checkout. Please try again.')
+        console.error('[Settings] Billing action failed:', result.error)
+        setError(result.error || 'Failed to start checkout')
         setIsStartingCheckout(false)
       }
     } catch (error) {
-      console.error('[Billing UI] Checkout error:', error)
+      console.error('[Settings] Unexpected error:', error)
       setError('Failed to start checkout. Please try again.')
       setIsStartingCheckout(false)
     }
@@ -352,7 +295,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {error && !showUpgradePrompt && (
+              {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-8">
                   <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
                 </div>
@@ -637,32 +580,6 @@ export default function SettingsPage() {
                       {isOpeningPortal ? 'Opening…' : 'Manage Subscription'}
                     </button>
                   </div>
-                  
-                  {/* Billing Alert */}
-                  {showUpgradePrompt && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-                      <p className="text-sm text-red-800 dark:text-red-300 mb-3">Start your paid subscription to continue using ReplyFlow.</p>
-                      <p className="text-xs text-red-700 dark:text-red-400 mb-4">{getTrialDisplay()}, then {getPricingDisplay()} • No contracts</p>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleUpgradePlan}
-                          disabled={isStartingCheckout}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isStartingCheckout ? 'Starting...' : `Upgrade Plan - ${getPricingDisplay()}`}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setError('')
-                            setShowUpgradePrompt(false)
-                          }}
-                          className="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
                   
                   {/* Save Button */}
                   <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
