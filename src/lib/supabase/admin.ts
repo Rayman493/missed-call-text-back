@@ -90,17 +90,53 @@ export const db = {
   },
 
   async updateBusiness(businessId: string, updates: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
+    return this.updateBusinessSafe(businessId, updates)
+  },
+
+  async updateBusinessSafe(businessId: string, updates: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
+    // Get current business to preserve twilio_phone_number if not explicitly being updated
+    const currentBusiness = await this.getBusinessByUserId((await supabaseAdmin.auth.getUser()).data.user?.id || '')
+    const actualBusiness = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .single()
+    
+    if (!actualBusiness.data) {
+      console.error('[updateBusinessSafe] Business not found:', businessId)
+      return null
+    }
+
+    // Preserve twilio_phone_number unless explicitly being updated
+    const safeUpdates = {
+      ...updates,
+      // Only update twilio_phone_number if it's explicitly provided in updates
+      twilio_phone_number: updates.twilio_phone_number !== undefined 
+        ? updates.twilio_phone_number 
+        : actualBusiness.data.twilio_phone_number
+    }
+
+    // Log business update for debugging
+    console.log('[updateBusinessSafe] Updating business:', businessId)
+    console.log('[updateBusinessSafe] Current twilio_phone_number:', actualBusiness.data.twilio_phone_number)
+    console.log('[updateBusinessSafe] Update payload twilio_phone_number:', updates.twilio_phone_number)
+    console.log('[updateBusinessSafe] Final twilio_phone_number:', safeUpdates.twilio_phone_number)
+    console.log('[updateBusinessSafe] Update fields:', Object.keys(updates))
+
     const { data, error } = await supabaseAdmin
       .from('businesses')
-      .update(updates)
+      .update(safeUpdates)
       .eq('id', businessId)
       .select()
       .single()
     
     if (error) {
-      console.error('[updateBusiness] Error updating business:', error)
+      console.error('[updateBusinessSafe] Error updating business:', error)
       return null
     }
+    
+    console.log('[updateBusinessSafe] Business updated successfully:', data.id)
+    console.log('[updateBusinessSafe] Final twilio_phone_number in DB:', data.twilio_phone_number)
     
     return data
   },

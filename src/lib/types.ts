@@ -33,6 +33,7 @@ export interface Lead {
   last_message_at: string | null;
   last_reply_at: string | null;
   opted_out: boolean;
+  is_demo: boolean; // Classify demo vs real leads
   created_at: string;
 }
 

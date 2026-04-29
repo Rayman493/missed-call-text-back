@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         last_message_at: new Date().toISOString(),
         last_reply_at: new Date().toISOString(),
         opted_out: false,
+        is_demo: false, // Real leads from SMS replies
       })
       
       if (!lead) {

@@ -102,6 +102,7 @@ export async function POST(request: Request) {
         last_message_at: null,
         last_reply_at: null,
         opted_out: false,
+        is_demo: true, // Mark as demo lead
       })
 
       if (!demoLead) {
@@ -170,7 +171,13 @@ export async function POST(request: Request) {
 
     try {
       if (!business.twilio_phone_number) {
-        throw new Error('ReplyFlow number not assigned')
+        // Provide clearer setup warning for onboarding demos
+        const isOnboardingDemo = business.onboarding_status !== 'completed'
+        const errorMsg = isOnboardingDemo 
+          ? 'ReplyFlow number is being assigned during setup. This demo will work once setup is complete.'
+          : 'ReplyFlow number not assigned. Please complete setup first.'
+        
+        throw new Error(errorMsg)
       }
 
       if (!twilioClient) {

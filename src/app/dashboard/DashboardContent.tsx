@@ -418,6 +418,7 @@ export default function DashboardContent() {
             )
           `)
           .eq('business_id', business.id)
+          .eq('is_demo', false) // Exclude demo leads from dashboard
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })

@@ -329,21 +329,43 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
         const incomingNumbers = await client.incomingPhoneNumbers.list({ phoneNumber: business.twilio_phone_number });
         
         if (incomingNumbers.length === 0) {
-          console.log('[Twilio Provisioning] Number does not exist in Twilio Active Numbers, clearing bad saved number');
+          console.log('[Twilio Provisioning] Number does not exist in Twilio Active Numbers');
           
-          // Clear the bad phone number
-          const { error: clearError } = await supabase
-            .from('businesses')
-            .update({
-              twilio_phone_number: null,
-              twilio_phone_number_sid: null,
-            })
-            .eq('id', businessId);
+          // Check if this is the shared MVP number - if so, don't clear it
+          const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303';
+          if (business.twilio_phone_number === sharedReplyFlowNumber) {
+            console.log('[Twilio Provisioning] Preserving shared ReplyFlow number, only clearing SID');
+            
+            // Only clear the SID, keep the shared number
+            const { error: clearError } = await supabase
+              .from('businesses')
+              .update({
+                twilio_phone_number_sid: null,
+              })
+              .eq('id', businessId);
 
-          if (clearError) {
-            console.error('[Twilio Provisioning] Failed to clear bad saved number:', clearError);
+            if (clearError) {
+              console.error('[Twilio Provisioning] Failed to clear SID:', clearError);
+            } else {
+              console.log('[Twilio Provisioning] Shared number SID cleared, number preserved');
+            }
           } else {
-            console.log('[Twilio Provisioning] Bad saved number cleared');
+            console.log('[Twilio Provisioning] Clearing bad non-shared number');
+            
+            // Clear the bad phone number (only for non-shared numbers)
+            const { error: clearError } = await supabase
+              .from('businesses')
+              .update({
+                twilio_phone_number: null,
+                twilio_phone_number_sid: null,
+              })
+              .eq('id', businessId);
+
+            if (clearError) {
+              console.error('[Twilio Provisioning] Failed to clear bad saved number:', clearError);
+            } else {
+              console.log('[Twilio Provisioning] Bad saved number cleared');
+            }
           }
         } else {
           console.log('[Twilio Provisioning] Number exists in Twilio, updating SID in database');

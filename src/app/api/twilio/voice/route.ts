@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
         last_message_at: null,
         last_reply_at: null,
         opted_out: false,
+        is_demo: false, // Real leads from voice webhook
       });
       
       if (lead) {
