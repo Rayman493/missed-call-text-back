@@ -2,12 +2,20 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { sendSms } from '@/lib/twilio'
+import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   try {
     console.log('[SYSTEM] [INCOMING-SMS] Received SMS');
     
     const body = await req.text()
+    
+    // Validate Twilio webhook signature
+    if (!requireTwilioAuth(req, body)) {
+      console.error('[SYSTEM] [INCOMING-SMS] Invalid webhook signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    
     const params = new URLSearchParams(body)
     
     const From = params.get('From')

@@ -301,14 +301,13 @@ export const db = {
     return data
   },
 
-  async hasRecentAutoReply(businessId: string, callerPhone: string, minutes?: number): Promise<Message[]> {
+  async hasRecentAutoReply(businessId: string, leadId: string, minutes?: number): Promise<Message[]> {
     const cooldownTime = new Date(Date.now() - (minutes || 15) * 60 * 1000).toISOString()
     
     const { data, error } = await supabaseAdmin
       .from('messages')
       .select('*')
-      .eq('lead_id', businessId)
-      .eq('caller_phone', callerPhone)
+      .eq('lead_id', leadId)
       .eq('direction', 'outbound')
       .gte('created_at', cooldownTime)
       .order('created_at', { ascending: false })

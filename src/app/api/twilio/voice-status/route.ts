@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { db } from '@/lib/supabase/admin'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
+import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,19 +13,24 @@ export async function POST(req: NextRequest) {
     )
 
     const body = await req.text()
-    const params = new URLSearchParams(body)
     
-    console.log("TWILIO BODY:", body)
+    // Validate Twilio webhook signature
+    if (!requireTwilioAuth(req, body)) {
+      console.error('[voice-status] Invalid webhook signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    
+    const params = new URLSearchParams(body)
     
     const From = params.get('From')
     const To = params.get('To')
     const CallStatus = params.get('CallStatus')
     
-    // Log request details
+    // Log request details (sanitized)
     console.log('[voice-status] Incoming webhook:')
     console.log('[voice-status]   CallStatus:', CallStatus)
-    console.log('[voice-status]   From:', From)
-    console.log('[voice-status]   To:', To)
+    console.log('[voice-status]   From:', From ? From.substring(0, 3) + '***' : 'null')
+    console.log('[voice-status]   To:', To ? To.substring(0, 3) + '***' : 'null')
     console.log('[voice-status]   CallSid:', params.get('CallSid'))
     
     if (!From || !To) {

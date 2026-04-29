@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from '@/lib/supabase/admin';
 import { normalizePhoneNumber } from '@/lib/twilio';
 import { sendSms } from '@/lib/twilio';
+import { requireTwilioAuth } from '@/lib/twilio/webhook';
 
 // Helper to convert normalized 10-digit US number to E.164 format
 function toE164(phone: string): string {
@@ -19,6 +20,13 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Incoming call');
     
     const body = await request.text();
+    
+    // Validate Twilio webhook signature
+    if (!requireTwilioAuth(request, body)) {
+      console.error('[Twilio Voice] Invalid webhook signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    
     const params = new URLSearchParams(body);
     
     const From = params.get('From');

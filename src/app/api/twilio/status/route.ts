@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireTwilioAuth } from '@/lib/twilio/webhook';
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -32,11 +33,17 @@ function getStatusPriority(status: string | null): number {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[SYSTEM] [TWILIO-STATUS] Status callback received');
-  
   try {
-    // Parse the form data from Twilio
+    console.log('[SYSTEM] [TWILIO-STATUS] Status webhook received');
+    
     const body = await req.text();
+    
+    // Validate Twilio webhook signature
+    if (!requireTwilioAuth(req, body)) {
+      console.error('[SYSTEM] [TWILIO-STATUS] Invalid webhook signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    
     const params = new URLSearchParams(body);
     
     // Read all required form fields with fallbacks
