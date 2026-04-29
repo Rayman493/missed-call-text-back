@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
+import { formatPhoneNumber } from '@/lib/utils'
+import { normalizeUSPhoneNumber, validatePhoneNumber } from '@/lib/phone-normalization'
 
 interface BusinessPhoneSetupCardProps {
   business: Business | null
@@ -13,6 +15,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
   const [isSaving, setIsSaving] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
   const [setupStatus, setSetupStatus] = useState<'not_configured' | 'awaiting_test' | 'working'>('not_configured')
+  const [validationError, setValidationError] = useState('')
 
   useEffect(() => {
     if (business?.forwarding_phone_number) {
@@ -26,12 +29,27 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
       return
     }
 
+    // Validate and normalize phone number
+    const validation = validatePhoneNumber(phoneNumber.trim())
+    if (!validation.isValid) {
+      setValidationError(validation.error || 'Enter a valid 10-digit US phone number.')
+      return
+    }
+
+    const normalizedPhone = normalizeUSPhoneNumber(phoneNumber.trim())
+    if (!normalizedPhone) {
+      setValidationError('Enter a valid 10-digit US phone number.')
+      return
+    }
+
     setIsSaving(true)
+    setValidationError('')
+
     try {
       const response = await fetch('/api/business/update-phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forwarding_phone_number: phoneNumber.trim() })
+        body: JSON.stringify({ forwarding_phone_number: normalizedPhone })
       })
 
       if (response.ok) {
@@ -41,12 +59,19 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
         setShowInstructions(true)
       } else {
         console.error('Failed to update business phone')
+        setValidationError('Failed to save phone number. Please try again.')
       }
     } catch (error) {
       console.error('Error updating business phone:', error)
+      setValidationError('Failed to save phone number. Please try again.')
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhoneNumber(e.target.value)
+    setValidationError('') // Clear validation error when user types
   }
 
   const getStatusColor = () => {
@@ -90,15 +115,24 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
             Business Phone Number
           </label>
           <div className="flex gap-2">
-            <input
-              type="tel"
-              id="phone"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="+1 (555) 123-4567"
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-400"
-              disabled={isSaving}
-            />
+            <div>
+              <input
+                type="tel"
+                id="phone"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                placeholder="412-855-3010 or (412) 855-3010"
+                className={`flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border rounded-md focus:outline-none focus:ring-2 placeholder-gray-400 dark:placeholder-gray-400 ${
+                  validationError 
+                    ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                }`}
+                disabled={isSaving}
+              />
+              {validationError && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{validationError}</p>
+              )}
+            </div>
             <button
               onClick={handleSave}
               disabled={isSaving || !phoneNumber.trim()}
