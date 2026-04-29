@@ -16,7 +16,88 @@ import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import Image from 'next/image'
 
-// Helper to hide test numbers
+// Helper to get latest activity timestamp for sorting
+function getLatestActivity(lead: any): string {
+  if (lead.last_message_at) return lead.last_message_at
+  if (lead.first_contact_at) return lead.first_contact_at
+  return lead.created_at
+}
+
+// Helper to determine if lead needs response
+function needsResponse(lead: any): boolean {
+  const hasInbound = lead.messages?.some((m: any) => m.direction === 'inbound')
+  const hasOutboundAfterInbound = lead.messages?.some((m: any) => {
+    if (m.direction !== 'outbound') return false
+    const inboundMessages = lead.messages?.filter((msg: any) => msg.direction === 'inbound')
+    if (inboundMessages.length === 0) return false
+    const latestInbound = inboundMessages.sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0]
+    return new Date(m.created_at).getTime() > new Date(latestInbound.created_at).getTime()
+  })
+  return hasInbound && !hasOutboundAfterInbound
+}
+
+// Helper to get lead status display
+function getLeadStatusDisplay(lead: any): { text: string; color: string } {
+  // Use lead_status if available, otherwise derive from messages
+  const status = lead.lead_status || lead.status || 'new'
+  
+  if (needsResponse(lead)) {
+    return { text: 'Needs response', color: 'amber' }
+  }
+  
+  switch (status) {
+    case 'new':
+      return { text: 'New', color: 'blue' }
+    case 'replied':
+      return { text: 'Replied', color: 'green' }
+    case 'qualified':
+      return { text: 'Qualified', color: 'purple' }
+    case 'closed':
+      return { text: 'Closed', color: 'gray' }
+    default:
+      return { text: 'New', color: 'blue' }
+  }
+}
+
+// Helper to filter and sort leads
+function processLeads(leads: any[], searchQuery: string, statusFilter: string): any[] {
+  let filtered = leads
+  
+  // Apply status filter
+  if (statusFilter !== 'all') {
+    filtered = filtered.filter(lead => {
+      const status = getLeadStatusDisplay(lead)
+      if (statusFilter === 'needs_response') {
+        return needsResponse(lead)
+      }
+      return status.text.toLowerCase() === statusFilter.toLowerCase()
+    })
+  }
+  
+  // Apply search filter
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase()
+    filtered = filtered.filter(lead => {
+      const phone = lead.caller_phone?.toLowerCase() || ''
+      const latestMessage = lead.messages && lead.messages.length > 0
+        ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+        : null
+      const messageBody = latestMessage?.body?.toLowerCase() || ''
+      const status = getLeadStatusDisplay(lead).text.toLowerCase()
+      
+      return phone.includes(query) || messageBody.includes(query) || status.includes(query)
+    })
+  }
+  
+  // Sort by latest activity (newest first)
+  return filtered.sort((a, b) => {
+    const timeA = new Date(getLatestActivity(a)).getTime()
+    const timeB = new Date(getLatestActivity(b)).getTime()
+    return timeB - timeA
+  })
+}
 function formatLeadPhone(phone: string): string {
   if (phone === '+10000000000') {
     return 'Test Lead'
@@ -77,6 +158,7 @@ export default function DashboardContent() {
   const { business, loading: businessLoading, refreshBusiness } = useBusiness()
   const { setBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
+  const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
   const [missedCalls, setMissedCalls] = useState(0)
   const [callEvents, setCallEvents] = useState<any[]>([])
@@ -86,11 +168,19 @@ export default function DashboardContent() {
   const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [testSmsMessage, setTestSmsMessage] = useState('')
   const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams?.get('checkout')
   const router = useRouter()
 
   const supabase = createBrowserClient()
+
+  // Process leads whenever raw leads, search, or filter changes
+  useEffect(() => {
+    const processed = processLeads(leads, searchQuery, statusFilter)
+    setProcessedLeads(processed)
+  }, [leads, searchQuery, statusFilter])
 
   // Force refresh business after checkout success with retry logic
   useEffect(() => {
@@ -640,44 +730,90 @@ export default function DashboardContent() {
               </div>
             ) : (
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">Your Leads</h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">People who called but did not reach you.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Your Leads</h2>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">People who called but did not reach you.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {processedLeads.length} of {leads.length} leads
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Search and Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search by phone, message, or status..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
+                      <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">All</option>
+                      <option value="new">New</option>
+                      <option value="needs_response">Needs response</option>
+                      <option value="replied">Replied</option>
+                      <option value="qualified">Qualified</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Lead Cards */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {leads.map((lead, index) => {
-                      const latestMessage = lead.messages && lead.messages.length > 0
-                        ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                        : null
+                  {processedLeads.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <div className="text-4xl mb-4">🔍</div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        {searchQuery.trim() ? 'No search results' : 'No leads yet'}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {searchQuery.trim() 
+                          ? 'No leads match your search criteria.'
+                          : 'Missed calls will appear here once ReplyFlow starts capturing leads.'
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {processedLeads.map((lead) => {
+                        const latestMessage = lead.messages && lead.messages.length > 0
+                          ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                          : null
 
-                      const messageStatus = getLeadMessageStatus(latestMessage)
-                      const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
-                      const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
-                      const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
-                      const hasBlockedOutbound = lead.messages?.some((m: any) => m.direction === 'outbound' && m.error_code === '30007')
-                      const hasFailedMessage = latestMessage && (latestMessage.status === 'failed' || latestMessage.status === 'undelivered')
+                        const messageStatus = getLeadMessageStatus(latestMessage)
+                        const lastActivity = getLatestActivity(lead)
+                        const statusDisplay = getLeadStatusDisplay(lead)
+                        const hasUnreadReply = needsResponse(lead)
+                        const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
-                      // Check if this is the newest lead (within 24 hours)
-                      const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+                        const getStatusColor = (color: string) => {
+                          switch (color) {
+                            case 'blue': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                            case 'green': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            case 'amber': return 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                            case 'purple': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
+                            case 'gray': return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                            default: return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                          }
+                        }
 
-                      let statusBadge = 'New'
-                      let isDeliveryPending = false
-                      let smsIssueBadge = null
-                      let carrierFilteringBadge = null
-
-                      if (hasBlockedOutbound) {
-                        statusBadge = 'Sent'
-                        isDeliveryPending = true
-                        carrierFilteringBadge = 'Sent (delivery pending)'
-                      }
-                      else if (hasFailedMessage) {
-                        statusBadge = 'Texted'
-                        smsIssueBadge = 'SMS issue'
-                      }
-                      else if (hasReplied) statusBadge = 'Replied'
-                      else if (hasTexted) statusBadge = 'Texted'
-                      else if (lead.status === 'blocked') statusBadge = 'Blocked'
-
-                      return (
+                        return (
                         <div key={lead.id} className={`p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -693,8 +829,15 @@ export default function DashboardContent() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                    {hasUnreadReply && (
+                                      <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full flex-shrink-0 animate-pulse">
+                                        Needs response
+                                      </span>
+                                    )}
                                     {isNewLead && (
-                                      <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-medium rounded-full flex-shrink-0">New</span>
+                                      <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-medium rounded-full flex-shrink-0">
+                                        New
+                                      </span>
                                     )}
                                   </div>
                                   <p className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
@@ -702,41 +845,38 @@ export default function DashboardContent() {
                               </div>
                               {latestMessage && (
                                 <div className="ml-13">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {latestMessage.direction === 'inbound' ? 'Customer:' : 'You:'}
+                                    </span>
+                                  </div>
                                   <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{latestMessage.body}</p>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                statusBadge === 'New' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
-                                statusBadge === 'Texted' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
-                                statusBadge === 'Replied' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-                                statusBadge === 'Sent' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' :
-                                'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                              }`}>
-                                {statusBadge}
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(statusDisplay.color)}`}>
+                                {statusDisplay.text}
                               </span>
                               <Link
                                 href={`/dashboard/leads/${lead.id}`}
-                                className="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow"
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                               >
                                 View
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
                               </Link>
                             </div>
                           </div>
                         </div>
                       )
-                    })}
-                  </div>
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
-        </div>
+      </div>
       </BusinessGuard>
     </AuthGuard>
   )
