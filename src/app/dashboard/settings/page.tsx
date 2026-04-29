@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -33,6 +33,13 @@ export default function SettingsPage() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
 
   const supabase = createBrowserClient()
+
+  // Refresh business data when settings page mounts to ensure latest data
+  useEffect(() => {
+    if (business) {
+      refreshBusiness()
+    }
+  }, [])
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
