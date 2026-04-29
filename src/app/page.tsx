@@ -66,6 +66,14 @@ export default function Home() {
         <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-2xl">
           ReplyFlow instantly texts back missed calls so you can capture leads, book jobs, and grow your business automatically.
         </p>
+        
+        {/* Pricing Information */}
+        <div className="mb-8 flex flex-col items-center gap-2">
+          <span className="text-blue-400 font-semibold text-lg">14-day free trial</span>
+          <span className="text-gray-300 text-lg">Only $49/month after trial</span>
+          <span className="text-gray-500 text-sm">No contracts</span>
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-4">
           {loading || businessLoading ? (
             <>
@@ -82,7 +90,7 @@ export default function Home() {
                 }
                 className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Get Started Free
+                Start Your Free Trial
               </Link>
               <Link
                 href="/demo"
@@ -168,6 +176,14 @@ export default function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-100 mb-6">
             Start capturing missed calls today
           </h2>
+          
+          {/* Pricing Information */}
+          <div className="mb-8 flex flex-col items-center gap-2">
+            <span className="text-blue-400 font-semibold text-lg">14-day free trial</span>
+            <span className="text-gray-300 text-lg">$49/month after trial</span>
+            <span className="text-gray-500 text-sm">No contracts • Cancel anytime</span>
+          </div>
+          
           <Link
             href={
               user 
@@ -176,7 +192,7 @@ export default function Home() {
             }
             className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Get Started Free
+            Start Your Free Trial
           </Link>
         </div>
       </section>

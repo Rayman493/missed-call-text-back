@@ -285,7 +285,18 @@ export default function OnboardingPage() {
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-6 sm:p-8">
           <p className="text-xs text-gray-400 mb-2">Step 1 of 3</p>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-sm text-gray-400 mb-6">Let's set up automatic missed-call texting</p>
+          <p className="text-sm text-gray-400 mb-4">Let's set up automatic missed-call texting</p>
+          
+          {/* Pricing Information */}
+          <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 mb-6">
+            <div className="flex items-center justify-center gap-4 text-sm">
+              <span className="text-green-400 font-medium">✓ 14-day free trial</span>
+              <span className="text-gray-300">•</span>
+              <span className="text-gray-300">$49/month after trial</span>
+              <span className="text-gray-300">•</span>
+              <span className="text-gray-400">No contracts</span>
+            </div>
+          </div>
           
           <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">

@@ -672,10 +672,10 @@ export default function DashboardContent() {
                     <span className="text-2xl">🎉</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
-                        Your free trial is active
+                        Your 14-day free trial is active
                       </p>
                       <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                        {getDaysRemaining(business.trial_ends_at)} days remaining
+                        {getDaysRemaining(business.trial_ends_at)} days remaining • $49/month after trial
                       </p>
                     </div>
                   </div>
@@ -697,10 +697,10 @@ export default function DashboardContent() {
                     <span className="text-2xl">⚠️</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100">
-                        Your trial has expired
+                        Your 14-day free trial has expired
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        Upgrade to continue using ReplyFlow
+                        Upgrade for $49/month to continue using ReplyFlow
                       </p>
                     </div>
                   </div>

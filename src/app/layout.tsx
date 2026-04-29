@@ -8,8 +8,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow',
-  description: 'Automatically respond to missed calls',
+  title: 'ReplyFlow - $49/month | 14-day Free Trial',
+  description: 'Automatically respond to missed calls with ReplyFlow. 14-day free trial, then $49/month. No contracts. Capture leads and grow your business.',
   icons: {
     icon: '/favicon.svg',
     apple: '/apple-touch-icon.svg',
