@@ -260,7 +260,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!leadData?.id || !supabase) return
 
-    console.log('[Realtime] Setting up message subscription for lead:', leadData.id)
+    // Quiet setup - only log errors
 
     // Clean up existing subscription
     if (realtimeChannelRef.current) {
@@ -279,7 +279,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `lead_id=eq.${leadData.id}`
         },
         (payload: any) => {
-          console.log('[Realtime] Message change:', payload)
+          // Quiet message handling
           
           if (payload.eventType === 'INSERT') {
             // New message inserted
@@ -290,14 +290,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               // Check if message already exists to prevent duplicates
               const existingMessage = prev.messages?.find((msg: any) => msg.id === newMessage.id)
               if (existingMessage) {
-                console.log('[Realtime] Message already exists, skipping')
+                // Quiet duplicate handling
                 return prev
               }
               
               const updatedMessages = [...(prev.messages || []), newMessage]
                 .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
               
-              console.log('[Realtime] Added new message, total:', updatedMessages.length)
+              // Quiet message count update
               
               // Auto-scroll if user is near bottom
               setTimeout(() => {
@@ -326,7 +326,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
               )
               
-              console.log('[Realtime] Updated message status:', updatedMessage.status)
+              // Quiet status update
               
               return {
                 ...prev,
@@ -337,11 +337,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
       .subscribe((status: any) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Subscribed to messages for lead:', leadData.id)
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Channel error')
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[Realtime] Channel error for lead:', leadData.id)
         }
+        // Quiet SUBSCRIBED status - no need to log
       })
 
     realtimeChannelRef.current = channel
@@ -354,7 +353,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         realtimeChannelRef.current = null
       }
     }
-  }, [leadData?.id, supabase])
+  }, [leadData?.id])
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     // Prevent form submission and page refresh

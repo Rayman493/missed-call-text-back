@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, truncateText, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
@@ -469,7 +470,7 @@ export default function DashboardContent() {
   useEffect(() => {
     if (!business?.id || !supabase) return
 
-    console.log('[Dashboard Realtime] Setting up subscriptions for business:', business.id)
+    // Quiet setup - only log errors
 
     // Clean up existing subscription
     if (realtimeChannelRef.current) {
@@ -488,7 +489,7 @@ export default function DashboardContent() {
           filter: `business_id=eq.${business.id}`
         },
         (payload: any) => {
-          console.log('[Dashboard Realtime] Message change:', payload)
+          // Quiet message handling
           
           if (payload.eventType === 'INSERT') {
             // New message - update the lead with new message
@@ -542,7 +543,7 @@ export default function DashboardContent() {
           filter: `business_id=eq.${business.id}`
         },
         (payload: any) => {
-          console.log('[Dashboard Realtime] Lead change:', payload)
+          // Quiet lead handling
           
           if (payload.eventType === 'INSERT') {
             // New lead - add to the list
@@ -570,11 +571,10 @@ export default function DashboardContent() {
         }
       )
       .subscribe((status: any) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Dashboard Realtime] Subscribed to dashboard updates for business:', business.id)
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Dashboard Realtime] Channel error')
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[Dashboard Realtime] Channel error for business:', business.id)
         }
+        // Quiet SUBSCRIBED status - no need to log
       })
 
     realtimeChannelRef.current = channel
@@ -587,7 +587,7 @@ export default function DashboardContent() {
         realtimeChannelRef.current = null
       }
     }
-  }, [business?.id, supabase])
+  }, [business?.id])
 
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
