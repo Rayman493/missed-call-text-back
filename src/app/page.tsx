@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 export default function Home() {
   const { loading, user } = useAuth()
+  const { business, loading: businessLoading } = useBusiness()
 
-  if (loading) {
+  // Show loading state while auth or business data is loading
+  if (loading || businessLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-gray-900 dark:text-gray-200">Loading...</div>
@@ -25,14 +28,14 @@ export default function Home() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          {loading ? (
+          {loading || businessLoading ? (
             <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
           ) : user ? (
             <Link
-              href="/dashboard"
+              href={business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding'}
               className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
             >
-              Dashboard
+              {business?.onboarding_status === 'completed' ? 'Dashboard' : 'Complete Setup'}
             </Link>
           ) : (
             <Link
@@ -54,7 +57,7 @@ export default function Home() {
           ReplyFlow instantly texts back missed calls so you can capture leads, book jobs, and grow your business automatically.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          {loading ? (
+          {loading || businessLoading ? (
             <>
               <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
               <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
@@ -62,10 +65,10 @@ export default function Home() {
           ) : user ? (
             <>
               <Link
-                href="/dashboard"
+                href={business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding'}
                 className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Go to Dashboard
+                {business?.onboarding_status === 'completed' ? 'Go to Dashboard' : 'Complete Setup'}
               </Link>
             </>
           ) : (
@@ -161,10 +164,10 @@ export default function Home() {
             Start capturing missed calls today
           </h2>
           <Link
-            href="/auth?mode=signup"
+            href={user ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding') : '/auth?mode=signup'}
             className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Get Started
+            {user ? (business?.onboarding_status === 'completed' ? 'Go to Dashboard' : 'Complete Setup') : 'Get Started'}
           </Link>
         </div>
       </section>
