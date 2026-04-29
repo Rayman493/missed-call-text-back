@@ -36,10 +36,10 @@ export default function Home() {
             </Link>
           ) : (
             <Link
-              href="/dashboard"
+              href="/auth?mode=signin"
               className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
             >
-              Dashboard
+              Sign In
             </Link>
           )}
         </div>
@@ -83,10 +83,10 @@ export default function Home() {
                 Get Started Free
               </Link>
               <Link
-                href="/dashboard"
+                href="/auth?mode=signin"
                 className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
               >
-                Dashboard
+                Sign In
               </Link>
             </>
           )}
