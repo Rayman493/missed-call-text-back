@@ -48,7 +48,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       }
       
       // Redirect if onboarding is not completed
-      if (business.onboarding_status !== 'completed') {
+      if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed') {
         console.log('[BusinessGuard] Onboarding not completed, redirecting to onboarding')
         console.log('[Auth Gate] redirecting to: /onboarding (incomplete onboarding)')
         router.push('/onboarding')
@@ -96,7 +96,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }
 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
-  if (business.onboarding_status !== 'completed' && pathname?.startsWith('/dashboard')) {
+  if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' && pathname?.startsWith('/dashboard')) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">

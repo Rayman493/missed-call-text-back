@@ -66,8 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
-      if (authSubscriptionRef.current) {
-        authSubscriptionRef.current.subscription.unsubscribe()
+      console.log('[Auth] Cleaning up auth subscription')
+      if (authSubscriptionRef.current?.subscription) {
+        try {
+          authSubscriptionRef.current.subscription.unsubscribe()
+          console.log('[Auth] Auth subscription cleaned up successfully')
+        } catch (error) {
+          console.error('[Auth] Error cleaning up auth subscription:', error)
+        }
         authSubscriptionRef.current = null
       }
     }

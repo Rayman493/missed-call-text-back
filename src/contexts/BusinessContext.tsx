@@ -140,8 +140,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
-      if (authSubscriptionRef.current) {
-        authSubscriptionRef.current.subscription.unsubscribe()
+      console.log('[BusinessContext] Cleaning up auth subscription')
+      if (authSubscriptionRef.current?.subscription) {
+        try {
+          authSubscriptionRef.current.subscription.unsubscribe()
+          console.log('[BusinessContext] Auth subscription cleaned up successfully')
+        } catch (error) {
+          console.error('[BusinessContext] Error cleaning up auth subscription:', error)
+        }
         authSubscriptionRef.current = null
       }
     }
