@@ -51,7 +51,7 @@ export default function OnboardingSuccess() {
           Your ReplyFlow account is ready
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-          ReplyFlow texts missed callers automatically.
+          ReplyFlow captures missed-call leads and manages your customer conversations.
         </p>
 
         {/* Business Details */}
@@ -119,6 +119,15 @@ export default function OnboardingSuccess() {
               <p className="text-sm text-green-800 dark:text-green-200">
                 ✓ ReplyFlow automatically texts the customer
               </p>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ Capture missed-call leads in your ReplyFlow inbox
+              </p>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ Reply to customers directly from your dashboard
+              </p>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                ✓ Continue conversations from ReplyFlow
+              </p>
             </div>
           </div>
         )}
@@ -183,7 +192,7 @@ export default function OnboardingSuccess() {
                 <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
                 </div>
-                <p className="leading-relaxed"><strong>Check your dashboard</strong> to see the conversation.</p>
+                <p className="leading-relaxed"><strong>Check your dashboard</strong> to see the conversation and reply to customers.</p>
               </div>
             </div>
             
