@@ -162,7 +162,7 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Saving business for user:', user.id)
-      // Use centralized getOrCreateBusiness API without assigning Twilio number
+      // Use centralized getOrCreateBusiness API - backend will auto-assign shared ReplyFlow number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -171,11 +171,10 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           businessData: {
             name: businessName,
-            twilio_phone_number: null, // Allow NULL for new accounts
             forwarding_phone_number: normalizedPhone,
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'toll_free',
-            messaging_status: 'pending_verification',
+            messaging_status: 'active',
             onboarding_status: 'completed',
             subscription_status: 'trialing',
           }
