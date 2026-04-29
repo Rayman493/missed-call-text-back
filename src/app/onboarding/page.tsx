@@ -222,9 +222,9 @@ export default function OnboardingPage() {
     <AuthGuard>
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-8">
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow p-8">
-          <p className="text-sm text-gray-400 mb-2">Step 1 of 2</p>
+          <p className="text-sm text-gray-400 mb-2">Step 1 of 3</p>
           <h1 className="text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-gray-400 mb-6">Let's set up your business</p>
+          <p className="text-gray-400 mb-6">Let's set up your missed-call text messaging</p>
           
           <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
@@ -234,8 +234,8 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">ReplyFlow Number Assignment</p>
-                <p className="text-xs text-blue-300">Your ReplyFlow texting number will be assigned after setup. You'll be able to receive missed calls and send automated texts.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">How ReplyFlow Works</p>
+                <p className="text-xs text-blue-300">Customers continue calling your normal number. When you miss a call, we automatically text them back.</p>
               </div>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function OnboardingPage() {
 
             <div>
               <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                Your Business Phone Number
+                Enter your business phone number
               </label>
               <input
                 id="businessPhone"
@@ -276,7 +276,7 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-1 text-xs text-gray-400">
-                This is where you want to receive customer calls. We'll forward missed calls to ReplyFlow.
+                The number your customers normally call.
               </p>
             </div>
 
@@ -285,9 +285,9 @@ export default function OnboardingPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Setting up your business...' : 'Complete Setup'}
+              {loading ? 'Setting up your business...' : 'Continue to Step 2'}
             </button>
-            <p className="text-sm text-gray-400 text-center mt-2">Takes less than 2 minutes</p>
+            <p className="text-sm text-gray-400 text-center mt-2">Setup takes only a few minutes</p>
           </form>
 
           {/* Live Preview Section */}
@@ -298,6 +298,16 @@ export default function OnboardingPage() {
                 "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
               </p>
             </div>
+          </div>
+
+          {/* Trust Messaging */}
+          <div className="mt-6 space-y-2">
+            <p className="text-xs text-gray-400 text-center">
+              ✓ Customers continue calling your normal business number
+            </p>
+            <p className="text-xs text-gray-400 text-center">
+              ✓ ReplyFlow works behind the scenes to text missed callers automatically
+            </p>
           </div>
         </div>
       </div>

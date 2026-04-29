@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
@@ -7,14 +8,19 @@ import { formatPhoneNumber } from '@/lib/utils'
 export default function OnboardingSuccess() {
   const router = useRouter()
   const { business } = useBusiness()
+  const [showTestInstructions, setShowTestInstructions] = useState(false)
+  const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
 
   const handleGoToDashboard = () => {
     router.push('/dashboard')
   }
 
   const handleTestSetup = () => {
-    // Navigate to dashboard with test mode or open test instructions
-    router.push('/dashboard?test=true')
+    setShowTestInstructions(true)
+  }
+
+  const handleForwardingInstructions = () => {
+    setShowForwardingInstructions(true)
   }
 
   if (!business) {
@@ -45,7 +51,7 @@ export default function OnboardingSuccess() {
           Your ReplyFlow account is ready
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-          Your missed-call text-back system is set up.
+          ReplyFlow texts missed callers automatically.
         </p>
 
         {/* Business Details */}
@@ -75,9 +81,9 @@ export default function OnboardingSuccess() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">ReplyFlow Number Status</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">ReplyFlow Number</p>
               <p className={`font-medium ${hasTwilioNumber ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                {hasTwilioNumber ? 'Assigned' : 'Pending assignment'}
+                {hasTwilioNumber ? formatPhoneNumber(business.twilio_phone_number) : 'Assigning...'}
               </p>
             </div>
           </div>
@@ -111,6 +117,12 @@ export default function OnboardingSuccess() {
           >
             Test My Setup
           </button>
+          <button
+            onClick={handleForwardingInstructions}
+            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-6 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+          >
+            Forwarding Instructions
+          </button>
         </div>
 
         {/* Additional Info */}
@@ -118,6 +130,151 @@ export default function OnboardingSuccess() {
           <p>You can always update these settings in your dashboard.</p>
         </div>
       </div>
+
+      {/* Test Setup Modal */}
+      {showTestInstructions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Test Your Setup
+            </h2>
+            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">1</span>
+                </div>
+                <p>
+                  <strong>Call your business number:</strong> {business.forwarding_phone_number ? formatPhoneNumber(business.forwarding_phone_number) : 'your business number'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">2</span>
+                </div>
+                <p><strong>Don't answer the call.</strong> Let it ring and go to voicemail.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">3</span>
+                </div>
+                <p><strong>Check your phone for a text message.</strong> You should receive an automatic reply.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
+                </div>
+                <p><strong>Visit your dashboard</strong> to see the conversation appear.</p>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <strong>Tip:</strong> If you don't receive a text, make sure call forwarding is set up correctly.
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowTestInstructions(false)}
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowTestInstructions(false)
+                  router.push('/dashboard')
+                }}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forwarding Instructions Modal */}
+      {showForwardingInstructions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              How to Turn On Missed-Call Forwarding
+            </h2>
+            
+            <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Important:</strong> Forward calls when unanswered or busy - not all calls. Your business phone should still ring normally.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">General Instructions</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Most phone providers allow you to set up "conditional call forwarding" that only activates when you don't answer.
+                </p>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Forward to this ReplyFlow number:
+                  </p>
+                  <p className="text-lg font-mono text-blue-600 dark:text-blue-400">
+                    {business.twilio_phone_number || 'Assigning...'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Carrier-Specific Instructions</h3>
+                <div className="space-y-3">
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Verizon</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">AT&T</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">T-Mobile</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Google Voice</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">OpenPhone</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">RingCentral</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowForwardingInstructions(false)}
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowForwardingInstructions(false)
+                  setShowTestInstructions(true)
+                }}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Test My Setup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
