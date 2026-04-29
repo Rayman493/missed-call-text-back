@@ -29,21 +29,33 @@ export default function Home() {
         </Link>
         <div className="flex items-center gap-2">
           {loading || businessLoading ? (
-            <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-          ) : user ? (
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Dashboard
-            </Link>
+            <>
+              <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+            </>
           ) : (
-            <Link
-              href="/auth?mode=signin"
-              className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Sign In
-            </Link>
+            <>
+              <Link
+                href={
+                  user 
+                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                    : '/auth?mode=signup'
+                }
+                className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+              >
+                Create Account
+              </Link>
+              <Link
+                href={
+                  user 
+                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                    : '/auth?mode=signin'
+                }
+                className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+              >
+                Sign In
+              </Link>
+            </>
           )}
         </div>
       </header>
