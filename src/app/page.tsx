@@ -32,10 +32,10 @@ export default function Home() {
             <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
           ) : user ? (
             <Link
-              href={business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding'}
+              href="/dashboard"
               className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
             >
-              {business?.onboarding_status === 'completed' ? 'Dashboard' : 'Complete Setup'}
+              Dashboard
             </Link>
           ) : (
             <Link
@@ -62,19 +62,14 @@ export default function Home() {
               <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
               <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
             </>
-          ) : user ? (
-            <>
-              <Link
-                href={business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding'}
-                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {business?.onboarding_status === 'completed' ? 'Go to Dashboard' : 'Complete Setup'}
-              </Link>
-            </>
           ) : (
             <>
               <Link
-                href="/auth?mode=signup"
+                href={
+                  user 
+                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                    : '/auth?mode=signup'
+                }
                 className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Get Started Free
@@ -164,10 +159,14 @@ export default function Home() {
             Start capturing missed calls today
           </h2>
           <Link
-            href={user ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding') : '/auth?mode=signup'}
+            href={
+              user 
+                ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
+                : '/auth?mode=signup'
+            }
             className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {user ? (business?.onboarding_status === 'completed' ? 'Go to Dashboard' : 'Complete Setup') : 'Get Started'}
+            Get Started Free
           </Link>
         </div>
       </section>
