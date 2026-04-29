@@ -83,10 +83,10 @@ export default function Home() {
                 Get Started Free
               </Link>
               <Link
-                href="/auth?mode=signin"
+                href="/demo"
                 className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
               >
-                Sign In
+                View Demo
               </Link>
             </>
           )}
@@ -101,25 +101,31 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📞</span>
+              <div className="w-20 h-20 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-100 mb-2">Step 1</h3>
-              <p className="text-gray-400">Customer calls your business</p>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3">Missed call comes in</h3>
+              <p className="text-gray-400">Customer calls your business but you can't answer</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">💬</span>
+              <div className="w-20 h-20 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-100 mb-2">Step 2</h3>
-              <p className="text-gray-400">We instantly text them back</p>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3">ReplyFlow texts them instantly</h3>
+              <p className="text-gray-400">Automatic personalized text response within seconds</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">💰</span>
+              <div className="w-20 h-20 bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-100 mb-2">Step 3</h3>
-              <p className="text-gray-400">You turn missed calls into paying customers</p>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3">You manage the lead in your inbox</h3>
+              <p className="text-gray-400">Convert conversations into booked jobs and revenue</p>
             </div>
           </div>
         </div>
