@@ -82,11 +82,13 @@ export async function POST(request: Request) {
         .eq('id', business.id)
     }
 
-    const origin = request.headers.get('origin') || 'http://localhost:3000'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://replyflowhq.com'
+    const origin = request.headers.get('origin') || siteUrl
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
     
     console.log('[stripe-checkout] Environment check:', {
       origin,
+      siteUrl,
       priceId: !!priceId,
       priceIdValue: priceId,
       nodeEnv: process.env.NODE_ENV,
@@ -102,8 +104,17 @@ export async function POST(request: Request) {
       customerId,
       priceId,
       origin,
-      businessId: business.id
+      businessId: business.id,
+      onboardingStatus: business.onboarding_status
     });
+    
+    // Determine success URL based on onboarding status
+    let successUrl = `${siteUrl}/dashboard?checkout=success`
+    if (business.onboarding_status !== 'completed') {
+      successUrl = `${siteUrl}/onboarding/success?checkout=success`
+    }
+    
+    console.log('[stripe-checkout] Using success URL:', successUrl);
     
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -115,11 +126,12 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/dashboard?checkout=cancelled`,
+      success_url: successUrl,
+      cancel_url: `${siteUrl}/dashboard?checkout=cancelled`,
       metadata: {
         business_id: business.id,
         user_id: user.id,
+        onboarding_status: business.onboarding_status || 'unknown'
       },
       subscription_data: {
         metadata: {

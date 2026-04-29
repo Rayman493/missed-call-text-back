@@ -79,21 +79,35 @@ export default function OnboardingPage() {
       // Check if user already has a business
       const { data: existingBusiness, error: existingError } = await supabase
         .from('businesses')
-        .select('id, name')
+        .select('id, name, onboarding_status, subscription_status')
         .eq('user_id', user.id)
         .limit(1)
         .single()
 
       if (existingBusiness && !existingError) {
-        console.log('[Onboarding] User already has business:', existingBusiness.id, 'onboarding_status:', existingBusiness.onboarding_status, 'redirecting to dashboard')
-        // User already has a business, check onboarding status before redirecting
+        console.log('[Onboarding] User already has business:', {
+          businessId: existingBusiness.id,
+          onboardingStatus: existingBusiness.onboarding_status,
+          subscriptionStatus: existingBusiness.subscription_status
+        })
+        
+        // User already has a business, check if they should be redirected
         if (existingBusiness.onboarding_status === 'completed') {
           console.log('[Onboarding] Onboarding completed, redirecting to dashboard')
           router.push('/dashboard')
-        } else {
-          console.log('[Onboarding] Onboarding incomplete, staying on onboarding page')
-          setCheckingBusiness(false)
+          return
         }
+        
+        // If user has active/trialing subscription, don't restart onboarding
+        if (existingBusiness.subscription_status === 'active' || existingBusiness.subscription_status === 'trialing') {
+          console.log('[Onboarding] User has active/trialing subscription, redirecting to dashboard')
+          router.push('/dashboard')
+          return
+        }
+        
+        // Otherwise, stay on onboarding page
+        console.log('[Onboarding] Onboarding incomplete and no active subscription, staying on onboarding page')
+        setCheckingBusiness(false)
         return
       } else {
         // User needs onboarding, show the form

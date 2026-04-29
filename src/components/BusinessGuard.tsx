@@ -47,9 +47,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         return
       }
       
-      // Redirect if onboarding is not completed
-      if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed') {
-        console.log('[BusinessGuard] Onboarding not completed, redirecting to onboarding')
+      // Redirect if onboarding is not completed and user doesn't have active subscription
+      if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
+          business.subscription_status !== 'active' && business.subscription_status !== 'trialing') {
+        console.log('[BusinessGuard] Onboarding not completed and no active subscription, redirecting to onboarding')
+        console.log('[BusinessGuard] Business state:', {
+          onboardingStatus: business.onboarding_status,
+          subscriptionStatus: business.subscription_status
+        })
         console.log('[Auth Gate] redirecting to: /onboarding (incomplete onboarding)')
         router.push('/onboarding')
         return
@@ -96,7 +101,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }
 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
-  if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' && pathname?.startsWith('/dashboard')) {
+  if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
+      business.subscription_status !== 'active' && business.subscription_status !== 'trialing' && pathname?.startsWith('/dashboard')) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">

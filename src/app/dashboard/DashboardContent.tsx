@@ -220,7 +220,11 @@ export default function DashboardContent() {
   // Force refresh business after checkout success with retry logic
   useEffect(() => {
     if (checkoutStatus === 'success') {
-      console.log('[Dashboard] Checkout success return detected')
+      console.log('[Dashboard] Checkout success redirect reached')
+      console.log('[Dashboard] Business ID:', business?.id)
+      console.log('[Dashboard] Business user_id:', business?.user_id)
+      console.log('[Dashboard] Current onboarding_status:', business?.onboarding_status)
+      console.log('[Dashboard] Current subscription_status:', business?.subscription_status)
       setWebhookConfirming(true)
 
       const checkSubscription = async (attempt: number) => {
@@ -232,12 +236,21 @@ export default function DashboardContent() {
         // Directly fetch business from Supabase to get fresh data
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
+          console.log('[Dashboard] Fetching fresh business data for user:', user.id)
           const { data: freshBusiness } = await supabase
             .from('businesses')
             .select('*')
             .eq('user_id', user.id)
             .limit(1)
             .single()
+          
+          console.log('[Dashboard] Fresh business data:', {
+            businessId: freshBusiness?.id,
+            onboardingStatus: freshBusiness?.onboarding_status,
+            subscriptionStatus: freshBusiness?.subscription_status,
+            stripeCustomerId: freshBusiness?.stripe_customer_id,
+            stripeSubscriptionId: freshBusiness?.stripe_subscription_id
+          })
           
           // Check if subscription is now active
           const isActive = freshBusiness?.subscription_status === 'active' || freshBusiness?.subscription_status === 'trialing'
@@ -265,7 +278,7 @@ export default function DashboardContent() {
       // Start checking
       checkSubscription(1)
     }
-  }, [checkoutStatus, refreshBusiness, supabase, router])
+  }, [checkoutStatus, refreshBusiness, supabase, router, business])
 
   // Only calculate isActive after business loading is complete
   const isActive = !businessLoading && (business?.subscription_status === 'active' || business?.subscription_status === 'trialing')
