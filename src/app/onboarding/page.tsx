@@ -23,6 +23,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [sendingDemo, setSendingDemo] = useState(false)
   const [demoSuccess, setDemoSuccess] = useState(false)
+  const [demoWarning, setDemoWarning] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
 
   // Check for auth error from callback
@@ -263,7 +264,9 @@ export default function OnboardingPage() {
         throw new Error(errorData.error || 'Failed to send demo text')
       }
 
+      const data = await response.json()
       setDemoSuccess(true)
+      setDemoWarning(data.warning || '')
       
       // Refresh business context to show updated lead count
       await refreshBusiness()
@@ -374,7 +377,7 @@ export default function OnboardingPage() {
                 disabled={sendingDemo || !demoPhone}
                 className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
               >
-                {sendingDemo ? 'Sending...' : 'Send Demo Text'}
+                {sendingDemo ? 'Sending...' : demoSuccess ? 'Send Demo Text Again' : 'Send Demo Text'}
               </button>
               <p className="text-xs text-gray-400 text-center mt-2">
                 Send a demo text to experience ReplyFlow instantly
@@ -392,6 +395,11 @@ export default function OnboardingPage() {
                 <p className="text-xs text-green-300 mt-2">
                   Next step: enable missed-call forwarding to automate this for real callers.
                 </p>
+                {demoWarning && (
+                  <p className="text-xs text-yellow-300 mt-2">
+                    ⚠️ {demoWarning}
+                  </p>
+                )}
               </div>
             )}
           </form>

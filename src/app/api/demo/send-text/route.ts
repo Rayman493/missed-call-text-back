@@ -74,46 +74,91 @@ export async function POST(request: Request) {
 
     console.log('[demo-send-text] business:', business.id)
 
-    // Create demo lead
-    const demoLead = await db.createLead({
-      business_id: business.id,
-      caller_phone: demoPhone,
-      status: 'new',
-      first_contact_at: new Date().toISOString(),
-      last_message_at: null,
-      last_reply_at: null,
-      opted_out: false,
-    })
+    // Check for existing demo lead with same phone number for this business
+    const { data: existingLead, error: leadCheckError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('business_id', business.id)
+      .eq('caller_phone', demoPhone)
+      .limit(1)
+      .single()
+    
+    let demoLead = existingLead
+    
+    if (leadCheckError && leadCheckError.code !== 'PGRST116') {
+      console.error('[demo-send-text] Error checking for existing lead:', leadCheckError)
+    }
+    
+    if (demoLead) {
+      console.log('[demo-send-text] Reusing existing demo lead:', demoLead.id)
+    } else {
+      // Create new demo lead
+      console.log('[demo-send-text] Creating new demo lead for phone:', demoPhone)
+      demoLead = await db.createLead({
+        business_id: business.id,
+        caller_phone: demoPhone,
+        status: 'new',
+        first_contact_at: new Date().toISOString(),
+        last_message_at: null,
+        last_reply_at: null,
+        opted_out: false,
+      })
 
-    if (!demoLead) {
-      console.error('[demo-send-text] Failed to create demo lead')
-      return NextResponse.json(
-        { error: 'Failed to create demo lead' },
-        { status: 500 }
-      )
+      if (!demoLead) {
+        console.error('[demo-send-text] Failed to create demo lead')
+        return NextResponse.json(
+          { error: 'Failed to create demo lead' },
+          { status: 500 }
+        )
+      }
+
+      console.log('[demo-send-text] demo lead created:', demoLead.id)
     }
 
-    console.log('[demo-send-text] demo lead created:', demoLead.id)
-
-    // Create conversation
-    const conversation = await db.createConversation({
-      business_id: business.id,
-      lead_id: demoLead.id,
-      status: 'open',
-      source: 'manual',
-      started_at: new Date().toISOString(),
-      last_activity_at: new Date().toISOString(),
-    })
-
-    if (!conversation) {
-      console.error('[demo-send-text] Failed to create conversation')
-      return NextResponse.json(
-        { error: 'Failed to create conversation' },
-        { status: 500 }
-      )
+    // Check for existing conversation for this lead and business
+    const { data: existingConversation, error: conversationCheckError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('business_id', business.id)
+      .eq('lead_id', demoLead.id)
+      .limit(1)
+      .single()
+    
+    let conversation = existingConversation
+    
+    if (conversationCheckError && conversationCheckError.code !== 'PGRST116') {
+      console.error('[demo-send-text] Error checking for existing conversation:', conversationCheckError)
     }
+    
+    if (conversation) {
+      console.log('[demo-send-text] Reusing existing conversation:', conversation.id)
+      // Update last_activity_at
+      await supabase
+        .from('conversations')
+        .update({ last_activity_at: new Date().toISOString() })
+        .eq('id', conversation.id)
+    } else {
+      // Create new conversation
+      console.log('[demo-send-text] Creating new conversation for lead:', demoLead.id)
+      conversation = await db.createConversation({
+        business_id: business.id,
+        lead_id: demoLead.id,
+        status: 'open',
+        source: 'manual',
+        started_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString(),
+      })
 
-    console.log('[demo-send-text] conversation created:', conversation.id)
+      if (!conversation) {
+        console.error('[demo-send-text] Failed to create conversation')
+        return NextResponse.json(
+          { error: 'Failed to create conversation' },
+          { status: 500 }
+        )
+      }
+
+      console.log('[demo-send-text] conversation created:', conversation.id)
+    }
 
     // Prepare auto-reply message
     const autoReplyMessage = business.auto_reply_message || 
@@ -138,11 +183,17 @@ export async function POST(request: Request) {
         to: demoPhone,
       })
 
-      console.log('[demo-send-text] SMS sent:', message.sid)
+      console.log('[demo-send-text] SMS sent successfully:', message.sid)
       smsSuccess = true
     } catch (smsErr: any) {
-      console.error('[demo-send-text] SMS send error:', smsErr)
+      console.error('[demo-send-text] SMS send error:', {
+        message: smsErr.message,
+        code: smsErr.code,
+        status: smsErr.status,
+        moreInfo: smsErr.moreInfo
+      })
       smsError = smsErr.message || 'Failed to send SMS'
+      // Don't return error - we still want to create the message record
     }
 
     // Create message record in database (even if SMS failed, for demo purposes)
@@ -176,6 +227,7 @@ export async function POST(request: Request) {
       messageId: messageRecord.id,
       smsSuccess,
       smsError,
+      warning: !smsSuccess ? 'Demo conversation created, but SMS delivery may be limited until verification is approved.' : null,
     })
   } catch (error: any) {
     console.error('[demo-send-text] Unexpected error:', error)
