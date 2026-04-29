@@ -640,7 +640,7 @@ export default function DashboardContent() {
                 {/* Right side - Theme toggle, user dropdown, etc. */}
                 <div className="flex items-center gap-2 md:gap-3">
                   <Link
-                    href="/home"
+                    href="/"
                     className="hidden text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors md:block"
                   >
                     View Homepage

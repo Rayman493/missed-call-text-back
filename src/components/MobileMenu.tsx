@@ -36,7 +36,6 @@ export default function MobileMenu() {
   // Menu items for logged-out users (public navigation)
   const publicMenuItems = [
     { href: '/', label: 'Home' },
-    { href: '/home', label: 'Features' },
     { href: '/auth?mode=signin', label: 'Sign In' },
     { href: '/auth?mode=signup', label: 'Get Started' },
   ]
@@ -46,7 +45,7 @@ export default function MobileMenu() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/settings', label: 'Settings' },
-    { href: '/home', label: 'View Homepage' },
+    { href: '/', label: 'View Homepage' },
   ]
 
   const menuItems = user ? privateMenuItems : publicMenuItems

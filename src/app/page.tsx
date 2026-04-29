@@ -65,13 +65,7 @@ export default function Home() {
                 href="/dashboard"
                 className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Dashboard
-              </Link>
-              <Link
-                href="/home"
-                className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
-              >
-                View Homepage
+                Go to Dashboard
               </Link>
             </>
           ) : (
