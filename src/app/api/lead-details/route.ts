@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   console.log("[lead-details API] route hit")
@@ -18,10 +18,35 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Simple direct query to debug the issue
-    console.log("[lead-details API] querying leads table for id:", leadId)
+    // Authenticate user using server-side client with RLS
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    const { data: lead, error } = await supabaseAdmin
+    if (authError || !user) {
+      console.log("[lead-details API] Authentication failed:", authError)
+      return NextResponse.json(
+        { ok: false, source: "auth_error", error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    console.log("[lead-details API] Authenticated user:", user.id)
+
+    // Query lead with RLS protection - user can only access their own leads
+    const { data: lead, error } = await supabase
       .from("leads")
       .select("*")
       .eq("id", leadId)
@@ -32,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.log("[lead-details API] Supabase error:", error)
       return NextResponse.json(
-        { ok: false, source: "supabase_error", error: error.message, details: error },
+        { ok: false, source: "supabase_error", error: error.message },
         { status: 500 }
       )
     }
@@ -45,10 +70,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("[lead-details API] Lead found:", lead)
+    console.log("[lead-details API] Lead found:", lead.id)
 
-    // Fetch conversation for this lead
-    const { data: conversation } = await supabaseAdmin
+    // Fetch conversation for this lead with RLS protection
+    const { data: conversation } = await supabase
       .from("conversations")
       .select("*")
       .eq("lead_id", leadId)
@@ -56,17 +81,21 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
 
-    // Fetch messages for this lead (same approach as dashboard)
-    const { data: messages, error: messagesError } = await supabaseAdmin
+    // Fetch messages for this lead with RLS protection
+    const { data: messages, error: messagesError } = await supabase
       .from("messages")
       .select("*")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: true })
 
-    console.log("[lead-details API] Messages fetched:", messages?.length || 0, "query method: messages.lead_id")
+    if (messagesError) {
+      console.log("[lead-details API] Messages error:", messagesError)
+    }
 
-    // Fetch follow-up jobs for this lead
-    const { data: followUpJobs } = await supabaseAdmin
+    console.log("[lead-details API] Messages fetched:", messages?.length || 0)
+
+    // Fetch follow-up jobs for this lead with RLS protection
+    const { data: followUpJobs } = await supabase
       .from("follow_up_jobs")
       .select("*")
       .eq("lead_id", leadId)
