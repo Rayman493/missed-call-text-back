@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -135,31 +136,78 @@ export default function SettingsPage() {
       })
 
       const data = await response.json()
+      console.log('[Billing UI] portal response:', data)
 
       // Handle structured responses
       if (data.code === "NO_STRIPE_CUSTOMER") {
-        console.log('[Stripe Portal] Missing Stripe customer, showing upgrade prompt')
+        console.log('[Billing UI] no customer, showing upgrade prompt')
         setError("You haven't started a paid subscription yet.")
         setShowUpgradePrompt(true)
         setIsOpeningPortal(false)
         return
       }
 
+      // Check for success response with URL
+      if (data.url && response.ok) {
+        console.log('[Billing UI] redirecting to:', data.url)
+        window.location.href = data.url
+        return
+      }
+
+      // Handle error responses
       if (!response.ok) {
-        console.error('[Stripe Portal] API error:', response.status, data)
+        console.error('[Billing UI] API error:', response.status, data)
         setError(data.error || 'Failed to open billing portal')
         setIsOpeningPortal(false)
         return
       }
 
-      console.log('[Stripe Portal] Portal session created successfully:', data.url)
-      
-      // Redirect to Stripe billing portal
-      window.location.href = data.url
+      // Handle unexpected success without URL
+      if (!data.url) {
+        console.error('[Billing UI] Success response missing URL:', data)
+        setError('Failed to open billing portal. Please try again.')
+        setIsOpeningPortal(false)
+        return
+      }
     } catch (error) {
       console.error('[Stripe Portal] Unexpected error:', error)
       setError('Failed to open billing portal. Please try again.')
       setIsOpeningPortal(false)
+    }
+  }
+
+  const handleUpgradePlan = async () => {
+    console.log('[Billing UI] Starting upgrade plan flow')
+    setIsStartingCheckout(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+      console.log('[Billing UI] checkout response:', data)
+
+      if (!response.ok) {
+        console.error('[Billing UI] Checkout API error:', response.status, data)
+        setError(data.error || 'Failed to start checkout')
+        setIsStartingCheckout(false)
+        return
+      }
+
+      if (data.url) {
+        console.log('[Billing UI] Redirecting to checkout:', data.url)
+        window.location.href = data.url
+      } else {
+        console.error('[Billing UI] No checkout URL returned:', data)
+        setError('Failed to start checkout. Please try again.')
+        setIsStartingCheckout(false)
+      }
+    } catch (error) {
+      console.error('[Billing UI] Checkout error:', error)
+      setError('Failed to start checkout. Please try again.')
+      setIsStartingCheckout(false)
     }
   }
 
@@ -295,10 +343,11 @@ export default function SettingsPage() {
                   {showUpgradePrompt && (
                     <div className="flex gap-3 mt-3">
                       <button
-                        onClick={() => router.push('/auth?mode=signup')}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={handleUpgradePlan}
+                        disabled={isStartingCheckout}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Upgrade Plan
+                        {isStartingCheckout ? 'Starting...' : 'Upgrade Plan'}
                       </button>
                       <button
                         onClick={() => {
