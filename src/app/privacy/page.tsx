@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
+  title: 'ReplyFlow Privacy Policy',
   description: 'How ReplyFlow handles customer and business information',
 }
 

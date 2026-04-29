@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service',
+  title: 'ReplyFlow Terms of Service',
   description: 'Rules and guidelines for using ReplyFlow',
 }
 
