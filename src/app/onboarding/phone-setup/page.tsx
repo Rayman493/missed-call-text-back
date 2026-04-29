@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
+import { normalizeForCarrier, formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
 
 const supabase = createBrowserClient()
 
@@ -62,6 +63,7 @@ function PhoneSetupContent() {
   const [carrier, setCarrier] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [copiedCode, setCopiedCode] = useState(false)
   
   // TODO: Future enhancement - automatic forwarding verification
   // TODO: Future enhancement - test call flow
@@ -69,6 +71,7 @@ function PhoneSetupContent() {
   // TODO: Future enhancement - onboarding analytics tracking
 
   const twilioNumber = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
+  const formattedTwilioNumber = formatForDisplay(twilioNumber)
 
   useEffect(() => {
     if (business && !businessLoading) {
@@ -160,12 +163,22 @@ function PhoneSetupContent() {
     }
   }
 
+  const handleCopyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopiedCode(true)
+      setTimeout(() => setCopiedCode(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy code:', error)
+    }
+  }
+
   const getCarrierInstructions = () => {
     if (!carrier) return null
     const instructions = CARRIER_INSTRUCTIONS[carrier]
     if (!instructions) return null
 
-    const dialCode = instructions.dialCode.replace('{{TWILIO_NUMBER}}', twilioNumber)
+    const dialCode = generateForwardingCode(instructions.dialCode, twilioNumber)
 
     return (
       <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-6 mb-6">
@@ -177,15 +190,37 @@ function PhoneSetupContent() {
         </h3>
         
         <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-400 mb-2">Dial this code on your phone:</p>
-          <code className="text-lg font-mono text-green-400 block p-3 bg-gray-800 rounded border border-gray-700">
-            {dialCode}
-          </code>
+          <p className="text-sm text-gray-400 mb-2">Dial exactly as shown from your business phone:</p>
+          <div className="flex items-center gap-2">
+            <code className="text-lg font-mono text-green-400 flex-1 p-3 bg-gray-800 rounded border border-gray-700">
+              {dialCode}
+            </code>
+            <button
+              onClick={() => handleCopyCode(dialCode)}
+              className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+              title="Copy code"
+            >
+              {copiedCode ? (
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
         
         {instructions.notes && (
-          <p className="text-sm text-blue-200">{instructions.notes}</p>
+          <p className="text-sm text-blue-200 mb-3">{instructions.notes}</p>
         )}
+        
+        <div className="text-sm text-gray-400 space-y-2">
+          <p>Some carriers may announce the forwarding number before activation.</p>
+          <p>If activation fails, contact your carrier and ask for conditional call forwarding.</p>
+        </div>
       </div>
     )
   }

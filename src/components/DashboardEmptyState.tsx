@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import { formatForDisplay } from '@/utils/phone-formatting'
 import CallForwardingInstructions from './CallForwardingInstructions'
 
 export default function DashboardEmptyState() {
@@ -106,7 +107,7 @@ export default function DashboardEmptyState() {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ReplyFlow Number</p>
                 <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                  {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Assigning...'}
+                  {business?.twilio_phone_number ? formatForDisplay(business.twilio_phone_number) : 'Assigning...'}
                 </p>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import { formatForDisplay } from '@/utils/phone-formatting'
 
 export default function OnboardingSuccess() {
   const router = useRouter()
@@ -83,7 +84,7 @@ export default function OnboardingSuccess() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">ReplyFlow Number</p>
               <p className={`font-medium ${hasTwilioNumber ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                {hasTwilioNumber ? formatPhoneNumber(business.twilio_phone_number) : 'Assigning...'}
+                {hasTwilioNumber ? formatForDisplay(business.twilio_phone_number || '') : 'Assigning...'}
               </p>
               {hasTwilioNumber && (
                 <p className="text-xs text-gray-400 mt-1">Forward missed calls to this number</p>
