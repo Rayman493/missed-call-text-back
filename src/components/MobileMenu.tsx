@@ -14,9 +14,23 @@ export default function MobileMenu() {
     return pathname === path || pathname?.startsWith(path + '/')
   }
 
-  // Don't show menu while auth is loading
+  // Show loading skeleton while auth is loading
   if (loading) {
-    return null
+    return (
+      <div className="md:hidden">
+        <button
+          className="p-2 text-gray-600 dark:text-gray-400 rounded-md"
+          disabled
+          aria-label="Menu loading"
+        >
+          <div className="w-6 h-6 animate-pulse">
+            <div className="h-0.5 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            <div className="h-0.5 bg-gray-300 dark:bg-gray-600 rounded mt-2"></div>
+            <div className="h-0.5 bg-gray-300 dark:bg-gray-600 rounded mt-2"></div>
+          </div>
+        </button>
+      </div>
+    )
   }
 
   // Menu items for logged-out users (public navigation)

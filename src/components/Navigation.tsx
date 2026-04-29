@@ -13,9 +13,15 @@ export default function Navigation() {
     return pathname === path || pathname?.startsWith(path + '/')
   }
 
-  // Don't show navigation while auth is loading
+  // Show loading screen while auth is loading
   if (loading) {
-    return null
+    return (
+      <div className="flex items-center gap-6 animate-pulse">
+        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="h-4 w-12 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded"></div>
+      </div>
+    )
   }
 
   // Don't show navigation for logged-out users

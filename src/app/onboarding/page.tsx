@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import { normalizePhoneNumber } from '@/lib/utils'
@@ -12,13 +12,24 @@ const supabase = createBrowserClient()
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { refreshBusiness } = useBusiness()
+  const [user, setUser] = useState<any>(null)
+  const [checkingBusiness, setCheckingBusiness] = useState(true)
+  const [error, setError] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
-  const [checkingBusiness, setCheckingBusiness] = useState(true)
+
+  // Check for auth error from callback
+  useEffect(() => {
+    const authError = searchParams?.get('error')
+    if (authError === 'auth_failed') {
+      setError('Authentication failed. Please try signing in again.')
+      console.error('[Onboarding] Auth failed, showing error message')
+    }
+  }, [searchParams])
 
   // Show setup error if env vars are missing
   if (!supabase) {
@@ -44,9 +55,15 @@ export default function OnboardingPage() {
         .single()
 
       if (existingBusiness && !existingError) {
-        console.log('[Onboarding] User already has business:', existingBusiness.id, 'redirecting to dashboard')
-        // User already has a business, redirect to dashboard
-        router.push('/dashboard')
+        console.log('[Onboarding] User already has business:', existingBusiness.id, 'onboarding_status:', existingBusiness.onboarding_status, 'redirecting to dashboard')
+        // User already has a business, check onboarding status before redirecting
+        if (existingBusiness.onboarding_status === 'completed') {
+          console.log('[Onboarding] Onboarding completed, redirecting to dashboard')
+          router.push('/dashboard')
+        } else {
+          console.log('[Onboarding] Onboarding incomplete, staying on onboarding page')
+          setCheckingBusiness(false)
+        }
         return
       } else {
         // User needs onboarding, show the form
@@ -58,9 +75,17 @@ export default function OnboardingPage() {
     getUser()
   }, [router])
 
-  // Don't render anything while checking if user needs onboarding
+  // Show loading screen while checking if user needs onboarding
   if (checkingBusiness) {
-    return null
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-200 text-lg">Setting up your account...</p>
+          <p className="text-gray-400 text-sm mt-2">Please wait while we prepare your workspace</p>
+        </div>
+      </div>
+    )
   }
 
   const handleOnboarding = async (e: React.FormEvent) => {

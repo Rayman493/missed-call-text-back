@@ -7,6 +7,12 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') || '/onboarding'
 
+  console.log('[Auth Callback] Processing auth callback:', { 
+    hasCode: !!code, 
+    nextUrl: next,
+    userAgent: request.headers.get('user-agent')
+  })
+
   if (code) {
     const cookieStore = cookies()
     const supabase = createServerClient(
@@ -27,9 +33,17 @@ export async function GET(request: Request) {
       }
     )
 
-    await supabase.auth.exchangeCodeForSession(code)
+    try {
+      await supabase.auth.exchangeCodeForSession(code)
+      console.log('[Auth Callback] Auth session established successfully')
+    } catch (error) {
+      console.error('[Auth Callback] Error establishing session:', error)
+      // Fallback to onboarding if auth fails
+      return NextResponse.redirect(new URL('/onboarding?error=auth_failed', requestUrl.origin))
+    }
   }
 
+  console.log('[Auth Callback] Redirecting to:', next)
   // URL to redirect to after sign in process completes
   return NextResponse.redirect(new URL(next, requestUrl.origin))
 }
