@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const keysToRemove = []
         for (let i = 0; i < sessionStorage.length; i++) {
           const key = sessionStorage.key(i)
-          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key'))) {
+          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key') || key.includes('auth') || key.includes('email') || key.includes('password'))) {
             keysToRemove.push(key)
           }
         }
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const localKeysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
-          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key'))) {
+          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key') || key.includes('auth') || key.includes('email') || key.includes('password'))) {
             localKeysToRemove.push(key)
           }
         }

@@ -14,7 +14,7 @@ function AuthContent() {
   const emailParam = searchParams?.get('email')
   
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
-  const [email, setEmail] = useState(emailParam || '')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,13 +31,7 @@ function AuthContent() {
     }
   }, [mode])
 
-  // Auto-focus password field when email is prefilled and in sign-in mode
-  useEffect(() => {
-    if (isSignIn && emailParam && passwordRef.current) {
-      passwordRef.current.focus()
-    }
-  }, [isSignIn, emailParam])
-
+  
   // Show setup error if env vars are missing
   if (!supabase) {
     return <SetupError />
@@ -163,6 +157,7 @@ function AuthContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
             />
           </div>
@@ -179,6 +174,7 @@ function AuthContent() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              autoComplete={isSignIn ? "current-password" : "new-password"}
               className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
             />
           </div>
