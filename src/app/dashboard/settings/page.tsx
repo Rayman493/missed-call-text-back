@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const [resetConfirmText, setResetConfirmText] = useState('')
   const [showResetModal, setShowResetModal] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -135,14 +136,18 @@ export default function SettingsPage() {
 
       const data = await response.json()
 
+      // Handle structured responses
+      if (data.code === "NO_STRIPE_CUSTOMER") {
+        console.log('[Stripe Portal] Missing Stripe customer, showing upgrade prompt')
+        setError("You haven't started a paid subscription yet.")
+        setShowUpgradePrompt(true)
+        setIsOpeningPortal(false)
+        return
+      }
+
       if (!response.ok) {
         console.error('[Stripe Portal] API error:', response.status, data)
-        
-        if (response.status === 400 && data.error?.includes('No Stripe customer found')) {
-          setError('No billing account found yet. Please upgrade or start a subscription first.')
-        } else {
-          setError(data.error || 'Failed to open billing portal')
-        }
+        setError(data.error || 'Failed to open billing portal')
         setIsOpeningPortal(false)
         return
       }
@@ -286,7 +291,26 @@ export default function SettingsPage() {
 
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-8">
-                  <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+                  <p className="text-sm text-red-800 dark:text-red-300 mb-3">{error}</p>
+                  {showUpgradePrompt && (
+                    <div className="flex gap-3 mt-3">
+                      <button
+                        onClick={() => router.push('/auth?mode=signup')}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Upgrade Plan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setError('')
+                          setShowUpgradePrompt(false)
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

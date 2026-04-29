@@ -59,12 +59,15 @@ export async function POST(request: Request) {
     console.log('[stripe-portal] Business found:', business.id)
     console.log('[stripe-portal] stripe_customer_id:', business.stripe_customer_id)
 
-    // Require stripe_customer_id
+    // Check for stripe_customer_id
     if (!business.stripe_customer_id) {
-      console.error('[stripe-portal] Missing stripe_customer_id for business:', business.id)
+      console.log('[stripe-portal] Missing stripe_customer_id for business:', business.id)
+      console.log('[stripe-portal] Returning upgrade prompt for missing customer')
       return NextResponse.json({ 
-        error: 'No Stripe customer found. Please complete checkout first.' 
-      }, { status: 400 })
+        success: false,
+        code: "NO_STRIPE_CUSTOMER",
+        message: "No billing account found yet."
+      })
     }
 
     // Create billing portal session
