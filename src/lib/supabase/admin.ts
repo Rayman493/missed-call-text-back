@@ -128,7 +128,22 @@ export const db = {
     const existingBusiness = await this.getBusinessByUserId(userId)
     
     if (existingBusiness) {
-      console.log('[getOrCreateBusiness] Existing business reused:', existingBusiness.id)
+      console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
+      
+      // If businessData is provided, update the existing business
+      if (businessData && Object.keys(businessData).length > 0) {
+        console.log('[getOrCreateBusiness] Updating existing business with data:', Object.keys(businessData))
+        const updatedBusiness = await this.updateBusiness(existingBusiness.id, businessData)
+        if (updatedBusiness) {
+          console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
+          return updatedBusiness
+        } else {
+          console.error('[getOrCreateBusiness] Failed to update business, returning existing')
+          return existingBusiness
+        }
+      }
+      
+      console.log('[getOrCreateBusiness] No updates needed, returning existing business')
       return existingBusiness
     }
     
