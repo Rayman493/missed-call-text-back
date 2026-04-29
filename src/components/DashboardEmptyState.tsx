@@ -58,7 +58,7 @@ export default function DashboardEmptyState() {
           onClick={handleTestSetup}
           className="bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium"
         >
-          Test My Setup
+          Optional Real-World Test
         </button>
         <button
           onClick={handleViewInstructions}
@@ -89,8 +89,15 @@ export default function DashboardEmptyState() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Test Your Setup
+              Test Real Missed Calls
             </h2>
+            
+            {/* Introductory helper text */}
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+                You've already experienced ReplyFlow demo. This optional test verifies that real missed calls forward correctly.
+              </p>
+            </div>
 
             {/* Phone Numbers Display */}
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
@@ -153,9 +160,9 @@ export default function DashboardEmptyState() {
             </div>
 
             {/* Fallback Guidance */}
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
-              <p className="text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
-                <strong>Tip:</strong> If forwarding isn't set up yet, you can test by calling the ReplyFlow number directly.
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                <strong>No pressure:</strong> If you haven't enabled forwarding yet, you can continue using ReplyFlow and configure forwarding later.
               </p>
             </div>
 
