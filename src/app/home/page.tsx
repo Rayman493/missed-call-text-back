@@ -25,7 +25,9 @@ export default function Home() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          {user ? (
+          {loading ? (
+            <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+          ) : user ? (
             <Link
               href="/dashboard"
               className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
@@ -52,18 +54,42 @@ export default function Home() {
           ReplyFlow instantly texts back missed calls so you can capture leads, book jobs, and grow your business automatically.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <Link
-            href="/auth?mode=signup"
-            className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Get Started Free
-          </Link>
-          <Link
-            href="/dashboard"
-            className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
-          >
-            View Dashboard Demo
-          </Link>
+          {loading ? (
+            <>
+              <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
+              <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
+            </>
+          ) : user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/"
+                className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+              >
+                View Homepage
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth?mode=signup"
+                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Get Started Free
+              </Link>
+              <Link
+                href="/auth?mode=signin"
+                className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+              >
+                Sign In
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
