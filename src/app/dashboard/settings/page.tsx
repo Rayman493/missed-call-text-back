@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [isResetting, setIsResetting] = useState(false)
   const [resetConfirmText, setResetConfirmText] = useState('')
   const [showResetModal, setShowResetModal] = useState(false)
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -102,6 +103,58 @@ export default function SettingsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete account')
       setIsDeleting(false)
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    console.log('[Stripe Portal] Manage Subscription clicked')
+    setIsOpeningPortal(true)
+    setError('')
+
+    try {
+      // Get current session for auth
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        console.error('[Stripe Portal] No session found:', sessionError)
+        setError('Authentication required. Please sign in again.')
+        setIsOpeningPortal(false)
+        return
+      }
+
+      console.log('[Stripe Portal] Session found, creating portal session')
+      
+      // Call the API to create portal session
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('[Stripe Portal] API error:', response.status, data)
+        
+        if (response.status === 400 && data.error?.includes('No Stripe customer found')) {
+          setError('No billing account found yet. Please upgrade or start a subscription first.')
+        } else {
+          setError(data.error || 'Failed to open billing portal')
+        }
+        setIsOpeningPortal(false)
+        return
+      }
+
+      console.log('[Stripe Portal] Portal session created successfully:', data.url)
+      
+      // Redirect to Stripe billing portal
+      window.location.href = data.url
+    } catch (error) {
+      console.error('[Stripe Portal] Unexpected error:', error)
+      setError('Failed to open billing portal. Please try again.')
+      setIsOpeningPortal(false)
     }
   }
 
@@ -509,9 +562,11 @@ export default function SettingsPage() {
                     </div>
                     <button
                       type="button"
-                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                      onClick={handleManageSubscription}
+                      disabled={isOpeningPortal}
+                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Manage Subscription
+                      {isOpeningPortal ? 'Opening…' : 'Manage Subscription'}
                     </button>
                   </div>
                   
