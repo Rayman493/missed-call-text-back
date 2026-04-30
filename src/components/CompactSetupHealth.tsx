@@ -75,21 +75,21 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
 
     if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
       forwardingStatus = 'error'
-      forwardingTitle = 'Forwarding Not Configured'
-      forwardingDescription = 'Call forwarding setup not completed'
+      forwardingTitle = 'Action needed'
+      forwardingDescription = 'Forwarding setup not completed'
       forwardingDetails = 'Complete phone setup to enable call forwarding'
     } else if (business.forwarding_verified) {
       forwardingStatus = 'healthy'
-      forwardingTitle = 'Forwarding Verified'
+      forwardingTitle = 'Operational'
       forwardingDescription = 'Missed-call forwarding is working correctly'
       forwardingDetails = business.forwarding_verified_at 
         ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
         : 'Forwarding is working correctly'
     } else {
       forwardingStatus = 'warning'
-      forwardingTitle = 'Forwarding Configured'
-      forwardingDescription = 'Awaiting first successful missed-call test'
-      forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
+      forwardingTitle = 'Configured — awaiting test'
+      forwardingDescription = 'Forwarding is configured. Run a missed-call test to verify it.'
+      forwardingDetails = 'Forwarding becomes operational after your first successful missed-call test'
     }
 
     items.push({
@@ -282,9 +282,9 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                       item.status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
                       'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
                     }`}>
-                      {item.status === 'healthy' ? 'Healthy' :
-                       item.status === 'warning' ? 'Warning' :
-                       item.status === 'error' ? 'Error' : 'Unknown'}
+                      {item.status === 'healthy' ? 'Operational' :
+                       item.status === 'warning' ? 'Configured' :
+                       item.status === 'error' ? 'Action needed' : 'Unknown'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
