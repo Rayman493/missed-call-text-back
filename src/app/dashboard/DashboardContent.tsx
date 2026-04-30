@@ -31,6 +31,8 @@ import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
+import LiveActivity from '@/components/LiveActivity'
+import CompactSetupHealth from '@/components/CompactSetupHealth'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -784,6 +786,13 @@ export default function DashboardContent() {
               </div>
             )}
                         
+            {/* Live Activity Section - Top Priority */}
+            <LiveActivity 
+              leads={leads}
+              followUpJobs={followUpJobs}
+              missedCalls={missedCalls}
+            />
+
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
@@ -820,66 +829,8 @@ export default function DashboardContent() {
               </div>
             </div>
 
-            {/* Setup Health Section */}
-            <SetupHealth />
-
-            {/* Recent Activity Section */}
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h2>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                {leads.length === 0 && followUpJobs.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                    We'll log activity here as your missed calls come in
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {[...leads.slice(0, 5), ...followUpJobs.slice(0, 3)]
-                      .sort((a: any, b: any) => {
-                        const timeA = new Date(a.created_at || a.scheduled_for).getTime()
-                        const timeB = new Date(b.created_at || b.scheduled_for).getTime()
-                        return timeB - timeA
-                      })
-                      .slice(0, 8)
-                      .map((item: any, index: number) => {
-                        const isLead = 'caller_phone' in item
-                        const isJob = 'message_body' in item
-
-                        let icon = ''
-                        let text = ''
-                        let time = ''
-
-                        if (isLead) {
-                          icon = '📞'
-                          text = `New lead from ${formatLeadPhone(item.caller_phone)}`
-                          time = formatRelativeTime(item.created_at)
-                        } else if (isJob) {
-                          if (item.status === 'pending') {
-                            icon = '⏱'
-                            text = 'Follow-up scheduled'
-                          } else if (item.status === 'cancelled') {
-                            icon = '✅'
-                            text = 'Follow-up cancelled'
-                          } else {
-                            icon = '⏱'
-                            text = 'Follow-up job'
-                          }
-                          time = formatRelativeTime(item.created_at)
-                        }
-
-                        return (
-                          <div key={index} className="flex items-center justify-between gap-2 py-3 px-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-lg flex-shrink-0">{icon}</span>
-                              <p className="text-sm text-gray-900 dark:text-gray-100 truncate">{text}</p>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0 ml-2">{time}</p>
-                          </div>
-                        )
-                      })}
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Compact Setup Health Section - Lower Priority */}
+            <CompactSetupHealth />
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
