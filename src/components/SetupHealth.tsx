@@ -41,20 +41,27 @@ export default function SetupHealth() {
   let forwardingDescription: string
   let forwardingDetails: string
 
-  if (!business.call_forwarding_enabled && !business.phone_setup_completed_at) {
+  // Not Configured (Red) - Only if no business phone, no setup completion, or forwarding disabled
+  if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
     forwardingStatus = 'error'
     forwardingTitle = 'Forwarding Not Configured'
     forwardingDescription = 'Call forwarding setup not completed'
     forwardingDetails = 'Complete phone setup to enable call forwarding'
-  } else if (business.forwarding_verified) {
+  } 
+  // Verified Working (Green) - If forwarding_verified is true
+  else if (business.forwarding_verified) {
     forwardingStatus = 'healthy'
-    forwardingTitle = 'Forwarding Verified Working'
-    forwardingDescription = 'Call forwarding has been tested and is working'
-    forwardingDetails = `Verified at ${new Date(business.forwarding_verified_at!).toLocaleDateString()}`
-  } else {
+    forwardingTitle = 'Forwarding Verified'
+    forwardingDescription = 'Missed-call forwarding is working correctly'
+    forwardingDetails = business.forwarding_verified_at 
+      ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
+      : 'Forwarding is working correctly'
+  } 
+  // Configured / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
+  else {
     forwardingStatus = 'warning'
     forwardingTitle = 'Forwarding Configured'
-    forwardingDescription = 'Awaiting test call to verify forwarding'
+    forwardingDescription = 'Awaiting first successful missed-call test'
     forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
   }
 
