@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
 import { normalizePhoneNumber } from '@/lib/twilio';
 import { sendSms } from '@/lib/twilio';
@@ -19,6 +20,12 @@ function toE164(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     console.log('[Twilio Voice] Incoming call');
+    
+    // Create Supabase client for forwarding verification
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
     const body = await request.text();
     
@@ -106,6 +113,32 @@ export async function POST(request: NextRequest) {
     }
     
     const business = result.business;
+    console.log(`[Twilio Voice] Business found: ${business.name} (ID: ${business.id})`);
+
+    // Mark forwarding as verified if this is the first successful forwarded call
+    if (!business.forwarding_verified) {
+      console.log(`[Twilio Voice] Marking forwarding as verified for business ${business.id}`);
+      try {
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update({ 
+            forwarding_verified: true, 
+            forwarding_verified_at: new Date().toISOString() 
+          })
+          .eq('id', business.id);
+
+        if (updateError) {
+          console.error('[Twilio Voice] Error updating forwarding verification:', updateError);
+        } else {
+          console.log(`[Twilio Voice] Forwarding verified successfully for business ${business.id}`);
+        }
+      } catch (verificationError) {
+        console.error('[Twilio Voice] Exception updating forwarding verification:', verificationError);
+      }
+    } else {
+      console.log(`[Twilio Voice] Forwarding already verified for business ${business.id} at ${business.forwarding_verified_at}`);
+    }
+
     console.log('[Twilio Voice] Business found:', {
       businessId: business.id,
       businessName: business.name,

@@ -39,6 +39,10 @@ export interface Business {
   spam_detection_enabled?: boolean | null;
   after_hours_message?: string | null;
   
+  // Forwarding verification fields
+  forwarding_verified?: boolean | null;
+  forwarding_verified_at?: string | null;
+  
   created_at: string;
   updated_at?: string;
 }

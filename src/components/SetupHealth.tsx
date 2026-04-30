@@ -32,15 +32,34 @@ export default function SetupHealth() {
   // Calculate health status
   const healthItems: HealthItem[] = []
 
-  // 1. Forwarding connected
-  const forwardingConnected = business.call_forwarding_enabled || !!business.phone_setup_completed_at
+  // 1. Forwarding connected - use new verification states
+  let forwardingStatus: HealthItem['status']
+  let forwardingTitle: string
+  let forwardingDescription: string
+  let forwardingDetails: string
+
+  if (!business.call_forwarding_enabled && !business.phone_setup_completed_at) {
+    forwardingStatus = 'error'
+    forwardingTitle = 'Forwarding Not Configured'
+    forwardingDescription = 'Call forwarding setup not completed'
+    forwardingDetails = 'Complete phone setup to enable call forwarding'
+  } else if (business.forwarding_verified) {
+    forwardingStatus = 'healthy'
+    forwardingTitle = 'Forwarding Verified Working'
+    forwardingDescription = 'Call forwarding has been tested and is working'
+    forwardingDetails = `Verified at ${new Date(business.forwarding_verified_at!).toLocaleDateString()}`
+  } else {
+    forwardingStatus = 'warning'
+    forwardingTitle = 'Forwarding Configured'
+    forwardingDescription = 'Awaiting test call to verify forwarding'
+    forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
+  }
+
   healthItems.push({
-    title: 'Forwarding Connected',
-    description: 'Call forwarding is configured for missed calls',
-    status: forwardingConnected ? 'healthy' : 'warning',
-    details: forwardingConnected 
-      ? 'Call forwarding is enabled' 
-      : 'Phone setup not completed'
+    title: forwardingTitle,
+    description: forwardingDescription,
+    status: forwardingStatus,
+    details: forwardingDetails
   })
 
   // 2. Subscription active
