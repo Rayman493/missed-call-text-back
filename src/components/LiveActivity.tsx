@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
+import { Phone, MessageCircle, Clock, ArrowRight } from 'lucide-react'
 
 interface Lead {
   id: string
@@ -63,12 +64,12 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
     if ('caller_phone' in item) {
       // It's a lead
       if (item.status === 'new') {
-        return ' missed-call'
+        return <Phone className="w-5 h-5" />
       }
-      return ' conversation'
+      return <MessageCircle className="w-5 h-5" />
     } else {
       // It's a follow-up job
-      return ' scheduled'
+      return <Clock className="w-5 h-5" />
     }
   }
 
@@ -102,12 +103,17 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
   if (leads.length === 0 && missedCalls === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="text-center py-6">
+        <div className="text-center py-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
           <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-3">
-            Your inbox is ready
+            No missed calls yet
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Missed calls and customer conversations will appear here automatically.
+            When customers miss your calls, activity will appear here automatically.
           </p>
           <Link
             href="/dashboard/settings"
@@ -183,11 +189,11 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                     <div className="flex-shrink-0">
                       {item.status === 'new' ? (
                         <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                          <span className="text-lg"> missed-call </span>
+                          <Phone className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                         </div>
                       ) : (
                         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <span className="text-lg"> conversation </span>
+                          <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                       )}
                     </div>
@@ -202,9 +208,10 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                   </div>
                   <Link
                     href={`/dashboard/leads/${item.id}`}
-                    className="flex-shrink-0 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="flex-shrink-0 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
                   >
                     View
+                    <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
               ))
@@ -229,7 +236,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                        <span className="text-lg"> reply-needed </span>
+                        <MessageCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                       </div>
                     </div>
                     <div className="min-w-0">
