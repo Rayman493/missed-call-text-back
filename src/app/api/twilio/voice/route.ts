@@ -3,6 +3,7 @@ import { db } from '@/lib/supabase/admin';
 import { normalizePhoneNumber } from '@/lib/twilio';
 import { sendSms } from '@/lib/twilio';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
+import { shouldSendAutoText } from '@/lib/smart-filtering';
 
 // Helper to convert normalized 10-digit US number to E.164 format
 function toE164(phone: string): string {
@@ -217,6 +218,30 @@ export async function POST(request: NextRequest) {
     }
     
     // Send auto-reply SMS if appropriate
+    if (shouldSendSms && lead) {
+      console.log('[Twilio Voice] Preparing auto-reply SMS for lead:', lead.id);
+      
+      // Run smart filtering before sending SMS
+      console.log('[Twilio Voice] Running smart filtering for caller:', From);
+      const filteringResult = await shouldSendAutoText({
+        businessId: business.id,
+        callerPhone: From,
+        callSid: callSid || undefined,
+        business: business
+      });
+      
+      if (!filteringResult.allowed) {
+        console.log('[Twilio Voice] SMS blocked by smart filtering:', {
+          reason: filteringResult.reason,
+          details: filteringResult.details
+        });
+        shouldSendSms = false;
+      } else {
+        console.log('[Twilio Voice] SMS allowed by smart filtering:', filteringResult.reason);
+      }
+    }
+    
+    // Send auto-reply SMS if appropriate and not blocked
     if (shouldSendSms && lead) {
       console.log('[Twilio Voice] Preparing auto-reply SMS for lead:', lead.id);
       

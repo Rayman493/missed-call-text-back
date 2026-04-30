@@ -91,6 +91,293 @@ export const db = {
     return { lead: data, business }
   },
 
+  // Get business by ID
+  async getBusiness(businessId: string): Promise<Business | null> {
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching business by ID:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - blocked numbers
+  async getBlockedNumber(businessId: string, phoneNumber: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('blocked_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+      .single()
+    
+    if (error) {
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching blocked number:', error)
+      }
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - personal contacts
+  async getPersonalContactNumber(businessId: string, phoneNumber: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('personal_contact_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+      .single()
+    
+    if (error) {
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching personal contact:', error)
+      }
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - allowed numbers (whitelist)
+  async getAllowedNumber(businessId: string, phoneNumber: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('allowed_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+      .single()
+    
+    if (error) {
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching allowed number:', error)
+      }
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - recent filtering decisions
+  async getRecentFilteringDecision(businessId: string, phoneNumber: string, since: Date): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('filtering_decision_logs')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('caller_phone', phoneNumber)
+      .eq('decision', 'allowed')
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    
+    if (error) {
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching recent filtering decision:', error)
+      }
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - create filtering decision log
+  async createFilteringDecisionLog(logData: {
+    business_id: string
+    caller_phone: string
+    call_sid?: string
+    decision: string
+    reason: string
+    filter_details?: any
+  }): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('filtering_decision_logs')
+      .insert(logData)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating filtering decision log:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  // Smart filtering - manage allowed numbers (whitelist)
+  async createAllowedNumber(businessId: string, phoneNumber: string, notes?: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('allowed_numbers')
+      .insert({
+        business_id: businessId,
+        phone_number: phoneNumber,
+        notes: notes || null
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating allowed number:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getAllowedNumbers(businessId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('allowed_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching allowed numbers:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
+  async deleteAllowedNumber(businessId: string, phoneNumber: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+      .from('allowed_numbers')
+      .delete()
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+    
+    if (error) {
+      console.error('Error deleting allowed number:', error)
+      return false
+    }
+    
+    return true
+  },
+
+  // Smart filtering - manage blocked numbers (blacklist)
+  async createBlockedNumber(businessId: string, phoneNumber: string, notes?: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('blocked_numbers')
+      .insert({
+        business_id: businessId,
+        phone_number: phoneNumber,
+        notes: notes || null
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating blocked number:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getBlockedNumbers(businessId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('blocked_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching blocked numbers:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
+  async deleteBlockedNumber(businessId: string, phoneNumber: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+      .from('blocked_numbers')
+      .delete()
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+    
+    if (error) {
+      console.error('Error deleting blocked number:', error)
+      return false
+    }
+    
+    return true
+  },
+
+  // Smart filtering - manage personal contacts
+  async createPersonalContactNumber(businessId: string, phoneNumber: string, name?: string, notes?: string): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('personal_contact_numbers')
+      .insert({
+        business_id: businessId,
+        phone_number: phoneNumber,
+        name: name || null,
+        notes: notes || null
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating personal contact:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getPersonalContactNumbers(businessId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('personal_contact_numbers')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching personal contacts:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
+  async deletePersonalContactNumber(businessId: string, phoneNumber: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+      .from('personal_contact_numbers')
+      .delete()
+      .eq('business_id', businessId)
+      .eq('phone_number', phoneNumber)
+    
+    if (error) {
+      console.error('Error deleting personal contact:', error)
+      return false
+    }
+    
+    return true
+  },
+
+  // Smart filtering - get filtering decision logs
+  async getFilteringDecisionLogs(businessId: string, limit: number = 50): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('filtering_decision_logs')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      console.error('Error fetching filtering decision logs:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
   async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: 'twilio_numbers' | 'legacy' } | null> {
     // First try to find via twilio_numbers table (new architecture)
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import SmartCallFiltering from '@/components/SmartCallFiltering'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
@@ -561,6 +562,11 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Smart Call Filtering Section */}
+              <div id="smart-filtering" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <SmartCallFiltering />
+              </div>
 
                 {/* Billing Section */}
                 <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">

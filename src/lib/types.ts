@@ -26,6 +26,19 @@ export interface Business {
   setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
   setup_completed_at?: string | null;
   onboarding_status?: 'started' | 'phone_setup_completed' | 'completed' | string | null;
+  
+  // Smart filtering fields
+  smart_filtering_enabled?: boolean | null;
+  only_text_unknown_callers?: boolean | null;
+  business_hours_enabled?: boolean | null;
+  business_hours_start?: string | null;
+  business_hours_end?: string | null;
+  business_hours_timezone?: string | null;
+  repeat_call_protection_enabled?: boolean | null;
+  repeat_call_cooldown_hours?: number | null;
+  spam_detection_enabled?: boolean | null;
+  after_hours_message?: string | null;
+  
   created_at: string;
   updated_at?: string;
 }
