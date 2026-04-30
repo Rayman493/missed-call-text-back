@@ -8,6 +8,9 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import SmartCallFiltering from '@/components/SmartCallFiltering'
+import SettingsActionBar from '@/components/SettingsActionBar'
+import Toast, { ToastContainer } from '@/components/Toast'
+import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
@@ -40,8 +43,63 @@ export default function SettingsPage() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
   const supabase = createBrowserClient()
+
+  // Form state management
+  const {
+    business: formBusiness,
+    hasUnsavedChanges,
+    isSaving,
+    saveError,
+    updateBusiness,
+    saveChanges,
+    discardChanges,
+    clearSaveError,
+    getBusiness
+  } = useSettingsFormState({
+    initialBusiness: business,
+    onSaveBusiness: async (businessData) => {
+      const { error } = await supabase
+        .from('businesses')
+        .update({
+          name: businessData.name,
+          business_phone_number: businessData.business_phone_number,
+          auto_reply_message: businessData.auto_reply_message,
+          call_forwarding_enabled: businessData.call_forwarding_enabled,
+          business_hours_enabled: businessData.business_hours_enabled,
+          business_hours_start: businessData.business_hours_start,
+          business_hours_end: businessData.business_hours_end,
+          business_hours_timezone: businessData.business_hours_timezone,
+          smart_filtering_enabled: businessData.smart_filtering_enabled,
+          only_text_unknown_callers: businessData.only_text_unknown_callers,
+          repeat_call_protection_enabled: businessData.repeat_call_protection_enabled,
+          repeat_call_cooldown_hours: businessData.repeat_call_cooldown_hours,
+          spam_detection_enabled: businessData.spam_detection_enabled,
+          after_hours_message: businessData.after_hours_message,
+        })
+        .eq('id', businessData.id)
+
+      if (error) {
+        throw new Error('Failed to save settings')
+      }
+    },
+    onBusinessUpdated: (updatedBusiness) => {
+      refreshBusiness()
+      showToast('Settings saved successfully', 'success')
+    }
+  })
+
+  // Toast functions
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const id = Date.now().toString()
+    setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
 
   // Refresh business data when settings page mounts to ensure latest data
   useEffect(() => {
@@ -52,41 +110,10 @@ export default function SettingsPage() {
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!business || !supabase) return
+    if (!formBusiness || !supabase) return
 
-    setLoading(true)
-    setError('')
-    setSuccess(false)
-
-    try {
-      const formData = new FormData(e.currentTarget)
-      const updates: any = {}
-
-      Array.from(formData.entries()).forEach(([key, value]) => {
-        if (key.startsWith('followUp')) {
-          const followUpNum = key.replace('followUp', '').replace('Time', '')
-          updates[`follow_up_${followUpNum}_time`] = value
-        } else if (key === 'stopOnReply') {
-          updates.stop_on_reply = (e.currentTarget as any).stopOnReply.checked
-        }
-      })
-
-      const { error } = await supabase
-        .from('business')
-        .update(updates)
-        .eq('id', business.id)
-
-      if (error) throw error
-
-      await refreshBusiness()
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    } catch (err) {
-      setError('Failed to update settings')
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    // Use the new form state management
+    await saveChanges()
   }
 
   const handleDeleteAccount = async () => {
@@ -279,6 +306,22 @@ export default function SettingsPage() {
               </div>
             </div>
           </header>
+
+          {/* Settings Action Bar */}
+          <SettingsActionBar
+            hasUnsavedChanges={hasUnsavedChanges}
+            onSave={saveChanges}
+            onDiscard={discardChanges}
+            isSaving={isSaving}
+            saveError={saveError}
+            clearError={clearSaveError}
+          />
+
+          {/* Toast Container */}
+          <ToastContainer
+            toasts={toasts}
+            onRemoveToast={removeToast}
+          />
 
           {/* Main Content */}
           <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
