@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
+import TestSetupModal from './TestSetupModal'
 
 interface HealthItem {
   title: string
@@ -16,8 +17,9 @@ interface CompactSetupHealthProps {
 }
 
 export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle }: CompactSetupHealthProps) {
-  const { business } = useBusiness()
+  const { business, refreshBusiness } = useBusiness()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
+  const [showTestModal, setShowTestModal] = useState(false)
 
   // Calculate health status
   const isFullyHealthy = () => {
@@ -137,6 +139,49 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const hasIssues = healthItems.some(item => item.status === 'error')
   const hasWarnings = healthItems.some(item => item.status === 'warning')
 
+  // Get contextual action based on health status
+  const getPrimaryAction = () => {
+    if (!business) return null
+    
+    // Check forwarding status
+    const forwardingNotConfigured = !business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled
+    
+    // Check subscription status
+    const subscriptionInactive = business.subscription_status !== 'active' && business.subscription_status !== 'trialing'
+    
+    // Check SMS status
+    const smsNotConfigured = !business.twilio_phone_number
+    
+    // Return most critical action first
+    if (forwardingNotConfigured) {
+      return {
+        text: 'Complete Phone Setup',
+        href: '/onboarding/phone-setup',
+        type: 'primary' as const
+      }
+    }
+    
+    if (subscriptionInactive) {
+      return {
+        text: 'Manage Subscription',
+        onClick: () => {/* TODO: Handle subscription management */},
+        type: 'primary' as const
+      }
+    }
+    
+    if (smsNotConfigured) {
+      return {
+        text: 'Fix SMS Setup',
+        href: '/dashboard/settings',
+        type: 'primary' as const
+      }
+    }
+    
+    return null // No primary action needed
+  }
+
+  const primaryAction = getPrimaryAction()
+
   const handleToggle = () => {
     const newExpanded = !isExpanded
     setIsExpanded(newExpanded)
@@ -153,27 +198,16 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span className="text-green-800 dark:text-green-200 font-medium">
-              ReplyFlow is fully operational
+              ReplyFlow is operational
             </span>
           </div>
           <button
-            onClick={handleToggle}
-            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm"
+            onClick={() => setShowTestModal(true)}
+            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            {isExpanded ? 'Hide' : 'Details'}
+            Test Setup
           </button>
         </div>
-        
-        {isExpanded && (
-          <div className="mt-4 space-y-2">
-            {healthItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm">
-                {getStatusIcon(item.status)}
-                <span className="text-green-700 dark:text-green-300">{item.title}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     )
   }
@@ -217,7 +251,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           </div>
           <button
             onClick={handleToggle}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           >
             <svg
               className={`w-5 h-5 transition-transform ${shouldExpand ? 'rotate-180' : ''}`}
@@ -241,25 +275,25 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-200">{item.title}</h3>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      item.status === 'healthy' ? 'bg-green-900/30 text-green-400' :
-                      item.status === 'warning' ? 'bg-yellow-900/30 text-yellow-400' :
-                      item.status === 'error' ? 'bg-red-900/30 text-red-400' :
-                      'bg-gray-700 text-gray-400'
+                      item.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      item.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      item.status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
                     }`}>
                       {item.status === 'healthy' ? 'Healthy' :
                        item.status === 'warning' ? 'Warning' :
                        item.status === 'error' ? 'Error' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
                   {item.details && (
                     <p className={`text-xs mt-1 ${
-                      item.status === 'healthy' ? 'text-green-400' :
-                      item.status === 'warning' ? 'text-yellow-400' :
-                      item.status === 'error' ? 'text-red-400' :
-                      'text-gray-400'
+                      item.status === 'healthy' ? 'text-green-700 dark:text-green-400' :
+                      item.status === 'warning' ? 'text-yellow-700 dark:text-yellow-400' :
+                      item.status === 'error' ? 'text-red-700 dark:text-red-400' :
+                      'text-gray-600 dark:text-gray-400'
                     }`}>{item.details}</p>
                   )}
                 </div>
@@ -269,15 +303,28 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex gap-2">
-              <a
-                href="/dashboard/settings"
-                className="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                View Settings
-              </a>
+              {primaryAction ? (
+                primaryAction.href ? (
+                  <a
+                    href={primaryAction.href}
+                    className="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {primaryAction.text}
+                  </a>
+                ) : (
+                  <button
+                    onClick={primaryAction.onClick}
+                    className="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {primaryAction.text}
+                  </button>
+                )
+              ) : (
+                <div className="flex-1" /> // Empty space when no primary action needed
+              )}
               <button
-                onClick={() => {/* TODO: Open test modal */}}
-                className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                onClick={() => setShowTestModal(true)}
+                className={`${primaryAction ? 'flex-1' : 'w-full'} px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors`}
               >
                 Test Setup
               </button>
@@ -285,6 +332,12 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           </div>
         </div>
       )}
+      
+      <TestSetupModal 
+        isOpen={showTestModal}
+        onClose={() => setShowTestModal(false)}
+        onTestCompleted={refreshBusiness}
+      />
     </div>
   )
 }
