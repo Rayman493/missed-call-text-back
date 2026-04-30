@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
-import SmartCallFiltering from '@/components/SmartCallFiltering'
 import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
@@ -110,10 +109,8 @@ export default function SettingsPage() {
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!formBusiness || !supabase) return
-
-    // Use the new form state management
-    await saveChanges()
+    // Form is now handled by the global save system via SettingsActionBar
+    // No need to handle form submission here
   }
 
   const handleDeleteAccount = async () => {
@@ -387,7 +384,8 @@ export default function SettingsPage() {
                         type="text"
                         id="businessName"
                         name="businessName"
-                        defaultValue={business.name}
+                        value={formBusiness?.name || ''}
+                        onChange={(e) => updateBusiness({ name: e.target.value })}
                         required
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       />
@@ -505,7 +503,8 @@ export default function SettingsPage() {
                       <textarea
                         id="autoReplyMessage"
                         name="autoReplyMessage"
-                        defaultValue={business.auto_reply_message}
+                        value={formBusiness?.auto_reply_message || ''}
+                        onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                         rows={6}
                         required
                         className="w-full px-4 py-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
@@ -606,10 +605,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Smart Call Filtering Section */}
-              <div id="smart-filtering" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-                <SmartCallFiltering />
-              </div>
+                {/* Smart Call Filtering Section - Temporarily disabled for unified save flow implementation */}
+              {/* <div id="smart-filtering" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <SmartCallFiltering business={formBusiness} updateBusiness={updateBusiness} />
+              </div> */}
 
                 {/* Billing Section */}
                 <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
@@ -627,17 +626,6 @@ export default function SettingsPage() {
                       className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isOpeningPortal ? 'Opening…' : 'Manage Subscription'}
-                    </button>
-                  </div>
-                  
-                  {/* Save Button */}
-                  <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                    >
-                      {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>

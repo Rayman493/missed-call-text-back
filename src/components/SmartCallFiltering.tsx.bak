@@ -5,48 +5,16 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { smartFilteringAPI } from '@/lib/smart-filtering-client'
 import type { NumberEntry, FilteringLog } from '@/lib/smart-filtering-client'
+import type { Business } from '@/contexts/BusinessContext'
 
-interface FilterSettings {
-  smart_filtering_enabled: boolean
-  only_text_unknown_callers: boolean
-  business_hours_enabled: boolean
-  business_hours_start: string
-  business_hours_end: string
-  business_hours_timezone: string
-  repeat_call_protection_enabled: boolean
-  repeat_call_cooldown_hours: number
-  spam_detection_enabled: boolean
-  after_hours_message: string
+interface SmartCallFilteringProps {
+  updateBusiness?: (updates: Partial<Business>) => void
+  business?: Business | null
 }
 
-const TIMEZONES = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Anchorage',
-  'America/Honolulu',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Asia/Tokyo',
-  'Australia/Sydney',
-]
-
-export default function SmartCallFiltering() {
-  const { business, loading, refreshBusiness } = useBusiness()
-  const [settings, setSettings] = useState<FilterSettings>({
-    smart_filtering_enabled: false,
-    only_text_unknown_callers: false,
-    business_hours_enabled: false,
-    business_hours_start: '09:00',
-    business_hours_end: '17:00',
-    business_hours_timezone: 'America/New_York',
-    repeat_call_protection_enabled: false,
-    repeat_call_cooldown_hours: 24,
-    spam_detection_enabled: false,
-    after_hours_message: '',
-  })
+export default function SmartCallFiltering({ updateBusiness, business: propBusiness }: SmartCallFilteringProps) {
+  const { business: contextBusiness, loading, refreshBusiness } = useBusiness()
+  const business = propBusiness || contextBusiness
   
   const [allowedNumbers, setAllowedNumbers] = useState<NumberEntry[]>([])
   const [blockedNumbers, setBlockedNumbers] = useState<NumberEntry[]>([])

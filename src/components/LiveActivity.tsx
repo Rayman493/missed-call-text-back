@@ -102,13 +102,12 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
   if (leads.length === 0 && missedCalls === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="text-center py-8">
-          <div className="text-4xl mb-4"> crickets </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            No missed calls yet
+        <div className="text-center py-6">
+          <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-3">
+            Your inbox is ready
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            When customers miss your calls, they'll appear here automatically.
+            Missed calls and customer conversations will appear here automatically.
           </p>
           <Link
             href="/dashboard/settings"
@@ -169,8 +168,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
         {activeTab === 'recent' && (
           <div className="space-y-4">
             {recentActivity.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-3xl mb-3"> crickets </div>
+              <div className="text-center py-6">
                 <p className="text-gray-600 dark:text-gray-400">
                   No recent activity to show
                 </p>
@@ -217,8 +215,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
         {activeTab === 'responses' && (
           <div className="space-y-4">
             {leadsNeedingResponse.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-3xl mb-3"> all-caught-up </div>
+              <div className="text-center py-6">
                 <p className="text-gray-600 dark:text-gray-400">
                   No responses needed right now
                 </p>
