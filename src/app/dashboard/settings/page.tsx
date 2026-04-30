@@ -397,7 +397,8 @@ export default function SettingsPage() {
                       <select
                         id="timezone"
                         name="timezone"
-                        defaultValue={(business as any).timezone || 'America/New_York'}
+                        value={formBusiness?.business_hours_timezone || 'America/New_York'}
+                        onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="America/New_York">Eastern Time</option>
@@ -477,16 +478,25 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    
-                    {/* Business Phone Display */}
-                    {business.forwarding_phone_number && (
+
+                    {/* Business Phone Input */}
+                    {formBusiness && (
                       <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Business Phone</span>
-                        <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <span className="text-gray-900 dark:text-gray-100">
-                            {formatPhoneNumber(business.forwarding_phone_number)}
-                          </span>
-                        </div>
+                        <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Business Phone
+                        </label>
+                        <input
+                          id="businessPhone"
+                          name="businessPhone"
+                          type="tel"
+                          value={formBusiness.business_phone_number || ''}
+                          onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
+                          placeholder="(412) 555-1234"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          This is the number your customers call.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -536,7 +546,8 @@ export default function SettingsPage() {
                             type="checkbox"
                             id="instantReplyEnabled"
                             name="instantReplyEnabled"
-                            defaultChecked={(business as any).instant_reply_enabled !== false}
+                            checked={formBusiness?.call_forwarding_enabled !== false}
+                            onChange={(e) => updateBusiness({ call_forwarding_enabled: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
@@ -594,7 +605,8 @@ export default function SettingsPage() {
                           type="checkbox"
                           id="stopOnReply"
                           name="stopOnReply"
-                          defaultChecked={(business as any).stop_on_reply !== false}
+                          checked={formBusiness?.smart_filtering_enabled !== false}
+                          onChange={(e) => updateBusiness({ smart_filtering_enabled: e.target.checked })}
                           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                         />
                         <label htmlFor="stopOnReply" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
