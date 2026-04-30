@@ -888,7 +888,7 @@ export const db = {
     return data || []
   },
 
-  async cancelPendingFollowUpsForConversation(conversationId: string): Promise<boolean> {
+  async cancelLegacyFollowUpsForConversation(conversationId: string): Promise<boolean> {
     const { error } = await supabaseAdmin
       .from('follow_ups')
       .update({ status: 'cancelled' })
@@ -918,6 +918,72 @@ export const db = {
     
     if (error) {
       console.error('Error cancelling follow-up jobs:', error)
+      return 0
+    }
+    
+    return data?.length || 0
+  },
+
+  // Follow-up Jobs operations
+  async createFollowUpJob(job: {
+    lead_id: string
+    business_id: string
+    conversation_id?: string
+    message_body: string
+    status: string
+    scheduled_for: string
+    idempotency_key?: string
+    step?: number
+    created_at?: string
+  }): Promise<any | null> {
+    const { data, error } = await supabaseAdmin
+      .from('follow_up_jobs')
+      .insert(job)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating follow-up job:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async getFollowUpJobByIdempotencyKey(idempotencyKey: string): Promise<any | null> {
+    const { data, error } = await supabaseAdmin
+      .from('follow_up_jobs')
+      .select('*')
+      .eq('idempotency_key', idempotencyKey)
+      .single()
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found, which is expected
+        return null
+      }
+      console.error('Error fetching follow-up job by idempotency key:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async cancelPendingFollowUpsForConversation(conversationId: string): Promise<number> {
+    const now = new Date().toISOString()
+    const { data, error } = await supabaseAdmin
+      .from('follow_up_jobs')
+      .update({ 
+        status: 'cancelled',
+        cancelled_reason: 'customer_replied',
+        cancelled_at: now
+      })
+      .eq('conversation_id', conversationId)
+      .eq('status', 'pending')
+      .select('id')
+    
+    if (error) {
+      console.error('Error cancelling follow-up jobs for conversation:', error)
       return 0
     }
     

@@ -5,6 +5,7 @@ import { normalizePhoneNumber } from '@/lib/twilio';
 import { sendSms } from '@/lib/twilio';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
+import { createFollowUpJobs } from '@/lib/follow-ups';
 
 // Helper to convert normalized 10-digit US number to E.164 format
 function toE164(phone: string): string {
@@ -340,6 +341,21 @@ export async function POST(request: NextRequest) {
             leadId: lead.id,
             conversationId: conversation?.id
           });
+
+          // Create follow-up jobs after successful auto-reply SMS
+          try {
+            const followUpJobs = await createFollowUpJobs({
+              businessId: business.id,
+              leadId: lead.id,
+              conversationId: conversation?.id,
+              businessName: business.name
+            });
+            
+            console.log(`[Twilio Voice] Created ${followUpJobs.length} follow-up jobs for lead: ${lead.id}`);
+          } catch (followUpError) {
+            console.error('[Twilio Voice] Error creating follow-up jobs:', followUpError);
+            // Don't fail the voice webhook - follow-up creation is secondary
+          }
         } else {
           console.log('[Twilio Voice] SMS send failed but was logged in database - this is expected behavior');
         }
