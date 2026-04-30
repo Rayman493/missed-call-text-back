@@ -90,6 +90,12 @@ export async function sendSms(
   let errorCode = '';
 
   try {
+    // Get app URL for status callback
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
+    
+    console.log('[SMS] Using status callback URL:', statusCallbackUrl)
+    
     // Priority 1: Use global messaging service SID if available (10DLC ready)
     if (globalMessagingServiceSid) {
       console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
@@ -98,7 +104,7 @@ export async function sendSms(
         body: message,
         to,
         messagingServiceSid: globalMessagingServiceSid,
-        statusCallback: "https://replyflowhq.com/api/twilio/status",
+        statusCallback: statusCallbackUrl,
       });
     } 
     // Priority 2: Use business-specific messaging service SID
@@ -109,7 +115,7 @@ export async function sendSms(
         body: message,
         to,
         messagingServiceSid: business.twilio_messaging_service_sid,
-        statusCallback: "https://replyflowhq.com/api/twilio/status",
+        statusCallback: statusCallbackUrl,
       });
     } 
     // Priority 3: Fallback to phone number (not 10DLC ready)
@@ -120,7 +126,7 @@ export async function sendSms(
         body: message,
         to,
         from: business.twilio_phone_number,
-        statusCallback: "https://replyflowhq.com/api/twilio/status",
+        statusCallback: statusCallbackUrl,
       });
     } 
     // No valid sending method available
@@ -149,6 +155,8 @@ export async function sendSms(
         to_phone: to,
         twilio_message_sid: messageResult.sid,
         status: messageResult.status || 'queued',
+        sent_at: new Date().toISOString(),
+        error_code: null,
         error_message: null,
         created_at: new Date().toISOString(),
       });

@@ -1,0 +1,242 @@
+import { db } from '@/lib/supabase/admin'
+import { normalizePhoneNumber } from '@/lib/twilio'
+import { sendSms } from '@/lib/twilio'
+import { sanitizeMessageContent } from '@/lib/security'
+
+export interface ProcessInboundSmsParams {
+  messageSid: string
+  from: string
+  to: string
+  body: string
+  source: 'twilio' | 'dev_simulation'
+}
+
+export async function processInboundSms(params: ProcessInboundSmsParams) {
+  const { messageSid, from, to, body, source } = params
+  
+  console.log(`[SMS Processing] Processing inbound SMS from ${source}:`, {
+    messageSid,
+    from,
+    to,
+    body: body.substring(0, 100) + (body.length > 100 ? '...' : '')
+  })
+  
+  // Normalize customer phone number
+  const normalizedCustomerPhone = normalizePhoneNumber(from)
+  
+  // Check for opt-out keywords (case-insensitive)
+  const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
+  const originalBody = body.trim().toUpperCase()
+  const isOptOut = optOutKeywords.some(keyword => originalBody === keyword)
+  
+  // Try to find existing lead across all businesses with this phone number
+  const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, to)
+  
+  let business: any
+  let lead: any
+  
+  if (leadResult) {
+    // Found existing lead, use its business
+    business = leadResult.business
+    lead = leadResult.lead
+    console.log(`[SMS Processing] Found existing lead: ${lead.id} for business: ${business.id}`)
+  } else {
+    // No existing lead, get first business with this phone number
+    business = await db.getBusinessByPhone(to)
+    
+    if (!business) {
+      console.error(`[SMS Processing] Business not found for phone: ${to}`)
+      return {
+        success: false,
+        error: 'Business not found',
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Service unavailable</Message>
+</Response>`
+      }
+    }
+    
+    console.log(`[SMS Processing] Using business for new lead: ${business.id}`)
+  }
+  
+  if (!lead) {
+    // Create new lead with status 'contacted' since customer replied
+    console.log(`[SMS Processing] No existing lead, creating new lead`)
+    lead = await db.createLead({
+      business_id: business.id,
+      caller_phone: normalizedCustomerPhone,
+      status: 'contacted', // Customer replied, so mark as contacted
+      first_contact_at: new Date().toISOString(),
+      last_message_at: new Date().toISOString(),
+      last_reply_at: new Date().toISOString(),
+      opted_out: false,
+      is_demo: source === 'dev_simulation', // Mark dev simulations as demo leads
+    })
+    
+    if (!lead) {
+      console.error(`[SMS Processing] Failed to create lead`)
+      return {
+        success: false,
+        error: 'Failed to create lead',
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error processing message</Message>
+</Response>`
+      }
+    }
+    
+    console.log(`[SMS Processing] Lead created:`, {
+      lead_id: lead.id,
+      business_id: lead.business_id,
+      caller_phone: lead.caller_phone
+    })
+  } else if (lead) {
+    // Update existing lead's status to 'replied' and track reply time
+    const updatedLead = await db.updateLead(lead.id, {
+      status: 'replied', // Customer replied, so mark as replied
+      last_message_at: new Date().toISOString(),
+      last_reply_at: new Date().toISOString(), // Track when customer replied
+    })
+    
+    if (!updatedLead) {
+      console.error(`[SMS Processing] Failed to update lead`)
+    } else {
+      console.log(`[SMS Processing] Updated lead: ${updatedLead.id}`)
+      lead = updatedLead
+    }
+  }
+  
+  // Handle opt-out requests
+  if (isOptOut) {
+    console.log(`[SMS Processing] Opt-out request from lead: ${lead.id}`)
+    
+    // Update lead to set opted_out = true
+    const updatedLead = await db.updateLead(lead.id, { opted_out: true })
+    
+    if (updatedLead) {
+      console.log(`[SMS Processing] Lead opted out: ${lead.id}`)
+      lead = updatedLead
+    } else {
+      console.error(`[SMS Processing] Failed to update lead opted_out status`)
+    }
+    
+    // Cancel all pending follow-up jobs for this lead
+    const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_opted_out')
+    
+    console.log(`[SMS Processing] Cancelled ${jobsCancelledCount} follow-up jobs for opted-out lead: ${lead.id}`)
+    
+    // Only send confirmation reply for real Twilio messages, not dev simulations
+    if (source === 'twilio') {
+      const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
+      const messageSid = await sendSms(business, from, confirmationMessage, {
+        lead_id: lead.id,
+      })
+
+      if (messageSid) {
+        console.log(`[SMS Processing] Sent opt-out confirmation: ${messageSid}`)
+      } else {
+        console.error(`[SMS Processing] Failed to send opt-out confirmation`)
+      }
+    }
+    
+    // Return TwiML response for opt-out
+    return {
+      success: true,
+      optOut: true,
+      twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>You have been unsubscribed. You will no longer receive messages.</Message>
+</Response>`
+    }
+  }
+  
+  // Handle conversation logic - ALWAYS ensure a conversation exists
+  let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+  
+  if (!conversation) {
+    // Create new conversation for SMS
+    conversation = await db.createConversation({
+      lead_id: lead.id,
+      business_id: business.id,
+      status: 'open',
+      source: 'sms', // Use 'sms' as allowed value, not 'dev_simulation'
+      started_at: new Date().toISOString(),
+      last_activity_at: new Date().toISOString(),
+    })
+    
+    if (!conversation) {
+      console.error(`[SMS Processing] Failed to create conversation`)
+      return {
+        success: false,
+        error: 'Failed to create conversation',
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error processing message</Message>
+</Response>`
+      }
+    }
+    
+    console.log(`[SMS Processing] Created conversation: ${conversation.id}`)
+  } else {
+    // Update existing conversation's last activity
+    const updatedConversation = await db.updateConversation(conversation.id, {
+      last_activity_at: new Date().toISOString(),
+    })
+    
+    if (!updatedConversation) {
+      console.error(`[SMS Processing] Failed to update conversation`)
+    } else {
+      console.log(`[SMS Processing] Updated conversation: ${updatedConversation.id}`)
+      conversation = updatedConversation
+    }
+  }
+  
+  // Cancel all pending follow-ups for this conversation when customer replies
+  if (conversation) {
+    const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
+    
+    if (cancelled) {
+      console.log(`[SMS Processing] Cancelled follow-ups for conversation: ${conversation.id}`)
+    } else {
+      console.error(`[SMS Processing] Failed to cancel follow-ups`)
+    }
+  }
+  
+  // Cancel all pending follow-up jobs for this lead when customer replies
+  const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
+  
+  console.log(`[SMS Processing] Cancelled ${jobsCancelledCount} follow-up jobs for lead: ${lead.id}`)
+  
+  // At this point, conversation is guaranteed to exist
+  // Save inbound message linked to conversation
+  const sanitizedBody = sanitizeMessageContent(body)
+  const message = await db.createMessageWithConversation({
+    lead_id: lead.id,
+    conversation_id: conversation.id,
+    direction: 'inbound',
+    body: sanitizedBody,
+    from_phone: normalizedCustomerPhone,
+    to_phone: to,
+    twilio_message_sid: messageSid,
+    status: 'received',
+    created_at: new Date().toISOString(),
+  })
+  
+  if (!message) {
+    console.error(`[SMS Processing] Failed to save message`)
+  } else {
+    console.log(`[SMS Processing] Saved inbound message: ${message.id}`)
+  }
+  
+  // Return success response
+  return {
+    success: true,
+    lead,
+    conversation,
+    message,
+    twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Thanks - we received your message.</Message>
+</Response>`
+  }
+}
