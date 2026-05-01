@@ -709,27 +709,27 @@ export default function DashboardContent() {
           </header>
 
           {/* Main Content */}
-          <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <div className="max-w-5xl mx-auto flex flex-col gap-8">
+          <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <div className="max-w-6xl mx-auto space-y-6">
                         
             {/* Billing Error */}
             {billingError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">⚠️</span>
+                    <span className="text-xl">⚠️</span>
                     <div>
-                      <p className="text-sm sm:text-base font-semibold text-red-900 dark:text-red-100">
+                      <p className="text-sm font-semibold text-red-900 dark:text-red-100">
                         Billing Error
                       </p>
-                      <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">
+                      <p className="text-xs text-red-700 dark:text-red-300">
                         {billingError}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setBillingError('')}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors"
                   >
                     Dismiss
                   </button>
@@ -740,15 +740,15 @@ export default function DashboardContent() {
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">⚠️</span>
+                    <span className="text-xl">⚠️</span>
                     <div>
-                      <p className="text-sm sm:text-base font-semibold text-red-900 dark:text-red-100">
+                      <p className="text-sm font-semibold text-red-900 dark:text-red-100">
                         Payment issue — update billing to keep ReplyFlow active
                       </p>
-                      <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">
+                      <p className="text-xs text-red-700 dark:text-red-300">
                         {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
                       </p>
                     </div>
@@ -756,7 +756,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleManageSubscription}
                     disabled={isOpeningBilling}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isOpeningBilling ? 'Opening…' : 'Update Billing'}
                   </button>
@@ -766,10 +766,10 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">🎉</span>
+                    <span className="text-lg">🎉</span>
                     <div>
                       <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                         Free trial active
@@ -782,7 +782,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleManageSubscription}
                     disabled={isOpeningBilling}
-                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
                   </button>
@@ -792,15 +792,15 @@ export default function DashboardContent() {
 
             {/* Inactive Subscription - Primary CTA for New Users */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🚀</span>
+                    <span className="text-xl">🚀</span>
                     <div>
-                      <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                         Start your 14-day free trial
                       </p>
-                      <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
                         Activate ReplyFlow to capture missed calls and grow your business
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
@@ -811,7 +811,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleStartSubscription}
                     disabled={checkoutLoading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
                   </button>
@@ -827,37 +827,37 @@ export default function DashboardContent() {
             />
 
             {/* Hero Metrics Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
+                  <span className="text-lg">📞</span>
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
                 </div>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
+                  <span className="text-lg">👥</span>
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
                 </div>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
+                  <span className="text-lg">💬</span>
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
                 </div>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
+                  <span className="text-lg">⏰</span>
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
                 </div>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
@@ -867,34 +867,34 @@ export default function DashboardContent() {
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3">
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3">
                 <p className="text-blue-300 text-sm">Payment confirmed. Setting up your account...</p>
               </div>
             )}
 
             {/* Checkout cancel message */}
             {checkoutStatus === 'cancelled' && (
-              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3">
+              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3">
                 <p className="text-yellow-300 text-sm">Checkout cancelled. You can activate anytime.</p>
               </div>
             )}
 
             {/* Billing card - only show when action needed */}
             {!isActive && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition">
                 {webhookConfirming ? (
                   <>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading}
-                      className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
                     >
                       {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
                     </button>
