@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
 
+export const dynamic = 'force-dynamic';
+
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
   const value = process.env[name];

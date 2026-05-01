@@ -19,11 +19,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const authSubscriptionRef = useRef<any>(null)
 
+  // Ensure we're on client side before accessing browser APIs
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    // If supabase client is not available or not client side, set loading to false and return
+    if (!isClient || !supabase) {
+      if (!isClient) {
+        // Still loading on server side
+        return
+      }
+      console.error('[Auth] Supabase client not available')
+      setLoading(false)
+      return
+    }
+
     // Restore session on app load
     const restoreSession = async () => {
       console.log('[Auth] Restoring session...')
@@ -77,18 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authSubscriptionRef.current = null
       }
     }
-  }, [])
+  }, [isClient])
 
   // Handle routing based on auth state
   useEffect(() => {
-    if (loading) return
+    if (loading || !isClient) return
 
     // If user is NOT authenticated and on dashboard or onboarding, redirect to homepage
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding'))) {
       console.log('[Auth] Redirecting to homepage (unauthenticated user on protected route)')
       router.push('/')
     }
-  }, [user, loading, pathname, router])
+  }, [user, loading, pathname, router, isClient])
 
   // Sign out function that clears all sensitive data
   const signOut = async () => {
@@ -118,8 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localKeysToRemove.forEach(key => localStorage.removeItem(key))
       }
       
-      // Sign out from Supabase
-      await supabase.auth.signOut()
+      // Sign out from Supabase if available
+      if (supabase) {
+        await supabase.auth.signOut()
+      }
       
       // Clear auth state
       setSession(null)

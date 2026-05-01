@@ -151,7 +151,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         authSubscriptionRef.current = null
       }
     }
-  }, [])
+  }, [supabase])
 
   // Initial fetch
   useEffect(() => {

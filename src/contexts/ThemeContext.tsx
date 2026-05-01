@@ -33,6 +33,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const toggleTheme = () => {
+    if (!mounted) return
+    
     const newTheme = theme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
     localStorage.setItem('replyflow-theme', newTheme)

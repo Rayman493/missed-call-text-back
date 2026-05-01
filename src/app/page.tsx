@@ -1,27 +1,8 @@
-'use client'
-
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
-import { useBusiness } from '@/contexts/BusinessContext'
-import Navbar from '@/components/Navbar'
 
 export default function Home() {
-  const { loading, user } = useAuth()
-  const { business, loading: businessLoading } = useBusiness()
-  
-  // Show loading state while auth or business data is loading
-  if (loading || businessLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-gray-200">Loading...</div>
-      </div>
-    )
-  }
-
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar />
-
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-20 md:py-32 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-100 mb-6 max-w-4xl">
@@ -39,31 +20,18 @@ export default function Home() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
-          {loading || businessLoading ? (
-            <>
-              <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
-              <div className="px-8 py-4 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"></div>
-            </>
-          ) : (
-            <>
-              <Link
-                href={
-                  user 
-                    ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
-                    : '/auth?mode=signup'
-                }
-                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Start Your Free Trial
-              </Link>
-              <Link
-                href="/demo"
-                className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
-              >
-                View Demo
-              </Link>
-            </>
-          )}
+          <Link
+            href="/signup"
+            className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Start Your Free Trial
+          </Link>
+          <Link
+            href="/demo"
+            className="px-8 py-4 bg-gray-800 text-gray-300 font-semibold rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+          >
+            View Demo
+          </Link>
         </div>
       </section>
 
@@ -98,103 +66,30 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-100 mb-3">You manage the lead in your inbox</h3>
-              <p className="text-gray-400">Convert conversations into booked jobs and revenue</p>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3">Lead captured</h3>
+              <p className="text-gray-400">Customer appears in your dashboard ready to follow up</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Example Message Section */}
+      {/* CTA Section */}
       <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-100 mb-8">
-            What Your Customers See
-          </h2>
-          <div className="bg-gray-800 rounded-lg p-6 md:p-8 max-w-md mx-auto">
-            <div className="bg-gray-700 rounded-lg p-4 shadow-sm">
-              <p className="text-gray-200 text-left">
-                "Hi, sorry we missed your call — how can we help?"
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Section */}
-      <section className="bg-gray-100 dark:bg-gray-800 py-20 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
-            Trusted by service businesses to capture missed leads
-          </p>
-          <span className="text-2xl font-semibold tracking-tight">
-            <span className="text-gray-900 dark:text-gray-100">Reply</span>
-            <span className="text-blue-600 dark:text-blue-500">Flow</span>
-          </span>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-100 mb-6">
-            Start capturing missed calls today
+            Ready to never miss a customer again?
           </h2>
-          
-          {/* Pricing Information */}
-          <div className="mb-8 flex flex-col items-center gap-2">
-            <span className="text-blue-400 font-semibold text-lg">14-day free trial</span>
-            <span className="text-gray-300 text-lg">$49/month after trial</span>
-            <span className="text-gray-500 text-sm">No contracts • Cancel anytime</span>
-          </div>
-          
+          <p className="text-xl text-gray-400 mb-8">
+            Join thousands of businesses using ReplyFlow to capture missed calls and grow their revenue.
+          </p>
           <Link
-            href={
-              user 
-                ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
-                : '/auth?mode=signup'
-            }
-            className="inline-block px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            href="/signup"
+            className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Start Your Free Trial
+            Start Your 14-Day Free Trial
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 dark:bg-gray-950 border-t border-gray-800 py-8 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-gray-400 text-sm">
-            © 2024 ReplyFlow. All rights reserved.
-          </div>
-          <div className="flex gap-6 text-sm">
-            <Link 
-              href="/faq" 
-              className="text-gray-400 hover:text-gray-300 transition-colors"
-            >
-              FAQ
-            </Link>
-            <Link 
-              href="/privacy" 
-              className="text-gray-400 hover:text-gray-300 transition-colors"
-            >
-              Privacy Policy
-            </Link>
-            <Link 
-              href="/terms" 
-              className="text-gray-400 hover:text-gray-300 transition-colors"
-            >
-              Terms of Service
-            </Link>
-            <Link 
-              href="/compliance" 
-              className="text-gray-400 hover:text-gray-300 transition-colors"
-            >
-              SMS Compliance
-            </Link>
-          </div>
-        </div>
-      </footer>
     </main>
   )
 }

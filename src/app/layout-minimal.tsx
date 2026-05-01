@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default function RootLayoutMinimal({
   children,
 }: {
   children: React.ReactNode

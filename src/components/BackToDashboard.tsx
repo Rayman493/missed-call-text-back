@@ -2,11 +2,18 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function BackToDashboard() {
   const { user, loading } = useAuth()
+  const [isClient, setIsClient] = useState(false)
 
-  if (loading || !user) {
+  // Ensure component only renders client-side to avoid SSR issues
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient || loading || !user) {
     return null
   }
 
