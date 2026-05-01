@@ -364,7 +364,7 @@ export default function OnboardingPage() {
                   setDemoPhone(e.target.value) // Auto-fill demo phone with business phone
                 }}
                 required
-                placeholder="(412) 855-3010"
+                placeholder="(555) 123-4567"
                 className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-2 text-xs text-gray-400">
@@ -381,7 +381,7 @@ export default function OnboardingPage() {
                 type="tel"
                 value={demoPhone}
                 onChange={(e) => setDemoPhone(e.target.value)}
-                placeholder="(412) 855-3010"
+                placeholder="(555) 987-6543"
                 className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-2 text-xs text-gray-400">
