@@ -172,3 +172,17 @@ export function useBusiness() {
   }
   return context
 }
+
+export function useBusinessSafe() {
+  const context = useContext(BusinessContext)
+  if (context === undefined) {
+    // Return safe default values when BusinessProvider is not available
+    return {
+      business: null,
+      loading: false,
+      refreshBusiness: async () => {},
+      error: null
+    }
+  }
+  return context
+}

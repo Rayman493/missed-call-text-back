@@ -6,16 +6,12 @@ interface ProvidersWrapperProps {
   children: React.ReactNode
 }
 
-// Mock providers for SSR to prevent hydration issues
-const MockAuthProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>
-const MockBusinessProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>
-const MockThemeProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>
-
 export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const [isClient, setIsClient] = useState(false)
-  const [AuthProvider, setAuthProvider] = useState<any>(() => MockAuthProvider)
-  const [BusinessProvider, setBusinessProvider] = useState<any>(() => MockBusinessProvider)
-  const [ThemeProvider, setThemeProvider] = useState<any>(() => MockThemeProvider)
+  const [providersLoaded, setProvidersLoaded] = useState(false)
+  const [AuthProvider, setAuthProvider] = useState<any>(null)
+  const [BusinessProvider, setBusinessProvider] = useState<any>(null)
+  const [ThemeProvider, setThemeProvider] = useState<any>(null)
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -30,6 +26,7 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
         setAuthProvider(() => AP)
         setBusinessProvider(() => BP)
         setThemeProvider(() => TP)
+        setProvidersLoaded(true)
         setIsClient(true)
       } catch (error) {
         console.error('Failed to load providers:', error)
@@ -40,14 +37,12 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
     loadProviders()
   }, [])
 
-  if (!isClient) {
-    // Return mock providers during SSR
+  // Don't render anything until providers are loaded to prevent context errors
+  if (!isClient || !providersLoaded || !AuthProvider || !BusinessProvider || !ThemeProvider) {
     return (
-      <MockThemeProvider>
-        <MockAuthProvider>
-          <MockBusinessProvider>{children}</MockBusinessProvider>
-        </MockAuthProvider>
-      </MockThemeProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 

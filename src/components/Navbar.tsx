@@ -2,15 +2,25 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { useBusiness } from '@/contexts/BusinessContext'
+import { useBusinessSafe } from '@/contexts/BusinessContext'
 
 export default function Navbar() {
   const { user, loading, signOut } = useAuth()
-  const { business, loading: businessLoading } = useBusiness()
+  const { business, loading: businessLoading } = useBusinessSafe()
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
+  const pathname = usePathname()
 
   const isLoggedIn = user && !loading
+  
+  // Check if we're on a public/marketing page
+  const isPublicPage = pathname === '/' || 
+                       pathname === '/faq' || 
+                       pathname === '/privacy' || 
+                       pathname === '/terms' || 
+                       pathname === '/compliance' || 
+                       pathname === '/demo'
 
   const handleSignOut = async () => {
     await signOut()
@@ -51,24 +61,45 @@ export default function Navbar() {
           {isLoggedIn ? (
             // Logged-in navigation
             <>
-              <Link
-                href="/dashboard"
-                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/leads"
-                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
-              >
-                Conversations
-              </Link>
-              <Link
-                href="/faq"
-                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
-              >
-                FAQ
-              </Link>
+              {isPublicPage ? (
+                // Public pages: show simplified navigation
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/faq"
+                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+                  >
+                    FAQ
+                  </Link>
+                </>
+              ) : (
+                // App pages: show full app navigation
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/dashboard/leads"
+                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                  >
+                    Conversations
+                  </Link>
+                  <Link
+                    href="/faq"
+                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+                  >
+                    FAQ
+                  </Link>
+                </>
+              )}
               
               {/* Account Dropdown */}
               <div className="relative">
