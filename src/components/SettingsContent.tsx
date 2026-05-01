@@ -298,18 +298,38 @@ export default function SettingsContent() {
 
               {/* Automation Settings */}
               <div id="automation" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Automation</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Smart Filtering</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Automatically filter spam and unwanted calls</p>
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Automation Settings</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Configure how ReplyFlow automatically handles your missed calls and follow-ups.
+                  </p>
+                </div>
+                
+                <div className="space-y-6">
+                  {/* Smart Filtering */}
+                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Smart Filtering</h3>
+                        {formBusiness.smart_filtering_enabled && (
+                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Automatically filter out spam calls and unwanted numbers before sending texts.
+                      </p>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        📋 Helps you avoid wasting credits on spam and reduces unwanted notifications.
+                      </div>
                     </div>
                     <button
                       onClick={() => updateBusiness({ smart_filtering_enabled: !formBusiness.smart_filtering_enabled })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                        formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                       }`}
+                      aria-label={formBusiness.smart_filtering_enabled ? 'Disable smart filtering' : 'Enable smart filtering'}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -318,16 +338,31 @@ export default function SettingsContent() {
                       />
                     </button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Business Hours</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Only send texts during business hours</p>
+
+                  {/* Business Hours */}
+                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Business Hours Only</h3>
+                        {formBusiness.business_hours_enabled && (
+                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
+                      </p>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        🕐 Prevents late-night texts and respects customer communication preferences.
+                      </div>
                     </div>
                     <button
                       onClick={() => updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                        formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                       }`}
+                      aria-label={formBusiness.business_hours_enabled ? 'Disable business hours' : 'Enable business hours'}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -335,6 +370,28 @@ export default function SettingsContent() {
                         }`}
                       />
                     </button>
+                  </div>
+
+                  {/* Automation Status Summary */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">Automation Status</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          {formBusiness.smart_filtering_enabled && formBusiness.business_hours_enabled 
+                            ? "Both smart filtering and business hours are enabled for optimal automation."
+                            : formBusiness.smart_filtering_enabled 
+                            ? "Smart filtering is enabled. Consider enabling business hours for better timing."
+                            : formBusiness.business_hours_enabled
+                            ? "Business hours are enabled. Consider enabling smart filtering for spam protection."
+                            : "Automation features are disabled. Enable them to improve efficiency and reduce spam."
+                          }
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
