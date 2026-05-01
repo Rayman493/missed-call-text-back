@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
-  console.log('[delete-account] route hit')
-
   try {
     // Check required env vars
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -15,39 +14,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[delete-account] Missing SUPABASE_SERVICE_ROLE_KEY')
+    // Authenticate user using server-side client with RLS
+    const supabase = createServerSupabaseClient()
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('[delete-account] Authentication failed:', authError)
       return NextResponse.json(
-        { ok: false, step: 'env_check', error: 'Missing SUPABASE_SERVICE_ROLE_KEY' },
-        { status: 500 }
+        { ok: false, step: 'auth', error: 'Authentication required' },
+        { status: 401 }
       )
     }
 
-    // Get auth header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      console.error('[delete-account] Missing auth header')
-      return NextResponse.json({ ok: false, step: 'auth', error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Normal Supabase client to verify the authenticated user
-    const token = authHeader.replace('Bearer ', '')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-
-    if (userError || !user) {
-      console.error('[delete-account] Auth error:', userError)
-      return NextResponse.json({ ok: false, step: 'auth', error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('[delete-account] user:', user.id)
+    console.log('[delete-account] Authenticated user:', user.id)
 
     // Step 1: Find all businesses for this user
     console.log('[delete-account] Step 1: find businesses')
-    const { data: businesses, error: businessesError } = await supabaseAdmin
+    const { data: businesses, error: businessesError } = await supabase
       .from('businesses')
       .select('id')
       .eq('user_id', user.id)

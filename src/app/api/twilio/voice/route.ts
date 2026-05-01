@@ -30,13 +30,11 @@ export async function POST(request: NextRequest) {
     
     const body = await request.text();
     
-    // TODO: Re-enable Twilio signature validation after testing
-    // TEMPORARILY DISABLED FOR PRODUCTION READINESS TESTING
-    // Validate Twilio webhook signature
-    // if (!requireTwilioAuth(request, body)) {
-    //   console.error('[Twilio Voice] Invalid webhook signature')
-    //   return new Response('Unauthorized', { status: 401 })
-    // }
+    // Validate Twilio webhook signature - CRITICAL SECURITY
+    if (!requireTwilioAuth(request, body)) {
+      console.error('[Twilio Voice] Invalid webhook signature - POSSIBLE ATTACK')
+      return new Response('Unauthorized', { status: 401 })
+    }
     
     // Log request details for debugging
     console.log('[Twilio Voice] Request details:', {

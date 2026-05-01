@@ -6,21 +6,18 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   try {
-    // TODO: Re-enable Twilio signature validation in production
-    // Temporarily disable for easier debugging
-    // const authResult = await requireTwilioAuth(req, body)
-    // if (!authResult.authenticated) {
-    //   console.warn('[voice-status] Unauthorized request:', authResult.message)
-    //   return new Response(authResult.message, { status: 401 })
-    // }
-
+    // Validate Twilio webhook signature - CRITICAL SECURITY
+    const body = await req.text()
+    if (!requireTwilioAuth(req, body)) {
+      console.error('[voice-status] Invalid webhook signature - POSSIBLE ATTACK')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    
     // Create fresh Supabase client for this request
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-
-    const body = await req.text()
     
     // Log comprehensive webhook details
     console.log('[Twilio Voice Status Webhook] Received webhook. Headers:', JSON.stringify(Object.fromEntries(req.headers.entries())))
