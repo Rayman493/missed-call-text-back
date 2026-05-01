@@ -84,7 +84,7 @@ export default function Home() {
             Ready to never miss a customer again?
           </h2>
           <p className="text-xl text-gray-400 mb-8">
-            Join thousands of businesses using ReplyFlow to capture missed calls and grow their revenue.
+            Built for service businesses that never want to miss another lead.
           </p>
           <Link
             href="/signup"

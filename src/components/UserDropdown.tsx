@@ -54,13 +54,7 @@ export default function UserDropdown() {
               onClick={() => navigateToSettings('account')}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              Account Settings
-            </button>
-            <button
-              onClick={() => navigateToSettings('billing')}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              Billing
+              Settings
             </button>
             <button
               onClick={handleSignOut}

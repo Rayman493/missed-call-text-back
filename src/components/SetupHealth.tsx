@@ -233,11 +233,7 @@ export default function SetupHealth() {
       </button>
 
       {/* Collapsible Content */}
-      <div
-        className={`transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-96 opacity-100'
-        } overflow-hidden`}
-      >
+      {!isCollapsed && (
         <div className="px-6 pb-6">
           <div className="space-y-3 mb-6">
             {healthItems.map((item, index) => (
@@ -286,7 +282,7 @@ export default function SetupHealth() {
             </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Test Call Flow Modal */}
       <TestCallFlowModal
