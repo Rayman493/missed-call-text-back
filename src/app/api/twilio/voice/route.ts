@@ -22,6 +22,12 @@ function generateVoiceGreeting(businessName?: string): string {
     greetingText = "Hey, thanks for calling. Sorry we missed your call — we'll send you a quick text message shortly.";
   }
   
+  // DEBUG LOGS
+  console.log('[Twilio Voice] DEBUG: Generating voice greeting');
+  console.log('[Twilio Voice] DEBUG: Voice:', voice);
+  console.log('[Twilio Voice] DEBUG: Business Name:', businessNameText);
+  console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
+  
   // Add natural pause and return TwiML
   return `
     <Say voice="${voice}" language="en-US">${greetingText}</Say>
@@ -42,12 +48,18 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
     voiceContent = generateVoiceGreeting(businessName);
   }
   
-  return `
+  const twiml = `
 <Response>
   ${voiceContent}
   <Hangup/>
 </Response>
 `.trim();
+  
+  // DEBUG LOGS
+  console.log('[Twilio Voice] DEBUG: Generated complete TwiML');
+  console.log('[Twilio Voice] DEBUG: Final TwiML:', twiml);
+  
+  return twiml;
 }
 
 // Helper to convert normalized 10-digit US number to E.164 format
@@ -409,6 +421,9 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[Twilio Voice] Voice webhook processed successfully');
+    
+    // DEBUG LOGS
+    console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
     
     const twiml = generateTwiMLResponse(business.name);
 
