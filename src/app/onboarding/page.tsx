@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { normalizePhoneNumber } from '@/lib/utils'
-import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
+import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES, isActiveSubscription } from '@/lib/subscription'
 import { useSearchParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
@@ -100,7 +100,7 @@ export default function OnboardingPage() {
         }
         
         // If user has active/trialing subscription, don't restart onboarding
-        if (existingBusiness.subscription_status === 'active' || existingBusiness.subscription_status === 'trialing') {
+        if (isActiveSubscription(existingBusiness.subscription_status)) {
           console.log('[Onboarding] User has active/trialing subscription, redirecting to dashboard')
           router.push('/dashboard')
           return

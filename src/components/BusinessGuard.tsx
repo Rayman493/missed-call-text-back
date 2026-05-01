@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { isActiveSubscription } from '@/lib/subscription'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading } = useBusiness()
@@ -49,7 +50,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       // Redirect if onboarding is not completed and user doesn't have active subscription
       if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
-          business.subscription_status !== 'active' && business.subscription_status !== 'trialing') {
+          !isActiveSubscription(business.subscription_status)) {
         console.log('[BusinessGuard] Onboarding not completed and no active subscription, redirecting to onboarding')
         console.log('[BusinessGuard] Business state:', {
           onboardingStatus: business.onboarding_status,
@@ -102,7 +103,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
   if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
-      business.subscription_status !== 'active' && business.subscription_status !== 'trialing' && pathname?.startsWith('/dashboard')) {
+      !isActiveSubscription(business.subscription_status) && pathname?.startsWith('/dashboard')) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { isActiveSubscription, getSubscriptionStatusText } from '@/lib/subscription'
 import TestSetupModal from './TestSetupModal'
 
 interface HealthItem {
@@ -34,7 +35,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                            business.call_forwarding_enabled &&
                            business.forwarding_verified
     
-    const subscriptionHealthy = business.subscription_status === 'active' || business.subscription_status === 'trialing'
+    const subscriptionHealthy = isActiveSubscription(business.subscription_status)
     const twilioHealthy = !!business.twilio_phone_number
     const smsWorking = twilioHealthy && subscriptionHealthy
     
@@ -118,14 +119,18 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     })
 
     // 2. Subscription status
-    const subscriptionActive = business.subscription_status === 'active' || business.subscription_status === 'trialing'
+    const subscriptionActive = isActiveSubscription(business.subscription_status)
+    const hasValidSubscription = business.subscription_status && (business.stripe_customer_id || business.stripe_subscription_id)
+    
     items.push({
-      title: 'Subscription Active',
-      description: 'Your ReplyFlow subscription is active',
-      status: subscriptionActive ? 'healthy' : 'error',
+      title: 'Subscription Status',
+      description: subscriptionActive ? 'Your ReplyFlow subscription is active' : 'Subscription setup required',
+      status: subscriptionActive ? 'healthy' : (hasValidSubscription ? 'warning' : 'error'),
       details: subscriptionActive 
-        ? `Subscription is ${business.subscription_status}` 
-        : 'No active subscription found'
+        ? `Subscription is ${getSubscriptionStatusText(business.subscription_status)}` 
+        : hasValidSubscription
+          ? 'Subscription exists but needs activation'
+          : 'Start your free trial to activate ReplyFlow'
     })
 
     // 3. Twilio status
@@ -197,7 +202,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const forwardingNotConfigured = !business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled
     
     // Check subscription status
-    const subscriptionInactive = business.subscription_status !== 'active' && business.subscription_status !== 'trialing'
+    const subscriptionInactive = !isActiveSubscription(business.subscription_status)
     
     // Check SMS status
     const smsNotConfigured = !business.twilio_phone_number

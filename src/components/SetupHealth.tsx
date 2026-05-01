@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { isActiveSubscription, getSubscriptionStatusText } from '@/lib/subscription'
 import TestCallFlowModal from './TestCallFlowModal'
 
 interface HealthItem {
@@ -103,14 +104,18 @@ export default function SetupHealth() {
   })
 
   // 2. Subscription active
-  const subscriptionActive = business.subscription_status === 'active' || business.subscription_status === 'trialing'
+  const subscriptionActive = isActiveSubscription(business.subscription_status)
+  const hasValidSubscription = business.subscription_status && (business.stripe_customer_id || business.stripe_subscription_id)
+  
   healthItems.push({
-    title: 'Subscription Active',
-    description: 'Your ReplyFlow subscription is active',
-    status: subscriptionActive ? 'healthy' : 'error',
+    title: 'Subscription Status',
+    description: subscriptionActive ? 'Your ReplyFlow subscription is active' : 'Subscription setup required',
+    status: subscriptionActive ? 'healthy' : (hasValidSubscription ? 'warning' : 'error'),
     details: subscriptionActive 
-      ? `Subscription is ${business.subscription_status}` 
-      : 'No active subscription found'
+      ? `Subscription is ${getSubscriptionStatusText(business.subscription_status)}` 
+      : hasValidSubscription
+        ? 'Subscription exists but needs activation'
+        : 'Start your free trial to activate ReplyFlow'
   })
 
   // 3. Twilio active
@@ -125,7 +130,7 @@ export default function SetupHealth() {
   })
 
   // 4. SMS working (simplified - would need to check recent message logs in real implementation)
-  const smsWorking = business.twilio_phone_number && (business.subscription_status === 'active' || business.subscription_status === 'trialing')
+  const smsWorking = business.twilio_phone_number && isActiveSubscription(business.subscription_status)
   healthItems.push({
     title: 'SMS Working',
     description: 'Auto-reply messages are being sent',

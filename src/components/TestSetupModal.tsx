@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import { isActiveSubscription } from '@/lib/subscription'
 
 interface TestSetupModalProps {
   isOpen: boolean
@@ -37,8 +38,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
     })
 
     // SMS Configured
-    const smsWorking = business.twilio_phone_number && 
-                     (business.subscription_status === 'active' || business.subscription_status === 'trialing')
+    const smsWorking = business.twilio_phone_number && isActiveSubscription(business.subscription_status)
     items.push({
       label: 'SMS Configured',
       status: smsWorking ? 'healthy' : 'warning',
@@ -48,7 +48,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
     })
 
     // Subscription Active
-    const subscriptionActive = business.subscription_status === 'active' || business.subscription_status === 'trialing'
+    const subscriptionActive = isActiveSubscription(business.subscription_status)
     items.push({
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',
