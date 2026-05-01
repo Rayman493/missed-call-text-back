@@ -875,32 +875,29 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Billing card - always shown for testing */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
-              {webhookConfirming ? (
-                <>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
-                </>
-              ) : isActive ? (
-                <>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription active</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Your ReplyFlow subscription is active.</p>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
-                  <button
-                    onClick={handleStartSubscription}
-                    disabled={checkoutLoading}
-                    className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
-                  >
-                    {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
-                  </button>
-                </>
-              )}
-            </div>
+            {/* Billing card - only show when action needed */}
+            {!isActive && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
+                {webhookConfirming ? (
+                  <>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
+                    <button
+                      onClick={handleStartSubscription}
+                      disabled={checkoutLoading}
+                      className="w-full px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                    >
+                      {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
