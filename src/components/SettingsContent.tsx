@@ -306,37 +306,136 @@ export default function SettingsContent() {
                 </div>
                 
                 <div className="space-y-6">
-                  {/* Smart Filtering */}
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Smart Filtering</h3>
-                        {formBusiness.smart_filtering_enabled && (
-                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
-                            Active
-                          </span>
-                        )}
+                  {/* Spam & Repeat Call Filtering */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 sm:p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
+                          {formBusiness.smart_filtering_enabled && (
+                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Prevent automated texts from being sent to spam callers, repeat calls, or unwanted numbers.
+                        </p>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          📋 Filtered calls will not create leads or receive automated text responses.
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Automatically filter out spam calls and unwanted numbers before sending texts.
-                      </p>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        📋 Helps you avoid wasting credits on spam and reduces unwanted notifications.
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => updateBusiness({ smart_filtering_enabled: !formBusiness.smart_filtering_enabled })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                        formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                      }`}
-                      aria-label={formBusiness.smart_filtering_enabled ? 'Disable smart filtering' : 'Enable smart filtering'}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formBusiness.smart_filtering_enabled ? 'translate-x-6' : 'translate-x-1'
+                      <button
+                        onClick={() => updateBusiness({ smart_filtering_enabled: !formBusiness.smart_filtering_enabled })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                          formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         }`}
-                      />
-                    </button>
+                        aria-label={formBusiness.smart_filtering_enabled ? 'Disable spam filtering' : 'Enable spam filtering'}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            formBusiness.smart_filtering_enabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Filtering Options - Only show when enabled */}
+                    {formBusiness.smart_filtering_enabled && (
+                      <div className="space-y-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+                        {/* Repeat Call Protection */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 pr-4">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                              Ignore repeat missed calls
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Don't send texts for repeat calls within 15 minutes
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateBusiness({ repeat_call_protection_enabled: !formBusiness.repeat_call_protection_enabled })}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+                              formBusiness.repeat_call_protection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                            }`}
+                            aria-label={formBusiness.repeat_call_protection_enabled ? 'Disable repeat call protection' : 'Enable repeat call protection'}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                formBusiness.repeat_call_protection_enabled ? 'translate-x-5' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Private/Blocked Numbers */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 pr-4">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                              Ignore blocked/private numbers
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Skip calls from blocked or private number callers
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateBusiness({ block_private_numbers_enabled: !formBusiness.block_private_numbers_enabled })}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+                              formBusiness.block_private_numbers_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                            }`}
+                            aria-label={formBusiness.block_private_numbers_enabled ? 'Disable private number blocking' : 'Enable private number blocking'}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                formBusiness.block_private_numbers_enabled ? 'translate-x-5' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Spam Detection */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 pr-4">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                              Ignore suspected spam callers
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Skip calls from known spam phone numbers
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateBusiness({ spam_detection_enabled: !formBusiness.spam_detection_enabled })}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+                              formBusiness.spam_detection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                            }`}
+                            aria-label={formBusiness.spam_detection_enabled ? 'Disable spam detection' : 'Enable spam detection'}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                formBusiness.spam_detection_enabled ? 'translate-x-5' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Blocked Numbers List */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            Blocked numbers list
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            Enter phone numbers to block (one per line)
+                          </p>
+                          <textarea
+                            value={formBusiness.blocked_numbers || ''}
+                            onChange={(e) => updateBusiness({ blocked_numbers: e.target.value })}
+                            rows={3}
+                            placeholder="555-123-4567&#10;555-987-6543"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Business Hours */}
@@ -380,16 +479,44 @@ export default function SettingsContent() {
                       </svg>
                       <div>
                         <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">Automation Status</h4>
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                          {formBusiness.smart_filtering_enabled && formBusiness.business_hours_enabled 
-                            ? "Both smart filtering and business hours are enabled for optimal automation."
-                            : formBusiness.smart_filtering_enabled 
-                            ? "Smart filtering is enabled. Consider enabling business hours for better timing."
-                            : formBusiness.business_hours_enabled
-                            ? "Business hours are enabled. Consider enabling smart filtering for spam protection."
-                            : "Automation features are disabled. Enable them to improve efficiency and reduce spam."
-                          }
-                        </p>
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                          {formBusiness.smart_filtering_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span>Spam & repeat call filtering active</span>
+                            </div>
+                          )}
+                          {formBusiness.repeat_call_protection_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span>Repeat-call protection enabled</span>
+                            </div>
+                          )}
+                          {formBusiness.block_private_numbers_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span>Private callers blocked</span>
+                            </div>
+                          )}
+                          {formBusiness.spam_detection_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span>Spam detection active</span>
+                            </div>
+                          )}
+                          {formBusiness.business_hours_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span>Business hours enforced</span>
+                            </div>
+                          )}
+                          {!formBusiness.smart_filtering_enabled && !formBusiness.business_hours_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                              <span>Automation features are disabled</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

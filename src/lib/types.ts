@@ -37,6 +37,8 @@ export interface Business {
   repeat_call_protection_enabled?: boolean | null;
   repeat_call_cooldown_hours?: number | null;
   spam_detection_enabled?: boolean | null;
+  block_private_numbers_enabled?: boolean | null;
+  blocked_numbers?: string | null;
   after_hours_message?: string | null;
   
   // Forwarding verification fields
