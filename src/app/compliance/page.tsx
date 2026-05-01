@@ -9,16 +9,16 @@ export const metadata: Metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-900">
       <SSRSafeNavbar />
       
       {/* Hero Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-900/30 mb-6">
               <svg
-                className="w-8 h-8 text-green-600 dark:text-green-400"
+                className="w-8 h-8 text-green-400"
                 fill="currentColor"
                 viewBox="0 0 20 20"
                 aria-hidden="true"
@@ -26,10 +26,10 @@ export default function CompliancePage() {
                 <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 00-2.812 2.812 3.066 3.066 0 01-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 00-2.812-2.812 3.066 3.066 0 01-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 002.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-100 mb-6">
               Compliance & Standards
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               ReplyFlowHQ maintains the highest standards for conversational messaging compliance and customer privacy.
             </p>
           </div>
@@ -42,18 +42,18 @@ export default function CompliancePage() {
           
           {/* Conversational Messaging Use Case */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   Conversational Messaging Use Case
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed">
                     ReplyFlowHQ is designed exclusively for <strong>conversational customer messaging</strong> 
                     triggered by inbound customer contact. Our use case is fundamentally different from bulk marketing:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                       <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">ReplyFlowHQ Model</h3>
                       <ul className="space-y-2 text-sm text-green-800 dark:text-green-200">
                         <li>• Customer-initiated contact</li>
@@ -79,13 +79,13 @@ export default function CompliancePage() {
 
           {/* Missed-Call Workflow */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   Missed-Call Response Workflow
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed mb-6">
                     Our compliant workflow ensures messages are only sent with proper context and customer initiation:
                   </p>
                   
@@ -98,8 +98,8 @@ export default function CompliancePage() {
                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Customer Calls</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Inbound initiation</p>
+                        <p className="text-sm font-medium text-gray-100">Customer Calls</p>
+                        <p className="text-xs text-gray-400">Inbound initiation</p>
                       </div>
                       <div className="hidden md:block text-blue-600 dark:text-blue-400">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -112,8 +112,8 @@ export default function CompliancePage() {
                             <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Call Missed</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">System detects</p>
+                        <p className="text-sm font-medium text-gray-100">Call Missed</p>
+                        <p className="text-xs text-gray-400">System detects</p>
                       </div>
                       <div className="hidden md:block text-blue-600 dark:text-blue-400">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -127,8 +127,8 @@ export default function CompliancePage() {
                             <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Text Sent</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Conversational response</p>
+                        <p className="text-sm font-medium text-gray-100">Text Sent</p>
+                        <p className="text-xs text-gray-400">Conversational response</p>
                       </div>
                     </div>
                   </div>
@@ -138,7 +138,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Customer initiation required</strong> - Messages only sent after customer calls your business
                       </p>
                     </div>
@@ -146,7 +146,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Contextual relevance</strong> - Messages directly relate to the missed call interaction
                       </p>
                     </div>
@@ -154,7 +154,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Immediate response</strong> - Messages sent within seconds of missed call
                       </p>
                     </div>
@@ -166,13 +166,13 @@ export default function CompliancePage() {
 
           {/* Opt-In Process */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   Opt-In Process & Consent
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed">
                     ReplyFlowHQ operates on the principle of <strong>implied consent</strong> through customer initiation:
                   </p>
                   <div className="mt-6 space-y-4">
@@ -190,7 +190,7 @@ export default function CompliancePage() {
                         for a reasonable response related to their inquiry.
                       </p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                       <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Conversational Context</h3>
                       <p className="text-sm text-green-800 dark:text-green-200">
                         All messages maintain conversational context directly related to the customer's 
@@ -205,7 +205,7 @@ export default function CompliancePage() {
                       <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-4">
                         Example Verbal Opt-In Script
                       </h3>
-                      <div className="bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4 mb-4">
+                      <div className="bg-gray-800 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4 mb-4">
                         <p className="text-gray-800 dark:text-gray-200 italic leading-relaxed">
                           "Thanks for calling [Business Name]. If we miss your call, we may send you a conversational text message so we can continue helping with your inquiry. Reply STOP to opt out or HELP for help. Do you agree to receive these messages?"
                         </p>
@@ -224,38 +224,38 @@ export default function CompliancePage() {
 
           {/* STOP/HELP Compliance */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   STOP/HELP Compliance
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed">
                     ReplyFlowHQ automatically processes all standard opt-out and help requests:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                    <div className="border border-gray-700 rounded-lg p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                           <span className="text-red-600 dark:text-red-400 font-bold text-lg">STOP</span>
                         </div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Opt-Out Processing</h3>
+                        <h3 className="font-semibold text-gray-100">Opt-Out Processing</h3>
                       </div>
-                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <ul className="space-y-2 text-sm text-gray-400">
                         <li>• Immediate opt-out confirmation</li>
                         <li>• Removal from all messaging lists</li>
                         <li>• No future messages sent</li>
                         <li>• Compliance with all regulations</li>
                       </ul>
                     </div>
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                    <div className="border border-gray-700 rounded-lg p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">HELP</span>
                         </div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Support Information</h3>
+                        <h3 className="font-semibold text-gray-100">Support Information</h3>
                       </div>
-                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <ul className="space-y-2 text-sm text-gray-400">
                         <li>• Support contact details</li>
                         <li>• Business information</li>
                         <li>• Opt-out instructions</li>
@@ -264,7 +264,7 @@ export default function CompliancePage() {
                     </div>
                   </div>
                   <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-400">
                       <strong>Automatic Processing:</strong> All STOP and HELP keywords are automatically detected 
                       and processed 24/7 without manual intervention.
                     </p>
@@ -276,13 +276,13 @@ export default function CompliancePage() {
 
           {/* Data Privacy */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   Data Privacy & Security
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed">
                     ReplyFlowHQ maintains enterprise-grade data protection and privacy standards:
                   </p>
                   <div className="mt-6 space-y-4">
@@ -290,7 +290,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Secure data transmission</strong> - All communications encrypted in transit and at rest
                       </p>
                     </div>
@@ -298,7 +298,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>GDPR & CCPA compliant</strong> - Data handling practices meet global privacy standards
                       </p>
                     </div>
@@ -306,7 +306,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Limited data retention</strong> - Only retain data necessary for service delivery
                       </p>
                     </div>
@@ -314,7 +314,7 @@ export default function CompliancePage() {
                       <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Regular security audits</strong> - Ongoing compliance monitoring and updates
                       </p>
                     </div>
@@ -326,13 +326,13 @@ export default function CompliancePage() {
 
           {/* Business Responsibilities */}
           <section>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
                   Business Responsibilities
                 </h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-gray-400 leading-relaxed">
                     While ReplyFlowHQ provides the technology platform, businesses maintain responsibility for:
                   </p>
                   <div className="mt-6 space-y-3">
@@ -340,7 +340,7 @@ export default function CompliancePage() {
                       <div className="flex-shrink-0 w-6 h-6 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mt-0.5">
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Obtaining proper consent</strong> for customer communications
                       </p>
                     </div>
@@ -348,7 +348,7 @@ export default function CompliancePage() {
                       <div className="flex-shrink-0 w-6 h-6 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mt-0.5">
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Compliance with applicable laws</strong> including TCPA, state regulations, and international requirements
                       </p>
                     </div>
@@ -356,7 +356,7 @@ export default function CompliancePage() {
                       <div className="flex-shrink-0 w-6 h-6 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mt-0.5">
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-400">
                         <strong>Maintaining accurate business information</strong> and contact details
                       </p>
                     </div>
@@ -364,7 +364,7 @@ export default function CompliancePage() {
                       <div className="flex-shrink-0 w-6 h-6 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mt-0.5">
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Training staff on proper messaging practices</strong> and compliance procedures
                       </p>
                     </div>

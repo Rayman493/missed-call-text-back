@@ -9,16 +9,16 @@ export const metadata: Metadata = {
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-900">
       <SSRSafeNavbar />
       
       {/* Hero Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-900/30 mb-6">
               <svg
-                className="w-8 h-8 text-blue-600 dark:text-blue-400"
+                className="w-8 h-8 text-blue-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -32,10 +32,10 @@ export default function FAQPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-100 mb-6">
               Frequently Asked Questions
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Everything you need to know about ReplyFlowHQ's conversational missed-call response automation
             </p>
           </div>
@@ -47,18 +47,18 @@ export default function FAQPage() {
         <div className="space-y-12">
           
           {/* What does ReplyFlow do? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 What does ReplyFlowHQ do?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   ReplyFlowHQ provides <strong>conversational missed-call response automation</strong> for businesses. 
                   When a customer calls your business and the call is missed, ReplyFlow automatically sends a 
                   personalized text message to continue the conversation and capture the lead.
                 </p>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed mt-4">
+                <p className="text-gray-400 leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after 
                   an inbound customer initiates contact by calling your business number.
                 </p>
@@ -67,49 +67,49 @@ export default function FAQPage() {
           </div>
 
           {/* How does ReplyFlow work? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 How does ReplyFlowHQ work?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
+              <div className="prose prose-invert max-w-none">
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">1</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-blue-400 font-semibold">1</span>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Customer calls your business</strong> - A customer dials your existing business phone number
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">2</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-blue-400 font-semibold">2</span>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Call is missed</strong> - If the call goes unanswered, ReplyFlow detects the missed call
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">3</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-blue-400 font-semibold">3</span>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Automated response sent</strong> - ReplyFlow sends a personalized text message within seconds
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">4</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-blue-400 font-semibold">4</span>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Conversation continues</strong> - Customer replies appear in your ReplyFlow dashboard for ongoing communication
                       </p>
                     </div>
@@ -120,39 +120,39 @@ export default function FAQPage() {
           </div>
 
           {/* Are these marketing texts? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 Are these marketing texts?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   <strong>No, absolutely not.</strong> ReplyFlowHQ is designed for <strong>conversational customer messaging</strong> only.
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">No cold texting or purchased contact lists</span>
+                    <span className="text-gray-400">No cold texting or purchased contact lists</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Messages only occur after inbound customer calls</span>
+                    <span className="text-gray-400">Messages only occur after inbound customer calls</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Pure conversational customer communication</span>
+                    <span className="text-gray-400">Pure conversational customer communication</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Customer-initiated contact triggers every message</span>
+                    <span className="text-gray-400">Customer-initiated contact triggers every message</span>
                   </div>
                 </div>
               </div>
@@ -160,30 +160,30 @@ export default function FAQPage() {
           </div>
 
           {/* Can customers opt out? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 Can customers opt out?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   <strong>Yes, absolutely.</strong> ReplyFlowHQ supports full compliance with opt-out requirements:
                 </p>
                 <div className="mt-4 space-y-3">
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <p className="font-mono text-sm text-gray-900 dark:text-gray-100 mb-2">STOP</p>
-                    <p className="text-gray-600 dark:text-gray-400">
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <p className="font-mono text-sm text-gray-100 mb-2">STOP</p>
+                    <p className="text-gray-400">
                       Customers can reply "STOP" to immediately opt out of all future messages
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <p className="font-mono text-sm text-gray-900 dark:text-gray-100 mb-2">HELP</p>
-                    <p className="text-gray-600 dark:text-gray-400">
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <p className="font-mono text-sm text-gray-100 mb-2">HELP</p>
+                    <p className="text-gray-400">
                       Customers can reply "HELP" to get support contact information
                     </p>
                   </div>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 mt-4">
+                <p className="text-gray-400 mt-4">
                   All opt-out requests are processed immediately and customers are removed from your messaging list.
                 </p>
               </div>
@@ -191,22 +191,22 @@ export default function FAQPage() {
           </div>
 
           {/* Do I keep my existing business number? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 Do I keep my existing business number?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   <strong>Yes, completely.</strong> Your business keeps its existing public phone number. 
                   ReplyFlow works seamlessly in the background:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Customers continue calling your published business number</span>
+                    <span className="text-gray-400">Customers continue calling your published business number</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -217,7 +217,7 @@ export default function FAQPage() {
                   <div className="flex items-center gap-3">
                     <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                      <path d="M18 8a6 6 0 01-7.743 5.743L10 16l-1.257-2.257A6 6 0 0118 8z" />
                     </svg>
                     <span className="text-gray-600 dark:text-gray-400">ReplyFlow handles the automated text response</span>
                   </div>
