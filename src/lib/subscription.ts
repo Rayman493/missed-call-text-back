@@ -101,24 +101,24 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
 export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string {
   // Check for invalid trial state first
   if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
-    return 'Activate ReplyFlow to start your free trial'
+    return 'Start your free trial to activate ReplyFlow. No charge today.'
   }
   
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
-      return 'Your 14-day free trial is active'
+      return 'Your 14-day free trial is active. Billing starts at $49/month after trial unless canceled.'
     case SUBSCRIPTION_STATES.ACTIVE:
-      return 'Your ReplyFlow subscription is active'
+      return 'Your ReplyFlow subscription is active at $49/month.'
     case SUBSCRIPTION_STATES.PAST_DUE:
       return 'Payment required - update your billing information'
     case SUBSCRIPTION_STATES.CANCELED:
-      return 'Your subscription has been canceled'
+      return 'Subscription inactive. Start or resume your free trial to activate ReplyFlow.'
     case SUBSCRIPTION_STATES.UNPAID:
       return 'Payment required - update your billing information'
     case SUBSCRIPTION_STATES.CANCELING:
       return 'Your subscription is being canceled'
     default:
-      return 'Start your 14-day free trial to activate ReplyFlow'
+      return 'Start your 14-day free trial to activate ReplyFlow. No charge today.'
   }
 }
 
@@ -131,15 +131,23 @@ export function getSubscriptionActionButton(subscriptionStatus: string | null | 
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
     case SUBSCRIPTION_STATES.ACTIVE:
-      return { text: 'Manage Subscription', href: '/dashboard/settings' }
+      return { text: 'Manage Billing', href: '/dashboard/settings' }
     case SUBSCRIPTION_STATES.PAST_DUE:
     case SUBSCRIPTION_STATES.UNPAID:
       return { text: 'Update Payment', href: '/dashboard/settings' }
     case SUBSCRIPTION_STATES.CANCELED:
-      return { text: 'Restart Subscription', href: '/dashboard/settings' }
+      return { text: 'Start Free Trial', href: '/dashboard' }
     default:
       return { text: 'Start 14-Day Free Trial', href: '/dashboard' }
   }
+}
+
+export function getSubscriptionTrustNote(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string | null {
+  // Show trust note for users who haven't completed checkout
+  if (!hasValidSubscription(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+    return 'No charge today. Cancel anytime before your trial ends.'
+  }
+  return null
 }
 
 export function getPricingDisplay(): string {

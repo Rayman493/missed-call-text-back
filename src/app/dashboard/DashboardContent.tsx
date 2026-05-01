@@ -12,12 +12,11 @@ import {
 } from '@/lib/utils'
 import { 
   getSubscriptionStatusText, 
-  isInTrialPeriod, 
+  getSubscriptionStatusDescription,
+  getSubscriptionActionButton,
+  getSubscriptionTrustNote,
   hasValidSubscription,
-  needsUpgrade,
-  getPricingDisplay,
-  getTrialDisplay,
-  SUBSCRIPTION_STATES
+  isInTrialPeriod
 } from '@/lib/subscription'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
@@ -773,10 +772,10 @@ export default function DashboardContent() {
                     <span className="text-xl">🎉</span>
                     <div>
                       <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                        Free trial active — Manage your subscription in Settings.
+                        Free trial active
                       </p>
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        {PRICING_CONFIG.PRICE_DISPLAY} after trial
+                        Billing starts at $49/month after trial unless you cancel.
                       </p>
                     </div>
                   </div>
@@ -785,7 +784,7 @@ export default function DashboardContent() {
                     disabled={isOpeningBilling}
                     className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isOpeningBilling ? 'Opening…' : 'Manage'}
+                    {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
                   </button>
                 </div>
               </div>
@@ -804,6 +803,9 @@ export default function DashboardContent() {
                       <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
                         Activate ReplyFlow to capture missed calls and grow your business
                       </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        No charge today. Cancel anytime before your trial ends.
+                      </p>
                     </div>
                   </div>
                   <button
@@ -811,7 +813,7 @@ export default function DashboardContent() {
                     disabled={checkoutLoading}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {checkoutLoading ? 'Starting…' : 'Start Free Trial'}
+                    {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
                   </button>
                 </div>
               </div>

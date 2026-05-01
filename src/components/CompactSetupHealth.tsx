@@ -5,6 +5,8 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { 
   getSubscriptionStatusText, 
   getSubscriptionStatusDescription,
+  getSubscriptionActionButton,
+  getSubscriptionTrustNote,
   hasValidSubscription,
   hasInvalidTrialState,
   SUBSCRIPTION_STATES 
@@ -135,9 +137,22 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
       description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id),
       status: subscriptionValid ? 'healthy' : 'error',
       details: subscriptionValid 
-        ? (isTrialing ? 'Trial Active' : 'Subscription Active')
+        ? (isTrialing ? 'Free trial active' : 'Subscription active')
         : 'Start your 14-day free trial to activate ReplyFlow'
     })
+
+    // Add trust note for inactive users
+    if (!subscriptionValid) {
+      const trustNote = getSubscriptionTrustNote(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+      if (trustNote) {
+        items.push({
+          title: 'Trial Information',
+          description: trustNote,
+          status: 'healthy',
+          details: 'No charge today. Cancel anytime.'
+        })
+      }
+    }
 
     // 3. Twilio status
     const twilioActive = !!business.twilio_phone_number
