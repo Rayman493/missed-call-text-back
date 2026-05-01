@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups');
-    console.log('[cron] Manual trigger authorized:', secret === expectedSecret);
+    console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
     console.log('[send-followups] Starting follow-up processing')
     
     // Query due follow_up_jobs where: status = 'pending', scheduled_for <= now()
@@ -355,7 +355,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups GET');
-    console.log('[cron] Manual trigger authorized:', secret === expectedSecret);
+    console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
     console.log('[send-followups] GET request - processing follow-ups')
 
     // For GET, also process follow-ups (same logic as POST)

@@ -2,6 +2,33 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { createClient } from '@supabase/supabase-js'
+import { validateInput, messageBodySchema, uuidSchema, phoneNumberSchema } from '@/lib/security/input-validation'
+import { smsRateLimiter } from '@/lib/security/rate-limiter'
+
+// Simple in-memory rate limiter for this API
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+
+function checkRateLimit(req: NextApiRequest): { success: boolean; remaining: number; resetTime: number } {
+  const identifier = req.headers['x-forwarded-for'] as string || req.connection.remoteAddress || 'unknown'
+  const now = Date.now()
+  const windowMs = 60 * 1000 // 1 minute
+  const maxRequests = 10 // 10 SMS per minute
+  
+  let entry = rateLimitStore.get(identifier)
+  
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 1, resetTime: now + windowMs }
+    rateLimitStore.set(identifier, entry)
+    return { success: true, remaining: maxRequests - 1, resetTime: entry.resetTime }
+  }
+  
+  if (entry.count >= maxRequests) {
+    return { success: false, remaining: 0, resetTime: entry.resetTime }
+  }
+  
+  entry.count++
+  return { success: true, remaining: maxRequests - entry.count, resetTime: entry.resetTime }
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -11,6 +38,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     try {
       console.log('[Manual SMS] Send request received')
+
+      // Rate limiting check
+      const rateLimitResult = checkRateLimit(req)
+      if (!rateLimitResult.success) {
+        return res.status(429).json({ 
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+        })
+      }
 
       // Get auth header
       const authHeader = req.headers.authorization
@@ -34,18 +70,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const { leadId, message, clientTempId } = req.body
 
-      if (!leadId || !message) {
-        console.error('[Manual SMS] Missing required fields:', { leadId, hasMessage: !!message })
-        return res.status(400).json(
-          { error: 'leadId and message are required' }
-        )
+      // Input validation
+      const leadValidation = validateInput(uuidSchema, leadId)
+      const messageValidation = validateInput(messageBodySchema, message)
+
+      if (!leadValidation.success) {
+        console.error('[Manual SMS] Invalid lead ID:', leadValidation.details)
+        return res.status(400).json({ 
+          error: 'Invalid lead ID format',
+          details: leadValidation.details 
+        })
       }
 
-      if (typeof message !== 'string' || message.trim().length === 0) {
-        console.error('[Manual SMS] Empty message provided')
-        return res.status(400).json(
-          { error: 'Message cannot be empty' }
-        )
+      if (!messageValidation.success) {
+        console.error('[Manual SMS] Invalid message:', messageValidation.details)
+        return res.status(400).json({ 
+          error: 'Invalid message format',
+          details: messageValidation.details 
+        })
       }
 
       console.log('[Manual SMS] Incoming leadId:', leadId)
