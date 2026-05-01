@@ -29,6 +29,13 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
   console.log('VOICE TEXT:', greetingText); // Add requested VOICE TEXT logging
   
+  // Log production voice selection
+  console.log('VOICE WEBHOOK HIT - PRODUCTION - Voice Selection:', {
+    selectedVoice: voice,
+    businessName: businessNameText,
+    greetingText: greetingText
+  });
+  
   // Add natural pause and return TwiML
   return `
     <Say voice="${voice}" language="en-US">${greetingText}</Say>
@@ -59,6 +66,12 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
   console.log('[Twilio Voice] DEBUG: Generated complete TwiML');
   console.log('[Twilio Voice] DEBUG: Final TwiML:', twiml);
   
+  // Log production final TwiML
+  console.log('VOICE WEBHOOK HIT - PRODUCTION - Final TwiML:', {
+    twimlLength: twiml.length,
+    twimlPreview: twiml.substring(0, 200) + (twiml.length > 200 ? '...' : '')
+  });
+  
   return twiml;
 }
 
@@ -75,7 +88,7 @@ function toE164(phone: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Twilio Voice] Incoming call');
+    console.log('VOICE WEBHOOK HIT - PRODUCTION');
     
     // Create Supabase client for forwarding verification
     const supabase = createClient(
@@ -86,7 +99,10 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     
     // Validate Twilio webhook signature - CRITICAL SECURITY
-    if (!requireTwilioAuth(request, body)) {
+    const twilioAuthValid = requireTwilioAuth(request, body);
+    console.log('Twilio signature validation passed:', twilioAuthValid);
+    
+    if (!twilioAuthValid) {
       console.error('[Twilio Voice] Invalid webhook signature - POSSIBLE ATTACK')
       return new Response('Unauthorized', { status: 401 })
     }
@@ -107,11 +123,13 @@ export async function POST(request: NextRequest) {
     
     const From = params.get('From');
     const To = params.get('To');
+    const CallSid = params.get('CallSid');
     
-    console.log('[Twilio Voice] Call details:', {
+    // Log production call details
+    console.log('VOICE WEBHOOK HIT - PRODUCTION - Call Details:', {
+      CallSid,
       From,
       To,
-      CallSid: params.get('CallSid'),
       CallStatus: params.get('CallStatus'),
       Direction: params.get('Direction')
     });
@@ -164,6 +182,14 @@ export async function POST(request: NextRequest) {
     console.log(`[Twilio Voice] Business found: ${business.name} (ID: ${business.id})`);
     console.log('[Twilio Voice] Voice forwarding number for business:', business.twilio_phone_number);
     console.log('[Twilio Voice] Business phone number (customer-facing):', business.business_phone_number);
+    
+    // Log production business resolution
+    console.log('VOICE WEBHOOK HIT - PRODUCTION - Business Resolved:', {
+      businessId: business.id,
+      businessName: business.name,
+      twilioPhone: business.twilio_phone_number,
+      businessPhone: business.business_phone_number
+    });
 
     // Mark forwarding as verified if this is the first successful forwarded call
     if (!business.forwarding_verified) {
