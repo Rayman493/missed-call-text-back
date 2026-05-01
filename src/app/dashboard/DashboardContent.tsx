@@ -13,6 +13,7 @@ import {
 import { 
   getSubscriptionStatusText, 
   isInTrialPeriod, 
+  hasValidSubscription,
   needsUpgrade,
   getPricingDisplay,
   getTrialDisplay,
@@ -258,13 +259,14 @@ export default function DashboardContent() {
           })
           
           // Check if subscription is now active
-          const isActive = freshBusiness?.subscription_status === 'active' || freshBusiness?.subscription_status === 'trialing'
-          const hasCustomerId = !!freshBusiness?.stripe_customer_id
+          const isActive = hasValidSubscription(freshBusiness?.subscription_status, freshBusiness?.stripe_customer_id, freshBusiness?.stripe_subscription_id)
           
           console.log('[Dashboard] Subscription active confirmed:', isActive)
-          console.log('[Dashboard] Stripe customer ID exists:', hasCustomerId)
+          console.log('[Dashboard] Subscription status:', freshBusiness?.subscription_status)
+          console.log('[Dashboard] Stripe customer ID exists:', !!freshBusiness?.stripe_customer_id)
+          console.log('[Dashboard] Stripe subscription ID exists:', !!freshBusiness?.stripe_subscription_id)
 
-          if (isActive && hasCustomerId) {
+          if (isActive) {
             console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
             setWebhookConfirming(false)
             // Remove checkout=success from URL
@@ -286,7 +288,7 @@ export default function DashboardContent() {
   }, [checkoutStatus, refreshBusiness, supabase, router, business])
 
   // Only calculate isActive after business loading is complete
-  const isActive = !businessLoading && (business?.subscription_status === 'active' || business?.subscription_status === 'trialing')
+  const isActive = !businessLoading && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
 
   console.log('[Dashboard] Business loading:', businessLoading)
   console.log('[Dashboard] Business subscription status:', business?.subscription_status)

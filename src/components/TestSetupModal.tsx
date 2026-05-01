@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
-import { isActiveSubscription } from '@/lib/subscription'
+import { hasValidSubscription } from '@/lib/subscription'
 
 interface TestSetupModalProps {
   isOpen: boolean
@@ -37,18 +37,18 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
         : 'No Twilio number assigned'
     })
 
-    // SMS Configured
-    const smsWorking = business.twilio_phone_number && isActiveSubscription(business.subscription_status)
+    // SMS Working
+    const smsWorking = business.twilio_phone_number && hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     items.push({
-      label: 'SMS Configured',
-      status: smsWorking ? 'healthy' : 'warning',
+      label: 'SMS Working',
+      status: smsWorking ? 'healthy' : 'error',
       details: smsWorking 
         ? 'SMS service is ready' 
         : 'Not configured yet'
     })
 
     // Subscription Active
-    const subscriptionActive = isActiveSubscription(business.subscription_status)
+    const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     items.push({
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',

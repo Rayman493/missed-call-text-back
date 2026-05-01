@@ -38,7 +38,30 @@ export function isInTrialPeriod(subscriptionStatus: string | null | undefined): 
 }
 
 export function isActiveSubscription(subscriptionStatus: string | null | undefined): boolean {
+  // A subscription is only active if:
+  // 1. subscription_status is 'active' or 'trialing' AND
+  // 2. This would be checked with stripe_subscription_id in the business context
+  // For now, just check the status - the stripe_subscription_id check should be done at the component level
   return subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
+}
+
+export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
+  // A business has a valid subscription only if:
+  // 1. subscription_status is 'active' or 'trialing' AND
+  // 2. stripe_subscription_id exists (meaning they've completed checkout)
+  const statusValid = subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
+  const hasSubscriptionId = !!stripeSubscriptionId
+  
+  console.log('[Subscription] hasValidSubscription check:', {
+    subscriptionStatus,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    statusValid,
+    hasSubscriptionId,
+    result: statusValid && hasSubscriptionId
+  })
+  
+  return statusValid && hasSubscriptionId
 }
 
 export function needsUpgrade(subscriptionStatus: string | null | undefined): boolean {
