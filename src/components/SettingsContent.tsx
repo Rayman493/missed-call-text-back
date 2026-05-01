@@ -64,15 +64,15 @@ export default function SettingsContent() {
     onSaveBusiness: async (businessData) => {
       // Extract automation settings from form data
       const automationSettings = {
-        spamRepeatFilteringEnabled: businessData.smart_filtering_enabled || false,
-        ignoreRepeatCalls: businessData.repeat_call_protection_enabled || false,
+        spamRepeatFilteringEnabled: getAutomationSettings().spamRepeatFilteringEnabled || false,
+        ignoreRepeatCalls: getAutomationSettings().ignoreRepeatCalls || false,
         repeatCallWindowMinutes: 15, // Default 15 minutes
         ignoreBlockedPrivateNumbers: getAutomationSettings().ignoreBlockedPrivateNumbers || false,
-        ignoreSuspectedSpamCallers: businessData.spam_detection_enabled || false,
+        ignoreSuspectedSpamCallers: getAutomationSettings().ignoreSuspectedSpamCallers || false,
         blockedNumbers: getAutomationSettings().blockedNumbers || []
       }
 
-      // Only save fields that exist in the database schema
+      // Only save real business columns that exist in the database schema
       const { error } = await supabase
         .from('businesses')
         .update({
@@ -84,11 +84,6 @@ export default function SettingsContent() {
           business_hours_start: businessData.business_hours_start,
           business_hours_end: businessData.business_hours_end,
           business_hours_timezone: businessData.business_hours_timezone,
-          smart_filtering_enabled: businessData.smart_filtering_enabled,
-          only_text_unknown_callers: businessData.only_text_unknown_callers,
-          repeat_call_protection_enabled: businessData.repeat_call_protection_enabled,
-          repeat_call_cooldown_hours: businessData.repeat_call_cooldown_hours,
-          spam_detection_enabled: businessData.spam_detection_enabled,
           after_hours_message: businessData.after_hours_message,
           automation_settings: automationSettings
         })
@@ -138,22 +133,6 @@ export default function SettingsContent() {
     const updatedBusiness = {
       ...formBusiness,
       automation_settings: updatedSettings
-    }
-    
-    // Also update the corresponding form fields for backward compatibility
-    switch (key) {
-      case 'spamRepeatFilteringEnabled':
-        updatedBusiness.smart_filtering_enabled = value
-        break
-      case 'ignoreRepeatCalls':
-        updatedBusiness.repeat_call_protection_enabled = value
-        break
-      case 'ignoreSuspectedSpamCallers':
-        updatedBusiness.spam_detection_enabled = value
-        break
-      case 'blockedNumbers':
-        // Convert array to string for textarea
-        break
     }
     
     updateBusiness(updatedBusiness)
@@ -385,7 +364,7 @@ export default function SettingsContent() {
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-3">
                           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
-                          {formBusiness.smart_filtering_enabled && (
+                          {getAutomationSettings().spamRepeatFilteringEnabled && (
                             <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
                               Active
                             </span>
@@ -399,22 +378,22 @@ export default function SettingsContent() {
                         </div>
                       </div>
                       <button
-                        onClick={() => updateBusiness({ smart_filtering_enabled: !formBusiness.smart_filtering_enabled })}
+                        onClick={() => updateAutomationSetting('spamRepeatFilteringEnabled', !getAutomationSettings().spamRepeatFilteringEnabled)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          getAutomationSettings().spamRepeatFilteringEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         }`}
-                        aria-label={formBusiness.smart_filtering_enabled ? 'Disable spam filtering' : 'Enable spam filtering'}
+                        aria-label={getAutomationSettings().spamRepeatFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            formBusiness.smart_filtering_enabled ? 'translate-x-6' : 'translate-x-1'
+                            getAutomationSettings().spamRepeatFilteringEnabled ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
                       </button>
                     </div>
 
                     {/* Filtering Options - Only show when enabled */}
-                    {formBusiness.smart_filtering_enabled && (
+                    {getAutomationSettings().spamRepeatFilteringEnabled && (
                       <div className="space-y-6 border-t border-gray-200 dark:border-gray-600 pt-6">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -433,15 +412,15 @@ export default function SettingsContent() {
                             </div>
                           </div>
                           <button
-                            onClick={() => updateBusiness({ repeat_call_protection_enabled: !formBusiness.repeat_call_protection_enabled })}
+                            onClick={() => updateAutomationSetting('ignoreRepeatCalls', !getAutomationSettings().ignoreRepeatCalls)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              formBusiness.repeat_call_protection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                              getAutomationSettings().ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
-                            aria-label={formBusiness.repeat_call_protection_enabled ? 'Disable repeat call protection' : 'Enable repeat call protection'}
+                            aria-label={getAutomationSettings().ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                formBusiness.repeat_call_protection_enabled ? 'translate-x-5' : 'translate-x-1'
+                                getAutomationSettings().ignoreRepeatCalls ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -489,15 +468,15 @@ export default function SettingsContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => updateBusiness({ spam_detection_enabled: !formBusiness.spam_detection_enabled })}
+                            onClick={() => updateAutomationSetting('ignoreSuspectedSpamCallers', !getAutomationSettings().ignoreSuspectedSpamCallers)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              formBusiness.spam_detection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                              getAutomationSettings().ignoreSuspectedSpamCallers ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
-                            aria-label={formBusiness.spam_detection_enabled ? 'Disable spam detection' : 'Enable spam detection'}
+                            aria-label={getAutomationSettings().ignoreSuspectedSpamCallers ? 'Disable spam detection' : 'Enable spam detection'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                formBusiness.spam_detection_enabled ? 'translate-x-5' : 'translate-x-1'
+                                getAutomationSettings().ignoreSuspectedSpamCallers ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -573,13 +552,13 @@ export default function SettingsContent() {
                       <div>
                         <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">Automation Status</h4>
                         <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                          {formBusiness.smart_filtering_enabled && (
+                          {getAutomationSettings().spamRepeatFilteringEnabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                               <span>Spam & repeat call filtering active</span>
                             </div>
                           )}
-                          {formBusiness.repeat_call_protection_enabled && (
+                          {getAutomationSettings().ignoreRepeatCalls && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                               <span>Repeat-call protection enabled</span>
@@ -591,7 +570,7 @@ export default function SettingsContent() {
                               <span>Private callers blocked</span>
                             </div>
                           )}
-                          {formBusiness.spam_detection_enabled && (
+                          {getAutomationSettings().ignoreSuspectedSpamCallers && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                               <span>Spam detection active</span>
@@ -603,7 +582,7 @@ export default function SettingsContent() {
                               <span>Business hours enforced</span>
                             </div>
                           )}
-                          {!formBusiness.smart_filtering_enabled && !formBusiness.business_hours_enabled && (
+                          {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
                               <span>Automation features are disabled</span>
