@@ -48,8 +48,10 @@ export function isActiveSubscription(subscriptionStatus: string | null | undefin
 export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
   // A business has a valid subscription only if:
   // 1. subscription_status is 'active' or 'trialing' AND
-  // 2. stripe_subscription_id exists (meaning they've completed checkout)
+  // 2. stripe_customer_id exists (meaning they've completed checkout) AND
+  // 3. stripe_subscription_id exists (meaning they have an active subscription)
   const statusValid = subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
+  const hasCustomerId = !!stripeCustomerId
   const hasSubscriptionId = !!stripeSubscriptionId
   
   console.log('[Subscription] hasValidSubscription check:', {
@@ -57,11 +59,17 @@ export function hasValidSubscription(subscriptionStatus: string | null | undefin
     stripeCustomerId,
     stripeSubscriptionId,
     statusValid,
+    hasCustomerId,
     hasSubscriptionId,
-    result: statusValid && hasSubscriptionId
+    result: statusValid && hasCustomerId && hasSubscriptionId
   })
   
-  return statusValid && hasSubscriptionId
+  return statusValid && hasCustomerId && hasSubscriptionId
+}
+
+export function hasInvalidTrialState(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
+  // Returns true if subscription_status is 'trialing' but Stripe IDs are missing (invalid state)
+  return subscriptionStatus === SUBSCRIPTION_STATES.TRIALING && (!stripeCustomerId || !stripeSubscriptionId)
 }
 
 export function needsUpgrade(subscriptionStatus: string | null | undefined): boolean {
@@ -90,7 +98,12 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
   }
 }
 
-export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined): string {
+export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string {
+  // Check for invalid trial state first
+  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+    return 'Complete subscription setup to start your trial'
+  }
+  
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
       return 'Your 14-day free trial is active'
@@ -109,7 +122,12 @@ export function getSubscriptionStatusDescription(subscriptionStatus: string | nu
   }
 }
 
-export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined): { text: string; href: string } {
+export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): { text: string; href: string } {
+  // Check for invalid trial state first
+  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+    return { text: 'Complete Free Trial', href: '/dashboard' }
+  }
+  
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
     case SUBSCRIPTION_STATES.ACTIVE:

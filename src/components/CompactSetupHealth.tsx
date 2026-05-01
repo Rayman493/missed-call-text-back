@@ -6,6 +6,7 @@ import {
   getSubscriptionStatusText, 
   getSubscriptionStatusDescription,
   hasValidSubscription,
+  hasInvalidTrialState,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
 import TestSetupModal from './TestSetupModal'
@@ -40,7 +41,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                            business.call_forwarding_enabled &&
                            business.forwarding_verified
     
-    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const twilioHealthy = !!business.twilio_phone_number
     const smsWorking = twilioHealthy && subscriptionValid
     
@@ -124,17 +125,18 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     })
 
     // 2. Subscription status
-    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
-    const isTrialing = business.subscription_status === "trialing"
-    const isActive = business.subscription_status === "active"
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
+    const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
     
     items.push({
       title: 'Subscription Status',
-      description: getSubscriptionStatusDescription(business.subscription_status),
+      description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id),
       status: subscriptionValid ? 'healthy' : 'error',
       details: subscriptionValid 
         ? (isTrialing ? 'Trial Active' : 'Subscription Active')
-        : 'Start your 14-day free trial to activate ReplyFlow'
+        : (hasInvalidTrial ? 'Complete Free Trial' : 'Start your 14-day free trial to activate ReplyFlow')
     })
 
     // 3. Twilio status
@@ -206,7 +208,8 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const forwardingNotConfigured = !business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled
     
     // Check subscription status
-    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const subscriptionInactive = !subscriptionValid
     
     // Check SMS status

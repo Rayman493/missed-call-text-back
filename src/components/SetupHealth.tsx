@@ -8,6 +8,7 @@ import {
   getSubscriptionStatusText, 
   getSubscriptionStatusDescription,
   hasValidSubscription,
+  hasInvalidTrialState,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
 import TestCallFlowModal from './TestCallFlowModal'
@@ -109,17 +110,18 @@ export default function SetupHealth() {
   })
 
   // 2. Subscription active
-  const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
-  const isTrialing = business.subscription_status === "trialing"
-  const isActive = business.subscription_status === "active"
+  const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+  const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+  const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
+  const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
   
   healthItems.push({
     title: 'Subscription Status',
-    description: getSubscriptionStatusDescription(business.subscription_status),
+    description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id),
     status: subscriptionValid ? 'healthy' : 'error',
     details: subscriptionValid 
       ? (isTrialing ? 'Trial Active' : 'Subscription Active')
-      : 'Start your 14-day free trial to activate ReplyFlow'
+      : (hasInvalidTrial ? 'Complete Free Trial' : 'Start your 14-day free trial to activate ReplyFlow')
   })
 
   // 3. Twilio active
