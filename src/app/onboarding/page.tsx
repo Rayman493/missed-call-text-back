@@ -302,7 +302,7 @@ export default function OnboardingPage() {
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-6 sm:p-8">
           <p className="text-xs text-gray-400 mb-2">Step 1 of 3</p>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-sm text-gray-400 mb-4">Let's set up automatic missed-call texting</p>
+          <p className="text-sm text-gray-400 mb-4">Never miss a customer again - we'll text back when you can't answer</p>
           
           {/* Pricing Information */}
           <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 mb-6">
@@ -323,8 +323,8 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">How ReplyFlow Works</p>
-                <p className="text-xs text-blue-300 leading-relaxed">Customers call your normal number. When you miss a call, we automatically text them back.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">How It Works</p>
+                <p className="text-xs text-blue-300 leading-relaxed">Customer calls your business → You can't answer → ReplyFlow texts them back automatically → You get the lead</p>
               </div>
             </div>
           </div>
@@ -368,13 +368,13 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-2 text-xs text-gray-400">
-                The number your customers call.
+                The phone number your customers already call
               </p>
             </div>
 
             <div>
               <label htmlFor="demoPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                Mobile Number for Demo
+                Your Mobile Number (for demo)
               </label>
               <input
                 id="demoPhone"
@@ -385,7 +385,7 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-2 text-xs text-gray-400">
-                We'll send a demo missed-call text to this number.
+                We'll send you a demo text so you can see how it works
               </p>
             </div>
 
@@ -394,9 +394,9 @@ export default function OnboardingPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base font-medium"
             >
-              {loading ? 'Setting up your business...' : 'Continue to Step 2'}
+              {loading ? 'Setting up your business...' : 'Continue Setup'}
             </button>
-            <p className="text-sm text-gray-400 text-center mt-3">Setup takes only a few minutes</p>
+            <p className="text-sm text-gray-400 text-center mt-3">Takes less than 5 minutes to complete</p>
 
             <div className="mt-6 pt-6 border-t border-gray-700">
               <button
@@ -405,10 +405,10 @@ export default function OnboardingPage() {
                 disabled={sendingDemo || !demoPhone}
                 className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
               >
-                {sendingDemo ? 'Sending...' : demoSuccess ? 'Send Demo Text Again' : 'Send Demo Text'}
+                {sendingDemo ? 'Sending...' : demoSuccess ? 'Send Another Demo' : 'Try Demo Now'}
               </button>
               <p className="text-xs text-gray-400 text-center mt-2">
-                Send a demo text to experience ReplyFlow instantly
+                See exactly how ReplyFlow works for your business
               </p>
             </div>
 
@@ -421,7 +421,7 @@ export default function OnboardingPage() {
                   This is exactly what your customers will receive when you miss a call.
                 </p>
                 <p className="text-xs text-green-300 mt-2">
-                  Next step: enable missed-call forwarding to automate this for real callers.
+                  Next: Set up call forwarding so this happens automatically for real customers.
                 </p>
                 {demoWarning && (
                   <p className="text-xs text-yellow-300 mt-2">
@@ -434,24 +434,27 @@ export default function OnboardingPage() {
 
           {/* Live Preview Section */}
           <div className="mt-8 pt-6 border-t border-gray-700">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Preview of what your customers will receive</h3>
+            <h3 className="text-sm font-medium text-gray-300 mb-3">See what your customers will receive</h3>
             <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
               <p className="text-sm text-gray-200">
                 "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
               </p>
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              This message goes out automatically when you miss a call
+            </p>
           </div>
 
           {/* Trust Messaging */}
           <div className="mt-6 space-y-3">
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Customers continue calling your normal business number
+              ✓ Your customers keep calling your existing number
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ ReplyFlow works behind the scenes automatically
+              ✓ ReplyFlow works automatically in the background
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Setup usually takes only a few minutes
+              ✓ You capture every missed call as a new lead
             </p>
           </div>
         </div>

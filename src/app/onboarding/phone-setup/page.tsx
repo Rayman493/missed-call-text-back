@@ -250,10 +250,10 @@ function PhoneSetupContent() {
           {/* Page title and subtitle */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-3">
-              Connect Your Business Number
+              Set Up Call Forwarding
             </h1>
             <p className="text-sm sm:text-base text-gray-400">
-              Keep your existing number. ReplyFlow only activates when you miss a call.
+              Keep your existing number. We'll only text back when you can't answer.
             </p>
           </div>
 
@@ -267,7 +267,7 @@ function PhoneSetupContent() {
           {/* Step 1: Business phone number */}
           <div className="mb-6">
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300 mb-2">
-              Business Phone Number
+              Your Business Phone Number
             </label>
             <input
               id="phoneNumber"
@@ -278,7 +278,7 @@ function PhoneSetupContent() {
               className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
             />
             <p className="text-xs text-gray-500 mt-2">
-              The number your customers call to reach your business
+              The phone number your customers already call
             </p>
           </div>
 
@@ -311,7 +311,7 @@ function PhoneSetupContent() {
             disabled={isSaving || !phoneNumber || !carrier}
             className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSaving ? 'Saving...' : 'I Enabled Call Forwarding'}
+            {isSaving ? 'Saving...' : 'Call Forwarding is Set Up'}
           </button>
         </div>
 
@@ -332,8 +332,8 @@ function PhoneSetupContent() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-200">Your phone still rings normally</p>
-                <p className="text-xs text-gray-400">You answer calls as usual</p>
+                <p className="text-sm font-medium text-gray-200">Your phone rings normally</p>
+                <p className="text-xs text-gray-400">You answer calls just like you do now</p>
               </div>
             </div>
             
@@ -344,8 +344,8 @@ function PhoneSetupContent() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-200">ReplyFlow only activates if you miss the call</p>
-                <p className="text-xs text-gray-400">Automatic text response sent when you can't answer</p>
+                <p className="text-sm font-medium text-gray-200">Only when you miss a call</p>
+                <p className="text-xs text-gray-400">ReplyFlow automatically texts them back</p>
               </div>
             </div>
             
@@ -356,8 +356,8 @@ function PhoneSetupContent() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-200">Customers continue calling your existing number</p>
-                <p className="text-xs text-gray-400">No need to change your business cards or marketing</p>
+                <p className="text-sm font-medium text-gray-200">You get the customer</p>
+                <p className="text-xs text-gray-400">Every missed call becomes a new lead</p>
               </div>
             </div>
           </div>
