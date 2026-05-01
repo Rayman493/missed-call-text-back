@@ -263,7 +263,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowTestModal(true)}
-              className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors"
+              className="px-2 py-1 bg-green-100 hover:bg-green-200 dark:bg-green-600 dark:hover:bg-green-700 text-green-900 dark:text-white text-xs font-medium rounded transition-colors"
             >
               Test
             </button>
@@ -407,7 +407,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               )}
               <button
                 onClick={() => setShowTestModal(true)}
-                className={`${primaryAction ? 'flex-1' : 'w-full'} px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors`}
+                className={`${primaryAction ? 'flex-1' : 'w-full'} px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors`}
               >
                 Test Setup
               </button>
