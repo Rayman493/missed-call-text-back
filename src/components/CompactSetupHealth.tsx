@@ -131,12 +131,12 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
     
     items.push({
-      title: 'Subscription Status',
+      title: subscriptionValid ? 'Subscription Status' : 'Subscription Required',
       description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id),
       status: subscriptionValid ? 'healthy' : 'error',
       details: subscriptionValid 
         ? (isTrialing ? 'Trial Active' : 'Subscription Active')
-        : (hasInvalidTrial ? 'Complete Free Trial' : 'Start your 14-day free trial to activate ReplyFlow')
+        : 'Start your 14-day free trial to activate ReplyFlow'
     })
 
     // 3. Twilio status

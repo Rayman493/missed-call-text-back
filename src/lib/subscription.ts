@@ -101,7 +101,7 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
 export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string {
   // Check for invalid trial state first
   if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
-    return 'Complete subscription setup to start your trial'
+    return 'Activate ReplyFlow to start your free trial'
   }
   
   switch (subscriptionStatus) {
@@ -125,7 +125,7 @@ export function getSubscriptionStatusDescription(subscriptionStatus: string | nu
 export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): { text: string; href: string } {
   // Check for invalid trial state first
   if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
-    return { text: 'Complete Free Trial', href: '/dashboard' }
+    return { text: 'Start 14-Day Free Trial', href: '/dashboard' }
   }
   
   switch (subscriptionStatus) {
@@ -138,7 +138,7 @@ export function getSubscriptionActionButton(subscriptionStatus: string | null | 
     case SUBSCRIPTION_STATES.CANCELED:
       return { text: 'Restart Subscription', href: '/dashboard/settings' }
     default:
-      return { text: 'Start Free Trial', href: '/dashboard' }
+      return { text: 'Start 14-Day Free Trial', href: '/dashboard' }
   }
 }
 

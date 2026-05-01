@@ -57,8 +57,8 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',
       details: subscriptionActive 
-        ? getSubscriptionStatusDescription(business.subscription_status)
-        : 'No active subscription'
+        ? getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+        : 'Start your 14-day free trial to activate ReplyFlow'
     })
 
     // Forwarding Verified

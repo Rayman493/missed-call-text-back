@@ -791,27 +791,27 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Canceled/Incomplete Warning - Medium Priority */}
-            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'incomplete' || !business?.subscription_status) && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
+            {/* Inactive Subscription - Primary CTA for New Users */}
+            {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">⚠️</span>
+                    <span className="text-2xl">🚀</span>
                     <div>
-                      <p className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100">
-                        {getSubscriptionStatusText(business?.subscription_status)} Subscription
+                      <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
+                        Start your 14-day free trial
                       </p>
-                      <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        {!business?.subscription_status ? 'No subscription found' : 'Upgrade for ' + PRICING_CONFIG.PRICE_DISPLAY + ' to continue using ReplyFlow'}
+                      <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                        Activate ReplyFlow to capture missed calls and grow your business
                       </p>
                     </div>
                   </div>
                   <button
-                    onClick={handleManageSubscription}
-                    disabled={isOpeningBilling}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleStartSubscription}
+                    disabled={checkoutLoading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isOpeningBilling ? 'Opening…' : 'Manage Subscription'}
+                    {checkoutLoading ? 'Starting…' : 'Start Free Trial'}
                   </button>
                 </div>
               </div>
