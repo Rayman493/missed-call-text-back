@@ -53,13 +53,13 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-white">Test Your Missed-Call Flow</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Test Your Missed-Call Flow</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -69,19 +69,19 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
 
           <div className="space-y-6">
             {/* Business Details */}
-            <div className="bg-gray-700/50 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Your Business Details</h3>
+            <div className="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Your Business Details</h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Business Phone:</span>
-                  <span className="text-white font-mono">{business.business_phone_number || 'Not set'}</span>
+                  <span className="text-gray-600 dark:text-gray-300">Business Phone:</span>
+                  <span className="text-gray-900 dark:text-white font-mono">{business.business_phone_number || 'Not set'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">ReplyFlow Number:</span>
-                  <span className="text-white font-mono">{business.twilio_phone_number || 'Not assigned'}</span>
+                  <span className="text-gray-600 dark:text-gray-300">ReplyFlow Number:</span>
+                  <span className="text-gray-900 dark:text-white font-mono">{business.twilio_phone_number || 'Not assigned'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Forwarding Status:</span>
+                  <span className="text-gray-600 dark:text-gray-300">Forwarding Status:</span>
                   <span className={`font-medium ${getForwardingStatusColor()}`}>
                     {getForwardingStatusText()}
                   </span>
@@ -91,8 +91,8 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
 
             {/* Test Instructions */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Test Instructions</h3>
-              <ol className="space-y-3 text-gray-300">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Test Instructions</h3>
+              <ol className="space-y-3 text-gray-600 dark:text-gray-300">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
                   <span>Have someone call your business phone number.</span>
