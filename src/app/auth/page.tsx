@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SetupError from '@/components/SetupError'
+import Footer from '@/components/Footer'
 
 const supabase = createBrowserClient()
 
@@ -208,6 +209,7 @@ function AuthContent() {
           </button>
         </p>
       </div>
+      <Footer />
     </div>
   )
 }

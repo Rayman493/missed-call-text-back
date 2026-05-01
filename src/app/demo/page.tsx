@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
+import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: 'ReplyFlow Demo',
@@ -71,6 +72,7 @@ export default function DemoPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

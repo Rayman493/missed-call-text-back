@@ -37,6 +37,7 @@ import CompactSetupHealth from '@/components/CompactSetupHealth'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
+import Footer from '@/components/Footer'
 
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
@@ -212,9 +213,9 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center gap-4">
@@ -235,7 +236,7 @@ export default function LeadsPage() {
           <MobileMenu />
 
           {/* Main Content */}
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -486,7 +487,8 @@ export default function LeadsPage() {
               </div>
             )}
           </main>
-        </div>
+        <Footer />
+      </div>
       </BusinessGuard>
     </AuthGuard>
   )

@@ -185,9 +185,9 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
             {/* Header */}
-            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                   <BackToDashboard />
@@ -203,7 +203,7 @@ export default function SettingsContent() {
             <MobileMenu />
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   Settings

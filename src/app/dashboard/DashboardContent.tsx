@@ -34,6 +34,7 @@ import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import CompactSetupHealth from '@/components/CompactSetupHealth'
+import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -661,9 +662,9 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -707,7 +708,7 @@ export default function DashboardContent() {
           </header>
 
           {/* Main Content */}
-          <div className="p-4 sm:p-8">
+          <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
             <div className="max-w-5xl mx-auto flex flex-col gap-8">
                         
             {/* Billing Error */}
@@ -1028,6 +1029,7 @@ export default function DashboardContent() {
           </div>
         </div>
       </div>
+      <Footer />
       </BusinessGuard>
     </AuthGuard>
   )

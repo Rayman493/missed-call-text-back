@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
 import { normalizeForCarrier, formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
+import Footer from '@/components/Footer'
 
 const supabase = createBrowserClient()
 
@@ -381,7 +382,10 @@ function PhoneSetupContent() {
 export default function PhoneSetupPage() {
   return (
     <BusinessProvider>
-      <PhoneSetupContent />
+      <div>
+        <PhoneSetupContent />
+        <Footer />
+      </div>
     </BusinessProvider>
   )
 }

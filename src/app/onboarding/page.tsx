@@ -8,6 +8,7 @@ import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/s
 import { useSearchParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
+import Footer from '@/components/Footer'
 import { useBusiness } from '@/contexts/BusinessContext'
 
 const supabase = createBrowserClient()
@@ -455,6 +456,7 @@ export default function OnboardingPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </AuthGuard>
   )
 }
