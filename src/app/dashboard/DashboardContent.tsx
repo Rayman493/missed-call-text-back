@@ -736,17 +736,44 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Trial Banner */}
-            {isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
+            {/* Subscription Alerts - Only show when action needed */}
+            {/* Payment Issue Warning - High Priority */}
+            {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🎉</span>
+                    <span className="text-2xl">⚠️</span>
                     <div>
-                      <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
-                        Your {PRICING_CONFIG.TRIAL_DISPLAY} is active
+                      <p className="text-sm sm:text-base font-semibold text-red-900 dark:text-red-100">
+                        Payment issue — update billing to keep ReplyFlow active
                       </p>
-                      <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                      <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">
+                        {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={isOpeningBilling}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isOpeningBilling ? 'Opening…' : 'Update Billing'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Trial Banner - Lower Priority */}
+            {isInTrialPeriod(business?.subscription_status) && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🎉</span>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        Free trial active — Manage your subscription in Settings.
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
                         {PRICING_CONFIG.PRICE_DISPLAY} after trial
                       </p>
                     </div>
@@ -754,16 +781,16 @@ export default function DashboardContent() {
                   <button
                     onClick={handleManageSubscription}
                     disabled={isOpeningBilling}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isOpeningBilling ? 'Opening…' : 'Manage Subscription'}
+                    {isOpeningBilling ? 'Opening…' : 'Manage'}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Trial Expired Warning - Show when subscription is past_due or canceled */}
-            {(business?.subscription_status === 'past_due' || business?.subscription_status === 'canceled') && (
+            {/* Canceled/Incomplete Warning - Medium Priority */}
+            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'incomplete' || !business?.subscription_status) && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -773,7 +800,7 @@ export default function DashboardContent() {
                         {getSubscriptionStatusText(business?.subscription_status)} Subscription
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for {PRICING_CONFIG.PRICE_DISPLAY} to continue using ReplyFlow
+                        {!business?.subscription_status ? 'No subscription found' : 'Upgrade for ' + PRICING_CONFIG.PRICE_DISPLAY + ' to continue using ReplyFlow'}
                       </p>
                     </div>
                   </div>
