@@ -7,6 +7,49 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 
+// Helper to generate conversational voice greeting with Amazon Polly voice
+function generateVoiceGreeting(businessName?: string): string {
+  // Use Amazon Polly Joanna voice for warm, conversational tone
+  const voice = "Polly.Joanna";
+  
+  // Create conversational script
+  const businessNameText = businessName && businessName.trim() !== '' ? businessName : undefined;
+  let greetingText: string;
+  
+  if (businessNameText) {
+    greetingText = `Hey, thanks for calling ${businessNameText}. Sorry we missed your call — we'll send you a quick text message shortly.`;
+  } else {
+    greetingText = "Hey, thanks for calling. Sorry we missed your call — we'll send you a quick text message shortly.";
+  }
+  
+  // Add natural pause and return TwiML
+  return `
+    <Say voice="${voice}" language="en-US">${greetingText}</Say>
+    <Pause length="1"/>
+  `;
+}
+
+// Helper to generate complete TwiML response with fallback structure
+function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean = false): string {
+  let voiceContent: string;
+  
+  // Future-ready structure for custom audio greetings
+  if (hasCustomGreeting) {
+    // TODO: Implement custom audio greeting support
+    // voiceContent = `<Play>${customGreetingUrl}</Play>`;
+    voiceContent = generateVoiceGreeting(businessName); // Fallback to generated for now
+  } else {
+    voiceContent = generateVoiceGreeting(businessName);
+  }
+  
+  return `
+<Response>
+  ${voiceContent}
+  <Hangup/>
+</Response>
+`.trim();
+}
+
 // Helper to convert normalized 10-digit US number to E.164 format
 function toE164(phone: string): string {
   const normalized = normalizePhoneNumber(phone);
@@ -64,13 +107,7 @@ export async function POST(request: NextRequest) {
     if (!From || !To) {
       console.error('[Twilio Voice] Missing required fields:', { From, To });
       
-      const twiml = `
-<Response>
-  <Say voice="alice">Sorry, we missed your call. We will text you shortly.</Say>
-  <Pause length="1"/>
-  <Hangup/>
-</Response>
-`;
+      const twiml = generateTwiMLResponse();
 
       console.log('[Twilio Voice] Returning fallback TwiML for missing fields');
       return new NextResponse(twiml, {
@@ -96,13 +133,7 @@ export async function POST(request: NextRequest) {
     if (!result || !result.business) {
       console.log('[Twilio Voice] No business found for number:', normalizedTo);
       
-      const twiml = `
-<Response>
-  <Say voice="alice">Sorry, we missed your call. We will text you shortly.</Say>
-  <Pause length="1"/>
-  <Hangup/>
-</Response>
-`;
+      const twiml = generateTwiMLResponse();
 
       console.log('[Twilio Voice] Returning fallback TwiML for no business found');
       return new NextResponse(twiml, {
@@ -379,13 +410,7 @@ export async function POST(request: NextRequest) {
     
     console.log('[Twilio Voice] Voice webhook processed successfully');
     
-    const twiml = `
-<Response>
-  <Say voice="alice">Sorry, we missed your call. We will text you shortly.</Say>
-  <Pause length="1"/>
-  <Hangup/>
-</Response>
-`;
+    const twiml = generateTwiMLResponse(business.name);
 
     console.log('[Twilio Voice] Generated final TwiML response');
     return new NextResponse(twiml, {
@@ -395,13 +420,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Twilio Voice] Failed:', error);
     
-    const twiml = `
-<Response>
-  <Say voice="alice">Sorry, we missed your call. We will text you shortly.</Say>
-  <Pause length="1"/>
-  <Hangup/>
-</Response>
-`;
+    const twiml = generateTwiMLResponse();
 
     console.log('[Twilio Voice] Returning fallback TwiML due to error');
     return new NextResponse(twiml, {
