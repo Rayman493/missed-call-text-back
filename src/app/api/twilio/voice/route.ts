@@ -115,6 +115,8 @@ export async function POST(request: NextRequest) {
     
     const business = result.business;
     console.log(`[Twilio Voice] Business found: ${business.name} (ID: ${business.id})`);
+    console.log('[Twilio Voice] Voice forwarding number for business:', business.twilio_phone_number);
+    console.log('[Twilio Voice] Business forwarding phone (customer-facing):', business.forwarding_phone_number);
 
     // Mark forwarding as verified if this is the first successful forwarded call
     if (!business.forwarding_verified) {

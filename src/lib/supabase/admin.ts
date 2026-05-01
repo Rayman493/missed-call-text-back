@@ -38,17 +38,33 @@ export const db = {
   },
 
   // New function to get all businesses with a given phone number
+  // This handles both per-business voice forwarding numbers and shared toll-free SMS sender
   async getBusinessesByPhone(phone: string): Promise<Business[]> {
-    const { data, error } = await supabaseAdmin
+    const sharedTollFreeNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    
+    // Search for businesses with this phone number as their twilio_phone_number (voice forwarding)
+    // OR search all businesses if the phone is the shared toll-free number (SMS sender)
+    let query = supabaseAdmin
       .from('businesses')
       .select('*')
-      .eq('twilio_phone_number', phone)
+    
+    if (phone === sharedTollFreeNumber) {
+      // If the phone is the shared toll-free number, return all businesses
+      // (inbound SMS to shared number can be from any business)
+      console.log('[getBusinessesByPhone] Shared toll-free number detected, returning all businesses')
+    } else {
+      // Otherwise, search for businesses with this specific twilio_phone_number
+      query = query.eq('twilio_phone_number', phone)
+    }
+    
+    const { data, error } = await query
     
     if (error) {
       console.error('Error fetching businesses:', error)
       return []
     }
     
+    console.log('[getBusinessesByPhone] Found', data?.length || 0, 'businesses for phone:', phone)
     return data || []
   },
 

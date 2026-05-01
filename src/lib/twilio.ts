@@ -41,6 +41,8 @@ export async function sendSms(
   }
 
   console.log('[SMS] Sending SMS to:', to, 'from business:', business.id, 'method:', smsValidation.method);
+  console.log('[SMS] Voice forwarding number for business:', business.twilio_phone_number);
+  console.log('[SMS] Business messaging service SID:', business.twilio_messaging_service_sid);
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
