@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES } from '@/lib/subscription'
 import { normalizeForCarrier, formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
+import { savePhoneSetupState, getPhoneSetupState, clearPhoneSetupState, isPhoneSetupStateFresh } from '@/lib/phone-setup-persistence'
 import Footer from '@/components/Footer'
 
 const supabase = createBrowserClient()
@@ -65,6 +66,7 @@ function PhoneSetupContent() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
+  const [isForwardingEnabled, setIsForwardingEnabled] = useState(false)
   
   // TODO: Future enhancement - automatic forwarding verification
   // TODO: Future enhancement - test call flow
@@ -74,12 +76,37 @@ function PhoneSetupContent() {
   const twilioNumber = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
   const formattedTwilioNumber = formatForDisplay(twilioNumber)
 
+  // Load persisted state on mount
   useEffect(() => {
+    // First, try to load from business context if available
     if (business && !businessLoading) {
       setPhoneNumber(business.business_phone_number || '')
       setCarrier(business.carrier || '')
+      setIsForwardingEnabled(!!business.call_forwarding_enabled)
+    }
+    
+    // Then, load from persisted state if business data is empty or incomplete
+    const persistedState = getPhoneSetupState()
+    const isPersistedFresh = isPhoneSetupStateFresh(persistedState)
+    
+    if (isPersistedFresh && (!business?.business_phone_number || !business?.carrier)) {
+      setPhoneNumber(persistedState.phoneNumber || phoneNumber)
+      setCarrier(persistedState.carrier || carrier)
     }
   }, [business, businessLoading])
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (phoneNumber || carrier) {
+      savePhoneSetupState({
+        phoneNumber,
+        carrier,
+        currentStep: carrier ? 2 : 1,
+        copiedTwilioNumber: twilioNumber,
+        copiedForwardingCode: carrier ? generateForwardingCode(CARRIER_INSTRUCTIONS[carrier]?.dialCode || '', twilioNumber) : undefined
+      })
+    }
+  }, [phoneNumber, carrier, twilioNumber])
 
   const handleSave = async () => {
     if (!phoneNumber) {
@@ -150,6 +177,9 @@ function PhoneSetupContent() {
       // Refresh business context
       await refreshBusiness()
 
+      // Clear persisted state after successful completion
+      clearPhoneSetupState()
+
       // Continue to next onboarding step
       router.push('/onboarding/success')
     } catch (err: any) {
@@ -199,7 +229,7 @@ function PhoneSetupContent() {
             <button
               onClick={() => handleCopyCode(dialCode)}
               className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
-              title="Copy code"
+              title="Copy forwarding code"
             >
               {copiedCode ? (
                 <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,14 +243,63 @@ function PhoneSetupContent() {
             </button>
           </div>
         </div>
+
+        <div className="bg-gray-900 rounded-lg p-4 mb-4">
+          <p className="text-sm text-gray-400 mb-2">Your ReplyFlow forwarding number:</p>
+          <div className="flex items-center gap-2">
+            <code className="text-lg font-mono text-blue-400 flex-1 p-3 bg-gray-800 rounded border border-gray-700">
+              {formattedTwilioNumber}
+            </code>
+            <button
+              onClick={() => handleCopyCode(twilioNumber)}
+              className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+              title="Copy Twilio number"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+            </button>
+          </div>
+        </div>
         
         {instructions.notes && (
-          <p className="text-sm text-blue-200 mb-3">{instructions.notes}</p>
+          <p className="text-sm text-blue-200 mb-4">{instructions.notes}</p>
         )}
         
-        <div className="text-sm text-gray-400 space-y-2">
+        <div className="text-sm text-gray-400 space-y-2 mb-6">
           <p>Some carriers may announce the forwarding number before activation.</p>
           <p>If activation fails, contact your carrier and ask for conditional call forwarding.</p>
+        </div>
+
+        {/* Clear action buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            onClick={() => handleCopyCode(dialCode)}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+            Copy forwarding code
+          </button>
+          <button
+            onClick={() => setIsForwardingEnabled(true)}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            I've enabled forwarding
+          </button>
+          <button
+            onClick={() => router.push('/demo')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Test setup
+          </button>
         </div>
       </div>
     )
@@ -250,10 +329,10 @@ function PhoneSetupContent() {
           {/* Page title and subtitle */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-3">
-              Set Up Call Forwarding
+              Set up call forwarding
             </h1>
             <p className="text-sm sm:text-base text-gray-400">
-              Keep your existing number. We'll only text back when you can't answer.
+              Forward missed calls from your business number to ReplyFlow so we can text customers back automatically.
             </p>
           </div>
 
@@ -311,7 +390,7 @@ function PhoneSetupContent() {
             disabled={isSaving || !phoneNumber || !carrier}
             className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSaving ? 'Saving...' : 'Call Forwarding is Set Up'}
+            {isSaving ? 'Saving...' : 'Complete Phone Setup'}
           </button>
         </div>
 
