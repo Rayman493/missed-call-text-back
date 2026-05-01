@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import Link from 'next/link'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { normalizePhoneNumber } from '@/lib/utils'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES, isActiveSubscription } from '@/lib/subscription'
 import { useSearchParams } from 'next/navigation'
@@ -392,25 +394,18 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base font-medium"
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base font-medium flex items-center justify-center gap-2"
             >
-              {loading ? 'Setting up your business...' : 'Continue Setup'}
+              {loading ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  Setting up your business...
+                </>
+              ) : (
+                'Continue Setup'
+              )}
             </button>
             <p className="text-sm text-gray-400 text-center mt-3">Takes less than 5 minutes to complete</p>
-
-            <div className="mt-6 pt-6 border-t border-gray-700">
-              <button
-                type="button"
-                onClick={handleSendDemoText}
-                disabled={sendingDemo || !demoPhone}
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
-              >
-                {sendingDemo ? 'Sending...' : demoSuccess ? 'Send Another Demo' : 'Try Demo Now'}
-              </button>
-              <p className="text-xs text-gray-400 text-center mt-2">
-                See exactly how ReplyFlow works for your business
-              </p>
-            </div>
 
             {demoSuccess && (
               <div className="mt-4 bg-green-900/20 border border-green-800 rounded-lg p-4">

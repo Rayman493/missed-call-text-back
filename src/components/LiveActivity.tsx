@@ -129,8 +129,8 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Live Activity
@@ -170,7 +170,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {activeTab === 'recent' && (
           <div className="space-y-4">
             {recentActivity.length === 0 ? (
@@ -183,7 +183,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
               recentActivity.map((item, index) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
@@ -197,7 +197,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {getActivityText(item)}
                       </p>
@@ -206,19 +206,20 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href={`/dashboard/leads/${item.id}`}
-                    className="flex-shrink-0 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
-                  >
-                    View
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
+                  <div className="flex-shrink-0">
+                    <Link
+                      href={`/dashboard/leads/${item.id}`}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      View
+                      <ArrowRight className="w-3 h-3 ml-1" />
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
           </div>
         )}
-
         {activeTab === 'responses' && (
           <div className="space-y-4">
             {leadsNeedingResponse.length === 0 ? (
@@ -231,7 +232,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
               leadsNeedingResponse.map((lead, index) => (
                 <div
                   key={lead.id}
-                  className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
@@ -239,27 +240,29 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                         <MessageCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                       </div>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         Reply from {formatLeadPhone(lead.caller_phone)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {getActivityTime(lead)}
+                        {formatRelativeTime(lead.last_message_at || lead.first_contact_at)}
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href={`/dashboard/leads/${lead.id}`}
-                    className="flex-shrink-0 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Reply
-                  </Link>
+                  <div className="flex-shrink-0">
+                    <Link
+                      href={`/dashboard/leads/${lead.id}`}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                    >
+                      Respond
+                      <ArrowRight className="w-3 h-3 ml-1" />
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
           </div>
         )}
-
         {/* View All Link */}
         {leads.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">

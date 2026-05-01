@@ -827,37 +827,37 @@ export default function DashboardContent() {
             />
 
             {/* Hero Metrics Section */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">📞</span>
-                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
+                  <span className="text-lg sm:text-xl">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Missed Calls</h3>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">👥</span>
-                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
+                  <span className="text-lg sm:text-xl">👥</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Leads Captured</h3>
                 </div>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">💬</span>
-                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
+                  <span className="text-lg sm:text-xl">💬</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Messages Sent</h3>
                 </div>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">⏰</span>
-                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
+                  <span className="text-lg sm:text-xl">⏰</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Follow-ups Scheduled</h3>
                 </div>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
