@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay } from '@/utils/phone-formatting'
@@ -18,15 +18,45 @@ export default function SetupHealth() {
   const { business, loading } = useBusiness()
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testCompleted, setTestCompleted] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Load collapsed state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('setup-health-collapsed')
+      if (saved !== null) {
+        setIsCollapsed(JSON.parse(saved))
+      }
+    } catch (error) {
+      console.warn('Failed to load collapsed state from localStorage:', error)
+    }
+  }, [])
+
+  // Save collapsed state to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('setup-health-collapsed', JSON.stringify(isCollapsed))
+    } catch (error) {
+      console.warn('Failed to save collapsed state to localStorage:', error)
+    }
+  }, [isCollapsed])
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed)
+  }
+
+  const handleHeaderClick = () => {
+    toggleCollapse()
+  }
 
   if (loading || !business) {
     return (
-      <div className="bg-gray-800 rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-100 mb-4">Setup Health</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Setup Health</h2>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded mb-3"></div>
-          <div className="h-4 bg-gray-700 rounded mb-3"></div>
-          <div className="h-4 bg-gray-700 rounded"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
         </div>
       </div>
     )
@@ -105,6 +135,11 @@ export default function SetupHealth() {
       : 'Not tested yet'
   })
 
+  // Calculate overall status
+  const overallStatus = healthItems.some(item => item.status === 'error') ? 'error' :
+                        healthItems.some(item => item.status === 'warning') ? 'warning' :
+                        healthItems.every(item => item.status === 'healthy') ? 'healthy' : 'unknown'
+
   const getStatusIcon = (status: HealthItem['status']) => {
     switch (status) {
       case 'healthy':
@@ -136,10 +171,19 @@ export default function SetupHealth() {
 
   const getStatusColor = (status: HealthItem['status']) => {
     switch (status) {
-      case 'healthy': return 'text-green-400'
-      case 'warning': return 'text-yellow-400'
-      case 'error': return 'text-red-400'
-      default: return 'text-gray-400'
+      case 'healthy': return 'text-green-600 dark:text-green-400'
+      case 'warning': return 'text-yellow-600 dark:text-yellow-400'
+      case 'error': return 'text-red-600 dark:text-red-400'
+      default: return 'text-gray-600 dark:text-gray-400'
+    }
+  }
+
+  const getOverallStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+      case 'warning': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
+      case 'error': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'
     }
   }
 
@@ -160,53 +204,87 @@ export default function SetupHealth() {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-100 mb-4">Setup Health</h2>
-      
-      <div className="space-y-3 mb-6">
-        {healthItems.map((item, index) => (
-          <div key={index} className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-0.5">
-              {getStatusIcon(item.status)}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-gray-200">{item.title}</h3>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  item.status === 'healthy' ? 'bg-green-900/30 text-green-400' :
-                  item.status === 'warning' ? 'bg-yellow-900/30 text-yellow-400' :
-                  item.status === 'error' ? 'bg-red-900/30 text-red-400' :
-                  'bg-gray-700 text-gray-400'
-                }`}>
-                  {item.status === 'healthy' ? 'Healthy' :
-                   item.status === 'warning' ? 'Warning' :
-                   item.status === 'error' ? 'Error' : 'Unknown'}
-                </span>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+      {/* Header - Clickable to toggle collapse */}
+      <button
+        onClick={handleHeaderClick}
+        className="w-full p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
+        aria-expanded={!isCollapsed}
+        aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Setup Health details`}
+      >
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Setup Health</h2>
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
+            {overallStatus === 'healthy' ? 'Healthy' :
+             overallStatus === 'warning' ? 'Warning' :
+             overallStatus === 'error' ? 'Error' : 'Unknown'}
+          </span>
+        </div>
+        <svg
+          className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
+            isCollapsed ? 'transform rotate-180' : ''
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Collapsible Content */}
+      <div
+        className={`transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-96 opacity-100'
+        } overflow-hidden`}
+      >
+        <div className="px-6 pb-6">
+          <div className="space-y-3 mb-6">
+            {healthItems.map((item, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  {getStatusIcon(item.status)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200">{item.title}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      item.status === 'healthy' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+                      item.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' :
+                      item.status === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' :
+                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'
+                    }`}>
+                      {item.status === 'healthy' ? 'Healthy' :
+                       item.status === 'warning' ? 'Warning' :
+                       item.status === 'error' ? 'Error' : 'Unknown'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
+                  {item.details && (
+                    <p className={`text-xs mt-1 ${getStatusColor(item.status)}`}>{item.details}</p>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-gray-400 mt-1">{item.description}</p>
-              {item.details && (
-                <p className={`text-xs mt-1 ${getStatusColor(item.status)}`}>{item.details}</p>
-              )}
+            ))}
+          </div>
+
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-300 mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={handleViewInstructions}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                View Setup Instructions
+              </button>
+              <button
+                onClick={handleTestCall}
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Test Call Flow
+              </button>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="border-t border-gray-700 pt-4">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            onClick={handleViewInstructions}
-            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            View Setup Instructions
-          </button>
-          <button
-            onClick={handleTestCall}
-            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            Test Call Flow
-          </button>
         </div>
       </div>
       

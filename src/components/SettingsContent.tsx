@@ -185,33 +185,33 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          {/* Header */}
-          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16">
-                <BackToDashboard />
-                <div className="flex items-center gap-4">
-                  <ThemeToggle />
-                  <UserDropdown />
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            {/* Header */}
+            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  <BackToDashboard />
+                  <div className="flex items-center gap-4">
+                    <ThemeToggle />
+                    <UserDropdown />
+                  </div>
                 </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          {/* Mobile Navigation */}
-          <MobileMenu />
+            {/* Mobile Navigation */}
+            <MobileMenu />
 
-          {/* Main Content */}
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Settings
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Configure your ReplyFlow settings here.
-              </p>
-            </div>
+            {/* Main Content */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  Settings
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Configure your ReplyFlow settings here.
+                </p>
+              </div>
 
             {/* Settings Sections */}
             <div className="space-y-8">
@@ -250,7 +250,7 @@ export default function SettingsContent() {
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
@@ -261,7 +261,7 @@ export default function SettingsContent() {
                       type="tel"
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export default function SettingsContent() {
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
@@ -290,7 +290,7 @@ export default function SettingsContent() {
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -308,7 +308,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => updateBusiness({ smart_filtering_enabled: !formBusiness.smart_filtering_enabled })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                        formBusiness.smart_filtering_enabled ? 'bg-blue-600' : 'bg-gray-200'
                       }`}
                     >
                       <span
@@ -326,7 +326,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                        formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-200'
                       }`}
                     >
                       <span
@@ -432,7 +432,7 @@ export default function SettingsContent() {
                     type="text"
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="DELETE"
                   />
                 </div>
@@ -477,7 +477,7 @@ export default function SettingsContent() {
                     type="text"
                     value={resetConfirmText}
                     onChange={(e) => setResetConfirmText(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="RESET"
                   />
                 </div>
