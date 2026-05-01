@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
+import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
+import BackToDashboard from '@/components/BackToDashboard'
 import { formatForDisplay } from '@/utils/phone-formatting'
 
 export default function OnboardingSuccess() {
@@ -40,6 +43,8 @@ export default function OnboardingSuccess() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+        <BackToDashboard />
+        
         {/* Success Icon */}
         <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

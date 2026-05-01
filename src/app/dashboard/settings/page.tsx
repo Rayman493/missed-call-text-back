@@ -16,6 +16,7 @@ import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
+import BackToDashboard from '@/components/BackToDashboard'
 import { 
   getSubscriptionStatusText, 
   isInTrialPeriod, 
@@ -323,6 +324,7 @@ export default function SettingsPage() {
           {/* Main Content */}
           <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div className="max-w-4xl mx-auto">
+              <BackToDashboard />
               <div className="mb-10">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
                 <p className="text-gray-600 dark:text-gray-400">Control how ReplyFlow works for your business.</p>

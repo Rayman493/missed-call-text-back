@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import BackToDashboard from '@/components/BackToDashboard'
 
 export const metadata: Metadata = {
   title: 'ReplyFlow Privacy Policy',
@@ -9,6 +10,8 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <BackToDashboard />
+        
         {/* Page Title */}
         <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-6">

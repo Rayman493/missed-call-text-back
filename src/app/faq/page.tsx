@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import FAQAccordion from '@/components/FAQAccordion'
+import BackToDashboard from '@/components/BackToDashboard'
 
 export const metadata: Metadata = {
   title: 'ReplyFlow FAQ | Missed Call Text Back Questions',
@@ -68,6 +69,7 @@ export default function FAQPage() {
       {/* Hero Section */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <BackToDashboard />
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6">
               <svg

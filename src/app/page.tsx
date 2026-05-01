@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
+import Navbar from '@/components/Navbar'
 
 export default function Home() {
   const { loading, user } = useAuth()
@@ -19,50 +20,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Full-width header banner */}
-      <header className="w-full bg-slate-800/90 border-b border-slate-700">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center hover:opacity-90 transition">
-            <span className="text-xl md:text-2xl font-semibold tracking-tight">
-              <span className="text-gray-900 dark:text-gray-100">Reply</span>
-              <span className="text-blue-600 dark:text-blue-500">Flow</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/faq"
-              className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
-            >
-              FAQ
-            </Link>
-            {loading || businessLoading ? (
-              <>
-                <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-                <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth?mode=signup"
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Create Account
-                </Link>
-                <Link
-                  href={
-                    user 
-                      ? (business?.onboarding_status === 'completed' ? '/dashboard' : '/onboarding')
-                      : '/auth?mode=signin'
-                  }
-                  className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-gray-100 transition-colors"
-                >
-                  Sign In
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-20 md:py-32 text-center">
