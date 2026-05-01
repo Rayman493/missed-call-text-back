@@ -198,6 +198,25 @@ export default function CompliancePage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Example Verbal Opt-In Script */}
+                  <div className="mt-8">
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-4">
+                        Example Verbal Opt-In Script
+                      </h3>
+                      <div className="bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4 mb-4">
+                        <p className="text-gray-800 dark:text-gray-200 italic leading-relaxed">
+                          "Thanks for calling [Business Name]. If we miss your call, we may send you a conversational text message so we can continue helping with your inquiry. Reply STOP to opt out or HELP for help. Do you agree to receive these messages?"
+                        </p>
+                      </div>
+                      <div className="bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4">
+                        <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                          <strong>Important:</strong> Messages are only sent after inbound customer contact and are directly related to the customer's inquiry.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
