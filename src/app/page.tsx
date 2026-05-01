@@ -28,7 +28,13 @@ export default function Home() {
               <span className="text-blue-600 dark:text-blue-500">Flow</span>
             </span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/faq"
+              className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+            >
+              FAQ
+            </Link>
             {loading || businessLoading ? (
               <>
                 <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
@@ -204,6 +210,12 @@ export default function Home() {
             © 2024 ReplyFlow. All rights reserved.
           </div>
           <div className="flex gap-6 text-sm">
+            <Link 
+              href="/faq" 
+              className="text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              FAQ
+            </Link>
             <Link 
               href="/privacy" 
               className="text-gray-400 hover:text-gray-300 transition-colors"
