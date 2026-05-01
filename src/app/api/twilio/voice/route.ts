@@ -22,7 +22,7 @@ function generateVoiceGreeting(businessName?: string): string {
     return `<Play>${defaultGreetingAudioUrl}</Play>`;
   }
   
-  // Fallback to TTS with Polly.Joanna
+  // Force Polly.Joanna voice with conversational script
   const voice = "Polly.Joanna";
   
   // Create conversational script
@@ -47,11 +47,12 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('ACTIVE TWILIO GREETING:', greetingText);
   console.log('ACTIVE TWILIO VOICE:', voice);
   
-  // Add natural pause and return TwiML
-  return `
-    <Say voice="${voice}" language="en-US">${greetingText}</Say>
-    <Pause length="1"/>
-  `;
+  // Force the correct TwiML response
+  const forcedTwiML = `<Say voice="${voice}" language="en-US">${greetingText}</Say><Pause length="1"/>`;
+  
+  console.log('FORCE DEPLOYMENT - TwiML being returned:', forcedTwiML);
+  
+  return forcedTwiML;
 }
 
 // Helper to generate complete TwiML response with fallback structure
