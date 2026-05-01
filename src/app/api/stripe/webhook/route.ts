@@ -105,8 +105,9 @@ export async function POST(request: Request) {
           }
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
-          // If we can't retrieve subscription, still set to active since checkout completed
-          updateData.subscription_status = 'active'
+          // If we can't retrieve subscription, we can't determine the status
+          // Don't set a default status - let the frontend handle the missing state
+          console.log('[stripe-webhook] Could not retrieve subscription status, proceeding with customer and subscription IDs only')
         }
 
         console.log('[stripe-webhook] Updating business:', businessId, 'for user:', userId, 'with data:', updateData)

@@ -17,7 +17,7 @@ export type SubscriptionState = typeof SUBSCRIPTION_STATES[keyof typeof SUBSCRIP
 export function getSubscriptionStatusText(subscriptionStatus: string | null | undefined): string {
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
-      return 'Trialing'
+      return 'Trial Active'
     case SUBSCRIPTION_STATES.ACTIVE:
       return 'Active'
     case SUBSCRIPTION_STATES.PAST_DUE:
@@ -87,6 +87,40 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
       return 'text-yellow-600 dark:text-yellow-400'
     default:
       return 'text-gray-500 dark:text-gray-400'
+  }
+}
+
+export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined): string {
+  switch (subscriptionStatus) {
+    case SUBSCRIPTION_STATES.TRIALING:
+      return 'Your 14-day free trial is active'
+    case SUBSCRIPTION_STATES.ACTIVE:
+      return 'Your ReplyFlow subscription is active'
+    case SUBSCRIPTION_STATES.PAST_DUE:
+      return 'Payment required - update your billing information'
+    case SUBSCRIPTION_STATES.CANCELED:
+      return 'Your subscription has been canceled'
+    case SUBSCRIPTION_STATES.UNPAID:
+      return 'Payment required - update your billing information'
+    case SUBSCRIPTION_STATES.CANCELING:
+      return 'Your subscription is being canceled'
+    default:
+      return 'Start your 14-day free trial to activate ReplyFlow'
+  }
+}
+
+export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined): { text: string; href: string } {
+  switch (subscriptionStatus) {
+    case SUBSCRIPTION_STATES.TRIALING:
+    case SUBSCRIPTION_STATES.ACTIVE:
+      return { text: 'Manage Subscription', href: '/dashboard/settings' }
+    case SUBSCRIPTION_STATES.PAST_DUE:
+    case SUBSCRIPTION_STATES.UNPAID:
+      return { text: 'Update Payment', href: '/dashboard/settings' }
+    case SUBSCRIPTION_STATES.CANCELED:
+      return { text: 'Restart Subscription', href: '/dashboard/settings' }
+    default:
+      return { text: 'Start Free Trial', href: '/dashboard' }
   }
 }
 

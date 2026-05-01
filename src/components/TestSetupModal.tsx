@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
-import { hasValidSubscription } from '@/lib/subscription'
+import { 
+  hasValidSubscription,
+  getSubscriptionStatusText,
+  getSubscriptionStatusDescription
+} from '@/lib/subscription'
 
 interface TestSetupModalProps {
   isOpen: boolean
@@ -53,7 +57,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',
       details: subscriptionActive 
-        ? `Subscription is ${business.subscription_status}` 
+        ? getSubscriptionStatusDescription(business.subscription_status)
         : 'No active subscription'
     })
 

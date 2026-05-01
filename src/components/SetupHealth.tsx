@@ -6,6 +6,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { 
   getSubscriptionStatusText, 
+  getSubscriptionStatusDescription,
   hasValidSubscription,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
@@ -112,11 +113,11 @@ export default function SetupHealth() {
   
   healthItems.push({
     title: 'Subscription Status',
-    description: subscriptionActive ? 'Your ReplyFlow subscription is active' : 'Subscription setup required',
+    description: getSubscriptionStatusDescription(business.subscription_status),
     status: subscriptionActive ? 'healthy' : 'error',
     details: subscriptionActive 
-      ? `Subscription is ${getSubscriptionStatusText(business.subscription_status)}` 
-      : 'Start your free trial to activate ReplyFlow'
+      ? `Status: ${getSubscriptionStatusText(business.subscription_status)}` 
+      : 'Start your 14-day free trial to activate ReplyFlow'
   })
 
   // 3. Twilio active

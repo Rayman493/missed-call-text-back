@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { 
   getSubscriptionStatusText, 
+  getSubscriptionStatusDescription,
   hasValidSubscription,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
@@ -127,11 +128,11 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     
     items.push({
       title: 'Subscription Status',
-      description: subscriptionActive ? 'Your ReplyFlow subscription is active' : 'Subscription setup required',
+      description: getSubscriptionStatusDescription(business.subscription_status),
       status: subscriptionActive ? 'healthy' : 'error',
       details: subscriptionActive 
-        ? `Subscription is ${getSubscriptionStatusText(business.subscription_status)}` 
-        : 'Start your free trial to activate ReplyFlow'
+        ? `Status: ${getSubscriptionStatusText(business.subscription_status)}` 
+        : 'Start your 14-day free trial to activate ReplyFlow'
     })
 
     // 3. Twilio status
