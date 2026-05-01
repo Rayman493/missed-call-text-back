@@ -18,6 +18,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -742,10 +743,10 @@ export default function DashboardContent() {
                     <span className="text-2xl">🎉</span>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
-                        Your {getTrialDisplay()} is active
+                        Your {PRICING_CONFIG.TRIAL_DISPLAY} is active
                       </p>
                       <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                        {getPricingDisplay()} after trial
+                        {PRICING_CONFIG.PRICE_DISPLAY} after trial
                       </p>
                     </div>
                   </div>
@@ -771,7 +772,7 @@ export default function DashboardContent() {
                         {getSubscriptionStatusText(business?.subscription_status)} Subscription
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for {getPricingDisplay()} to continue using ReplyFlow
+                        {getSubscriptionStatusText(business?.subscription_status)} • Upgrade for {PRICING_CONFIG.PRICE_DISPLAY} to continue using ReplyFlow
                       </p>
                     </div>
                   </div>

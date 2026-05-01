@@ -130,6 +130,12 @@ export default function Navbar() {
             // Logged-out navigation
             <>
               <Link
+                href="/#features"
+                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+              >
+                Features
+              </Link>
+              <Link
                 href="/faq"
                 className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
               >

@@ -25,6 +25,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 
 export default function SettingsPage() {
@@ -666,8 +667,20 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">ReplyFlow</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{getSubscriptionStatusText(business?.subscription_status)} • {getPricingDisplay()}</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{PRICING_CONFIG.PLAN_NAME}</p>
+                      {isInTrialPeriod(business?.subscription_status) ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {getSubscriptionStatusText(business?.subscription_status)} • {PRICING_CONFIG.PRICE_DISPLAY} after trial
+                        </p>
+                      ) : business?.subscription_status === SUBSCRIPTION_STATES.ACTIVE ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {getSubscriptionStatusText(business?.subscription_status)} • {PRICING_CONFIG.PRICE_DISPLAY}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {getSubscriptionStatusText(business?.subscription_status)} • {PRICING_CONFIG.FULL_PRICING_DISPLAY}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"

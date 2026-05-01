@@ -105,16 +105,17 @@ export async function POST(request: Request) {
       priceId,
       origin,
       businessId: business.id,
-      onboardingStatus: business.onboarding_status
+      onboardingStatus: business.onboarding_status,
+      subscriptionStatus: business.subscription_status,
+      hasStripeCustomerId: !!business.stripe_customer_id,
+      action: 'checkout'
     });
     
-    // Determine success URL based on onboarding status
-    let successUrl = `${siteUrl}/dashboard?checkout=success`
-    if (business.onboarding_status !== 'completed') {
-      successUrl = `${siteUrl}/onboarding/success?checkout=success`
-    }
+    // Always redirect to dashboard after checkout success
+    const successUrl = `${siteUrl}/dashboard?checkout=success`
+    const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
-    console.log('[stripe-checkout] Using success URL:', successUrl);
+    console.log('[stripe-checkout] Using URLs:', { successUrl, cancelUrl });
     
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
         },
       ],
       success_url: successUrl,
-      cancel_url: `${siteUrl}/dashboard?checkout=cancelled`,
+      cancel_url: cancelUrl,
       metadata: {
         business_id: business.id,
         user_id: user.id,

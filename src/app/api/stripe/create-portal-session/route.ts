@@ -58,6 +58,8 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] Business found:', business.id)
     console.log('[stripe-portal] stripe_customer_id:', business.stripe_customer_id)
+    console.log('[stripe-portal] subscription_status:', business.subscription_status)
+    console.log('[stripe-portal] action: ' + (business.stripe_customer_id ? 'portal' : 'checkout'))
 
     // Check for stripe_customer_id
     if (!business.stripe_customer_id) {

@@ -1,5 +1,7 @@
 // Subscription state constants and utilities for ReplyFlow billing
 
+import { PRICING_CONFIG } from './pricing'
+
 export const SUBSCRIPTION_STATES = {
   NO_SUBSCRIPTION: 'no_subscription',
   TRIALING: 'trialing',
@@ -11,13 +13,6 @@ export const SUBSCRIPTION_STATES = {
 } as const
 
 export type SubscriptionState = typeof SUBSCRIPTION_STATES[keyof typeof SUBSCRIPTION_STATES]
-
-export const PRICING = {
-  PLAN_NAME: 'ReplyFlow',
-  TRIAL_DAYS: 14,
-  MONTHLY_PRICE: 49,
-  CURRENCY: 'USD'
-} as const
 
 export function getSubscriptionStatusText(subscriptionStatus: string | null | undefined): string {
   switch (subscriptionStatus) {
@@ -73,9 +68,9 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
 }
 
 export function getPricingDisplay(): string {
-  return `$${PRICING.MONTHLY_PRICE}/month`
+  return PRICING_CONFIG.PRICE_DISPLAY
 }
 
 export function getTrialDisplay(): string {
-  return `${PRICING.TRIAL_DAYS}-day free trial`
+  return PRICING_CONFIG.TRIAL_DISPLAY
 }
