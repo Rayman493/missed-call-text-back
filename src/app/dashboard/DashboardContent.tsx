@@ -766,7 +766,7 @@ export default function DashboardContent() {
             )}
 
             {/* Trial Banner - Lower Priority */}
-            {isInTrialPeriod(business?.subscription_status) && (
+            {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">

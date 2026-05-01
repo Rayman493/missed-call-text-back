@@ -110,13 +110,15 @@ export default function SetupHealth() {
 
   // 2. Subscription active
   const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+  const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
+  const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
   
   healthItems.push({
     title: 'Subscription Status',
     description: getSubscriptionStatusDescription(business.subscription_status),
     status: subscriptionActive ? 'healthy' : 'error',
     details: subscriptionActive 
-      ? `Status: ${getSubscriptionStatusText(business.subscription_status)}` 
+      ? `${isTrialing ? 'Trial Active' : 'Subscription Active'} - ${getSubscriptionStatusText(business.subscription_status)}` 
       : 'Start your 14-day free trial to activate ReplyFlow'
   })
 
