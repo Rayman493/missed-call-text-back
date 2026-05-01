@@ -62,6 +62,17 @@ export default function SettingsContent() {
   } = useSettingsFormState({
     initialBusiness: business,
     onSaveBusiness: async (businessData) => {
+      // Extract automation settings from form data
+      const automationSettings = {
+        spamRepeatFilteringEnabled: businessData.smart_filtering_enabled || false,
+        ignoreRepeatCalls: businessData.repeat_call_protection_enabled || false,
+        repeatCallWindowMinutes: 15, // Default 15 minutes
+        ignoreBlockedPrivateNumbers: getAutomationSettings().ignoreBlockedPrivateNumbers || false,
+        ignoreSuspectedSpamCallers: businessData.spam_detection_enabled || false,
+        blockedNumbers: getAutomationSettings().blockedNumbers || []
+      }
+
+      // Only save fields that exist in the database schema
       const { error } = await supabase
         .from('businesses')
         .update({
@@ -79,10 +90,12 @@ export default function SettingsContent() {
           repeat_call_cooldown_hours: businessData.repeat_call_cooldown_hours,
           spam_detection_enabled: businessData.spam_detection_enabled,
           after_hours_message: businessData.after_hours_message,
+          automation_settings: automationSettings
         })
         .eq('id', businessData.id)
 
       if (error) {
+        console.error('Settings save error:', error)
         throw new Error('Failed to save settings')
       }
     },
@@ -96,6 +109,66 @@ export default function SettingsContent() {
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
     setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  // Helper to get automation settings with defaults
+  const getAutomationSettings = () => {
+    const defaults = {
+      spamRepeatFilteringEnabled: false,
+      ignoreRepeatCalls: false,
+      repeatCallWindowMinutes: 15,
+      ignoreBlockedPrivateNumbers: false,
+      ignoreSuspectedSpamCallers: false,
+      blockedNumbers: [] as string[]
+    }
+    
+    if (!business?.automation_settings) {
+      return defaults
+    }
+    
+    return { ...defaults, ...business.automation_settings }
+  }
+
+  // Helper to update automation settings
+  const updateAutomationSetting = (key: string, value: any) => {
+    const currentSettings = getAutomationSettings()
+    const updatedSettings = { ...currentSettings, [key]: value }
+    
+    // Update the business object with merged automation settings
+    const updatedBusiness = {
+      ...formBusiness,
+      automation_settings: updatedSettings
+    }
+    
+    // Also update the corresponding form fields for backward compatibility
+    switch (key) {
+      case 'spamRepeatFilteringEnabled':
+        updatedBusiness.smart_filtering_enabled = value
+        break
+      case 'ignoreRepeatCalls':
+        updatedBusiness.repeat_call_protection_enabled = value
+        break
+      case 'ignoreSuspectedSpamCallers':
+        updatedBusiness.spam_detection_enabled = value
+        break
+      case 'blockedNumbers':
+        // Convert array to string for textarea
+        break
+    }
+    
+    updateBusiness(updatedBusiness)
+  }
+
+  // Helper to get form value for blocked numbers
+  const getBlockedNumbersText = () => {
+    const settings = getAutomationSettings()
+    return settings.blockedNumbers.join('\n')
+  }
+
+  // Helper to update blocked numbers
+  const updateBlockedNumbers = (text: string) => {
+    const numbers = text.split('\n').filter((n: string) => n.trim()).map((n: string) => n.trim())
+    updateAutomationSetting('blockedNumbers', numbers)
   }
 
   const removeToast = (id: string) => {
@@ -308,21 +381,21 @@ export default function SettingsContent() {
                 <div className="space-y-6">
                   {/* Spam & Repeat Call Filtering */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 sm:p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-6">
                       <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
+                        <div className="flex items-center gap-2 mb-3">
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
                           {formBusiness.smart_filtering_enabled && (
                             <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Prevent automated texts from being sent to spam callers, repeat calls, or unwanted numbers.
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                          Control which callers receive automated text responses and which calls ReplyFlow should ignore.
                         </p>
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
-                          📋 Filtered calls will not create leads or receive automated text responses.
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          📋 Filtered calls will not create leads, trigger automations, or appear in your inbox.
                         </div>
                       </div>
                       <button
@@ -342,20 +415,26 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {formBusiness.smart_filtering_enabled && (
-                      <div className="space-y-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+                      <div className="space-y-6 border-t border-gray-200 dark:border-gray-600 pt-6">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                              Ignore repeat missed calls
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              Don't send texts for repeat calls within 15 minutes
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Prevent duplicate auto-replies</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full font-medium">
+                                Recommended
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 italic">
+                              Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
+                            </div>
                           </div>
                           <button
                             onClick={() => updateBusiness({ repeat_call_protection_enabled: !formBusiness.repeat_call_protection_enabled })}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
                               formBusiness.repeat_call_protection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
                             aria-label={formBusiness.repeat_call_protection_enabled ? 'Disable repeat call protection' : 'Enable repeat call protection'}
@@ -369,43 +448,49 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                              Ignore blocked/private numbers
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              Skip calls from blocked or private number callers
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Skip blocked or hidden callers</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full font-medium">
+                                Recommended
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                              Prevent automated texts from being sent to callers who hide their number or appear as 'Unknown'.
                             </p>
                           </div>
                           <button
-                            onClick={() => updateBusiness({ block_private_numbers_enabled: !formBusiness.block_private_numbers_enabled })}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
-                              formBusiness.block_private_numbers_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                            onClick={() => updateAutomationSetting('ignoreBlockedPrivateNumbers', !getAutomationSettings().ignoreBlockedPrivateNumbers)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
+                              getAutomationSettings().ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
-                            aria-label={formBusiness.block_private_numbers_enabled ? 'Disable private number blocking' : 'Enable private number blocking'}
+                            aria-label={getAutomationSettings().ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                formBusiness.block_private_numbers_enabled ? 'translate-x-5' : 'translate-x-1'
+                                getAutomationSettings().ignoreBlockedPrivateNumbers ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
                         </div>
 
                         {/* Spam Detection */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                              Ignore suspected spam callers
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              Skip calls from known spam phone numbers
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Filter likely spam callers</h4>
+                              <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-full font-medium">
+                                Optional
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                              Reduce spam leads and unnecessary text messages from known spam or robocall numbers.
                             </p>
                           </div>
                           <button
                             onClick={() => updateBusiness({ spam_detection_enabled: !formBusiness.spam_detection_enabled })}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
                               formBusiness.spam_detection_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
                             aria-label={formBusiness.spam_detection_enabled ? 'Disable spam detection' : 'Enable spam detection'}
@@ -419,20 +504,28 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Blocked Numbers List */}
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                            Blocked numbers list
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                            Enter phone numbers to block (one per line)
-                          </p>
+                        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Blocked phone numbers</h4>
+                              <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-full font-medium">
+                                Optional
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                              ReplyFlow will ignore calls from these numbers and will not create leads or send texts.
+                            </p>
+                          </div>
                           <textarea
-                            value={formBusiness.blocked_numbers || ''}
-                            onChange={(e) => updateBusiness({ blocked_numbers: e.target.value })}
-                            rows={3}
-                            placeholder="555-123-4567&#10;555-987-6543"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                            value={getBlockedNumbersText()}
+                            onChange={(e) => updateBlockedNumbers(e.target.value)}
+                            rows={4}
+                            placeholder="+14125551234&#10;+14125559876"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
                           />
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                            Enter one phone number per line in format: +14125551234
+                          </div>
                         </div>
                       </div>
                     )}
@@ -492,7 +585,7 @@ export default function SettingsContent() {
                               <span>Repeat-call protection enabled</span>
                             </div>
                           )}
-                          {formBusiness.block_private_numbers_enabled && (
+                          {getAutomationSettings().ignoreBlockedPrivateNumbers && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                               <span>Private callers blocked</span>
