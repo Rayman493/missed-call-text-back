@@ -565,7 +565,7 @@ export const db = {
       user_id: userId,
       name: businessData?.name || 'My Business',
       twilio_phone_number: businessData?.twilio_phone_number || sharedReplyFlowNumber,
-      forwarding_phone_number: businessData?.forwarding_phone_number || null,
+      business_phone_number: businessData?.business_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || 'active',
       stripe_customer_id: businessData?.stripe_customer_id || null,

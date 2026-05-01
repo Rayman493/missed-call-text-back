@@ -101,7 +101,7 @@ export default function DashboardEmptyState() {
               <div className="mb-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Your Business Number</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {business?.forwarding_phone_number ? formatPhoneNumber(business.forwarding_phone_number) : 'Not set'}
+                  {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                 </p>
               </div>
               <div>

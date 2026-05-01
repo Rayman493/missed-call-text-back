@@ -75,7 +75,7 @@ function PhoneSetupContent() {
 
   useEffect(() => {
     if (business && !businessLoading) {
-      setPhoneNumber(business.forwarding_phone_number || '')
+      setPhoneNumber(business.business_phone_number || '')
       setCarrier(business.carrier || '')
     }
   }, [business, businessLoading])
@@ -117,7 +117,7 @@ function PhoneSetupContent() {
 
       // Update business with phone setup information using business id
       const updatePayload = {
-        forwarding_phone_number: phoneNumber,
+        business_phone_number: phoneNumber,
         carrier: carrier,
         call_forwarding_enabled: true,
         phone_setup_completed_at: new Date().toISOString(),
@@ -190,7 +190,7 @@ function PhoneSetupContent() {
         </h3>
         
         <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-400 mb-2">Dial exactly as shown from your business phone:</p>
+          <p className="text-sm text-gray-400 mb-2">Dial exactly as shown from your business phone to forward missed calls to your ReplyFlow number:</p>
           <div className="flex items-center gap-2">
             <code className="text-lg font-mono text-green-400 flex-1 p-3 bg-gray-800 rounded border border-gray-700">
               {dialCode}

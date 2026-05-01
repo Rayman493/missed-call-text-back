@@ -16,10 +16,11 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
   const [showInstructions, setShowInstructions] = useState(false)
   const [setupStatus, setSetupStatus] = useState<'not_configured' | 'awaiting_test' | 'working'>('not_configured')
   const [validationError, setValidationError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (business?.forwarding_phone_number) {
-      setPhoneNumber(business.forwarding_phone_number)
+    if (business?.business_phone_number) {
+      setPhoneNumber(business.business_phone_number)
       setSetupStatus(business.setup_status || 'not_configured')
     }
   }, [business])
@@ -49,7 +50,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
       const response = await fetch('/api/business/update-phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forwarding_phone_number: normalizedPhone })
+        body: JSON.stringify({ business_phone_number: normalizedPhone })
       })
 
       if (response.ok) {
@@ -72,6 +73,13 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumber(e.target.value)
     setValidationError('') // Clear validation error when user types
+  }
+
+  const handleCopyCode = async () => {
+    const code = `*71 +1 (833) 658-4303`
+    await navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const getStatusColor = () => {
@@ -145,12 +153,63 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
         {showInstructions && business?.twilio_phone_number && (
           <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Call Forwarding Instructions</h4>
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-4 text-center">Call Forwarding Instructions</h4>
+            
+            {/* Forwarding Code Box */}
+            <div
+              onClick={handleCopyCode}
+              className="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6 cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all active:scale-95 select-none mb-4"
+            >
+              {/* Activation Code */}
+              <div className="text-center mb-4">
+                <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 font-mono tracking-wider">
+                  *71
+                </span>
+              </div>
+              
+              {/* Arrow */}
+              <div className="text-center mb-4">
+                <svg className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+              
+              {/* Phone Number */}
+              <div className="text-center">
+                <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                  +1 (833) 658-4303
+                </span>
+              </div>
+              
+              {/* Tap to Copy Hint */}
+              <div className="text-center mt-4">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {copied ? '✓ Copied!' : 'Tap to copy'}
+                </span>
+              </div>
+            </div>
+
+            {/* What You'll Hear */}
+            <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700">
+              <p className="text-sm text-blue-900 dark:text-blue-100 text-center">
+                <span className="font-semibold">What you'll hear:</span><br />
+                Your carrier may say:<br />
+                <span className="font-mono text-blue-800 dark:text-blue-200">"Calls will be forwarded to 1-833-658-4303."</span>
+              </p>
+            </div>
+
+            {/* Carrier Confidence Text */}
+            <div className="mb-4 text-center">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                This only activates missed-call forwarding. Your phone still rings normally.
+              </p>
+            </div>
+
+            {/* Steps */}
             <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
-              <p><strong>Step 1:</strong> On your business phone, dial <strong>*#61#</strong></p>
-              <p><strong>Step 2:</strong> When prompted, enter your ReplyFlow number: <strong>{business.twilio_phone_number}</strong></p>
-              <p><strong>Step 3:</strong> Save the forwarding settings</p>
-              <p><strong>Step 4:</strong> Test by calling your business number and letting it go unanswered</p>
+              <p><strong>Step 1:</strong> On your business phone, dial the code above</p>
+              <p><strong>Step 2:</strong> Save the forwarding settings</p>
+              <p><strong>Step 3:</strong> Test by calling your business number and letting it go unanswered</p>
             </div>
             
             <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">

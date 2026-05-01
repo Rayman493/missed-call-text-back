@@ -82,18 +82,57 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
           </div>
 
           {/* ReplyFlow Number Display */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Your ReplyFlow number:</p>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                {formatPhoneNumber(phoneNumber)}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Your ReplyFlow forwarding code:</p>
+            
+            {/* Forwarding Code Box */}
+            <div
+              onClick={handleCopyNumber}
+              className="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6 cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all active:scale-95 select-none"
+            >
+              {/* Activation Code */}
+              <div className="text-center mb-4">
+                <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 font-mono tracking-wider">
+                  *71
+                </span>
+              </div>
+              
+              {/* Arrow */}
+              <div className="text-center mb-4">
+                <svg className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+              
+              {/* Phone Number */}
+              <div className="text-center">
+                <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                  +1 (833) 658-4303
+                </span>
+              </div>
+              
+              {/* Tap to Copy Hint */}
+              <div className="text-center mt-4">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {copied ? '✓ Copied!' : 'Tap to copy'}
+                </span>
+              </div>
+            </div>
+
+            {/* What You'll Hear */}
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                <span className="font-semibold">What you'll hear:</span><br />
+                Your carrier may say:<br />
+                <span className="font-mono text-blue-700 dark:text-blue-300">"Calls will be forwarded to 1-833-658-4303."</span>
               </p>
-              <button
-                onClick={handleCopyNumber}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+            </div>
+
+            {/* Carrier Confidence Text */}
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                This only activates missed-call forwarding. Your phone still rings normally.
+              </p>
             </div>
           </div>
 

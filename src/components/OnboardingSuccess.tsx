@@ -70,7 +70,7 @@ export default function OnboardingSuccess() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Business Phone Number</p>
               <p className="text-gray-900 dark:text-gray-100 font-medium">
-                {business.forwarding_phone_number ? formatPhoneNumber(business.forwarding_phone_number) : 'Not set'}
+                {business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
               </p>
             </div>
 

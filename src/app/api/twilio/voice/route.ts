@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const business = result.business;
     console.log(`[Twilio Voice] Business found: ${business.name} (ID: ${business.id})`);
     console.log('[Twilio Voice] Voice forwarding number for business:', business.twilio_phone_number);
-    console.log('[Twilio Voice] Business forwarding phone (customer-facing):', business.forwarding_phone_number);
+    console.log('[Twilio Voice] Business phone number (customer-facing):', business.business_phone_number);
 
     // Mark forwarding as verified if this is the first successful forwarded call
     if (!business.forwarding_verified) {
@@ -155,12 +155,12 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
 
-    // Check if this is a setup completion call (caller matches business forwarding phone)
+    // Check if this is a setup completion call (caller matches business phone number)
     const normalizedCallerPhone = normalizePhoneNumber(From);
-    const businessForwardingPhone = business.forwarding_phone_number ? normalizePhoneNumber(business.forwarding_phone_number) : null;
+    const businessPhoneNumber = business.business_phone_number ? normalizePhoneNumber(business.business_phone_number) : null;
     
-    if (businessForwardingPhone && normalizedCallerPhone === businessForwardingPhone) {
-      console.log('[Twilio Voice] Setup completion detected - caller matches business forwarding phone:', normalizedCallerPhone);
+    if (businessPhoneNumber && normalizedCallerPhone === businessPhoneNumber) {
+      console.log('[Twilio Voice] Setup completion detected - caller matches business phone number:', normalizedCallerPhone);
       
       // Mark setup as complete by updating the business
       try {

@@ -191,7 +191,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           businessData: {
             name: businessName,
-            forwarding_phone_number: normalizedPhone,
+            business_phone_number: normalizedPhone,
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'toll_free',
             messaging_status: 'active',

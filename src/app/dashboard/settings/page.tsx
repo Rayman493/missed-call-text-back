@@ -479,21 +479,46 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {/* Forwarding Number Input */}
+                    {/* Business Number Input */}
                     {formBusiness && (
                       <div>
-                        <label htmlFor="forwardingNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Forwarding Number
+                        <label htmlFor="businessNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Business Number
                         </label>
                         <input
-                          id="forwardingNumber"
-                          name="forwardingNumber"
+                          id="businessNumber"
+                          name="businessNumber"
                           type="tel"
-                          value={formBusiness.forwarding_phone_number || ''}
-                          onChange={(e) => updateBusiness({ forwarding_phone_number: e.target.value })}
+                          value={formBusiness.business_phone_number || ''}
+                          onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(412) 555-1234"
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Customers call this number.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Forwarding Number Display */}
+                    {formBusiness && formBusiness.twilio_phone_number && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Forwarding Number
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            <span className="text-gray-900 dark:text-gray-100 font-mono">
+                              {formatPhoneNumber(formBusiness.twilio_phone_number)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(formBusiness.twilio_phone_number || '')}
+                            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            Copy
+                          </button>
+                        </div>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                           Forward missed calls to this number.
                         </p>
@@ -501,13 +526,13 @@ export default function SettingsPage() {
                     )}
 
                     {/* SMS Sender Display */}
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">SMS Sender</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        ReplyFlow verified messaging number
+                      <p className="text-lg font-medium text-gray-900 dark:text-gray-100 font-mono">
+                        +1 (833) 658-4303
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Texts are sent from ReplyFlow's approved toll-free number.
+                        Automated texts are sent from ReplyFlow's verified messaging number.
                       </p>
                     </div>
                   </div>

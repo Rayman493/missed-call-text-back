@@ -36,14 +36,14 @@ export async function POST(request: Request) {
     console.log('[api/business/update-phone] User authenticated:', user.id)
 
     const body = await request.json().catch(() => ({}))
-    const { forwarding_phone_number } = body
+    const { business_phone_number } = body
 
-    if (!forwarding_phone_number || typeof forwarding_phone_number !== 'string') {
-      console.error('[api/business/update-phone] Invalid or missing forwarding_phone_number')
-      return NextResponse.json({ error: 'forwarding_phone_number is required' }, { status: 400 })
+    if (!business_phone_number || typeof business_phone_number !== 'string') {
+      console.error('[api/business/update-phone] Invalid or missing business_phone_number')
+      return NextResponse.json({ error: 'business_phone_number is required' }, { status: 400 })
     }
 
-    console.log('[api/business/update-phone] Updating business phone for user:', user.id, 'to:', forwarding_phone_number)
+    console.log('[api/business/update-phone] Updating business phone for user:', user.id, 'to:', business_phone_number)
 
     // Get existing business to ensure we don't create duplicates
     const existingBusiness = await db.getBusinessByUserId(user.id)
@@ -53,9 +53,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Update business with forwarding phone number
+    // Update business with business phone number
     const updatedBusiness = await db.updateBusiness(existingBusiness.id, {
-      forwarding_phone_number: forwarding_phone_number.trim()
+      business_phone_number: business_phone_number.trim()
     })
 
     if (!updatedBusiness) {
