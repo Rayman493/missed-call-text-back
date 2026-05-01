@@ -6,6 +6,37 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 
+// Dark-styled footer specifically for auth pages
+function AuthFooter() {
+  const currentYear = new Date().getFullYear()
+
+  return (
+    <footer className="bg-gray-900 border-t border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-400 text-sm">
+            © {currentYear} ReplyFlowHQ. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6 mt-4 md:mt-0">
+            <a
+              href="/privacy"
+              className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="/terms"
+              className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
+            >
+              Terms of Service
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
 const supabase = createBrowserClient()
 
 function AuthContent() {
@@ -104,32 +135,32 @@ function AuthContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow p-6 sm:p-8">
+        <div className="w-full max-w-md bg-gray-800 rounded-lg shadow p-6 sm:p-8">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
-              <span className="text-xl font-bold text-blue-600 dark:text-blue-400">RF</span>
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-900/30 mb-4">
+              <span className="text-xl font-bold text-blue-400">RF</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h1 className="text-2xl font-bold text-gray-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               ReplyFlow - Conversational Missed-Call Response
             </p>
           </div>
           
           {isSignIn && emailParam && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Welcome back — please sign in</p>
+            <p className="text-sm text-gray-400 mb-6">Welcome back — please sign in</p>
           )}
           
           {!isSignIn && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Create your account to get started</p>
+            <p className="text-sm text-gray-400 mb-6">Create your account to get started</p>
           )}
           
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-              <p className="text-sm text-red-800 dark:text-red-300 mb-4">{error}</p>
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-300 mb-4">{error}</p>
               {existingAccount && !isSignIn && (
                 <div className="space-y-3">
                   <button
@@ -147,7 +178,7 @@ function AuthContent() {
                       setExistingAccount(false)
                       setError('')
                     }}
-                    className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 underline"
+                    className="w-full text-sm text-gray-400 hover:text-gray-300 underline"
                   >
                     Use a different email
                   </button>
@@ -158,7 +189,7 @@ function AuthContent() {
 
           <form onSubmit={isSignIn ? handleSignIn : handleSignUp} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email
               </label>
               <input
@@ -169,12 +200,12 @@ function AuthContent() {
                 required
                 autoComplete="email"
                 name="email"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
               <input
@@ -187,7 +218,7 @@ function AuthContent() {
                 minLength={6}
                 autoComplete={isSignIn ? "current-password" : "new-password"}
                 name="password"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
               />
             </div>
 
@@ -200,31 +231,31 @@ function AuthContent() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-6 text-center text-sm text-gray-400">
             {isSignIn ? "New to ReplyFlow? " : "Already have an account? "}
             <button
               onClick={toggleMode}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+              className="text-blue-400 hover:text-blue-300 font-medium"
             >
               {isSignIn ? 'Create an account' : 'Sign in'}
             </button>
           </p>
         </div>
       </div>
-      <Footer />
+      <AuthFooter />
     </div>
   )
 }
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <Suspense fallback={<div className="min-h-screen bg-gray-900 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow p-6 sm:p-8">
-          <p className="text-gray-900 dark:text-gray-100">Loading...</p>
+        <div className="w-full max-w-md bg-gray-800 rounded-lg shadow p-6 sm:p-8">
+          <p className="text-gray-100">Loading...</p>
         </div>
       </div>
-      <Footer />
+      <AuthFooter />
     </div>}>
       <AuthContent />
     </Suspense>
