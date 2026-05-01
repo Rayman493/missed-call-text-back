@@ -40,11 +40,11 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                            business.call_forwarding_enabled &&
                            business.forwarding_verified
     
-    const subscriptionHealthy = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
     const twilioHealthy = !!business.twilio_phone_number
-    const smsWorking = twilioHealthy && subscriptionHealthy
+    const smsWorking = twilioHealthy && subscriptionValid
     
-    return forwardingHealthy && subscriptionHealthy && twilioHealthy && smsWorking
+    return forwardingHealthy && subscriptionValid && twilioHealthy && smsWorking
   }
 
   // Load collapse preference from localStorage
@@ -124,16 +124,16 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     })
 
     // 2. Subscription status
-    const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-    const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
-    const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
+    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
+    const isTrialing = business.subscription_status === "trialing"
+    const isActive = business.subscription_status === "active"
     
     items.push({
       title: 'Subscription Status',
       description: getSubscriptionStatusDescription(business.subscription_status),
-      status: subscriptionActive ? 'healthy' : 'error',
-      details: subscriptionActive 
-        ? `${isTrialing ? 'Trial Active' : 'Subscription Active'} - ${getSubscriptionStatusText(business.subscription_status)}` 
+      status: subscriptionValid ? 'healthy' : 'error',
+      details: subscriptionValid 
+        ? (isTrialing ? 'Trial Active' : 'Subscription Active')
         : 'Start your 14-day free trial to activate ReplyFlow'
     })
 
@@ -149,7 +149,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     })
 
     // 4. SMS status
-    const smsWorking = twilioActive && subscriptionActive
+    const smsWorking = twilioActive && subscriptionValid
     items.push({
       title: 'SMS Working',
       description: 'Auto-reply messages are being sent',
@@ -206,7 +206,8 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const forwardingNotConfigured = !business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled
     
     // Check subscription status
-    const subscriptionInactive = !hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
+    const subscriptionInactive = !subscriptionValid
     
     // Check SMS status
     const smsNotConfigured = !business.twilio_phone_number

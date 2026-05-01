@@ -109,16 +109,16 @@ export default function SetupHealth() {
   })
 
   // 2. Subscription active
-  const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-  const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
-  const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
+  const subscriptionValid = !!business.stripe_subscription_id && ["active", "trialing"].includes(business.subscription_status || '')
+  const isTrialing = business.subscription_status === "trialing"
+  const isActive = business.subscription_status === "active"
   
   healthItems.push({
     title: 'Subscription Status',
     description: getSubscriptionStatusDescription(business.subscription_status),
-    status: subscriptionActive ? 'healthy' : 'error',
-    details: subscriptionActive 
-      ? `${isTrialing ? 'Trial Active' : 'Subscription Active'} - ${getSubscriptionStatusText(business.subscription_status)}` 
+    status: subscriptionValid ? 'healthy' : 'error',
+    details: subscriptionValid 
+      ? (isTrialing ? 'Trial Active' : 'Subscription Active')
       : 'Start your 14-day free trial to activate ReplyFlow'
   })
 
@@ -134,7 +134,7 @@ export default function SetupHealth() {
   })
 
   // 4. SMS working (simplified - would need to check recent message logs in real implementation)
-  const smsWorking = business.twilio_phone_number && hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+  const smsWorking = business.twilio_phone_number && subscriptionValid
   healthItems.push({
     title: 'SMS Working',
     description: 'Auto-reply messages are being sent',
