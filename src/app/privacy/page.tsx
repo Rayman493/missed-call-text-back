@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 
 export const metadata: Metadata = {
   title: 'ReplyFlow Privacy Policy',
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
+      <SSRSafeNavbar />
+      
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         {/* Page Title */}
         <div className="text-center mb-16">

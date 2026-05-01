@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 
 export const metadata: Metadata = {
   title: 'ReplyFlow FAQ | Missed Call Text Back Questions',
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SSRSafeNavbar />
+      
       {/* Hero Section */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">

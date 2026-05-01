@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SSRSafeNavbar />
+      
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-20 md:py-32 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-100 mb-6 max-w-4xl">
