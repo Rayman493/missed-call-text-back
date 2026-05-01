@@ -27,6 +27,7 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('[Twilio Voice] DEBUG: Voice:', voice);
   console.log('[Twilio Voice] DEBUG: Business Name:', businessNameText);
   console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
+  console.log('VOICE TEXT:', greetingText); // Add requested VOICE TEXT logging
   
   // Add natural pause and return TwiML
   return `
@@ -55,7 +56,6 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
 </Response>
 `.trim();
   
-  // DEBUG LOGS
   console.log('[Twilio Voice] DEBUG: Generated complete TwiML');
   console.log('[Twilio Voice] DEBUG: Final TwiML:', twiml);
   
@@ -124,7 +124,10 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] Returning fallback TwiML for missing fields');
       return new NextResponse(twiml, {
         status: 200,
-        headers: { "Content-Type": "text/xml" },
+        headers: { 
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
+        },
       });
     }
     
@@ -150,7 +153,10 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] Returning fallback TwiML for no business found');
       return new NextResponse(twiml, {
         status: 200,
-        headers: { "Content-Type": "text/xml" },
+        headers: { 
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
+        },
       });
     }
     
@@ -430,7 +436,10 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Generated final TwiML response');
     return new NextResponse(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 
+        "Content-Type": "text/xml",
+        "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
+      },
     });
   } catch (error) {
     console.error('[Twilio Voice] Failed:', error);
@@ -440,7 +449,10 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Returning fallback TwiML due to error');
     return new NextResponse(twiml, {
       status: 200,
-      headers: { "Content-Type": "text/xml" },
+      headers: { 
+        "Content-Type": "text/xml",
+        "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
+      },
     });
   }
 }
