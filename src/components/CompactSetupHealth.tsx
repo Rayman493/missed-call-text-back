@@ -16,10 +16,14 @@ interface CompactSetupHealthProps {
   onToggle?: () => void
 }
 
+// Local storage key for collapse preference
+const COLLAPSE_PREFERENCE_KEY = 'setupHealthCollapsed'
+
 export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle }: CompactSetupHealthProps) {
   const { business, refreshBusiness } = useBusiness()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [showTestModal, setShowTestModal] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
 
   // Calculate health status
   const isFullyHealthy = () => {
@@ -36,6 +40,45 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     
     return forwardingHealthy && subscriptionHealthy && twilioHealthy && smsWorking
   }
+
+  // Load collapse preference from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPreference = localStorage.getItem(COLLAPSE_PREFERENCE_KEY)
+      if (savedPreference !== null) {
+        setIsExpanded(savedPreference === 'false') // false means expanded
+      }
+    }
+  }, [])
+
+  // Save collapse preference to localStorage
+  const saveCollapsePreference = (collapsed: boolean) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(COLLAPSE_PREFERENCE_KEY, collapsed.toString())
+    }
+  }
+
+  // Auto-collapse logic
+  useEffect(() => {
+    const healthy = isFullyHealthy()
+    const hasIssues = !healthy
+    
+    // Force expand if there are issues, regardless of user preference
+    if (hasIssues) {
+      setIsExpanded(true)
+      return
+    }
+    
+    // Auto-collapse if healthy and no user preference exists
+    if (healthy && typeof window !== 'undefined') {
+      const savedPreference = localStorage.getItem(COLLAPSE_PREFERENCE_KEY)
+      if (savedPreference === null) {
+        // No user preference, auto-collapse when healthy
+        setIsExpanded(false)
+        saveCollapsePreference(true) // Save collapsed preference
+      }
+    }
+  }, [business]) // Re-run when business data changes
 
   const getHealthItems = (): HealthItem[] => {
     if (!business) return []
@@ -111,15 +154,15 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   }
 
   const healthItems = getHealthItems()
-  const hasIssues = healthItems.some(item => item.status === 'error')
-  const hasWarnings = healthItems.some(item => item.status === 'warning')
 
   // Initialize expanded state based on health status if not controlled by props
   useEffect(() => {
+    const hasIssues = healthItems.some(item => item.status === 'error')
+    const hasWarnings = healthItems.some(item => item.status === 'warning')
     if (propExpanded === undefined && (hasIssues || hasWarnings)) {
       setIsExpanded(true)
     }
-  }, [hasIssues, hasWarnings, propExpanded])
+  }, [healthItems, propExpanded])
 
   const getStatusIcon = (status: 'healthy' | 'warning' | 'error') => {
     switch (status) {
@@ -190,42 +233,66 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const primaryAction = getPrimaryAction()
 
   const handleToggle = () => {
+    setIsAnimating(true)
     const newExpanded = !isExpanded
     setIsExpanded(newExpanded)
+    saveCollapsePreference(!newExpanded) // Save the new collapsed state
     if (onToggle) onToggle()
+    
+    // Reset animation state after transition completes
+    setTimeout(() => setIsAnimating(false), 300)
   }
 
-  // If fully healthy, show compact success state
-  if (isFullyHealthy()) {
+  const healthy = isFullyHealthy()
+  const hasIssues = healthItems.some(item => item.status === 'error')
+  const hasWarnings = healthItems.some(item => item.status === 'warning')
+
+  // Compact healthy collapsed state
+  if (healthy && !isExpanded) {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            <span className="text-green-800 dark:text-green-200 font-medium">
-              ReplyFlow is operational
+            <span className="text-green-800 dark:text-green-200 font-medium text-sm">
+              Setup Health — All Systems Operational ✓
             </span>
           </div>
-          <button
-            onClick={() => setShowTestModal(true)}
-            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            Test Setup
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTestModal(true)}
+              className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors"
+            >
+              Test
+            </button>
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-expanded={false}
+              aria-label="Expand setup health details"
+              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
+            >
+              <svg
+                className="w-4 h-4 transition-transform duration-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
-  // If has issues or warnings, show expanded state by default (but allow manual collapse)
-  const shouldExpandByDefault = hasIssues || hasWarnings
-  const shouldExpand = isExpanded || shouldExpandByDefault
-
+  // Full expanded state (for issues/warnings or when manually expanded)
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="p-4">
+    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
+      <div className={`${healthy ? 'p-3' : 'p-4'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -242,7 +309,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               )}
-              <span className="font-medium text-gray-900 dark:text-gray-100">
+              <span className={`font-medium ${healthy ? 'text-sm text-green-800 dark:text-green-200' : 'text-gray-900 dark:text-gray-100'}`}>
                 Setup Health
               </span>
             </div>
@@ -256,16 +323,21 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                 Attention Needed
               </span>
             )}
+            {healthy && (
+              <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 rounded-full">
+                All Systems Operational
+              </span>
+            )}
           </div>
           <button
             type="button"
             onClick={handleToggle}
-            aria-expanded={!isExpanded}
+            aria-expanded={isExpanded}
             aria-label="Toggle setup health details"
-            className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            className={`text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${healthy ? 'text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300' : ''}`}
           >
             <svg
-              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-5 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -276,8 +348,8 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
         </div>
       </div>
       
-      {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+      <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+        <div className={`border-t border-gray-200 dark:border-gray-700 ${healthy ? 'p-3' : 'p-4'}`}>
           <div className="space-y-3">
             {healthItems.map((item, index) => (
               <div key={index} className="flex items-start gap-3">
@@ -286,7 +358,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.title}</h3>
+                    <h3 className={`font-medium ${healthy ? 'text-sm text-gray-900 dark:text-gray-100' : 'text-sm text-gray-900 dark:text-gray-100'}`}>{item.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       item.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                       item.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
@@ -312,7 +384,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             ))}
           </div>
           
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className={`mt-4 pt-4 border-t border-gray-200 dark:border-gray-700`}>
             <div className="flex gap-2">
               {primaryAction ? (
                 primaryAction.href ? (
@@ -342,7 +414,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             </div>
           </div>
         </div>
-      )}
+      </div>
       
       <TestSetupModal 
         isOpen={showTestModal}
