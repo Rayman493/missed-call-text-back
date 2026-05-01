@@ -7,9 +7,22 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 
-// Helper to generate conversational voice greeting with Amazon Polly voice
+// Helper to generate conversational voice greeting with Amazon Polly voice or prerecorded audio
 function generateVoiceGreeting(businessName?: string): string {
-  // Use Amazon Polly Joanna voice for warm, conversational tone
+  // Check for prerecorded audio URL
+  const defaultGreetingAudioUrl = process.env.DEFAULT_GREETING_AUDIO_URL;
+  
+  if (defaultGreetingAudioUrl && defaultGreetingAudioUrl.trim() !== '') {
+    // Log greeting mode
+    console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: audio');
+    console.log('ACTIVE TWILIO GREETING: prerecorded audio');
+    console.log('ACTIVE TWILIO VOICE: audio playback');
+    
+    // Return prerecorded audio
+    return `<Play>${defaultGreetingAudioUrl}</Play>`;
+  }
+  
+  // Fallback to TTS with Polly.Joanna
   const voice = "Polly.Joanna";
   
   // Create conversational script
@@ -30,11 +43,9 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('VOICE TEXT:', greetingText); // Add requested VOICE TEXT logging
   
   // Log production voice selection
-  console.log('VOICE WEBHOOK HIT - PRODUCTION - Voice Selection:', {
-    selectedVoice: voice,
-    businessName: businessNameText,
-    greetingText: greetingText
-  });
+  console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: tts');
+  console.log('ACTIVE TWILIO GREETING:', greetingText);
+  console.log('ACTIVE TWILIO VOICE:', voice);
   
   // Add natural pause and return TwiML
   return `
@@ -66,10 +77,14 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
   console.log('[Twilio Voice] DEBUG: Generated complete TwiML');
   console.log('[Twilio Voice] DEBUG: Final TwiML:', twiml);
   
-  // Log production final TwiML
+  // Log production final TwiML with greeting mode info
+  const greetingMode = twiml.includes('<Play>') ? 'audio' : 'tts';
   console.log('VOICE WEBHOOK HIT - PRODUCTION - Final TwiML:', {
     twimlLength: twiml.length,
-    twimlPreview: twiml.substring(0, 200) + (twiml.length > 200 ? '...' : '')
+    twimlPreview: twiml.substring(0, 200) + (twiml.length > 200 ? '...' : ''),
+    greetingMode: greetingMode,
+    containsPlayTag: twiml.includes('<Play>'),
+    containsSayTag: twiml.includes('<Say')
   });
   
   return twiml;
