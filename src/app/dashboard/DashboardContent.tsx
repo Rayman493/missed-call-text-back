@@ -861,9 +861,6 @@ export default function DashboardContent() {
               </div>
             </div>
 
-            {/* Compact Setup Health Section - Lower Priority */}
-            <CompactSetupHealth />
-
             {/* Checkout success confirming message */}
             {webhookConfirming && (
               <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3">
@@ -1053,6 +1050,9 @@ export default function DashboardContent() {
                 </div>
               </div>
             )}
+
+            {/* Setup Health Section - At Bottom */}
+            <CompactSetupHealth />
           </div>
         </div>
       </div>
