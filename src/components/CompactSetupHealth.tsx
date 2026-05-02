@@ -414,10 +414,10 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           </div>
           
           {/* Divider */}
-          <div className="border-t border-gray-200 dark:border-gray-700 mt-6 mb-6"></div>
-          
+          <div className="border-t border-gray-700 mt-6 mb-4"></div>
+
           {/* Button Row */}
-          <div className="flex flex-col sm:flex-row gap-3 pb-6">
+          <div className="flex flex-col sm:flex-row gap-3 pb-4">
             {primaryAction ? (
               primaryAction.href ? (
                 <a
@@ -437,7 +437,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             ) : null}
             <button
               onClick={() => setShowTestModal(true)}
-              className={`${primaryAction ? 'flex-1' : 'w-full'} px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors`}
+              className={`${primaryAction ? 'flex-1' : 'w-full'} px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors`}
             >
               Test Setup
             </button>
