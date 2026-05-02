@@ -345,6 +345,12 @@ export async function POST(request: Request) {
         
         // Log retrieved values
         console.log('[STRIPE CANCEL] RETRIEVED SUBSCRIPTION DATA:')
+        console.log('[Stripe Webhook] Raw subscription values', {
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at,
+          current_period_end: (subscription as any).current_period_end,
+          status: subscription.status,
+        })
         console.log('[Stripe Webhook] cancel_at_period_end:', subscription.cancel_at_period_end)
         console.log('[Stripe Webhook] cancel_at:', subscription.cancel_at)
         console.log('[Stripe Webhook] current_period_end:', (subscription as any).current_period_end)
@@ -371,7 +377,7 @@ export async function POST(request: Request) {
           let updateData: any = {
             subscription_price_id: priceId,
             subscription_status: status,
-            cancel_at_period_end: cancelAtPeriodEnd,
+            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
           }
           
           console.log('[STRIPE CANCEL] INITIAL updateData created:')
@@ -409,6 +415,11 @@ export async function POST(request: Request) {
 
           console.log('[STRIPE CANCEL] FINAL updateData:', JSON.stringify(updateData, null, 2))
 
+          console.log('[STRIPE CANCEL] About to write to Supabase with payload:')
+          console.log('[STRIPE CANCEL] Table: businesses')
+          console.log('[STRIPE CANCEL] Column: cancel_at_period_end')
+          console.log('[STRIPE CANCEL] Value being written:', updateData.cancel_at_period_end)
+          console.log('[STRIPE CANCEL] Type of value:', typeof updateData.cancel_at_period_end)
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
