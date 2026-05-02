@@ -221,9 +221,9 @@ function PhoneSetupContent() {
         </h3>
         
         <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-400 mb-2">Dial exactly as shown from your business phone to forward missed calls to your ReplyFlow number:</p>
+          <p className="text-sm text-gray-400 mb-2">Dial this from your business phone:</p>
           <div className="flex items-center gap-2">
-            <code className="text-lg font-mono text-green-400 flex-1 p-3 bg-gray-800 rounded border border-gray-700">
+            <code className="text-2xl font-mono text-green-400 flex-1 p-4 bg-gray-800 rounded border border-gray-700 text-center">
               {dialCode}
             </code>
             <button
@@ -242,24 +242,9 @@ function PhoneSetupContent() {
               )}
             </button>
           </div>
-        </div>
-
-        <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-400 mb-2">Your ReplyFlow forwarding number:</p>
-          <div className="flex items-center gap-2">
-            <code className="text-lg font-mono text-blue-400 flex-1 p-3 bg-gray-800 rounded border border-gray-700">
-              {formattedTwilioNumber}
-            </code>
-            <button
-              onClick={() => handleCopyCode(twilioNumber)}
-              className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
-              title="Copy Twilio number"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-              </svg>
-            </button>
-          </div>
+          <p className="text-xs text-gray-500 mt-3 text-center">
+            ReplyFlow Number: {formattedTwilioNumber}
+          </p>
         </div>
         
         {instructions.notes && (
