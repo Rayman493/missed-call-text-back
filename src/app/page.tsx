@@ -104,7 +104,7 @@ function HomepageFooter() {
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-900">
-      <SSRSafeNavbar />
+      <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-20 md:py-32 text-center">

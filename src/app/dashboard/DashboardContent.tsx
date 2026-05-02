@@ -642,7 +642,7 @@ export default function DashboardContent() {
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-gray-600 dark:text-gray-400">
           {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
         </div>

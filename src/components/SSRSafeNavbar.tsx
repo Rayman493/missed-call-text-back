@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react'
 
-export default function SSRSafeNavbar() {
+interface SSRSafeNavbarProps {
+  forceDark?: boolean
+}
+
+export default function SSRSafeNavbar({ forceDark = false }: SSRSafeNavbarProps) {
   const [isClient, setIsClient] = useState(false)
   const [Navbar, setNavbar] = useState<any>(() => null)
 
@@ -24,8 +28,9 @@ export default function SSRSafeNavbar() {
 
   if (!isClient || !Navbar) {
     // Return a placeholder during SSR or while loading
+    const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
     return (
-      <header className="w-full bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700">
+      <header className={`w-full ${bgClass}`}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="w-32 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
           <div className="flex items-center gap-4">
@@ -38,5 +43,5 @@ export default function SSRSafeNavbar() {
     )
   }
 
-  return <Navbar />
+  return <Navbar forceDark={forceDark} />
 }

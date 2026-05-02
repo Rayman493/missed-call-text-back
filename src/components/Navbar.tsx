@@ -6,7 +6,11 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
 
-export default function Navbar() {
+interface NavbarProps {
+  forceDark?: boolean
+}
+
+export default function Navbar({ forceDark = false }: NavbarProps) {
   const { user, loading, signOut } = useAuth()
   const { business, loading: businessLoading } = useBusinessSafe()
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
@@ -28,8 +32,9 @@ export default function Navbar() {
   }
 
   if (loading || businessLoading) {
+    const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
     return (
-      <header className="w-full bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700">
+      <header className={`w-full ${bgClass}`}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="w-32 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
           <div className="flex items-center gap-4">
@@ -42,8 +47,9 @@ export default function Navbar() {
     )
   }
 
+  const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
   return (
-    <header className="w-full bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700">
+    <header className={`w-full ${bgClass}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link 
