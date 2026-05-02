@@ -352,6 +352,66 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* What happens if I cancel ReplyFlow? */}
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
+                What happens if I cancel ReplyFlow?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
+                  If you cancel ReplyFlow, your business phone may still be forwarding missed calls to your ReplyFlow number. To stop forwarding, simply disable call forwarding from your business phone using your carrier's forwarding disable code.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-100 mt-6 mb-3">
+                  Common Carrier Codes
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-gray-100 mb-1">Verizon</h4>
+                    <p className="text-gray-400 text-sm">Dial <code className="bg-gray-700 px-2 py-1 rounded text-gray-100 font-mono">*73</code> from your business phone.</p>
+                  </div>
+
+                  <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-gray-100 mb-1">AT&T</h4>
+                    <p className="text-gray-400 text-sm">Dial <code className="bg-gray-700 px-2 py-1 rounded text-gray-100 font-mono">##004#</code> from your business phone.</p>
+                  </div>
+
+                  <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-gray-100 mb-1">T-Mobile</h4>
+                    <p className="text-gray-400 text-sm">Dial <code className="bg-gray-700 px-2 py-1 rounded text-gray-100 font-mono">##004#</code> from your business phone.</p>
+                  </div>
+
+                  <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-gray-100 mb-1">Comcast/Xfinity</h4>
+                    <p className="text-gray-400 text-sm">Dial <code className="bg-gray-700 px-2 py-1 rounded text-gray-100 font-mono">*73</code> from your business phone.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 bg-amber-900/20 border border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-amber-200 text-sm font-medium">
+                        We'll also show these instructions inside your dashboard after cancellation.
+                      </p>
+                      <p className="text-amber-200/70 text-sm mt-1">
+                        You'll receive an email with carrier-specific disable instructions when your subscription ends.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-gray-400 leading-relaxed mt-6">
+                  For other carriers, check with your phone provider or look in your phone settings for call forwarding options.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* How do I contact support? */}
           <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
