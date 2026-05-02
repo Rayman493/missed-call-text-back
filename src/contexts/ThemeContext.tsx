@@ -17,29 +17,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
-    // Check localStorage or system preference
-    const savedTheme = localStorage.getItem('replyflow-theme') as Theme | null
-    if (savedTheme) {
-      setTheme(savedTheme)
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-      document.documentElement.classList.toggle('light', savedTheme === 'light')
-    } else {
-      // Check system preference
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      setTheme(systemPrefersDark ? 'dark' : 'light')
-      document.documentElement.classList.toggle('dark', systemPrefersDark)
-      document.documentElement.classList.toggle('light', !systemPrefersDark)
-    }
+    // Force dark mode always
+    setTheme('dark')
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+    // Clear any saved theme preference
+    localStorage.removeItem('replyflow-theme')
   }, [])
 
   const toggleTheme = () => {
-    if (!mounted) return
-    
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    localStorage.setItem('replyflow-theme', newTheme)
-    document.documentElement.classList.toggle('dark', newTheme === 'dark')
-    document.documentElement.classList.toggle('light', newTheme === 'light')
+    // Disabled - always dark mode
+    return
   }
 
   return (

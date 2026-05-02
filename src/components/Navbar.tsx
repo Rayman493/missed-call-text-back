@@ -32,27 +32,24 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   }
 
   if (loading || businessLoading) {
-    const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
     return (
-      <header className={`w-full ${bgClass}`}>
+      <header className="w-full bg-slate-800/90 border-b border-slate-700">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="w-32 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+          <div className="w-32 h-6 bg-gray-600 rounded animate-pulse"></div>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-            <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-            <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+            <div className="w-16 h-4 bg-gray-600 rounded animate-pulse"></div>
+            <div className="w-20 h-4 bg-gray-600 rounded animate-pulse"></div>
+            <div className="w-16 h-4 bg-gray-600 rounded animate-pulse"></div>
           </div>
         </div>
       </header>
     )
   }
 
-  const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
-  const replyTextColor = forceDark ? 'text-white' : 'text-gray-900 dark:text-gray-100'
-  const flowTextColor = forceDark ? 'text-blue-400' : 'text-blue-600 dark:text-blue-500'
+  // Dark theme only - forceDark parameter kept for API compatibility
   
   return (
-    <header className={`w-full ${bgClass}`}>
+    <header className="w-full bg-slate-800/90 border-b border-slate-700">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link 
@@ -60,8 +57,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           className="flex items-center hover:opacity-90 transition"
         >
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
-            <span className={replyTextColor}>Reply</span>
-            <span className={flowTextColor}>Flow</span>
+            <span className="text-white">Reply</span>
+            <span className="text-blue-400">Flow</span>
           </span>
         </Link>
 

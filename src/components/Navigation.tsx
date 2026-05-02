@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import ThemeToggle from './ThemeToggle'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -17,9 +16,9 @@ export default function Navigation() {
   if (loading) {
     return (
       <div className="flex items-center gap-6 animate-pulse">
-        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-        <div className="h-4 w-12 bg-gray-300 dark:bg-gray-600 rounded"></div>
-        <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="h-4 w-16 bg-gray-600 rounded"></div>
+        <div className="h-4 w-12 bg-gray-600 rounded"></div>
+        <div className="h-4 w-20 bg-gray-600 rounded"></div>
       </div>
     )
   }
@@ -35,8 +34,8 @@ export default function Navigation() {
         href="/dashboard"
         className={`text-sm font-medium transition-colors ${
           isActive('/dashboard') && pathname === '/dashboard'
-            ? 'text-blue-600 dark:text-blue-400'
-            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            ? 'text-blue-400'
+            : 'text-gray-400 hover:text-gray-100'
         }`}
       >
         Dashboard
@@ -45,8 +44,8 @@ export default function Navigation() {
         href="/dashboard/leads"
         className={`text-sm font-medium transition-colors ${
           isActive('/dashboard/leads')
-            ? 'text-blue-600 dark:text-blue-400'
-            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            ? 'text-blue-400'
+            : 'text-gray-400 hover:text-gray-100'
         }`}
       >
         Leads

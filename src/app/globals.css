@@ -3,22 +3,22 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
-  background-color: transparent;
+  background-color: #020617;
 }
 
 body {
-  background-color: transparent;
+  background-color: #020617;
   color: #ffffff;
   min-height: 100vh;
 }
 
 #__next,
 main {
-  background-color: transparent;
+  background-color: #020617;
 }
 
 @layer base {
@@ -74,7 +74,7 @@ main {
   
   html,
   body {
-    background: transparent;
+    background: #020617;
     color: #ffffff;
   }
   

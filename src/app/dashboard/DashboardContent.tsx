@@ -26,7 +26,6 @@ import StatusBadge from '@/components/StatusBadge'
 import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
-import ThemeToggle, { MobileThemeToggle } from '@/components/ThemeToggle'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
@@ -642,8 +641,8 @@ export default function DashboardContent() {
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-400">
           {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
         </div>
       </div>
@@ -663,9 +662,9 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -676,8 +675,8 @@ export default function DashboardContent() {
                   </div>
                   <Link href="/" className="flex items-center hover:opacity-90 transition">
                     <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
-                      <span className="text-gray-900 dark:text-gray-100">Reply</span>
-                      <span className="text-blue-600 dark:text-blue-500">Flow</span>
+                      <span className="text-gray-100">Reply</span>
+                      <span className="text-blue-500">Flow</span>
                     </span>
                   </Link>
                   {/* Desktop navigation - only visible on desktop */}
@@ -690,15 +689,15 @@ export default function DashboardContent() {
                 <div className="flex items-center gap-2 md:gap-3">
                   <Link
                     href="/"
-                    className="hidden text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors md:block"
+                    className="hidden text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors md:block"
                   >
                     View Homepage
                   </Link>
                   <div className="hidden sm:block">
-                    <ThemeToggle />
+                    {/* Theme toggle removed */}
                   </div>
                   <div className="sm:hidden">
-                    <MobileThemeToggle />
+                    {/* Mobile menu placeholder */}
                   </div>
                   <UserDropdown />
                   {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
@@ -714,15 +713,15 @@ export default function DashboardContent() {
                         
             {/* Billing Error */}
             {billingError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
                     <div>
-                      <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+                      <p className="text-sm font-semibold text-red-100">
                         Billing Error
                       </p>
-                      <p className="text-xs text-red-700 dark:text-red-300">
+                      <p className="text-xs text-red-300">
                         {billingError}
                       </p>
                     </div>
@@ -740,15 +739,15 @@ export default function DashboardContent() {
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
                     <div>
-                      <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+                      <p className="text-sm font-semibold text-red-100">
                         Payment issue — update billing to keep ReplyFlow active
                       </p>
-                      <p className="text-xs text-red-700 dark:text-red-300">
+                      <p className="text-xs text-red-300">
                         {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
                       </p>
                     </div>
@@ -766,15 +765,15 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🎉</span>
                     <div>
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      <p className="text-sm font-semibold text-blue-100">
                         Free trial active
                       </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <p className="text-xs text-blue-300">
                         Billing starts at $49/month after trial unless you cancel.
                       </p>
                     </div>
@@ -792,18 +791,18 @@ export default function DashboardContent() {
 
             {/* Inactive Subscription - Primary CTA for New Users */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+              <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🚀</span>
                     <div>
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      <p className="text-sm font-semibold text-blue-100">
                         Start your 14-day free trial
                       </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <p className="text-xs text-blue-300">
                         Activate ReplyFlow to capture missed calls and grow your business
                       </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      <p className="text-xs text-blue-400 mt-1">
                         No charge today. Cancel anytime before your trial ends.
                       </p>
                     </div>
@@ -828,37 +827,37 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Missed Calls</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{missedCalls}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-100">{missedCalls}</p>
+                <p className="text-xs text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Leads Captured</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Leads Captured</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{leadsRecovered}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-400">{leadsRecovered}</p>
+                <p className="text-xs text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Messages Sent</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Messages Sent</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{textsSent}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-400">{textsSent}</p>
+                <p className="text-xs text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Follow-ups Scheduled</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups Scheduled</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{followUpsScheduled}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-400">{followUpsScheduled}</p>
+                <p className="text-xs text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
             </div>
 
@@ -881,20 +880,20 @@ export default function DashboardContent() {
 
             {/* Billing card - only show when action needed */}
             {!isActive && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 hover:border-gray-600 transition">
                 {webhookConfirming ? (
                   <>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Activating your account</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                    <h2 className="text-lg font-semibold text-gray-100 mb-2">Activating your account</h2>
+                    <p className="text-sm text-gray-400 mb-4">Please wait while we confirm your payment...</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Capturing Missed Calls</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Start capturing missed calls instantly.</p>
+                    <h2 className="text-lg font-semibold text-gray-100 mb-2">Start Capturing Missed Calls</h2>
+                    <p className="text-sm text-gray-400 mb-4">Start capturing missed calls instantly.</p>
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading}
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
                     >
                       {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
                     </button>
@@ -905,18 +904,18 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700">
                 <DashboardEmptyState />
               </div>
             ) : (
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Your Leads</h2>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">People who called but did not reach you.</p>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-100">Your Leads</h2>
+                    <p className="text-xs sm:text-sm text-gray-400">People who called but did not reach you.</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-400">
                       {processedLeads.length} of {leads.length} leads
                     </span>
                   </div>
@@ -931,7 +930,7 @@ export default function DashboardContent() {
                         placeholder="Search by phone, message, or status..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-600 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       />
                       <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
