@@ -413,35 +413,26 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             ))}
           </div>
           
-          {/* Divider */}
-          <div className="border-t border-gray-700 mt-6 mb-4"></div>
-
-          {/* Button Row */}
-          <div className="flex flex-col sm:flex-row gap-3 pb-4">
-            {primaryAction ? (
-              primaryAction.href ? (
+          {/* Primary Action Button */}
+          {primaryAction && (
+            <div className="pt-4 pb-2">
+              {primaryAction.href ? (
                 <a
                   href={primaryAction.href}
-                  className="flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {primaryAction.text}
                 </a>
               ) : (
                 <button
                   onClick={primaryAction.onClick}
-                  className="flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {primaryAction.text}
                 </button>
-              )
-            ) : null}
-            <button
-              onClick={() => setShowTestModal(true)}
-              className={`${primaryAction ? 'flex-1' : 'w-full'} px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors`}
-            >
-              Test Setup
-            </button>
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       

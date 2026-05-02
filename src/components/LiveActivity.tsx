@@ -115,12 +115,6 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             When customers miss your calls, activity will appear here automatically.
           </p>
-          <Link
-            href="/dashboard/settings"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            Test Your Setup
-          </Link>
         </div>
       </div>
     )

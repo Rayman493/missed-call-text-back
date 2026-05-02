@@ -302,15 +302,7 @@ export default function SetupHealth() {
                 >
                   Complete Phone Setup
                 </button>
-              ) : (
-                /* Secondary action: Test Setup if forwarding is configured */
-                <button
-                  onClick={handleTestCall}
-                  className="flex-1 w-full sm:w-auto px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Test Setup
-                </button>
-              )}
+              ) : null}
               
               {/* Always show instructions button as secondary action */}
               {business?.business_phone_number && business?.phone_setup_completed_at && business?.call_forwarding_enabled && (

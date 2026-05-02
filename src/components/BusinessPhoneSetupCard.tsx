@@ -211,16 +211,6 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
               <p><strong>Step 2:</strong> Save the forwarding settings</p>
               <p><strong>Step 3:</strong> Test by calling your business number and letting it go unanswered</p>
             </div>
-            
-            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Test Your Setup</h5>
-              <button
-                onClick={() => setSetupStatus('awaiting_test')}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-              >
-                Call Your Business Number
-              </button>
-            </div>
           </div>
         )}
 
