@@ -198,19 +198,37 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.created': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
+        const eventSubscription = event.data.object as Stripe.Subscription
+        const subscriptionId = eventSubscription.id
+        const customerId = eventSubscription.customer as string
+
+        console.log('[stripe-webhook] === SUBSCRIPTION CREATED ===')
+        console.log('[stripe-webhook] Event type: customer.subscription.created')
+        console.log('[stripe-webhook] Subscription ID from event:', subscriptionId)
+        console.log('[stripe-webhook] Customer ID from event:', customerId)
+
+        // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
+        let subscription: Stripe.Subscription | null = null
+        try {
+          subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          console.log('[stripe-webhook] Retrieved full subscription from Stripe:', subscription.id)
+          console.log('[stripe-webhook] Subscription status:', subscription.status)
+          console.log('[stripe-webhook] Subscription current_period_end:', (subscription as any).current_period_end)
+          console.log('[stripe-webhook] Subscription trial_end:', (subscription as any).trial_end)
+        } catch (retrieveError) {
+          console.error('[stripe-webhook] Failed to retrieve subscription from Stripe:', retrieveError)
+          // Continue with event data as fallback
+          subscription = eventSubscription
+        }
+
         const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
         const trialEnd = (subscription as any).trial_end
 
-        console.log('[stripe-webhook] === SUBSCRIPTION CREATED ===')
-        console.log('[stripe-webhook] Event type: customer.subscription.created')
-        console.log('[stripe-webhook] Subscription ID:', subscription.id)
-        console.log('[stripe-webhook] Status:', status)
-        console.log('[stripe-webhook] Trial end:', trialEnd)
-        console.log('[stripe-webhook] Period end:', periodEnd)
+        console.log('[stripe-webhook] Using status:', status)
+        console.log('[stripe-webhook] Using periodEnd:', periodEnd)
+        console.log('[stripe-webhook] Using trialEnd:', trialEnd)
 
         // Find business by stripe_customer_id
         const { data: business } = await supabase
@@ -227,8 +245,8 @@ export async function POST(request: Request) {
             subscription_price_id: priceId,
           }
 
-          console.log('[stripe-webhook] Raw periodEnd value from event:', periodEnd, 'type:', typeof periodEnd)
-          console.log('[stripe-webhook] Raw trialEnd value from event:', trialEnd, 'type:', typeof trialEnd)
+          console.log('[stripe-webhook] Raw periodEnd value:', periodEnd, 'type:', typeof periodEnd)
+          console.log('[stripe-webhook] Raw trialEnd value:', trialEnd, 'type:', typeof trialEnd)
 
           // Only set current_period_end if it exists
           if (periodEnd && periodEnd !== 0) {
@@ -273,8 +291,26 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
+        const eventSubscription = event.data.object as Stripe.Subscription
+        const subscriptionId = eventSubscription.id
+        const customerId = eventSubscription.customer as string
+
+        console.log('[stripe-webhook] === SUBSCRIPTION UPDATED ===')
+        console.log('[stripe-webhook] Event type: customer.subscription.updated')
+        console.log('[stripe-webhook] Subscription ID from event:', subscriptionId)
+        console.log('[stripe-webhook] Customer ID from event:', customerId)
+
+        // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
+        let subscription: Stripe.Subscription | null = null
+        try {
+          subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          console.log('[stripe-webhook] Retrieved full subscription from Stripe:', subscription.id)
+        } catch (retrieveError) {
+          console.error('[stripe-webhook] Failed to retrieve subscription from Stripe:', retrieveError)
+          // Continue with event data as fallback
+          subscription = eventSubscription
+        }
+
         const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
@@ -282,14 +318,11 @@ export async function POST(request: Request) {
         const cancelAt = (subscription as any).cancel_at
         const trialEnd = (subscription as any).trial_end
 
-        console.log('[stripe-webhook] === SUBSCRIPTION UPDATED ===')
-        console.log('[stripe-webhook] Event type: customer.subscription.updated')
-        console.log('[stripe-webhook] Subscription ID:', subscription.id)
-        console.log('[stripe-webhook] Status:', status)
-        console.log('[stripe-webhook] Trial end:', trialEnd)
-        console.log('[stripe-webhook] Cancel at period end:', cancelAtPeriodEnd)
-        console.log('[stripe-webhook] Current period end:', periodEnd)
-        console.log('[stripe-webhook] Cancel at:', cancelAt)
+        console.log('[stripe-webhook] Subscription status:', status)
+        console.log('[stripe-webhook] Subscription trial_end:', trialEnd)
+        console.log('[stripe-webhook] Subscription current_period_end:', periodEnd)
+        console.log('[stripe-webhook] Subscription cancel_at_period_end:', cancelAtPeriodEnd)
+        console.log('[stripe-webhook] Subscription cancel_at:', cancelAt)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
