@@ -139,12 +139,29 @@ export async function POST(request: Request) {
             console.log('[STRIPE SUBSCRIPTION] FALLBACK: Using trial_end for current_period_end')
           }
           
-          // checkout.session.completed ONLY saves basic IDs
-          // Subscription lifecycle fields are handled by customer.subscription.created and customer.subscription.updated
+          // Map subscription timing fields with proper fallback logic for checkout.session.completed
+          const checkoutTrialEndsAt = (subscription as any)?.trial_end
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null
+
+          const checkoutCurrentPeriodEnd = (subscription as any)?.current_period_end
+            ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            : checkoutTrialEndsAt
+
+          const checkoutCancelAt = subscription?.cancel_at
+            ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null
+
+          // checkout.session.completed saves basic IDs AND subscription timing fields
           updateData = {
             ...updateData,
+            subscription_status: subscription?.status,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
+            trial_ends_at: checkoutTrialEndsAt,
+            current_period_end: checkoutCurrentPeriodEnd,
+            cancel_at: checkoutCancelAt,
+            cancel_at_period_end: subscription?.cancel_at_period_end ?? false,
           }
 
           // Only set subscription_price_id if available
@@ -153,7 +170,7 @@ export async function POST(request: Request) {
           }
           
           console.log('[Stripe Webhook] Event type:', event.type)
-          console.log('[Stripe Webhook] checkout.session.completed - Only saving basic IDs')
+          console.log('[Stripe Webhook] checkout.session.completed - Saving IDs and subscription timing fields')
           console.log('[STRIPE EVENT]', {
             eventType: event.type,
             subscriptionId: subscription?.id,
