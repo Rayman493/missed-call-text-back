@@ -15,6 +15,7 @@ export interface Business {
   subscription_price_id?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean | null;
+  cancel_at?: string | null;
   trial_ends_at?: string | null;
   forwarding_phone_number?: string | null;
   carrier?: string | null;
