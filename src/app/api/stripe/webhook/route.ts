@@ -138,29 +138,15 @@ export async function POST(request: Request) {
             console.log('[STRIPE SUBSCRIPTION] FALLBACK: Using trial_end for current_period_end')
           }
           
+          // checkout.session.completed should NOT set subscription lifecycle fields
+          // Those are handled by customer.subscription.created and customer.subscription.updated
           updateData = {
             ...updateData,
-            subscription_status: subscription.status,
             subscription_price_id: subscription.items.data[0]?.price.id,
           }
           
-          // Only set current_period_end if it exists and was successfully converted
-          if (currentPeriodEnd) {
-            updateData.current_period_end = currentPeriodEnd
-            console.log('[STRIPE SUBSCRIPTION] SET current_period_end:', currentPeriodEnd)
-          }
-          
-          // Only set trial_ends_at if it exists and was successfully converted
-          if (trialEnd) {
-            updateData.trial_ends_at = trialEnd
-            console.log('[STRIPE SUBSCRIPTION] SET trial_ends_at:', trialEnd)
-          }
-          
-          console.log('[STRIPE SUBSCRIPTION] Final updateData:', {
-            subscription_status: updateData.subscription_status,
-            current_period_end: updateData.current_period_end,
-            trial_ends_at: updateData.trial_ends_at
-          })
+          console.log('[STRIPE WEBHOOK] checkout.session.completed - NOT setting subscription lifecycle fields')
+          console.log('[STRIPE WEBHOOK] Only setting subscription_price_id:', updateData.subscription_price_id)
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
           // If we can't retrieve subscription, we can't determine the status
@@ -169,9 +155,10 @@ export async function POST(request: Request) {
         }
 
         console.log('[STRIPE WEBHOOK] ========== DB UPDATE START ==========')
+        console.log('[Stripe Webhook] EVENT: checkout.session.completed')
         console.log('[STRIPE WEBHOOK] Business ID:', businessId)
         console.log('[STRIPE WEBHOOK] User ID:', userId)
-        console.log('[STRIPE WEBHOOK] Update payload:', JSON.stringify(updateData, null, 2))
+        console.log('[Stripe Webhook] DB update payload', updateData)
 
         // Update by business_id
         const { error: updateError } = await supabase
@@ -291,7 +278,8 @@ export async function POST(request: Request) {
             console.log('[stripe-webhook] trialEnd is null/0/undefined, not setting trial_ends_at')
           }
 
-          console.log('[stripe-webhook] Final updateData for subscription.created:', JSON.stringify(updateData))
+          console.log('[Stripe Webhook] EVENT: customer.subscription.created')
+          console.log('[Stripe Webhook] DB update payload', updateData)
 
           const { error: updateError } = await supabase
             .from('businesses')
@@ -396,7 +384,8 @@ export async function POST(request: Request) {
               : null,
           }
 
-          console.log('[Stripe Webhook] Final DB payload', updateData)
+          console.log('[Stripe Webhook] EVENT: customer.subscription.updated')
+          console.log('[Stripe Webhook] DB update payload', updateData)
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
