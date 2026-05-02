@@ -4,22 +4,21 @@
 
 :root {
   color-scheme: light;
-  background-color: #020617;
 }
 
 html {
-  background-color: #020617;
+  background-color: transparent;
 }
 
 body {
-  background-color: #020617;
+  background-color: transparent;
   color: #ffffff;
   min-height: 100vh;
 }
 
 #__next,
 main {
-  background-color: #020617;
+  background-color: transparent;
 }
 
 @layer base {
@@ -75,7 +74,7 @@ main {
   
   html,
   body {
-    background: #020617;
+    background: transparent;
     color: #ffffff;
   }
   
