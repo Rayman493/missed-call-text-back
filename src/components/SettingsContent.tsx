@@ -221,7 +221,7 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gray-900">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -268,22 +268,22 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-8">
               {/* Account Section */}
-              <div id="account" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Account</h2>
+              <div id="account" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Account</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Email
                     </label>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {user?.email}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Account Status
                     </label>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
@@ -291,22 +291,22 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Business Info</h2>
+              <div id="business" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Business Info</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Business Phone Number
                     </label>
                     <input
@@ -314,74 +314,74 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Messaging Settings</h2>
+              <div id="messaging" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Messaging Settings</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Auto Reply Message
                     </label>
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       After Hours Message
                     </label>
                     <textarea
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
+              <div id="automation" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-gray-100 mb-2">Automation Settings</h2>
-                  <p className="text-sm text-gray-400">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Automation Settings</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Configure how ReplyFlow automatically handles your missed calls and follow-ups.
                   </p>
                 </div>
                 
                 <div className="space-y-6">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="bg-gray-700/50 rounded-lg border border-gray-600 p-4 sm:p-6">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-base font-semibold text-gray-100">Spam & Repeat Call Filtering</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
                           {getAutomationSettings().spamRepeatFilteringEnabled && (
-                            <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded-full font-medium">
+                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-300 mb-2">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                           Control which callers receive automated text responses and which calls ReplyFlow should ignore.
                         </p>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
                           📋 Filtered calls will not create leads, trigger automations, or appear in your inbox.
                         </div>
                       </div>
                       <button
                         onClick={() => updateAutomationSetting('spamRepeatFilteringEnabled', !getAutomationSettings().spamRepeatFilteringEnabled)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          getAutomationSettings().spamRepeatFilteringEnabled ? 'bg-blue-600' : 'bg-gray-600'
+                          getAutomationSettings().spamRepeatFilteringEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         }`}
                         aria-label={getAutomationSettings().spamRepeatFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
@@ -395,27 +395,27 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {getAutomationSettings().spamRepeatFilteringEnabled && (
-                      <div className="space-y-6 border-t border-gray-600 pt-6">
+                      <div className="space-y-6 border-t border-gray-200 dark:border-gray-600 pt-6">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-gray-100">Prevent duplicate auto-replies</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Prevent duplicate auto-replies</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-gray-300 mb-2">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
-                            <div className="text-xs text-gray-400 italic">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 italic">
                               Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
                             </div>
                           </div>
                           <button
                             onClick={() => updateAutomationSetting('ignoreRepeatCalls', !getAutomationSettings().ignoreRepeatCalls)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              getAutomationSettings().ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-600'
+                              getAutomationSettings().ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
                             aria-label={getAutomationSettings().ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
                           >
@@ -428,22 +428,22 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-gray-100">Skip blocked or hidden callers</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Skip blocked or hidden callers</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-gray-300">
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
                               Prevent automated texts from being sent to callers who hide their number or appear as 'Unknown'.
                             </p>
                           </div>
                           <button
                             onClick={() => updateAutomationSetting('ignoreBlockedPrivateNumbers', !getAutomationSettings().ignoreBlockedPrivateNumbers)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              getAutomationSettings().ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-600'
+                              getAutomationSettings().ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                             }`}
                             aria-label={getAutomationSettings().ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
                           >
