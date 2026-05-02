@@ -67,7 +67,47 @@ function PhoneSetupContent() {
   const [error, setError] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
   const [isForwardingEnabled, setIsForwardingEnabled] = useState(false)
-  
+
+  const handleForwardingEnabled = async () => {
+    if (!phoneNumber || !carrier) {
+      setError('Please enter your business phone number and select a carrier first.')
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+
+    try {
+      const supabase = createBrowserClient()
+      
+      // Update business with forwarding enabled and completion timestamp
+      const { error } = await supabase
+        .from('businesses')
+        .update({
+          call_forwarding_enabled: true,
+          phone_setup_completed_at: new Date().toISOString(),
+          onboarding_step: 'phone_setup_completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', business?.user_id)
+
+      if (error) throw error
+
+      // Update local state
+      setIsForwardingEnabled(true)
+      
+      // Refresh business data to get latest state
+      await refreshBusiness()
+      
+      console.log('[Phone Setup] Forwarding enabled and saved successfully')
+    } catch (error) {
+      console.error('[Phone Setup] Failed to save forwarding status:', error)
+      setError('Failed to save forwarding status. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // TODO: Future enhancement - automatic forwarding verification
   // TODO: Future enhancement - test call flow
   // TODO: Future enhancement - carrier-specific screenshots
@@ -268,22 +308,47 @@ function PhoneSetupContent() {
             Copy forwarding code
           </button>
           <button
-            onClick={() => setIsForwardingEnabled(true)}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            onClick={handleForwardingEnabled}
+            disabled={isForwardingEnabled || isSaving}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              isForwardingEnabled 
+                ? 'bg-green-800 text-green-200 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            I've enabled forwarding
+            {isForwardingEnabled ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                ✓ Forwarding Enabled
+              </>
+            ) : isSaving ? (
+              <>
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                I've enabled forwarding
+              </>
+            )}
           </button>
           <button
             onClick={() => router.push('/demo')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              isForwardingEnabled 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-800' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            Test setup
+            {isForwardingEnabled ? 'Test setup now' : 'Test setup'}
           </button>
         </div>
       </div>
