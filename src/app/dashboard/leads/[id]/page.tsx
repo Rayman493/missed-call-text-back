@@ -693,8 +693,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Skeleton Header */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
             <div className="animate-pulse">
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+              <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
             </div>
           </div>
           
@@ -703,8 +703,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className={`h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
-                  <div className={`h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mt-1 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                  <div className={`h-4 bg-gray-100 dark:bg-gray-700 rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                  <div className={`h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4 mt-1 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
                 </div>
               ))}
             </div>
