@@ -29,7 +29,7 @@ export default function Navbar() {
 
   if (loading || businessLoading) {
     return (
-      <header className="w-full bg-slate-800/90 border-b border-slate-700">
+      <header className="w-full bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="w-32 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
           <div className="flex items-center gap-4">
@@ -43,7 +43,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="w-full bg-slate-800/90 border-b border-slate-700">
+    <header className="w-full bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link 
