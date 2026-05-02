@@ -345,6 +345,11 @@ export async function POST(request: Request) {
         
         // Log retrieved values
         console.log('[STRIPE CANCEL] RETRIEVED SUBSCRIPTION DATA:')
+        console.log('[Stripe Webhook] cancel_at_period_end:', subscription.cancel_at_period_end)
+        console.log('[Stripe Webhook] cancel_at:', subscription.cancel_at)
+        console.log('[Stripe Webhook] current_period_end:', (subscription as any).current_period_end)
+        console.log('[Stripe Webhook] trial_end:', (subscription as any).trial_end)
+        console.log('[Stripe Webhook] subscription_status:', subscription.status)
         console.log('[STRIPE CANCEL] typeof cancel_at_period_end:', typeof cancelAtPeriodEnd)
         console.log('[STRIPE CANCEL] cancel_at_period_end value:', cancelAtPeriodEnd)
         console.log('[STRIPE CANCEL] cancel_at_period_end === true:', cancelAtPeriodEnd === true)
