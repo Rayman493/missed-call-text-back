@@ -42,16 +42,20 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    console.log('[STRIPE WEBHOOK] ========== EVENT DISPATCH ==========')
+    console.log('[STRIPE WEBHOOK] Event type:', event.type)
+
     switch (event.type) {
       case 'checkout.session.completed': {
+        console.log('[STRIPE WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
+        
         const session = event.data.object as Stripe.Checkout.Session
         const customerId = session.customer as string
         const subscriptionId = session.subscription as string
 
-        console.log('[stripe-webhook] Webhook received:', event.type)
-        console.log('[stripe-webhook] Customer:', customerId)
-        console.log('[stripe-webhook] Subscription:', subscriptionId)
-        console.log('[stripe-webhook] Metadata:', session.metadata)
+        console.log('[STRIPE WEBHOOK] Customer:', customerId)
+        console.log('[STRIPE WEBHOOK] Subscription ID:', subscriptionId)
+        console.log('[STRIPE WEBHOOK] Metadata:', session.metadata)
 
         // Support both naming styles for metadata keys
         const businessId = session.metadata?.businessId || session.metadata?.business_id
@@ -80,22 +84,18 @@ export async function POST(request: Request) {
         }
 
         // Retrieve subscription details
+        console.log('[STRIPE SUBSCRIPTION] Retrieving subscription from Stripe API:', subscriptionId)
+        
         try {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[stripe-webhook] === SUBSCRIPTION RETRIEVED ===')
-          console.log('[stripe-webhook] Subscription ID:', subscription.id)
-          console.log('[stripe-webhook] Subscription status:', subscription.status)
-          console.log('[stripe-webhook] Subscription trial_end:', (subscription as any).trial_end)
-          console.log('[stripe-webhook] Subscription current_period_end:', (subscription as any).current_period_end)
-          console.log('[stripe-webhook] Raw subscription object keys:', Object.keys(subscription))
-          console.log('[stripe-webhook] Full subscription data:', JSON.stringify({
+          
+          console.log('[STRIPE SUBSCRIPTION] ========== SUBSCRIPTION RETRIEVED ==========')
+          console.log('[STRIPE SUBSCRIPTION]', {
             id: subscription.id,
             status: subscription.status,
             current_period_end: (subscription as any).current_period_end,
-            trial_end: (subscription as any).trial_end,
-            current_period_start: (subscription as any).current_period_start,
-            billing_cycle_anchor: (subscription as any).billing_cycle_anchor
-          }))
+            trial_end: (subscription as any).trial_end
+          })
           
           let currentPeriodEnd = null
           let trialEnd = null
@@ -103,29 +103,39 @@ export async function POST(request: Request) {
           const rawPeriodEnd = (subscription as any).current_period_end
           const rawTrialEnd = (subscription as any).trial_end
           
-          console.log('[stripe-webhook] Raw current_period_end value:', rawPeriodEnd, 'type:', typeof rawPeriodEnd)
-          console.log('[stripe-webhook] Raw trial_end value:', rawTrialEnd, 'type:', typeof rawTrialEnd)
+          console.log('[STRIPE SUBSCRIPTION] Raw values:', {
+            rawPeriodEnd,
+            rawTrialEnd,
+            periodEndType: typeof rawPeriodEnd,
+            trialEndType: typeof rawTrialEnd
+          })
           
           if (rawPeriodEnd && rawPeriodEnd !== 0) {
             try {
               currentPeriodEnd = new Date(rawPeriodEnd * 1000).toISOString()
-              console.log('[stripe-webhook] Converted current_period_end:', currentPeriodEnd)
+              console.log('[STRIPE SUBSCRIPTION] Converted current_period_end:', currentPeriodEnd)
             } catch (dateError) {
-              console.error('[stripe-webhook] Error converting period end date:', dateError)
+              console.error('[STRIPE SUBSCRIPTION] Error converting period end date:', dateError)
             }
           } else {
-            console.log('[stripe-webhook] current_period_end is null, 0, or undefined - skipping')
+            console.log('[STRIPE SUBSCRIPTION] current_period_end is null/0/undefined from Stripe')
           }
           
           if (rawTrialEnd && rawTrialEnd !== 0) {
             try {
               trialEnd = new Date(rawTrialEnd * 1000).toISOString()
-              console.log('[stripe-webhook] Converted trial_ends_at:', trialEnd)
+              console.log('[STRIPE SUBSCRIPTION] Converted trial_ends_at:', trialEnd)
             } catch (dateError) {
-              console.error('[stripe-webhook] Error converting trial end date:', dateError)
+              console.error('[STRIPE SUBSCRIPTION] Error converting trial end date:', dateError)
             }
           } else {
-            console.log('[stripe-webhook] trial_end is null, 0, or undefined - skipping')
+            console.log('[STRIPE SUBSCRIPTION] trial_end is null/0/undefined from Stripe')
+          }
+          
+          // FALLBACK: If current_period_end is null but trial_end exists, use trial_end
+          if (!currentPeriodEnd && trialEnd) {
+            currentPeriodEnd = trialEnd
+            console.log('[STRIPE SUBSCRIPTION] FALLBACK: Using trial_end for current_period_end')
           }
           
           updateData = {
@@ -137,14 +147,16 @@ export async function POST(request: Request) {
           // Only set current_period_end if it exists and was successfully converted
           if (currentPeriodEnd) {
             updateData.current_period_end = currentPeriodEnd
+            console.log('[STRIPE SUBSCRIPTION] SET current_period_end:', currentPeriodEnd)
           }
           
           // Only set trial_ends_at if it exists and was successfully converted
           if (trialEnd) {
             updateData.trial_ends_at = trialEnd
+            console.log('[STRIPE SUBSCRIPTION] SET trial_ends_at:', trialEnd)
           }
           
-          console.log('[stripe-webhook] Update data prepared:', {
+          console.log('[STRIPE SUBSCRIPTION] Final updateData:', {
             subscription_status: updateData.subscription_status,
             current_period_end: updateData.current_period_end,
             trial_ends_at: updateData.trial_ends_at
@@ -156,7 +168,10 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Could not retrieve subscription status, proceeding with customer and subscription IDs only')
         }
 
-        console.log('[stripe-webhook] Updating business:', businessId, 'for user:', userId, 'with data:', updateData)
+        console.log('[STRIPE WEBHOOK] ========== DB UPDATE START ==========')
+        console.log('[STRIPE WEBHOOK] Business ID:', businessId)
+        console.log('[STRIPE WEBHOOK] User ID:', userId)
+        console.log('[STRIPE WEBHOOK] Update payload:', JSON.stringify(updateData, null, 2))
 
         // Update by business_id
         const { error: updateError } = await supabase
@@ -165,9 +180,12 @@ export async function POST(request: Request) {
           .eq('id', businessId)
 
         if (updateError) {
-          console.error('[stripe-webhook] Supabase update error:', updateError)
+          console.error('[STRIPE WEBHOOK] ========== DB UPDATE ERROR ==========')
+          console.error('[STRIPE WEBHOOK] Supabase error:', updateError)
         } else {
-          console.log('[stripe-webhook] Successfully updated business:', businessId, 'for user:', userId)
+          console.log('[STRIPE WEBHOOK] ========== DB UPDATE SUCCESS ==========')
+          console.log('[STRIPE WEBHOOK] Successfully updated business:', businessId)
+          console.log('[STRIPE WEBHOOK] Fields updated:', Object.keys(updateData).join(', '))
         }
 
         // Provision Twilio number if business doesn't have one
@@ -179,10 +197,10 @@ export async function POST(request: Request) {
             .single()
 
           if (business && !business.assigned_twilio_number_id) {
-            console.log('[stripe-webhook] Business has no assigned Twilio number, provisioning one...')
+            console.log('[STRIPE WEBHOOK] Provisioning Twilio number...')
             const result = await provisionNumberForBusiness(businessId)
             if (result.success) {
-              console.log('[stripe-webhook] Successfully provisioned Twilio number:', result.twilioNumber?.phone_number)
+              console.log('[STRIPE WEBHOOK] Twilio number provisioned:', result.twilioNumber?.phone_number)
             } else {
               console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId, 'Error:', result.error)
             }
@@ -194,6 +212,7 @@ export async function POST(request: Request) {
           // Don't fail the webhook if provisioning fails - subscription is still active
         }
 
+        console.log('[STRIPE WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
         break
       }
 
