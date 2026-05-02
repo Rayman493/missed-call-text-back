@@ -138,15 +138,22 @@ export async function POST(request: Request) {
             console.log('[STRIPE SUBSCRIPTION] FALLBACK: Using trial_end for current_period_end')
           }
           
-          // checkout.session.completed should NOT set subscription lifecycle fields
-          // Those are handled by customer.subscription.created and customer.subscription.updated
+          // checkout.session.completed ONLY saves basic IDs
+          // Subscription lifecycle fields are handled by customer.subscription.created and customer.subscription.updated
           updateData = {
             ...updateData,
-            subscription_price_id: subscription.items.data[0]?.price.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+          }
+
+          // Only set subscription_price_id if available
+          if (subscription && subscription.items && subscription.items.data && subscription.items.data[0]) {
+            updateData.subscription_price_id = subscription.items.data[0].price.id
           }
           
-          console.log('[STRIPE WEBHOOK] checkout.session.completed - NOT setting subscription lifecycle fields')
-          console.log('[STRIPE WEBHOOK] Only setting subscription_price_id:', updateData.subscription_price_id)
+          console.log('[Stripe Webhook] Event type:', event.type)
+          console.log('[Stripe Webhook] checkout.session.completed - Only saving basic IDs')
+          console.log('[Stripe Webhook] DB update payload', updateData)
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
           // If we can't retrieve subscription, we can't determine the status
@@ -245,51 +252,36 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
-          let updateData: any = {
-            stripe_subscription_id: subscription.id,
-            subscription_status: status,
-            subscription_price_id: priceId,
-          }
-
-          console.log('[stripe-webhook] Raw periodEnd value:', periodEnd, 'type:', typeof periodEnd)
-          console.log('[stripe-webhook] Raw trialEnd value:', trialEnd, 'type:', typeof trialEnd)
-
-          // Only set current_period_end if it exists
-          if (periodEnd && periodEnd !== 0) {
-            try {
-              updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
-              console.log('[stripe-webhook] Setting current_period_end:', updateData.current_period_end)
-            } catch (dateError) {
-              console.error('[stripe-webhook] Error converting period end date:', dateError)
-            }
-          } else {
-            console.log('[stripe-webhook] periodEnd is null/0/undefined, not setting current_period_end')
-          }
+          console.log('[Stripe Webhook] Event type:', event.type)
           
-          // Only set trial_ends_at if it exists
-          if (trialEnd && trialEnd !== 0) {
-            try {
-              updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
-              console.log('[stripe-webhook] Setting trial_ends_at:', updateData.trial_ends_at)
-            } catch (dateError) {
-              console.error('[stripe-webhook] Error converting trial end date:', dateError)
-            }
-          } else {
-            console.log('[stripe-webhook] trialEnd is null/0/undefined, not setting trial_ends_at')
+          const updatePayload = {
+            stripe_subscription_id: subscription.id,
+            subscription_status: subscription.status,
+            subscription_price_id: priceId,
+            current_period_end: (subscription as any).current_period_end
+              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+              : null,
+            trial_ends_at: (subscription as any).trial_end
+              ? new Date((subscription as any).trial_end * 1000).toISOString()
+              : null,
+            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+            cancel_at: subscription.cancel_at
+              ? new Date(subscription.cancel_at * 1000).toISOString()
+              : null,
           }
 
-          console.log('[Stripe Webhook] EVENT: customer.subscription.created')
-          console.log('[Stripe Webhook] DB update payload', updateData)
+          console.log('[Stripe Webhook] customer.subscription.created - Saving full lifecycle state')
+          console.log('[Stripe Webhook] Subscription payload:', updatePayload)
 
           const { error: updateError } = await supabase
             .from('businesses')
-            .update(updateData)
+            .update(updatePayload)
             .eq('id', business.id)
 
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription created):', updateError)
           } else {
-            console.log('[stripe-webhook] Created subscription successfully:', { businessId: business.id, status, current_period_end: updateData.current_period_end, trial_ends_at: updateData.trial_ends_at })
+            console.log('[stripe-webhook] Created subscription successfully:', { businessId: business.id, status, current_period_end: updatePayload.current_period_end, trial_ends_at: updatePayload.trial_ends_at })
           }
         } else {
           console.error('[stripe-webhook] Business not found for customer:', customerId)
@@ -368,29 +360,30 @@ export async function POST(request: Request) {
             cancel_at: subscription.cancel_at,
           })
 
-          // Direct mapping from Stripe subscription object - no conditional logic
-          const updateData: any = {
+          console.log('[Stripe Webhook] Event type:', event.type)
+          
+          const updatePayload = {
             subscription_price_id: priceId,
-            subscription_status: status,
-            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-            cancel_at: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
-              : null,
+            subscription_status: subscription.status,
             current_period_end: (subscription as any).current_period_end
               ? new Date((subscription as any).current_period_end * 1000).toISOString()
               : null,
             trial_ends_at: (subscription as any).trial_end
               ? new Date((subscription as any).trial_end * 1000).toISOString()
               : null,
+            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+            cancel_at: subscription.cancel_at
+              ? new Date(subscription.cancel_at * 1000).toISOString()
+              : null,
           }
 
-          console.log('[Stripe Webhook] EVENT: customer.subscription.updated')
-          console.log('[Stripe Webhook] DB update payload', updateData)
+          console.log('[Stripe Webhook] customer.subscription.updated - Saving full lifecycle state')
+          console.log('[Stripe Webhook] Subscription payload:', updatePayload)
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
             .from('businesses')
-            .update(updateData)
+            .update(updatePayload)
             .eq('id', business.id)
 
           if (updateError) {
@@ -399,8 +392,8 @@ export async function POST(request: Request) {
           } else {
             console.log('[STRIPE CANCEL] ========== UPDATE SUCCESS ==========')
             console.log('[STRIPE CANCEL] Updated business:', business.id)
-            console.log('[STRIPE CANCEL] Fields saved:', Object.keys(updateData).join(', '))
-            console.log('[STRIPE CANCEL] cancel_at_period_end saved as:', updateData.cancel_at_period_end)
+            console.log('[STRIPE CANCEL] Fields saved:', Object.keys(updatePayload).join(', '))
+            console.log('[STRIPE CANCEL] cancel_at_period_end saved as:', updatePayload.cancel_at_period_end)
           }
         } else {
           console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
