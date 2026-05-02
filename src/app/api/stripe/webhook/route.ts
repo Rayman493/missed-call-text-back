@@ -87,24 +87,45 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Subscription status:', subscription.status)
           console.log('[stripe-webhook] Subscription trial_end:', (subscription as any).trial_end)
           console.log('[stripe-webhook] Subscription current_period_end:', (subscription as any).current_period_end)
+          console.log('[stripe-webhook] Raw subscription object keys:', Object.keys(subscription))
+          console.log('[stripe-webhook] Full subscription data:', JSON.stringify({
+            id: subscription.id,
+            status: subscription.status,
+            current_period_end: (subscription as any).current_period_end,
+            trial_end: (subscription as any).trial_end,
+            current_period_start: (subscription as any).current_period_start,
+            billing_cycle_anchor: (subscription as any).billing_cycle_anchor
+          }))
           
           let currentPeriodEnd = null
           let trialEnd = null
           
-          if ((subscription as any).current_period_end) {
+          const rawPeriodEnd = (subscription as any).current_period_end
+          const rawTrialEnd = (subscription as any).trial_end
+          
+          console.log('[stripe-webhook] Raw current_period_end value:', rawPeriodEnd, 'type:', typeof rawPeriodEnd)
+          console.log('[stripe-webhook] Raw trial_end value:', rawTrialEnd, 'type:', typeof rawTrialEnd)
+          
+          if (rawPeriodEnd && rawPeriodEnd !== 0) {
             try {
-              currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString()
+              currentPeriodEnd = new Date(rawPeriodEnd * 1000).toISOString()
+              console.log('[stripe-webhook] Converted current_period_end:', currentPeriodEnd)
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting period end date:', dateError)
             }
+          } else {
+            console.log('[stripe-webhook] current_period_end is null, 0, or undefined - skipping')
           }
           
-          if ((subscription as any).trial_end) {
+          if (rawTrialEnd && rawTrialEnd !== 0) {
             try {
-              trialEnd = new Date((subscription as any).trial_end * 1000).toISOString()
+              trialEnd = new Date(rawTrialEnd * 1000).toISOString()
+              console.log('[stripe-webhook] Converted trial_ends_at:', trialEnd)
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting trial end date:', dateError)
             }
+          } else {
+            console.log('[stripe-webhook] trial_end is null, 0, or undefined - skipping')
           }
           
           updateData = {
