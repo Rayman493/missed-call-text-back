@@ -290,14 +290,14 @@ export default function SetupHealth() {
             ))}
           </div>
 
-          <div className="border-t border-gray-700 pt-4 pb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Quick Actions</h3>
+          <div className="border-t border-gray-700 pt-5 pb-6 mt-4">
+            <h3 className="text-sm font-medium text-gray-300 mb-4">Quick Actions</h3>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Primary action: Complete Phone Setup if forwarding is not complete */}
               {!business?.business_phone_number || !business?.phone_setup_completed_at || !business?.call_forwarding_enabled ? (
                 <button
                   onClick={handleViewInstructions}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="flex-1 w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   Complete Phone Setup
                 </button>
@@ -305,7 +305,7 @@ export default function SetupHealth() {
                 /* Secondary action: Test Setup if forwarding is configured */
                 <button
                   onClick={handleTestCall}
-                  className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="flex-1 w-full sm:w-auto px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   Test Setup
                 </button>
@@ -315,7 +315,7 @@ export default function SetupHealth() {
               {business?.business_phone_number && business?.phone_setup_completed_at && business?.call_forwarding_enabled && (
                 <button
                   onClick={handleViewInstructions}
-                  className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="w-full sm:w-auto px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   View Instructions
                 </button>
