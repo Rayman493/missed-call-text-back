@@ -227,23 +227,34 @@ export async function POST(request: Request) {
             subscription_price_id: priceId,
           }
 
+          console.log('[stripe-webhook] Raw periodEnd value from event:', periodEnd, 'type:', typeof periodEnd)
+          console.log('[stripe-webhook] Raw trialEnd value from event:', trialEnd, 'type:', typeof trialEnd)
+
           // Only set current_period_end if it exists
-          if (periodEnd) {
+          if (periodEnd && periodEnd !== 0) {
             try {
               updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
+              console.log('[stripe-webhook] Setting current_period_end:', updateData.current_period_end)
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting period end date:', dateError)
             }
+          } else {
+            console.log('[stripe-webhook] periodEnd is null/0/undefined, not setting current_period_end')
           }
           
           // Only set trial_ends_at if it exists
-          if (trialEnd) {
+          if (trialEnd && trialEnd !== 0) {
             try {
               updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
+              console.log('[stripe-webhook] Setting trial_ends_at:', updateData.trial_ends_at)
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting trial end date:', dateError)
             }
+          } else {
+            console.log('[stripe-webhook] trialEnd is null/0/undefined, not setting trial_ends_at')
           }
+
+          console.log('[stripe-webhook] Final updateData for subscription.created:', JSON.stringify(updateData))
 
           const { error: updateError } = await supabase
             .from('businesses')
@@ -253,7 +264,7 @@ export async function POST(request: Request) {
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription created):', updateError)
           } else {
-            console.log('[stripe-webhook] Created subscription:', { businessId: business.id, status })
+            console.log('[stripe-webhook] Created subscription successfully:', { businessId: business.id, status, current_period_end: updateData.current_period_end, trial_ends_at: updateData.trial_ends_at })
           }
         } else {
           console.error('[stripe-webhook] Business not found for customer:', customerId)
