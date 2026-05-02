@@ -154,6 +154,15 @@ export async function POST(request: Request) {
           
           console.log('[Stripe Webhook] Event type:', event.type)
           console.log('[Stripe Webhook] checkout.session.completed - Only saving basic IDs')
+          console.log('[STRIPE EVENT]', {
+            eventType: event.type,
+            subscriptionId: subscription?.id,
+            status: subscription?.status,
+            trial_end: (subscription as any)?.trial_end,
+            current_period_end: (subscription as any)?.current_period_end,
+            cancel_at: subscription?.cancel_at,
+            cancel_at_period_end: subscription?.cancel_at_period_end,
+          })
           console.log('[Stripe Webhook] DB update payload', updateData)
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
@@ -167,6 +176,12 @@ export async function POST(request: Request) {
         console.log('[STRIPE WEBHOOK] Business ID:', businessId)
         console.log('[STRIPE WEBHOOK] User ID:', userId)
         console.log('[Stripe Webhook] DB update payload', updateData)
+
+        console.log('[DB WRITE]', {
+          eventType: event.type,
+          businessId,
+          updatePayload: updateData,
+        })
 
         // Update by business_id
         const { error: updateError } = await supabase
@@ -258,15 +273,14 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[DEBUG] Business ID:', business.id)
           
-          console.log('[Stripe Sync] Raw subscription timing fields', {
-            subscription_id: subscription.id,
-            customer: subscription.customer,
-            status: subscription.status,
-            trial_start: (subscription as any).trial_start,
+          console.log('[STRIPE EVENT]', {
+            eventType: event.type,
+            subscriptionId: subscription?.id,
+            status: subscription?.status,
             trial_end: (subscription as any).trial_end,
             current_period_end: (subscription as any).current_period_end,
-            cancel_at: subscription.cancel_at,
-            cancel_at_period_end: subscription.cancel_at_period_end,
+            cancel_at: subscription?.cancel_at,
+            cancel_at_period_end: subscription?.cancel_at_period_end,
           })
           
           // Map subscription timing fields with proper fallback logic
@@ -295,7 +309,11 @@ export async function POST(request: Request) {
             cancel_at_period_end: subscription.cancel_at_period_end ?? false,
           }
 
-          console.log('[STRIPE SUBSCRIPTION] Final DB payload:', updatePayload)
+          console.log('[DB WRITE]', {
+            eventType: event.type,
+            businessId: business.id,
+            updatePayload,
+          })
 
           const { error: updateError } = await supabase
             .from('businesses')
@@ -381,15 +399,14 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
           
-          console.log('[Stripe Sync] Raw subscription timing fields (updated)', {
-            subscription_id: subscription.id,
-            customer: subscription.customer,
-            status: subscription.status,
-            trial_start: (subscription as any).trial_start,
+          console.log('[STRIPE EVENT]', {
+            eventType: event.type,
+            subscriptionId: subscription?.id,
+            status: subscription?.status,
             trial_end: (subscription as any).trial_end,
             current_period_end: (subscription as any).current_period_end,
-            cancel_at: subscription.cancel_at,
-            cancel_at_period_end: subscription.cancel_at_period_end,
+            cancel_at: subscription?.cancel_at,
+            cancel_at_period_end: subscription?.cancel_at_period_end,
           })
 
           console.log('[Stripe Webhook] Event type:', event.type)
@@ -420,8 +437,11 @@ export async function POST(request: Request) {
             cancel_at_period_end: subscription.cancel_at_period_end ?? false,
           }
 
-          console.log('[Stripe Webhook] customer.subscription.updated - Saving full lifecycle state')
-          console.log('[STRIPE SUBSCRIPTION] Final DB payload:', updatePayload)
+          console.log('[DB WRITE]', {
+            eventType: event.type,
+            businessId: business.id,
+            updatePayload,
+          })
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
