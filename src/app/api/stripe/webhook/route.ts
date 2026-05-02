@@ -374,52 +374,23 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
           
-          let updateData: any = {
+          // Direct mapping from Stripe subscription object - no conditional logic
+          const updateData: any = {
             subscription_price_id: priceId,
             subscription_status: status,
-            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-          }
-          
-          console.log('[STRIPE CANCEL] INITIAL updateData created:')
-          console.log('[STRIPE CANCEL] cancel_at_period_end in updateData:', updateData.cancel_at_period_end)
-
-          // Set current_period_end
-          if (periodEnd) {
-            try {
-              updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
-              console.log('[STRIPE CANCEL] SET current_period_end:', updateData.current_period_end)
-            } catch (dateError) {
-              console.error('[STRIPE CANCEL] Error converting period end date:', dateError)
-            }
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            cancel_at: subscription.cancel_at 
+              ? new Date(subscription.cancel_at * 1000).toISOString() 
+              : null,
+            current_period_end: (subscription as any).current_period_end
+              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+              : null,
+            trial_ends_at: (subscription as any).trial_end
+              ? new Date((subscription as any).trial_end * 1000).toISOString()
+              : null,
           }
 
-          // Set cancel_at
-          if (cancelAt) {
-            try {
-              updateData.cancel_at = new Date(cancelAt * 1000).toISOString()
-              console.log('[STRIPE CANCEL] SET cancel_at:', updateData.cancel_at)
-            } catch (dateError) {
-              console.error('[STRIPE CANCEL] Error converting cancel_at date:', dateError)
-            }
-          }
-          
-          // Set trial_ends_at
-          if (trialEnd) {
-            try {
-              updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
-              console.log('[STRIPE CANCEL] SET trial_ends_at:', updateData.trial_ends_at)
-            } catch (dateError) {
-              console.error('[STRIPE CANCEL] Error converting trial end date:', dateError)
-            }
-          }
-
-          console.log('[STRIPE CANCEL] FINAL updateData:', JSON.stringify(updateData, null, 2))
-
-          console.log('[STRIPE CANCEL] About to write to Supabase with payload:')
-          console.log('[STRIPE CANCEL] Table: businesses')
-          console.log('[STRIPE CANCEL] Column: cancel_at_period_end')
-          console.log('[STRIPE CANCEL] Value being written:', updateData.cancel_at_period_end)
-          console.log('[STRIPE CANCEL] Type of value:', typeof updateData.cancel_at_period_end)
+          console.log('[Stripe Webhook] Final DB payload', updateData)
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
