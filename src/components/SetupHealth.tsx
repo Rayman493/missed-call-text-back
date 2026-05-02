@@ -268,10 +268,10 @@ export default function SetupHealth() {
                 <div className="flex-shrink-0 mt-0.5">
                   {getStatusIcon(item.status)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-200">{item.title}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-medium text-gray-200 break-words">{item.title}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
                       item.status === 'healthy' ? 'bg-green-900/30 text-green-400' :
                       item.status === 'warning' ? 'bg-yellow-900/30 text-yellow-400' :
                       item.status === 'error' ? 'bg-red-900/30 text-red-400' :
@@ -282,9 +282,9 @@ export default function SetupHealth() {
                        item.status === 'error' ? 'Error' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</p>
                   {item.details && (
-                    <p className={`text-xs mt-1 ${getStatusColor(item.status)}`}>{item.details}</p>
+                    <p className={`text-xs mt-1 break-words overflow-wrap-anywhere ${getStatusColor(item.status)}`}>{item.details}</p>
                   )}
                 </div>
               </div>

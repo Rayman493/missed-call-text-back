@@ -385,10 +385,10 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                 <div className="flex-shrink-0 mt-0.5">
                   {getStatusIcon(item.status)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className={`font-medium ${healthy ? 'text-sm text-gray-900 dark:text-gray-100' : 'text-sm text-gray-900 dark:text-gray-100'}`}>{item.title}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className={`font-medium ${healthy ? 'text-sm text-gray-900 dark:text-gray-100' : 'text-sm text-gray-900 dark:text-gray-100'} break-words`}>{item.title}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
                       item.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                       item.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                       item.status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
@@ -399,9 +399,9 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                        item.status === 'error' ? 'Action needed' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</p>
                   {item.details && (
-                    <p className={`text-xs mt-1 ${
+                    <p className={`text-xs mt-1 break-words overflow-wrap-anywhere ${
                       item.status === 'healthy' ? 'text-green-700 dark:text-green-400' :
                       item.status === 'warning' ? 'text-yellow-700 dark:text-yellow-400' :
                       item.status === 'error' ? 'text-red-700 dark:text-red-400' :
