@@ -82,14 +82,28 @@ export async function POST(request: Request) {
         // Retrieve subscription details
         try {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[stripe-webhook] Subscription period end:', (subscription as any).current_period_end)
+          console.log('[stripe-webhook] === SUBSCRIPTION RETRIEVED ===')
+          console.log('[stripe-webhook] Subscription ID:', subscription.id)
+          console.log('[stripe-webhook] Subscription status:', subscription.status)
+          console.log('[stripe-webhook] Subscription trial_end:', (subscription as any).trial_end)
+          console.log('[stripe-webhook] Subscription current_period_end:', (subscription as any).current_period_end)
           
           let currentPeriodEnd = null
+          let trialEnd = null
+          
           if ((subscription as any).current_period_end) {
             try {
               currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString()
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting period end date:', dateError)
+            }
+          }
+          
+          if ((subscription as any).trial_end) {
+            try {
+              trialEnd = new Date((subscription as any).trial_end * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting trial end date:', dateError)
             }
           }
           
@@ -103,6 +117,17 @@ export async function POST(request: Request) {
           if (currentPeriodEnd) {
             updateData.current_period_end = currentPeriodEnd
           }
+          
+          // Only set trial_ends_at if it exists and was successfully converted
+          if (trialEnd) {
+            updateData.trial_ends_at = trialEnd
+          }
+          
+          console.log('[stripe-webhook] Update data prepared:', {
+            subscription_status: updateData.subscription_status,
+            current_period_end: updateData.current_period_end,
+            trial_ends_at: updateData.trial_ends_at
+          })
         } catch (error) {
           console.error('[stripe-webhook] Error retrieving subscription:', error)
           // If we can't retrieve subscription, we can't determine the status
@@ -157,9 +182,14 @@ export async function POST(request: Request) {
         const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
+        const trialEnd = (subscription as any).trial_end
 
-        console.log('[stripe-webhook] Subscription created:', subscription.id)
-        console.log('[stripe-webhook] Subscription period end:', periodEnd)
+        console.log('[stripe-webhook] === SUBSCRIPTION CREATED ===')
+        console.log('[stripe-webhook] Event type: customer.subscription.created')
+        console.log('[stripe-webhook] Subscription ID:', subscription.id)
+        console.log('[stripe-webhook] Status:', status)
+        console.log('[stripe-webhook] Trial end:', trialEnd)
+        console.log('[stripe-webhook] Period end:', periodEnd)
 
         // Find business by stripe_customer_id
         const { data: business } = await supabase
@@ -182,6 +212,15 @@ export async function POST(request: Request) {
               updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
             } catch (dateError) {
               console.error('[stripe-webhook] Error converting period end date:', dateError)
+            }
+          }
+          
+          // Only set trial_ends_at if it exists
+          if (trialEnd) {
+            try {
+              updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting trial end date:', dateError)
             }
           }
 
@@ -209,11 +248,13 @@ export async function POST(request: Request) {
         const periodEnd = (subscription as any).current_period_end
         const cancelAtPeriodEnd = subscription.cancel_at_period_end
         const cancelAt = (subscription as any).cancel_at
+        const trialEnd = (subscription as any).trial_end
 
         console.log('[stripe-webhook] === SUBSCRIPTION UPDATED ===')
         console.log('[stripe-webhook] Event type: customer.subscription.updated')
         console.log('[stripe-webhook] Subscription ID:', subscription.id)
         console.log('[stripe-webhook] Status:', status)
+        console.log('[stripe-webhook] Trial end:', trialEnd)
         console.log('[stripe-webhook] Cancel at period end:', cancelAtPeriodEnd)
         console.log('[stripe-webhook] Current period end:', periodEnd)
         console.log('[stripe-webhook] Cancel at:', cancelAt)
@@ -249,6 +290,15 @@ export async function POST(request: Request) {
               console.error('[stripe-webhook] Error converting cancel_at date:', dateError)
             }
           }
+          
+          // Only set trial_ends_at if it exists
+          if (trialEnd) {
+            try {
+              updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
+            } catch (dateError) {
+              console.error('[stripe-webhook] Error converting trial end date:', dateError)
+            }
+          }
 
           // Handle subscription status
           // IMPORTANT: When cancel_at_period_end is true, we keep the subscription as active/trialing
@@ -277,7 +327,8 @@ export async function POST(request: Request) {
             status: updateData.subscription_status, 
             cancelAtPeriodEnd: updateData.cancel_at_period_end,
             cancelAt: updateData.cancel_at,
-            currentPeriodEnd: updateData.current_period_end 
+            currentPeriodEnd: updateData.current_period_end,
+            trialEndsAt: updateData.trial_ends_at
           })
 
           const { error: updateError } = await supabase
