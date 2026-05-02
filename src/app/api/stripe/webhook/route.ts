@@ -274,7 +274,7 @@ export async function POST(request: Request) {
               : null,
           }
 
-          console.log('[DEBUG] Exact DB payload being written:', JSON.stringify(updatePayload, null, 2))
+          console.log('[STRIPE SUBSCRIPTION] Final DB payload:', updatePayload)
 
           const { error: updateError } = await supabase
             .from('businesses')
@@ -384,7 +384,7 @@ export async function POST(request: Request) {
           }
 
           console.log('[Stripe Webhook] customer.subscription.updated - Saving full lifecycle state')
-          console.log('[Stripe Webhook] Subscription payload:', updatePayload)
+          console.log('[STRIPE SUBSCRIPTION] Final DB payload:', updatePayload)
           console.log('[STRIPE CANCEL] Executing Supabase update...')
           
           const { error: updateError } = await supabase
