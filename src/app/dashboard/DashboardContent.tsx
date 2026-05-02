@@ -33,6 +33,7 @@ import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import CompactSetupHealth from '@/components/CompactSetupHealth'
+import OffboardingBanner from '@/components/OffboardingBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -875,8 +876,16 @@ export default function DashboardContent() {
               </div>
             )}
 
+            {/* Offboarding Banner - for canceled/unpaid/expired subscriptions */}
+            {!isActive && business?.stripe_subscription_id && (
+              <OffboardingBanner 
+                business={business}
+                subscriptionStatus={business?.subscription_status || 'inactive'}
+              />
+            )}
+
             {/* Billing card - only show when action needed */}
-            {!isActive && (
+            {!isActive && !business?.stripe_subscription_id && (
               <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 hover:border-gray-600 transition">
                 {webhookConfirming ? (
                   <>

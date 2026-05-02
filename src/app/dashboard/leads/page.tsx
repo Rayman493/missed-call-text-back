@@ -20,7 +20,8 @@ import {
   needsUpgrade,
   getPricingDisplay,
   getTrialDisplay,
-  SUBSCRIPTION_STATES
+  SUBSCRIPTION_STATES,
+  hasValidSubscription
 } from '@/lib/subscription'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
@@ -33,6 +34,7 @@ import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import CompactSetupHealth from '@/components/CompactSetupHealth'
+import OffboardingBanner from '@/components/OffboardingBanner'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
@@ -237,6 +239,14 @@ export default function LeadsPage() {
           <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
+
+            {/* Offboarding Banner - for canceled/unpaid/expired subscriptions */}
+            {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.stripe_subscription_id && (
+              <OffboardingBanner 
+                business={business}
+                subscriptionStatus={business?.subscription_status || 'inactive'}
+              />
+            )}
 
             {/* Leads Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

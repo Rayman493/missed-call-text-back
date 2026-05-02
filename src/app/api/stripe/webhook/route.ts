@@ -282,7 +282,7 @@ export async function POST(request: Request) {
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
           .from('businesses')
-          .select('id')
+          .select('id, user_id, carrier')
           .eq('stripe_subscription_id', subscription.id)
           .limit(1)
           .single()
@@ -291,14 +291,14 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Setting subscription status to canceled for business:', business.id)
 
           const { error: updateError } = await supabase
-          .from('businesses')
-          .update({
-            stripe_subscription_id: null,
-            subscription_status: SUBSCRIPTION_STATES.CANCELED,
-            subscription_price_id: null,
-            current_period_end: null
-          })
-          .eq('id', business.id)
+            .from('businesses')
+            .update({
+              stripe_subscription_id: null,
+              subscription_status: SUBSCRIPTION_STATES.CANCELED,
+              subscription_price_id: null,
+              current_period_end: null
+            })
+            .eq('id', business.id)
 
           if (updateError) {
             console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)
@@ -319,6 +319,31 @@ export async function POST(request: Request) {
           } catch (releaseError) {
             console.error('[stripe-webhook] Error during Twilio number release:', releaseError)
             // Don't fail the webhook - subscription is already canceled
+          }
+
+          // Send offboarding email with forwarding disable instructions
+          try {
+            console.log('[stripe-webhook] Triggering offboarding email for business:', business.id)
+            
+            // Call offboarding email API
+            const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-offboarding-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                businessId: business.id,
+                userId: business.user_id,
+                carrier: business.carrier || 'other'
+              })
+            })
+
+            if (emailResponse.ok) {
+              console.log('[stripe-webhook] Offboarding email triggered successfully')
+            } else {
+              console.error('[stripe-webhook] Failed to trigger offboarding email:', await emailResponse.text())
+            }
+          } catch (emailError) {
+            console.error('[stripe-webhook] Error triggering offboarding email:', emailError)
+            // Don't fail the webhook - email is not critical
           }
         } else {
           console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
