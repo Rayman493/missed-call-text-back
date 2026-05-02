@@ -48,6 +48,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   }
 
   const bgClass = forceDark ? 'bg-slate-800/90 border-b border-slate-700' : 'bg-white dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700'
+  const replyTextColor = forceDark ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+  const flowTextColor = forceDark ? 'text-blue-400' : 'text-blue-600 dark:text-blue-500'
+  
   return (
     <header className={`w-full ${bgClass}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -57,8 +60,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           className="flex items-center hover:opacity-90 transition"
         >
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
-            <span className="text-gray-900 dark:text-gray-100">Reply</span>
-            <span className="text-blue-600 dark:text-blue-500">Flow</span>
+            <span className={replyTextColor}>Reply</span>
+            <span className={flowTextColor}>Flow</span>
           </span>
         </Link>
 
