@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatPhoneNumber } from '@/lib/utils'
+import { formatPhoneNumber, getReplyFlowPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import CallForwardingInstructions from './CallForwardingInstructions'
 
 interface ReplyFlowNumberCardProps {
@@ -16,14 +16,15 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
   const [showInstructions, setShowInstructions] = useState(false)
 
   const handleCopyNumber = async () => {
-    if (business?.twilio_phone_number) {
-      await navigator.clipboard.writeText(business.twilio_phone_number)
+    const phoneNumber = getReplyFlowPhoneNumber(business)
+    if (phoneNumber) {
+      await navigator.clipboard.writeText(phoneNumber)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
   }
 
-  const phoneNumber = business?.twilio_phone_number
+  const phoneNumber = getReplyFlowPhoneNumberDisplay(business)
   const hasNumber = !!phoneNumber
 
   if (!hasNumber) {

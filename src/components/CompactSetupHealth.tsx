@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
   getSubscriptionStatusText, 
   getSubscriptionStatusDescription,
@@ -161,7 +162,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
       description: 'ReplyFlow number is assigned and ready',
       status: twilioActive ? 'healthy' : 'warning',
       details: twilioActive 
-        ? `Number: ${business.twilio_phone_number}` 
+        ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}` 
         : 'No Twilio number assigned'
     })
 

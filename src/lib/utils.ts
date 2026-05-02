@@ -89,6 +89,21 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
   return phone
 }
 
+export function getReplyFlowPhoneNumber(business: any): string {
+  // If business has a dedicated verified business phone number, show that
+  if (business?.business_phone_number && business?.phone_setup_completed_at && business?.call_forwarding_enabled) {
+    return business.business_phone_number
+  }
+  
+  // Otherwise, show the shared production toll-free number
+  return '+18336584303' // (833) 658-4303
+}
+
+export function getReplyFlowPhoneNumberDisplay(business: any): string {
+  const phoneNumber = getReplyFlowPhoneNumber(business)
+  return formatPhoneNumber(phoneNumber)
+}
+
 export function normalizePhoneNumber(input: string): string | null {
   const digits = input.replace(/\D/g, '')
 

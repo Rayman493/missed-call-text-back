@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber } from '@/lib/utils'
+import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
   hasValidSubscription,
   getSubscriptionStatusText,
@@ -147,11 +147,11 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300">Business Phone:</span>
-                  <span className="text-gray-900 dark:text-white font-mono">{formatPhone(business?.business_phone_number)}</span>
+                  <span className="text-gray-900 dark:text-white font-mono">{formatPhoneNumber(business?.business_phone_number)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300">ReplyFlow Number:</span>
-                  <span className="text-gray-900 dark:text-white font-mono">{formatPhone(business?.twilio_phone_number)}</span>
+                  <span className="text-gray-900 dark:text-white font-mono">{getReplyFlowPhoneNumberDisplay(business)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300">Setup Status:</span>

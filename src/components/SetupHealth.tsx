@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
   getSubscriptionStatusText, 
   getSubscriptionStatusDescription,
@@ -146,7 +147,7 @@ export default function SetupHealth() {
     description: 'ReplyFlow number is assigned and ready',
     status: twilioActive ? 'healthy' : 'warning',
     details: twilioActive 
-      ? `Number: ${formatForDisplay(business.twilio_phone_number!)}` 
+      ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}` 
       : 'No Twilio number assigned'
   })
 
