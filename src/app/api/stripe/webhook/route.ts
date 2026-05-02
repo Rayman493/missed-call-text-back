@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    console.log('[Stripe Webhook] Received event:', event.type)
     console.log('[STRIPE WEBHOOK] ========== EVENT DISPATCH ==========')
     console.log('[STRIPE WEBHOOK] Event type:', event.type)
 
