@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { handleBillingAction } from '@/lib/billing'
 
@@ -75,6 +76,14 @@ export default function UserDropdown() {
             >
               Manage Subscription
             </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <Link
+              href="/faq"
+              onClick={() => setIsOpen(false)}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors block"
+            >
+              FAQ / Help
+            </Link>
             <button
               onClick={handleSignOut}
               className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
