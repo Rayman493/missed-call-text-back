@@ -642,7 +642,7 @@ export default function DashboardContent() {
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-gray-600 dark:text-gray-400">
           {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
         </div>
@@ -663,7 +663,7 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
