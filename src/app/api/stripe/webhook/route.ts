@@ -374,13 +374,19 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
           
+          console.log('[Stripe Webhook] Stripe values', {
+            current_period_end: (subscription as any).current_period_end,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            cancel_at: subscription.cancel_at,
+          })
+
           // Direct mapping from Stripe subscription object - no conditional logic
           const updateData: any = {
             subscription_price_id: priceId,
             subscription_status: status,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            cancel_at: subscription.cancel_at 
-              ? new Date(subscription.cancel_at * 1000).toISOString() 
+            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+            cancel_at: subscription.cancel_at
+              ? new Date(subscription.cancel_at * 1000).toISOString()
               : null,
             current_period_end: (subscription as any).current_period_end
               ? new Date((subscription as any).current_period_end * 1000).toISOString()
