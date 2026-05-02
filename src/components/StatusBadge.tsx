@@ -13,11 +13,11 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
   }
 
   const statusMap: Record<string, { label: string; icon: string; style: string }> = {
-    delivered: { label: "Delivered", icon: "✓", style: "bg-green-100 text-green-700 border border-green-200" },
-    sent: { label: "Sent", icon: "→", style: "bg-blue-100 text-blue-700 border border-blue-200" },
-    queued: { label: "Sending...", icon: "…", style: "bg-gray-100 text-gray-700 border border-gray-200" },
-    failed: { label: "Failed", icon: "✕", style: "bg-red-100 text-red-700 border border-red-200" },
-    undelivered: { label: "Failed", icon: "✕", style: "bg-red-100 text-red-700 border border-red-200" },
+    delivered: { label: "Delivered", icon: "✓", style: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-800" },
+    sent: { label: "Sent", icon: "→", style: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-800" },
+    queued: { label: "Sending...", icon: "…", style: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600" },
+    failed: { label: "Failed", icon: "✕", style: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800" },
+    undelivered: { label: "Failed", icon: "✕", style: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800" },
   };
 
   // Handle null status
