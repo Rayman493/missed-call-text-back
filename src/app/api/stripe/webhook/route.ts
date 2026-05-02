@@ -310,14 +310,14 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.updated': {
+        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.UPDATED START ==========')
+        
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
         const customerId = eventSubscription.customer as string
 
-        console.log('[stripe-webhook] === SUBSCRIPTION UPDATED ===')
-        console.log('[stripe-webhook] Event type: customer.subscription.updated')
-        console.log('[stripe-webhook] Subscription ID from event:', subscriptionId)
-        console.log('[stripe-webhook] Customer ID from event:', customerId)
+        console.log('[STRIPE CANCEL] Subscription ID from event:', subscriptionId)
+        console.log('[STRIPE CANCEL] Customer ID from event:', customerId)
 
         // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
         let subscription: Stripe.Subscription | null = null
@@ -337,11 +337,14 @@ export async function POST(request: Request) {
         const cancelAt = (subscription as any).cancel_at
         const trialEnd = (subscription as any).trial_end
 
-        console.log('[stripe-webhook] Subscription status:', status)
-        console.log('[stripe-webhook] Subscription trial_end:', trialEnd)
-        console.log('[stripe-webhook] Subscription current_period_end:', periodEnd)
-        console.log('[stripe-webhook] Subscription cancel_at_period_end:', cancelAtPeriodEnd)
-        console.log('[stripe-webhook] Subscription cancel_at:', cancelAt)
+        console.log('[STRIPE CANCEL] Retrieved subscription data:')
+        console.log('[STRIPE CANCEL]', {
+          status,
+          current_period_end: periodEnd,
+          trial_end: trialEnd,
+          cancel_at_period_end: cancelAtPeriodEnd,
+          cancel_at: cancelAt
+        })
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -352,97 +355,78 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
+          console.log('[STRIPE CANCEL] Business found:', business.id)
+          
           let updateData: any = {
             subscription_price_id: priceId,
+            subscription_status: status,
             cancel_at_period_end: cancelAtPeriodEnd,
           }
 
-          // Only set current_period_end if it exists
+          // Set current_period_end
           if (periodEnd) {
             try {
               updateData.current_period_end = new Date(periodEnd * 1000).toISOString()
+              console.log('[STRIPE CANCEL] SET current_period_end:', updateData.current_period_end)
             } catch (dateError) {
-              console.error('[stripe-webhook] Error converting period end date:', dateError)
+              console.error('[STRIPE CANCEL] Error converting period end date:', dateError)
             }
           }
 
-          // Only set cancel_at if it exists
+          // Set cancel_at
           if (cancelAt) {
             try {
               updateData.cancel_at = new Date(cancelAt * 1000).toISOString()
+              console.log('[STRIPE CANCEL] SET cancel_at:', updateData.cancel_at)
             } catch (dateError) {
-              console.error('[stripe-webhook] Error converting cancel_at date:', dateError)
+              console.error('[STRIPE CANCEL] Error converting cancel_at date:', dateError)
             }
           }
           
-          // Only set trial_ends_at if it exists
+          // Set trial_ends_at
           if (trialEnd) {
             try {
               updateData.trial_ends_at = new Date(trialEnd * 1000).toISOString()
+              console.log('[STRIPE CANCEL] SET trial_ends_at:', updateData.trial_ends_at)
             } catch (dateError) {
-              console.error('[stripe-webhook] Error converting trial end date:', dateError)
+              console.error('[STRIPE CANCEL] Error converting trial end date:', dateError)
             }
           }
 
-          // Handle subscription status
-          // IMPORTANT: When cancel_at_period_end is true, we keep the subscription as active/trialing
-          // The subscription is NOT canceled until the period actually ends or customer.subscription.deleted fires
-          if (status === SUBSCRIPTION_STATES.CANCELED || status === SUBSCRIPTION_STATES.UNPAID || status === SUBSCRIPTION_STATES.PAST_DUE || status === 'incomplete_expired') {
-            updateData.subscription_status = status
-            console.log('[stripe-webhook] Subscription is in failed/canceled state:', status)
-          } else if (status === SUBSCRIPTION_STATES.ACTIVE || status === SUBSCRIPTION_STATES.TRIALING) {
-            // Keep as active/trialing even if cancel_at_period_end is true
-            // The UI will show "Cancels on X date" based on cancel_at_period_end flag
-            updateData.subscription_status = status
-            
-            if (cancelAtPeriodEnd) {
-              console.log('[stripe-webhook] Subscription remains', status, 'but scheduled to cancel at period end:', updateData.cancel_at || updateData.current_period_end)
-            } else {
-              console.log('[stripe-webhook] Subscription is active:', status)
-            }
-          } else {
-            // For other statuses (incomplete, etc.), use the Stripe status directly
-            updateData.subscription_status = status
-            console.log('[stripe-webhook] Subscription status:', status)
-          }
+          console.log('[STRIPE CANCEL] FINAL updateData:', JSON.stringify(updateData, null, 2))
 
-          console.log('[stripe-webhook] Updating subscription for business:', business.id)
-          console.log('[stripe-webhook] Update data:', { 
-            status: updateData.subscription_status, 
-            cancelAtPeriodEnd: updateData.cancel_at_period_end,
-            cancelAt: updateData.cancel_at,
-            currentPeriodEnd: updateData.current_period_end,
-            trialEndsAt: updateData.trial_ends_at
-          })
-
+          console.log('[STRIPE CANCEL] Executing Supabase update...')
+          
           const { error: updateError } = await supabase
             .from('businesses')
             .update(updateData)
             .eq('id', business.id)
 
           if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (subscription updated):', updateError)
+            console.error('[STRIPE CANCEL] ========== UPDATE ERROR ==========')
+            console.error('[STRIPE CANCEL] Supabase error:', updateError)
           } else {
-            console.log('[stripe-webhook] Successfully updated subscription:', { 
-              businessId: business.id, 
-              status: updateData.subscription_status, 
-              cancelAtPeriodEnd 
-            })
+            console.log('[STRIPE CANCEL] ========== UPDATE SUCCESS ==========')
+            console.log('[STRIPE CANCEL] Updated business:', business.id)
+            console.log('[STRIPE CANCEL] Fields saved:', Object.keys(updateData).join(', '))
+            console.log('[STRIPE CANCEL] cancel_at_period_end saved as:', updateData.cancel_at_period_end)
           }
         } else {
-          console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
+          console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
         }
+        
+        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.UPDATED END ==========')
         break
       }
 
       case 'customer.subscription.deleted': {
+        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.DELETED START ==========')
+        
         const subscription = event.data.object as Stripe.Subscription
 
-        console.log('[stripe-webhook] === SUBSCRIPTION DELETED ===')
-        console.log('[stripe-webhook] Event type: customer.subscription.deleted')
-        console.log('[stripe-webhook] Subscription ID:', subscription.id)
-        console.log('[stripe-webhook] Status:', subscription.status)
-        console.log('[stripe-webhook] Canceled at:', subscription.canceled_at)
+        console.log('[STRIPE CANCEL] Subscription ID:', subscription.id)
+        console.log('[STRIPE CANCEL] Status:', subscription.status)
+        console.log('[STRIPE CANCEL] Canceled at:', subscription.canceled_at)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -453,24 +437,32 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
-          console.log('[stripe-webhook] Setting subscription status to CANCELED for business:', business.id)
+          console.log('[STRIPE CANCEL] Business found:', business.id)
+          
+          const updateData = {
+            stripe_subscription_id: null,
+            subscription_status: SUBSCRIPTION_STATES.CANCELED,
+            subscription_price_id: null,
+            current_period_end: null,
+            cancel_at_period_end: false,
+            cancel_at: null,
+            trial_ends_at: null
+          }
+          
+          console.log('[STRIPE CANCEL] Clearing all subscription fields:', JSON.stringify(updateData, null, 2))
 
           const { error: updateError } = await supabase
             .from('businesses')
-            .update({
-              stripe_subscription_id: null,
-              subscription_status: SUBSCRIPTION_STATES.CANCELED,
-              subscription_price_id: null,
-              current_period_end: null,
-              cancel_at_period_end: false,
-              cancel_at: null
-            })
+            .update(updateData)
             .eq('id', business.id)
 
           if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (subscription deleted):', updateError)
+            console.error('[STRIPE CANCEL] ========== UPDATE ERROR ==========')
+            console.error('[STRIPE CANCEL] Supabase error:', updateError)
           } else {
-            console.log('[stripe-webhook] Successfully set subscription status to canceled for business:', business.id)
+            console.log('[STRIPE CANCEL] ========== UPDATE SUCCESS ==========')
+            console.log('[STRIPE CANCEL] Subscription marked as CANCELED for business:', business.id)
+            console.log('[STRIPE CANCEL] All billing fields cleared')
           }
 
           // Release Twilio number
@@ -513,8 +505,10 @@ export async function POST(request: Request) {
             // Don't fail the webhook - email is not critical
           }
         } else {
-          console.error('[stripe-webhook] Business not found for subscription:', subscription.id)
+          console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
         }
+        
+        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.DELETED END ==========')
         break
       }
 
