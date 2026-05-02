@@ -45,6 +45,13 @@ export function isActiveSubscription(subscriptionStatus: string | null | undefin
   return subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
 }
 
+export function isScheduledToCancel(cancelAt: string | null | undefined, cancelAtPeriodEnd: boolean | null | undefined): boolean {
+  // A subscription is scheduled to cancel if:
+  // 1. cancel_at is set (has a cancellation timestamp) OR
+  // 2. cancel_at_period_end is true
+  return Boolean(cancelAt) || cancelAtPeriodEnd === true
+}
+
 export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
   // A business has a valid subscription only if:
   // 1. subscription_status is 'active' or 'trialing' AND

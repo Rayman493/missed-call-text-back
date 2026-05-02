@@ -11,12 +11,15 @@ import {
   getLeadStatusColor
 } from '@/lib/utils'
 import { 
-  getSubscriptionStatusText, 
-  getSubscriptionStatusDescription,
-  getSubscriptionActionButton,
-  getSubscriptionTrustNote,
+  getSubscriptionStatusText,
+  isActiveSubscription,
   hasValidSubscription,
-  isInTrialPeriod
+  isScheduledToCancel,
+  isInTrialPeriod,
+  needsUpgrade,
+  getPricingDisplay,
+  getTrialDisplay,
+  SUBSCRIPTION_STATES
 } from '@/lib/subscription'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
@@ -876,8 +879,8 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Canceling Banner - when scheduled to cancel at period end */}
-            {isActive && business?.cancel_at_period_end && (
+            {/* Canceling Banner - when scheduled to cancel */}
+            {isActive && isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end) && (
               <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
