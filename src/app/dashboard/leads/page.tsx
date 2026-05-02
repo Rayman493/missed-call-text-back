@@ -238,11 +238,6 @@ export default function LeadsPage() {
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
-            {/* Setup Health */}
-            <div className="mb-6">
-              <CompactSetupHealth />
-            </div>
-
             {/* Leads Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
@@ -484,6 +479,11 @@ export default function LeadsPage() {
                 </div>
               </div>
             )}
+
+            {/* Setup Health */}
+            <div className="mt-8">
+              <CompactSetupHealth />
+            </div>
           </main>
         <Footer />
       </div>
