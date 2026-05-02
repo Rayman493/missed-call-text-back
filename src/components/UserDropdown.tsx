@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { handleBillingAction } from '@/lib/billing'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -21,6 +22,18 @@ export default function UserDropdown() {
   const navigateToSettings = (hash: string) => {
     setIsOpen(false)
     router.push(`/dashboard/settings#${hash}`)
+  }
+
+  const handleManageBilling = async () => {
+    try {
+      const result = await handleBillingAction()
+      if (result.success && result.url) {
+        window.location.href = result.url
+      }
+      setIsOpen(false)
+    } catch (error) {
+      console.error('Billing action error:', error)
+    }
   }
 
   return (
@@ -54,7 +67,13 @@ export default function UserDropdown() {
               onClick={() => navigateToSettings('account')}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              Settings
+              Account Settings
+            </button>
+            <button
+              onClick={handleManageBilling}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              Manage Subscription
             </button>
             <button
               onClick={handleSignOut}
