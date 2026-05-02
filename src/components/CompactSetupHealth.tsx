@@ -279,7 +279,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   // Compact healthy collapsed state
   if (healthy && !isExpanded) {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-12">
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -320,7 +320,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
 
   // Full expanded state (for issues/warnings or when manually expanded)
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 mb-12 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 mb-8 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
       <div className={`${healthy ? 'p-3' : 'p-4'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -413,34 +413,34 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             ))}
           </div>
           
-          <div className={`mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 pb-6`}>
-            <div className="flex gap-2">
-              {primaryAction ? (
-                primaryAction.href ? (
-                  <a
-                    href={primaryAction.href}
-                    className="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    {primaryAction.text}
-                  </a>
-                ) : (
-                  <button
-                    onClick={primaryAction.onClick}
-                    className="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    {primaryAction.text}
-                  </button>
-                )
+          {/* Divider */}
+          <div className="border-t border-gray-200 dark:border-gray-700 mt-6 mb-6"></div>
+          
+          {/* Button Row */}
+          <div className="flex flex-col sm:flex-row gap-3 pb-6">
+            {primaryAction ? (
+              primaryAction.href ? (
+                <a
+                  href={primaryAction.href}
+                  className="flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {primaryAction.text}
+                </a>
               ) : (
-                <div className="flex-1" /> // Empty space when no primary action needed
-              )}
-              <button
-                onClick={() => setShowTestModal(true)}
-                className={`${primaryAction ? 'flex-1' : 'w-full'} px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors`}
-              >
-                Test Setup
-              </button>
-            </div>
+                <button
+                  onClick={primaryAction.onClick}
+                  className="flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {primaryAction.text}
+                </button>
+              )
+            ) : null}
+            <button
+              onClick={() => setShowTestModal(true)}
+              className={`${primaryAction ? 'flex-1' : 'w-full'} px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors`}
+            >
+              Test Setup
+            </button>
           </div>
         </div>
       </div>
