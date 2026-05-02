@@ -230,16 +230,16 @@ export default function SetupHealth() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+    <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
       {/* Header - Clickable to toggle collapse */}
       <button
         onClick={handleHeaderClick}
-        className="w-full p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
+        className="w-full p-6 flex items-center justify-between hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
         aria-expanded={!isCollapsed}
         aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Setup Health details`}
       >
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Setup Health</h2>
+          <h2 className="text-xl font-semibold text-gray-100">Setup Health</h2>
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
             {overallStatus === 'healthy' ? 'Healthy' :
              overallStatus === 'warning' ? 'Warning' :
@@ -247,7 +247,7 @@ export default function SetupHealth() {
           </span>
         </div>
         <svg
-          className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
+          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
             isCollapsed ? 'transform rotate-180' : ''
           }`}
           fill="none"
@@ -269,19 +269,19 @@ export default function SetupHealth() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200">{item.title}</h3>
+                    <h3 className="text-sm font-medium text-gray-200">{item.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      item.status === 'healthy' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
-                      item.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' :
-                      item.status === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'
+                      item.status === 'healthy' ? 'bg-green-900/30 text-green-400' :
+                      item.status === 'warning' ? 'bg-yellow-900/30 text-yellow-400' :
+                      item.status === 'error' ? 'bg-red-900/30 text-red-400' :
+                      'bg-gray-700 text-gray-400'
                     }`}>
                       {item.status === 'healthy' ? 'Healthy' :
                        item.status === 'warning' ? 'Warning' :
                        item.status === 'error' ? 'Error' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-400 mt-1">{item.description}</p>
                   {item.details && (
                     <p className={`text-xs mt-1 ${getStatusColor(item.status)}`}>{item.details}</p>
                   )}
@@ -290,8 +290,8 @@ export default function SetupHealth() {
             ))}
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 pb-6">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-300 mb-3">Quick Actions</h3>
+          <div className="border-t border-gray-700 pt-4 pb-6">
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Quick Actions</h3>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Primary action: Complete Phone Setup if forwarding is not complete */}
               {!business?.business_phone_number || !business?.phone_setup_completed_at || !business?.call_forwarding_enabled ? (
