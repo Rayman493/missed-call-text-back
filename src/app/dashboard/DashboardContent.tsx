@@ -876,8 +876,35 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Offboarding Banner - for canceled/unpaid/expired subscriptions */}
-            {!isActive && business?.stripe_subscription_id && (
+            {/* Canceling Banner - when scheduled to cancel at period end */}
+            {isActive && business?.cancel_at_period_end && (
+              <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⏰</span>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-100">
+                        Your subscription will end on {business?.cancel_at ? new Date(business.cancel_at).toLocaleDateString() : business?.current_period_end ? new Date(business.current_period_end).toLocaleDateString() : 'soon'}
+                      </p>
+                      <p className="text-xs text-amber-300">
+                        ReplyFlow remains active until then. You can resume your subscription anytime.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={isOpeningBilling}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isOpeningBilling ? 'Opening…' : 'Resume Subscription'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Offboarding Banner - only for FULLY canceled/unpaid/expired subscriptions */}
+            {/* Only show when subscription_status is actually canceled/unpaid/past_due, not when just scheduled to cancel */}
+            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && business?.stripe_subscription_id && (
               <OffboardingBanner 
                 business={business}
                 subscriptionStatus={business?.subscription_status || 'inactive'}

@@ -240,8 +240,9 @@ export default function LeadsPage() {
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
-            {/* Offboarding Banner - for canceled/unpaid/expired subscriptions */}
-            {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.stripe_subscription_id && (
+            {/* Offboarding Banner - only for FULLY canceled/unpaid/expired subscriptions */}
+            {/* Do NOT show when just scheduled to cancel (cancel_at_period_end) */}
+            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && business?.stripe_subscription_id && (
               <OffboardingBanner 
                 business={business}
                 subscriptionStatus={business?.subscription_status || 'inactive'}
