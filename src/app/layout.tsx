@@ -21,17 +21,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                document.documentElement.classList.add('dark');
-              } catch (e) {}
-            `,
-          }}
-        />
-      </head>
       <body className={`${inter.className} min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white antialiased`}>
         <ProvidersWrapper>{children}</ProvidersWrapper>
       </body>
