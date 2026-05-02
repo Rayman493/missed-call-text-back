@@ -290,6 +290,21 @@ export default function SettingsContent() {
                 </div>
               </div>
 
+              {/* Billing Section */}
+              <div id="billing" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Billing</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Subscription Status
+                    </label>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {getSubscriptionStatusText(business?.subscription_status)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Business Info Section */}
               <div id="business" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Business Info</h2>
@@ -629,12 +644,12 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-gray-800 rounded-xl shadow-sm border border-red-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h2>
+              <div id="danger" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-100">Reset Demo Data</h3>
-                    <p className="text-sm text-gray-400 mb-2">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Reset Demo Data</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                       Delete all leads, conversations, and messages for this business.
                     </p>
                     <button
@@ -645,8 +660,8 @@ export default function SettingsContent() {
                     </button>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-100">Delete Account</h3>
-                    <p className="text-sm text-gray-400 mb-2">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Delete Account</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                       Permanently delete your account and all data.
                     </p>
                     <button
