@@ -230,55 +230,55 @@ export default function FAQPage() {
           </div>
 
           {/* Is ReplyFlow TCPA compliant? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 Is ReplyFlowHQ TCPA compliant?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   <strong>ReplyFlowHQ supports compliant conversational messaging workflows.</strong> Here's how:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
-                      <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="flex-shrink-0 w-6 h-6 bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Inbound-call-triggered messaging</strong> - Messages are only sent after customers initiate contact by calling
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
-                      <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="flex-shrink-0 w-6 h-6 bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Conversational context</strong> - Messages relate directly to the missed call interaction
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
-                      <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="flex-shrink-0 w-6 h-6 bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-400">
                         <strong>Full opt-out support</strong> - STOP and HELP keywords are automatically processed
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                <div className="mt-4 p-4 bg-amber-900/20 border border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-200">
                     <strong>Important:</strong> Businesses are responsible for ensuring they have proper consent for 
                     communications and maintaining compliance with applicable regulations.
                   </p>
@@ -288,25 +288,25 @@ export default function FAQPage() {
           </div>
 
           {/* How quickly are messages sent? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 How quickly are messages sent?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   ReplyFlowHQ sends automated responses <strong>within seconds</strong> of a missed call. 
                   The typical delivery time is:
                 </p>
                 <div className="mt-4 text-center">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
-                    <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">&lt;5s</span>
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-900/30 rounded-full mb-4">
+                    <span className="text-3xl font-bold text-blue-400">&lt;5s</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-400">
                     Average message delivery time
                   </p>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 mt-4">
+                <p className="text-gray-400 mt-4">
                   This rapid response helps capture leads while they're actively engaged and thinking about your business.
                 </p>
               </div>
@@ -314,38 +314,38 @@ export default function FAQPage() {
           </div>
 
           {/* Can I respond to customer replies? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 Can I respond to customer replies?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   <strong>Yes, absolutely.</strong> ReplyFlowHQ provides a complete conversation management system:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
                       <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Real-time conversation inbox in your dashboard</span>
+                    <span className="text-gray-400">Real-time conversation inbox in your dashboard</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Instant notifications for new customer messages</span>
+                    <span className="text-gray-400">Instant notifications for new customer messages</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                       <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2a1 1 0 100-2h2a4 4 0 014 4v6a4 4 0 01-4 4H6a4 4 0 01-4-4V7a4 4 0 014-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-600 dark:text-gray-400">Message history and conversation tracking</span>
+                    <span className="text-gray-400">Message history and conversation tracking</span>
                   </div>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 mt-4">
+                <p className="text-gray-400 mt-4">
                   Continue the conversation naturally through the ReplyFlowHQ dashboard interface.
                 </p>
               </div>
@@ -353,35 +353,35 @@ export default function FAQPage() {
           </div>
 
           {/* How do I contact support? */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-100 mb-4">
                 How do I contact support?
               </h2>
-              <div className="prose prose-gray dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-400 leading-relaxed">
                   Our support team is here to help you succeed with ReplyFlowHQ:
                 </p>
-                <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                <div className="mt-6 bg-blue-900/20 border border-blue-800 rounded-lg p-6">
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0">
-                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                         <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-blue-900 dark:text-blue-100">Email Support</p>
+                      <p className="font-semibold text-blue-100">Email Support</p>
                       <a 
                         href="mailto:support@replyflowhq.com" 
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        className="text-blue-400 hover:text-blue-300"
                       >
                         support@replyflowhq.com
                       </a>
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 mt-4">
+                <p className="text-gray-400 mt-4">
                   We typically respond within 24 hours during business days.
                 </p>
               </div>
@@ -391,11 +391,11 @@ export default function FAQPage() {
         </div>
 
         {/* Contact Section */}
-        <div className="mt-16 text-center bg-gray-100 dark:bg-gray-800 rounded-2xl p-8">
-          <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="mt-16 text-center bg-gray-800 rounded-2xl p-8">
+          <h3 className="text-2xl font-semibold text-gray-100 mb-4">
             Still have questions?
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-400 mb-6">
             Our support team is ready to help you get the most out of ReplyFlowHQ.
           </p>
           <a
