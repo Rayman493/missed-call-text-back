@@ -318,14 +318,20 @@ export async function POST(request: Request) {
 
         console.log('[STRIPE CANCEL] Subscription ID from event:', subscriptionId)
         console.log('[STRIPE CANCEL] Customer ID from event:', customerId)
+        
+        // Log raw event data BEFORE retrieve
+        console.log('[STRIPE CANCEL] RAW EVENT DATA:')
+        console.log('[STRIPE CANCEL] event.cancel_at_period_end:', (eventSubscription as any).cancel_at_period_end)
+        console.log('[STRIPE CANCEL] event.cancel_at:', (eventSubscription as any).cancel_at)
+        console.log('[STRIPE CANCEL] event.status:', eventSubscription.status)
 
         // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
         let subscription: Stripe.Subscription | null = null
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[stripe-webhook] Retrieved full subscription from Stripe:', subscription.id)
+          console.log('[STRIPE CANCEL] Retrieved full subscription from Stripe:', subscription.id)
         } catch (retrieveError) {
-          console.error('[stripe-webhook] Failed to retrieve subscription from Stripe:', retrieveError)
+          console.error('[STRIPE CANCEL] Failed to retrieve subscription from Stripe:', retrieveError)
           // Continue with event data as fallback
           subscription = eventSubscription
         }
@@ -336,15 +342,15 @@ export async function POST(request: Request) {
         const cancelAtPeriodEnd = subscription.cancel_at_period_end
         const cancelAt = (subscription as any).cancel_at
         const trialEnd = (subscription as any).trial_end
-
-        console.log('[STRIPE CANCEL] Retrieved subscription data:')
-        console.log('[STRIPE CANCEL]', {
-          status,
-          current_period_end: periodEnd,
-          trial_end: trialEnd,
-          cancel_at_period_end: cancelAtPeriodEnd,
-          cancel_at: cancelAt
-        })
+        
+        // Log retrieved values
+        console.log('[STRIPE CANCEL] RETRIEVED SUBSCRIPTION DATA:')
+        console.log('[STRIPE CANCEL] typeof cancel_at_period_end:', typeof cancelAtPeriodEnd)
+        console.log('[STRIPE CANCEL] cancel_at_period_end value:', cancelAtPeriodEnd)
+        console.log('[STRIPE CANCEL] cancel_at_period_end === true:', cancelAtPeriodEnd === true)
+        console.log('[STRIPE CANCEL] cancel_at_period_end === false:', cancelAtPeriodEnd === false)
+        console.log('[STRIPE CANCEL] Raw cancel_at value:', cancelAt)
+        console.log('[STRIPE CANCEL] Raw status:', status)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -362,6 +368,9 @@ export async function POST(request: Request) {
             subscription_status: status,
             cancel_at_period_end: cancelAtPeriodEnd,
           }
+          
+          console.log('[STRIPE CANCEL] INITIAL updateData created:')
+          console.log('[STRIPE CANCEL] cancel_at_period_end in updateData:', updateData.cancel_at_period_end)
 
           // Set current_period_end
           if (periodEnd) {
