@@ -211,25 +211,25 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.created': {
+        console.log('[DEBUG] ========== SUBSCRIPTION.CREATED START ==========')
+        console.log('[DEBUG] Event type:', event.type)
+        
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
         const customerId = eventSubscription.customer as string
 
-        console.log('[stripe-webhook] === SUBSCRIPTION CREATED ===')
-        console.log('[stripe-webhook] Event type: customer.subscription.created')
-        console.log('[stripe-webhook] Subscription ID from event:', subscriptionId)
-        console.log('[stripe-webhook] Customer ID from event:', customerId)
+        console.log('[DEBUG] Customer ID:', customerId)
+        console.log('[DEBUG] Subscription ID:', subscriptionId)
 
         // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
         let subscription: Stripe.Subscription | null = null
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[stripe-webhook] Retrieved full subscription from Stripe:', subscription.id)
-          console.log('[stripe-webhook] Subscription status:', subscription.status)
-          console.log('[stripe-webhook] Subscription current_period_end:', (subscription as any).current_period_end)
-          console.log('[stripe-webhook] Subscription trial_end:', (subscription as any).trial_end)
+          console.log('[DEBUG] Retrieved full subscription from Stripe:', subscription.id)
+          console.log('[DEBUG] subscription.current_period_end:', (subscription as any).current_period_end)
+          console.log('[DEBUG] subscription.trial_end:', (subscription as any).trial_end)
         } catch (retrieveError) {
-          console.error('[stripe-webhook] Failed to retrieve subscription from Stripe:', retrieveError)
+          console.error('[DEBUG] Failed to retrieve subscription from Stripe:', retrieveError)
           // Continue with event data as fallback
           subscription = eventSubscription
         }
@@ -239,20 +239,23 @@ export async function POST(request: Request) {
         const periodEnd = (subscription as any).current_period_end
         const trialEnd = (subscription as any).trial_end
 
-        console.log('[stripe-webhook] Using status:', status)
-        console.log('[stripe-webhook] Using periodEnd:', periodEnd)
-        console.log('[stripe-webhook] Using trialEnd:', trialEnd)
+        console.log('[DEBUG] Status:', status)
+        console.log('[DEBUG] Period end:', periodEnd, 'type:', typeof periodEnd)
+        console.log('[DEBUG] Trial end:', trialEnd, 'type:', typeof trialEnd)
 
         // Find business by stripe_customer_id
-        const { data: business } = await supabase
+        console.log('[DEBUG] Looking up business by stripe_customer_id:', customerId)
+        const { data: business, error: lookupError } = await supabase
           .from('businesses')
           .select('id')
           .eq('stripe_customer_id', customerId)
           .limit(1)
           .single()
 
+        console.log('[DEBUG] Business lookup result:', business ? 'FOUND' : 'NOT FOUND')
+        console.log('[DEBUG] Business lookup error:', lookupError)
         if (business) {
-          console.log('[Stripe Webhook] Event type:', event.type)
+          console.log('[DEBUG] Business ID:', business.id)
           
           const updatePayload = {
             stripe_subscription_id: subscription.id,
@@ -270,22 +273,24 @@ export async function POST(request: Request) {
               : null,
           }
 
-          console.log('[Stripe Webhook] customer.subscription.created - Saving full lifecycle state')
-          console.log('[Stripe Webhook] Subscription payload:', updatePayload)
+          console.log('[DEBUG] Exact DB payload being written:', JSON.stringify(updatePayload, null, 2))
 
           const { error: updateError } = await supabase
             .from('businesses')
             .update(updatePayload)
             .eq('id', business.id)
 
+          console.log('[DEBUG] Supabase update result:', updateError ? 'ERROR' : 'SUCCESS')
           if (updateError) {
-            console.error('[stripe-webhook] Supabase update error (subscription created):', updateError)
+            console.error('[DEBUG] Supabase error:', updateError)
           } else {
-            console.log('[stripe-webhook] Created subscription successfully:', { businessId: business.id, status, current_period_end: updatePayload.current_period_end, trial_ends_at: updatePayload.trial_ends_at })
+            console.log('[DEBUG] Update affected 1 row - business:', business.id)
           }
         } else {
-          console.error('[stripe-webhook] Business not found for customer:', customerId)
+          console.error('[DEBUG] Business not found for customer:', customerId)
         }
+        
+        console.log('[DEBUG] ========== SUBSCRIPTION.CREATED END ==========')
         break
       }
 
