@@ -47,6 +47,7 @@ export default function MobileMenu() {
     { href: '/dashboard/leads', label: 'Conversations' },
     { href: '/faq', label: 'FAQ' },
     { href: '/dashboard/settings', label: 'Settings' },
+    { href: '/', label: 'View Homepage' },
   ]
 
   const menuItems = user ? privateMenuItems : publicMenuItems

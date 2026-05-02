@@ -677,7 +677,7 @@ export default function DashboardContent() {
                   <div className="md:hidden">
                     <MobileMenu />
                   </div>
-                  <Link href="/" className="flex items-center hover:opacity-90 transition">
+                  <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
                     <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
                       <span className="text-gray-100">Reply</span>
                       <span className="text-blue-500">Flow</span>
@@ -691,12 +691,6 @@ export default function DashboardContent() {
                 
                 {/* Right side - Theme toggle, user dropdown, etc. */}
                 <div className="flex items-center gap-2 md:gap-3">
-                  <Link
-                    href="/"
-                    className="hidden text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors md:block"
-                  >
-                    View Homepage
-                  </Link>
                   <div className="hidden sm:block">
                     {/* Theme toggle removed */}
                   </div>
