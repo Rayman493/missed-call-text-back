@@ -774,16 +774,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                ← Dashboard
               </Link>
-              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Lead Details</h1>
+            </div>
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}

@@ -15,7 +15,6 @@ import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
-import BackToDashboard from '@/components/BackToDashboard'
 import {
   getSubscriptionStatusText,
   isInTrialPeriod,
@@ -238,10 +237,15 @@ export default function SettingsContent() {
       <BusinessGuard>
           <div className="min-h-screen bg-gray-900 flex flex-col">
             {/* Header */}
-            <header className="bg-gray-800 border-b border-gray-700 flex-shrink-0 pt-2 sm:pt-0">
+            <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0 pt-2 sm:pt-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16 sm:h-16">
-                  <BackToDashboard />
+                  <div className="flex items-center gap-4">
+                    <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
+                      ← Dashboard
+                    </Link>
+                    <h1 className="text-xl font-semibold text-gray-100">Settings</h1>
+                  </div>
                   <div className="flex items-center gap-4">
                     <UserDropdown />
                   </div>
@@ -254,14 +258,6 @@ export default function SettingsContent() {
 
             {/* Main Content */}
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-100 mb-2">
-                  Settings
-                </h1>
-                <p className="text-gray-400">
-                  Configure your ReplyFlow settings here.
-                </p>
-              </div>
 
             {/* Settings Sections */}
             <div className="space-y-8">
