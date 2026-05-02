@@ -258,20 +258,41 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[DEBUG] Business ID:', business.id)
           
+          console.log('[Stripe Sync] Raw subscription timing fields', {
+            subscription_id: subscription.id,
+            customer: subscription.customer,
+            status: subscription.status,
+            trial_start: (subscription as any).trial_start,
+            trial_end: (subscription as any).trial_end,
+            current_period_end: (subscription as any).current_period_end,
+            cancel_at: subscription.cancel_at,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+          })
+          
+          // Map subscription timing fields with proper fallback logic
+          const trialEndsAt = (subscription as any).trial_end
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null
+
+          const currentPeriodEnd = (subscription as any).current_period_end
+            ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            : trialEndsAt
+
+          const cancelAt = subscription.cancel_at
+            ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null
+
           const updatePayload = {
-            stripe_subscription_id: subscription.id,
             subscription_status: subscription.status,
+            stripe_customer_id: typeof subscription.customer === 'string'
+              ? subscription.customer
+              : subscription.customer?.id,
+            stripe_subscription_id: subscription.id,
             subscription_price_id: priceId,
-            current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
-              : null,
-            trial_ends_at: (subscription as any).trial_end
-              ? new Date((subscription as any).trial_end * 1000).toISOString()
-              : null,
+            trial_ends_at: trialEndsAt,
+            current_period_end: currentPeriodEnd,
+            cancel_at: cancelAt,
             cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-            cancel_at: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
-              : null,
           }
 
           console.log('[STRIPE SUBSCRIPTION] Final DB payload:', updatePayload)
@@ -360,27 +381,43 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
           
-          console.log('[Stripe Webhook] Stripe values', {
+          console.log('[Stripe Sync] Raw subscription timing fields (updated)', {
+            subscription_id: subscription.id,
+            customer: subscription.customer,
+            status: subscription.status,
+            trial_start: (subscription as any).trial_start,
+            trial_end: (subscription as any).trial_end,
             current_period_end: (subscription as any).current_period_end,
-            cancel_at_period_end: subscription.cancel_at_period_end,
             cancel_at: subscription.cancel_at,
+            cancel_at_period_end: subscription.cancel_at_period_end,
           })
 
           console.log('[Stripe Webhook] Event type:', event.type)
           
+          // Map subscription timing fields with proper fallback logic
+          const trialEndsAt = (subscription as any).trial_end
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null
+
+          const currentPeriodEnd = (subscription as any).current_period_end
+            ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            : trialEndsAt
+
+          const cancelAt = subscription.cancel_at
+            ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null
+
           const updatePayload = {
-            subscription_price_id: priceId,
             subscription_status: subscription.status,
-            current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
-              : null,
-            trial_ends_at: (subscription as any).trial_end
-              ? new Date((subscription as any).trial_end * 1000).toISOString()
-              : null,
+            stripe_customer_id: typeof subscription.customer === 'string'
+              ? subscription.customer
+              : subscription.customer?.id,
+            stripe_subscription_id: subscription.id,
+            subscription_price_id: priceId,
+            trial_ends_at: trialEndsAt,
+            current_period_end: currentPeriodEnd,
+            cancel_at: cancelAt,
             cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-            cancel_at: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
-              : null,
           }
 
           console.log('[Stripe Webhook] customer.subscription.updated - Saving full lifecycle state')

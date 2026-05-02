@@ -238,9 +238,9 @@ export default function SettingsContent() {
       <BusinessGuard>
           <div className="min-h-screen bg-gray-900 flex flex-col">
             {/* Header */}
-            <header className="bg-gray-800 border-b border-gray-700 flex-shrink-0">
+            <header className="bg-gray-800 border-b border-gray-700 flex-shrink-0 pt-2 sm:pt-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
+                <div className="flex items-center justify-between h-16 sm:h-16">
                   <BackToDashboard />
                   <div className="flex items-center gap-4">
                     <UserDropdown />
