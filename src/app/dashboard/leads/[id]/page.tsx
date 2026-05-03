@@ -688,7 +688,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
+      <main className="h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Skeleton Header */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
@@ -716,7 +716,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (!leadData) {
     return (
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
+      <main className="h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <Link
@@ -760,7 +760,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <main className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Debug Box - Development Only */}
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 m-4 rounded-lg">
