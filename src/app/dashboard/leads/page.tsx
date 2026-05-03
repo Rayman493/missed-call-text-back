@@ -33,7 +33,7 @@ import MobileMenu from '@/components/MobileMenu'
 import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
-import CompactSetupHealth from '@/components/CompactSetupHealth'
+import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -214,7 +214,7 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-900 flex flex-col">
+        <div className="h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,7 +236,7 @@ export default function LeadsPage() {
           <MobileMenu />
 
           {/* Main Content */}
-          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -491,9 +491,9 @@ export default function LeadsPage() {
               </div>
             )}
 
-            {/* Setup Health */}
+            {/* Getting Started */}
             <div className="mt-8">
-              <CompactSetupHealth />
+              <GettingStarted />
             </div>
           </main>
         <Footer />

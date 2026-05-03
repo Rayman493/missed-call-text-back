@@ -35,7 +35,7 @@ import MobileMenu from '@/components/MobileMenu'
 import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
-import CompactSetupHealth from '@/components/CompactSetupHealth'
+import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
@@ -666,7 +666,7 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-900 flex flex-col">
+        <div className="h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
@@ -706,7 +706,7 @@ export default function DashboardContent() {
           </header>
 
           {/* Main Content */}
-          <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="max-w-6xl mx-auto space-y-6">
                         
             {/* Billing Error */}
@@ -1084,8 +1084,8 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Setup Health Section - At Bottom */}
-            <CompactSetupHealth />
+            {/* Getting Started Section - At Bottom */}
+            <GettingStarted />
           </div>
         </div>
       </div>
