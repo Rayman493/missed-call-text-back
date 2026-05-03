@@ -75,15 +75,15 @@ export default function TestSetupPage() {
 
   const troubleshooting = [
     {
-      issue: 'Forwarding not enabled',
+      issue: 'If calls are not forwarding',
       solution: 'Make sure you enabled call forwarding on your business phone using the carrier-specific code provided in the phone setup step.'
     },
     {
-      issue: 'SMS verification pending',
+      issue: 'If you did not receive a text message',
       solution: 'SMS delivery may be limited while carrier verification is pending. This typically takes 1-2 business days.'
     },
     {
-      issue: 'No lead in dashboard',
+      issue: 'If the lead does not appear',
       solution: 'Try refreshing the dashboard. If the issue persists, check that your Twilio number is properly configured.'
     }
   ]
