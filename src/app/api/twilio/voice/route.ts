@@ -307,6 +307,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check if caller is in ignored contacts
+    console.log('[Twilio Voice] Checking if caller is in ignored contacts:', normalizedCallerPhone);
+    const { data: ignoredContact, error: ignoredCheckError } = await supabase
+      .from('ignored_contacts')
+      .select('*')
+      .eq('business_id', business.id)
+      .eq('phone_number', normalizedCallerPhone)
+      .single();
+
+    if (ignoredContact) {
+      console.log('[Twilio Voice] Ignored contact detected - skipping automation:', {
+        businessId: business.id,
+        phoneNumber: normalizedCallerPhone,
+        label: ignoredContact.label,
+        reason: ignoredContact.reason
+      });
+
+      // Still return valid TwiML so the call doesn't error
+      const twiml = generateTwiMLResponse(business.name);
+      return new NextResponse(twiml, {
+        status: 200,
+        headers: { 
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2"
+        },
+      });
+    }
+
+    if (ignoredCheckError && ignoredCheckError.code !== 'PGRST116') {
+      console.error('[Twilio Voice] Error checking ignored contacts:', ignoredCheckError);
+    }
+
     // Check if lead already exists
     console.log('[Twilio Voice] Checking for existing lead for phone:', normalizedCallerPhone);
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);

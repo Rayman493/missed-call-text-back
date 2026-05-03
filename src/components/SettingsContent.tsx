@@ -44,6 +44,10 @@ export default function SettingsContent() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
+  // Ignored contacts state
+  const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
+  const [isLoadingIgnored, setIsLoadingIgnored] = useState(false)
+
   const supabase = createBrowserClient()
 
   // Form state management
@@ -148,6 +152,67 @@ export default function SettingsContent() {
     updateAutomationSetting('blockedNumbers', numbers)
   }
 
+  // Fetch ignored contacts
+  const fetchIgnoredContacts = async () => {
+    setIsLoadingIgnored(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/api/ignored-contacts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch ignored contacts')
+      }
+
+      const data = await response.json()
+      setIgnoredContacts(data.ignoredContacts || [])
+    } catch (error) {
+      console.error('Error fetching ignored contacts:', error)
+      showToast('Failed to fetch ignored contacts', 'error')
+    } finally {
+      setIsLoadingIgnored(false)
+    }
+  }
+
+  // Remove ignored contact
+  const removeIgnoredContact = async (contactId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/ignored-contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to remove ignored contact')
+      }
+
+      // Update local state
+      setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
+      showToast('Contact unignored successfully', 'success')
+    } catch (error) {
+      console.error('Error removing ignored contact:', error)
+      showToast('Failed to remove ignored contact', 'error')
+    }
+  }
+
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
@@ -207,6 +272,13 @@ export default function SettingsContent() {
       setResetConfirmText('')
     }
   }
+
+  // Fetch ignored contacts when business loads
+  useEffect(() => {
+    if (business) {
+      fetchIgnoredContacts()
+    }
+  }, [business])
 
   // Debug logs
   useEffect(() => {
@@ -602,6 +674,65 @@ export default function SettingsContent() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Ignored Contacts Section */}
+              <div id="ignored-contacts" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-gray-100 mb-4">Ignored Contacts</h2>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-4">
+                      These phone numbers will not create leads or receive automated texts. Use this for personal contacts, family, or other numbers you don't want to treat as business leads.
+                    </p>
+                  </div>
+                  
+                  {isLoadingIgnored ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : ignoredContacts.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-700/50 rounded-lg border border-gray-600">
+                      <div className="text-4xl mb-2">📵</div>
+                      <h3 className="text-sm font-medium text-gray-100 mb-2">No ignored contacts</h3>
+                      <p className="text-sm text-gray-400">
+                        When you ignore contacts from lead conversations, they will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {ignoredContacts.map((contact) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-gray-100">
+                                {formatPhoneNumber(contact.phone_number)}
+                              </span>
+                              {contact.label && (
+                                <span className="text-xs px-2 py-1 bg-gray-600 text-gray-300 rounded-full">
+                                  {contact.label}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {contact.reason && `Reason: ${contact.reason}`}
+                              {contact.reason && contact.created_at && ' • '}
+                              {contact.created_at && `Added ${new Date(contact.created_at).toLocaleDateString()}`}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeIgnoredContact(contact.id)}
+                            className="ml-4 px-3 py-1 text-xs font-medium text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 rounded-lg transition-colors"
+                          >
+                            Unignore
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

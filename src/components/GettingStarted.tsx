@@ -154,7 +154,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   // Compact complete collapsed state
   if (complete && !isExpanded) {
     return (
-      <section className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 mb-6">
+      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -185,13 +185,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
             </svg>
           </button>
         </div>
-      </section>
+      </div>
     )
   }
 
   // Full expanded state - Simple normal-flow layout
   return (
-    <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 mb-6">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 mb-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -268,18 +268,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
               {item.buttonText && item.buttonHref && (
                 <Link
                   href={item.buttonHref}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
                 >
                   {item.buttonText}
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5-5" />
-                  </svg>
                 </Link>
               )}
             </div>
           </div>
         ))}
       </div>
-    </section>
+    </div>
   )
 }

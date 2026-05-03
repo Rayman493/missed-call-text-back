@@ -213,6 +213,105 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const hasSentFollowUps = followUpJobs.some((job: any) => job.status === 'sent')
   const hasInboundReply = messagesArray.some((msg: any) => msg.direction === 'inbound')
 
+  // State for ignore contact modal
+  const [showIgnoreModal, setShowIgnoreModal] = useState(false)
+  const [isIgnoring, setIsIgnoring] = useState(false)
+
+  // State for remove lead modal
+  const [showRemoveModal, setShowRemoveModal] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
+
+  // Handle ignore contact
+  const handleIgnoreContact = async () => {
+    setIsIgnoring(true)
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/api/ignored-contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          phoneNumber: lead?.caller_phone,
+          label: lead?.caller_phone,
+          reason: 'Marked from conversation'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to ignore contact')
+      }
+
+      // Show success message
+      setSuccessMessage('Contact ignored. ReplyFlow will no longer send automatic texts to this number.')
+      setShowIgnoreModal(false)
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 2000)
+    } catch (error) {
+      console.error('Error ignoring contact:', error)
+      setError(error instanceof Error ? error.message : 'Failed to ignore contact')
+    } finally {
+      setIsIgnoring(false)
+    }
+  }
+
+  // Handle remove lead
+  const handleRemoveLead = async () => {
+    setIsRemoving(true)
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Archive the lead by setting status to 'archived'
+      const response = await fetch(`/api/leads/${params.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'archived'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to remove lead')
+      }
+
+      // Show success message
+      setSuccessMessage('Lead removed from active inbox.')
+      setShowRemoveModal(false)
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1500)
+    } catch (error) {
+      console.error('Error removing lead:', error)
+      setError(error instanceof Error ? error.message : 'Failed to remove lead')
+    } finally {
+      setIsRemoving(false)
+    }
+  }
+
   let automationStatus = ''
   if (hasCancelledFollowUps && hasInboundReply) {
     automationStatus = 'Follow-ups cancelled after customer reply'
@@ -782,6 +881,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="flex items-center gap-4">
               <button
+                onClick={() => setShowIgnoreModal(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-colors"
+                title="Ignore Contact"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 18.364" />
+                </svg>
+                <span className="hidden sm:inline">Ignore Contact</span>
+              </button>
+              <button
+                onClick={() => setShowRemoveModal(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors"
+                title="Remove Lead"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span className="hidden sm:inline">Remove Lead</span>
+              </button>
+              <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1183,6 +1302,80 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
       </div>
+
+      {/* Ignore Contact Modal */}
+      {showIgnoreModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Ignore this contact?
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              ReplyFlow will stop creating leads, sending automatic messages, and scheduling follow-ups for this number.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowIgnoreModal(false)}
+                disabled={isIgnoring}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIgnoreContact}
+                disabled={isIgnoring}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isIgnoring ? (
+                  <>
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                    Ignoring...
+                  </>
+                ) : (
+                  'Ignore Contact'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Lead Modal */}
+      {showRemoveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Remove this lead?
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              This will remove the lead from your active inbox. Conversation history may still be kept for your records.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowRemoveModal(false)}
+                disabled={isRemoving}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveLead}
+                disabled={isRemoving}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRemoving ? (
+                  <>
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                    Removing...
+                  </>
+                ) : (
+                  'Remove Lead'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
