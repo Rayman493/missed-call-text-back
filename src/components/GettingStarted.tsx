@@ -155,7 +155,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   // Compact complete collapsed state
   if (complete && !isExpanded) {
     return (
-      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 p-5 mb-6">
+      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-transparent dark:bg-green-900/20 p-5 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -192,7 +192,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
   // Full expanded state - Simple normal-flow layout
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-6 mb-6">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-6 mb-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
