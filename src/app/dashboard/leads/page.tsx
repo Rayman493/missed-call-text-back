@@ -214,7 +214,7 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900/30 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,7 +236,8 @@ export default function LeadsPage() {
           <MobileMenu />
 
           {/* Main Content */}
-          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
+            <div className="max-w-6xl mx-auto space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -392,8 +393,8 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.length > 0 && (
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 overflow-hidden">
-                <div className="divide-y divide-gray-700">
+              <div className="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700/50 overflow-hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700/50">
                   {sortedLeads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -494,6 +495,7 @@ export default function LeadsPage() {
             {/* Getting Started */}
             <div className="mt-8">
               <GettingStarted />
+            </div>
             </div>
           </main>
         <Footer />
