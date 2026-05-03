@@ -214,7 +214,7 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="h-screen bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,7 +236,7 @@ export default function LeadsPage() {
           <MobileMenu />
 
           {/* Main Content */}
-          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 

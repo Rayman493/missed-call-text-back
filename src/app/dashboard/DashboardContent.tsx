@@ -666,7 +666,7 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="h-screen bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-900 flex flex-col">
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
@@ -706,7 +706,7 @@ export default function DashboardContent() {
           </header>
 
           {/* Main Content */}
-          <div className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-8">
             <div className="max-w-6xl mx-auto space-y-6">
                         
             {/* Billing Error */}

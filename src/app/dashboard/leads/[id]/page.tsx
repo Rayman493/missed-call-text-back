@@ -760,7 +760,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <main className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Debug Box - Development Only */}
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 m-4 rounded-lg">
@@ -837,7 +837,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6">
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Message Thread */}
           <div className="p-4 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
