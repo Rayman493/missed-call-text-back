@@ -90,106 +90,70 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     }
   }, [business]) // Re-run when business data changes
 
-  const getHealthItems = (): HealthItem[] => {
+  const getOnboardingItems = (): HealthItem[] => {
     if (!business) return []
 
     const items: HealthItem[] = []
 
-    // 1. Forwarding status
-    let forwardingStatus: HealthItem['status']
-    let forwardingTitle: string
-    let forwardingDescription: string
-    let forwardingDetails: string
-
-    if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
-      forwardingStatus = 'error'
-      forwardingTitle = 'Action needed'
-      forwardingDescription = 'Forwarding setup not completed'
-      forwardingDetails = 'Complete phone setup to enable call forwarding'
-    } else if (business.forwarding_verified) {
-      forwardingStatus = 'healthy'
-      forwardingTitle = 'Operational'
-      forwardingDescription = 'Missed-call forwarding is working correctly'
-      forwardingDetails = business.forwarding_verified_at 
-        ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
-        : 'Forwarding is working correctly'
-    } else {
-      forwardingStatus = 'warning'
-      forwardingTitle = 'Configured — awaiting test'
-      forwardingDescription = 'Forwarding is configured. Run a missed-call test to verify it.'
-      forwardingDetails = 'Forwarding becomes operational after your first successful missed-call test'
-    }
-
-    items.push({
-      title: forwardingTitle,
-      description: forwardingDescription,
-      status: forwardingStatus,
-      details: forwardingDetails
-    })
-
-    // 2. Subscription status
+    // 1. Free trial status
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-    const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
-    const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
     
-    items.push({
-      title: subscriptionValid ? 'Subscription Status' : 'Subscription Required',
-      description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id),
-      status: subscriptionValid ? 'healthy' : 'error',
-      details: subscriptionValid 
-        ? (isTrialing ? 'Free trial active' : 'Subscription active')
-        : 'Start your 14-day free trial to activate ReplyFlow'
-    })
-
-    // Add trust note for inactive users
-    if (!subscriptionValid) {
-      const trustNote = getSubscriptionTrustNote(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-      if (trustNote) {
-        items.push({
-          title: 'Trial Information',
-          description: trustNote,
-          status: 'healthy',
-          details: 'No charge today. Cancel anytime.'
-        })
-      }
+    if (subscriptionValid) {
+      items.push({
+        title: 'Free trial active',
+        description: 'Your ReplyFlow trial is ready to use',
+        status: 'healthy',
+        details: isTrialing ? '7 days remaining in trial' : 'Subscription active'
+      })
+    } else {
+      items.push({
+        title: 'Activate subscription',
+        description: 'Choose a plan to continue using ReplyFlow',
+        status: 'error',
+        details: 'Free trial expired - upgrade required'
+      })
     }
 
-    // 3. Twilio status
-    const twilioActive = !!business.twilio_phone_number
-    items.push({
-      title: 'Twilio Active',
-      description: 'ReplyFlow number is assigned and ready',
-      status: twilioActive ? 'healthy' : 'warning',
-      details: twilioActive 
-        ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}` 
-        : 'No Twilio number assigned'
-    })
-
-    // 4. SMS status
-    const smsWorking = twilioActive && subscriptionValid
-    items.push({
-      title: 'SMS Working',
-      description: 'Auto-reply messages are being sent',
-      status: smsWorking ? 'healthy' : 'warning',
-      details: smsWorking 
-        ? 'SMS service is configured' 
-        : 'Not tested yet'
-    })
+    // 2. Phone setup status
+    const phoneSetupComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
+    
+    if (!phoneSetupComplete) {
+      items.push({
+        title: 'Complete call forwarding setup',
+        description: 'Forward missed calls from your business phone to capture leads automatically',
+        status: 'error',
+        details: 'This step is required to start receiving missed calls'
+      })
+    } else if (business.forwarding_verified) {
+      items.push({
+        title: 'ReplyFlow is ready',
+        description: 'Call forwarding is working and you can start receiving missed calls',
+        status: 'healthy',
+        details: 'Setup complete - you\'re all set!'
+      })
+    } else {
+      items.push({
+        title: 'Test your call forwarding',
+        description: 'Call your business number from another phone to verify setup works',
+        status: 'warning',
+        details: 'One test call needed to complete setup'
+      })
+    }
 
     return items
   }
 
-  const healthItems = getHealthItems()
+  const onboardingItems = getOnboardingItems()
 
-  // Initialize expanded state based on health status if not controlled by props
+  // Initialize expanded state based on onboarding status if not controlled by props
   useEffect(() => {
-    const hasIssues = healthItems.some(item => item.status === 'error')
-    const hasWarnings = healthItems.some(item => item.status === 'warning')
+    const hasIssues = onboardingItems.some((item: HealthItem) => item.status === 'error')
+    const hasWarnings = onboardingItems.some((item: HealthItem) => item.status === 'warning')
     if (propExpanded === undefined && (hasIssues || hasWarnings)) {
       setIsExpanded(true)
     }
-  }, [healthItems, propExpanded])
+  }, [onboardingItems, propExpanded])
 
   const getStatusIcon = (status: 'healthy' | 'warning' | 'error') => {
     switch (status) {
@@ -273,8 +237,8 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   }
 
   const healthy = isFullyHealthy()
-  const hasIssues = healthItems.some(item => item.status === 'error')
-  const hasWarnings = healthItems.some(item => item.status === 'warning')
+  const hasIssues = onboardingItems.some((item: HealthItem) => item.status === 'error')
+  const hasWarnings = onboardingItems.some((item: HealthItem) => item.status === 'warning')
 
   // Compact healthy collapsed state
   if (healthy && !isExpanded) {
@@ -286,7 +250,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span className="text-green-800 dark:text-green-200 font-medium text-sm">
-              Setup Health — All Systems Operational ✓
+              Getting Started — All Set ✓
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -300,7 +264,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               type="button"
               onClick={handleToggle}
               aria-expanded={false}
-              aria-label="Expand setup health details"
+              aria-label="Expand getting started details"
               className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
             >
               <svg
@@ -339,7 +303,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                 </svg>
               )}
               <span className={`font-medium ${healthy ? 'text-sm text-green-800 dark:text-green-200' : 'text-gray-900 dark:text-gray-100'}`}>
-                Setup Health
+                Getting Started
               </span>
             </div>
             {hasIssues && (
@@ -362,7 +326,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
             type="button"
             onClick={handleToggle}
             aria-expanded={isExpanded}
-            aria-label="Toggle setup health details"
+            aria-label="Toggle getting started details"
             className={`text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${healthy ? 'text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300' : ''}`}
           >
             <svg
@@ -380,7 +344,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
       <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
         <div className={`border-t border-gray-200 dark:border-gray-700 ${healthy ? 'p-3' : 'p-4'}`}>
           <div className="space-y-3">
-            {healthItems.map((item, index) => (
+            {onboardingItems.map((item: HealthItem, index: number) => (
               <div key={index} className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-0.5">
                   {getStatusIcon(item.status)}
