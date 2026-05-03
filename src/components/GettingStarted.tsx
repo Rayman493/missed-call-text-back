@@ -131,7 +131,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       description: 'Call your business number from another phone to confirm everything works.',
       status: testComplete ? 'complete' : forwardingComplete ? 'needs-action' : 'not-tested-yet',
       buttonText: testComplete ? undefined : 'View Test Instructions',
-      buttonHref: '/demo'
+      buttonHref: '/dashboard/test-setup'
     })
 
     return items
