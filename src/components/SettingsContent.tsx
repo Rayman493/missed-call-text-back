@@ -47,6 +47,13 @@ export default function SettingsContent() {
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
   const [isLoadingIgnored, setIsLoadingIgnored] = useState(false)
+  
+  // Add ignored contact modal state
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [label, setLabel] = useState('')
+  const [reason, setReason] = useState('')
 
   const supabase = createBrowserClient()
 
@@ -210,6 +217,59 @@ export default function SettingsContent() {
     } catch (error) {
       console.error('Error removing ignored contact:', error)
       showToast('Failed to remove ignored contact', 'error')
+    }
+  }
+
+  // Add ignored contact
+  const handleAddIgnoredContact = async () => {
+    if (!phoneNumber.trim()) {
+      showToast('Phone number is required', 'error')
+      return
+    }
+
+    setIsAdding(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/api/ignored-contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          phoneNumber,
+          label: label.trim() || null,
+          reason: reason.trim() || 'Added manually in settings'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to add ignored contact')
+      }
+
+      // Update local state
+      const data = await response.json()
+      setIgnoredContacts(prev => [data.ignoredContact, ...prev])
+      
+      // Reset form
+      setPhoneNumber('')
+      setLabel('')
+      setReason('')
+      setShowAddModal(false)
+      
+      showToast('Contact added to ignored contacts', 'success')
+    } catch (error) {
+      console.error('Error adding ignored contact:', error)
+      showToast(error instanceof Error ? error.message : 'Failed to add ignored contact', 'error')
+    } finally {
+      setIsAdding(false)
     }
   }
 
@@ -679,7 +739,15 @@ export default function SettingsContent() {
 
               {/* Ignored Contacts Section */}
               <div id="ignored-contacts" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Ignored Contacts</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-100">Ignored Contacts</h2>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    + Add Ignored Contact
+                  </button>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-400 mb-4">
@@ -694,10 +762,16 @@ export default function SettingsContent() {
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-8 bg-gray-700/50 rounded-lg border border-gray-600">
                       <div className="text-4xl mb-2">📵</div>
-                      <h3 className="text-sm font-medium text-gray-100 mb-2">No ignored contacts</h3>
-                      <p className="text-sm text-gray-400">
-                        When you ignore contacts from lead conversations, they will appear here.
+                      <h3 className="text-sm font-medium text-gray-100 mb-2">Prevent personal calls from becoming leads</h3>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
                       </p>
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      >
+                        + Add Ignored Contact
+                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -895,6 +969,86 @@ export default function SettingsContent() {
                     className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isResetting ? 'Resetting...' : 'Reset Demo Data'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Ignored Contact Modal */}
+          {showAddModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-gray-100 mb-4">
+                  Add Ignored Contact
+                </h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      Label
+                    </label>
+                    <input
+                      type="text"
+                      value={label}
+                      onChange={(e) => setLabel(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      placeholder="Family, Employee, Vendor, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      Notes/Reason
+                    </label>
+                    <textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white resize-none"
+                      placeholder="Personal contact, employee, vendor, etc."
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowAddModal(false)
+                      setPhoneNumber('')
+                      setLabel('')
+                      setReason('')
+                    }}
+                    disabled={isAdding}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddIgnoredContact}
+                    disabled={isAdding || !phoneNumber.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAdding ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                        Adding...
+                      </>
+                    ) : (
+                      'Add Contact'
+                    )}
                   </button>
                 </div>
               </div>
