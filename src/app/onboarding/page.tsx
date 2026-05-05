@@ -229,8 +229,8 @@ export default function OnboardingPage() {
       // Refresh the page to ensure all state is updated
       router.refresh()
       
-      // Redirect to phone setup step
-      router.push('/onboarding/phone-setup')
+      // Redirect to dashboard to start trial activation
+      router.push('/dashboard')
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'
@@ -302,7 +302,7 @@ export default function OnboardingPage() {
     <AuthGuard>
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 sm:p-8">
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-6 sm:p-8">
-          <p className="text-xs text-gray-400 mb-2">Step 1 of 3</p>
+          <p className="text-xs text-gray-400 mb-2">Step 1 of 2</p>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
           <p className="text-sm text-gray-400 mb-4">Never miss a customer again - we'll text back when you can't answer</p>
           
@@ -443,13 +443,13 @@ export default function OnboardingPage() {
           {/* Trust Messaging */}
           <div className="mt-6 space-y-3">
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Your customers keep calling your existing number
+              ✓ Start your free trial to explore the dashboard
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ ReplyFlow works automatically in the background
+              ✓ Set up call forwarding after you activate your trial
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ You capture every missed call as a new lead
+              ✓ No commitment - cancel anytime during trial
             </p>
           </div>
         </div>

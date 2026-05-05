@@ -306,10 +306,18 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
 export async function provisionTwilioNumber(businessId: string): Promise<{ phoneNumber: string; phoneNumberSid: string } | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
+  const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
 
   if (!accountSid || !authToken) {
     console.error('[Twilio Provisioning] Credentials missing');
     return null
+  }
+
+  // Safety guard: Abort provisioning if shared mode is enabled
+  if (useSharedTwilioNumber) {
+    console.warn('[Twilio Provisioning] Shared number mode enabled - aborting Twilio number provisioning');
+    console.warn('[Twilio Provisioning] USE_SHARED_TWILIO_NUMBER=true prevents purchasing new numbers');
+    return null;
   }
 
   const client = Twilio(accountSid, authToken);

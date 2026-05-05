@@ -68,6 +68,22 @@ function PhoneSetupContent() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [isForwardingEnabled, setIsForwardingEnabled] = useState(false)
 
+  // Check if user has active subscription before allowing phone setup
+  useEffect(() => {
+    if (!businessLoading && business) {
+      const hasSubscription = business.subscription_status === SUBSCRIPTION_STATES.TRIALING || 
+                             business.subscription_status === SUBSCRIPTION_STATES.ACTIVE ||
+                             business.subscription_status === SUBSCRIPTION_STATES.PAST_DUE ||
+                             business.subscription_status === SUBSCRIPTION_STATES.CANCELED
+      
+      if (!hasSubscription) {
+        console.log('[Phone Setup] No active subscription, redirecting to dashboard')
+        router.push('/dashboard')
+        return
+      }
+    }
+  }, [business, businessLoading, router])
+
   const handleForwardingEnabled = async () => {
     if (!phoneNumber || !carrier) {
       setError('Please enter your business phone number and select a carrier first.')
@@ -220,8 +236,8 @@ function PhoneSetupContent() {
       // Clear persisted state after successful completion
       clearPhoneSetupState()
 
-      // Continue to next onboarding step
-      router.push('/onboarding/success')
+      // Return to dashboard since forwarding setup is now post-subscription
+      router.push('/dashboard')
     } catch (err: any) {
       console.error('[Phone Setup] Unexpected error:', {
         message: err.message,
@@ -368,9 +384,9 @@ function PhoneSetupContent() {
       <div className="max-w-2xl w-full">
         {/* Progress indicator */}
         <div className="mb-8">
-          <p className="text-xs text-gray-400 mb-2">Step 2 of 3</p>
+          <p className="text-xs text-gray-400 mb-2">Post-Trial Setup</p>
           <div className="w-full bg-gray-700 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '66%' }}></div>
+            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '100%' }}></div>
           </div>
         </div>
 
@@ -382,7 +398,7 @@ function PhoneSetupContent() {
               Set up call forwarding
             </h1>
             <p className="text-sm sm:text-base text-gray-400">
-              Forward missed calls from your business number to ReplyFlow so we can text customers back automatically.
+              Now that your trial is active, let's connect your business phone so ReplyFlow can start capturing missed calls.
             </p>
           </div>
 

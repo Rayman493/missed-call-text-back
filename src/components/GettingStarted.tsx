@@ -39,10 +39,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     
     const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const twilioReady = !!business.twilio_phone_number
-    const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
-    const testComplete = business.forwarding_verified
     
-    return subscriptionActive && twilioReady && forwardingComplete && testComplete
+    // Base requirements: subscription active and ReplyFlow number ready
+    if (!subscriptionActive || !twilioReady) return false
+    
+    // If subscription is active, also require forwarding setup and test
+    if (subscriptionActive) {
+      const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
+      const testComplete = business.forwarding_verified
+      return forwardingComplete && testComplete
+    }
+    
+    return true
   }
 
   // Load collapse preference from localStorage
@@ -110,29 +118,32 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         : 'Setting up your ReplyFlow number...'
     })
 
-    // 3. Set up call forwarding
+    // 3. Set up call forwarding (only show after subscription is active)
     const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
     
-    items.push({
-      id: 'forwarding',
-      title: 'Set up call forwarding',
-      description: 'Forward missed calls from your business phone to ReplyFlow.',
-      status: forwardingComplete ? 'complete' : 'needs-action',
-      buttonText: forwardingComplete ? undefined : 'View Setup Instructions',
-      buttonHref: '/onboarding/phone-setup'
-    })
+    // Only show forwarding setup if subscription is active
+    if (subscriptionActive) {
+      items.push({
+        id: 'forwarding',
+        title: 'Set up call forwarding',
+        description: 'Forward missed calls from your business phone to ReplyFlow.',
+        status: forwardingComplete ? 'complete' : 'needs-action',
+        buttonText: forwardingComplete ? undefined : 'View Setup Instructions',
+        buttonHref: '/onboarding/phone-setup'
+      })
 
-    // 4. Test your setup
-    const testComplete = business.forwarding_verified
-    
-    items.push({
-      id: 'test',
-      title: 'Test your setup',
-      description: 'Call your business number from another phone to confirm everything works.',
-      status: testComplete ? 'complete' : forwardingComplete ? 'needs-action' : 'not-tested-yet',
-      buttonText: testComplete ? undefined : 'View Test Instructions',
-      buttonHref: '/dashboard/test-setup'
-    })
+      // 4. Test your setup (only show after forwarding is set up)
+      const testComplete = business.forwarding_verified
+      
+      items.push({
+        id: 'test',
+        title: 'Test your setup',
+        description: 'Call your business number from another phone to confirm everything works.',
+        status: testComplete ? 'complete' : forwardingComplete ? 'needs-action' : 'not-tested-yet',
+        buttonText: testComplete ? undefined : 'View Test Instructions',
+        buttonHref: '/dashboard/test-setup'
+      })
+    }
 
     return items
   }

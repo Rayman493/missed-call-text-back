@@ -75,45 +75,48 @@ export default function SetupHealth() {
   // Calculate health status
   const healthItems: HealthItem[] = []
 
-  // 1. Forwarding connected - use new verification states
-  let forwardingStatus: HealthItem['status']
-  let forwardingTitle: string
-  let forwardingDescription: string
-  let forwardingDetails: string
+  // 1. Forwarding connected - only show if subscription is active
+  const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+  
+  if (subscriptionValid) {
+    let forwardingStatus: HealthItem['status']
+    let forwardingTitle: string
+    let forwardingDescription: string
+    let forwardingDetails: string
 
-  // Not Configured (Red) - Only if no business phone, no setup completion, or forwarding disabled
-  if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
-    forwardingStatus = 'error'
-    forwardingTitle = 'Forwarding Not Configured'
-    forwardingDescription = 'Call forwarding setup not completed'
-    forwardingDetails = 'Complete phone setup to enable call forwarding'
-  } 
-  // Verified Working (Green) - If forwarding_verified is true
-  else if (business.forwarding_verified) {
-    forwardingStatus = 'healthy'
-    forwardingTitle = 'Forwarding Verified'
-    forwardingDescription = 'Missed-call forwarding is working correctly'
-    forwardingDetails = business.forwarding_verified_at 
-      ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
-      : 'Forwarding is working correctly'
-  } 
-  // Configured / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
-  else {
-    forwardingStatus = 'warning'
-    forwardingTitle = 'Forwarding Configured'
-    forwardingDescription = 'Awaiting first successful missed-call test'
-    forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
+    // Not Configured (Red) - Only if no business phone, no setup completion, or forwarding disabled
+    if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
+      forwardingStatus = 'error'
+      forwardingTitle = 'Forwarding Not Configured'
+      forwardingDescription = 'Call forwarding setup not completed'
+      forwardingDetails = 'Complete phone setup to enable call forwarding'
+    } 
+    // Verified Working (Green) - If forwarding_verified is true
+    else if (business.forwarding_verified) {
+      forwardingStatus = 'healthy'
+      forwardingTitle = 'Forwarding Verified'
+      forwardingDescription = 'Missed-call forwarding is working correctly'
+      forwardingDetails = business.forwarding_verified_at 
+        ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
+        : 'Forwarding is working correctly'
+    } 
+    // Configured / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
+    else {
+      forwardingStatus = 'warning'
+      forwardingTitle = 'Forwarding Configured'
+      forwardingDescription = 'Awaiting first successful missed-call test'
+      forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
+    }
+
+    healthItems.push({
+      title: forwardingTitle,
+      description: forwardingDescription,
+      status: forwardingStatus,
+      details: forwardingDetails
+    })
   }
 
-  healthItems.push({
-    title: forwardingTitle,
-    description: forwardingDescription,
-    status: forwardingStatus,
-    details: forwardingDetails
-  })
-
   // 2. Subscription active
-  const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
   const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
   const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
   const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
@@ -215,7 +218,14 @@ export default function SetupHealth() {
   }
 
   const handleViewInstructions = () => {
-    router.push('/onboarding/phone-setup')
+    // Only allow phone setup if subscription is active
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    if (subscriptionValid) {
+      router.push('/onboarding/phone-setup')
+    } else {
+      // Redirect to subscription activation
+      router.push('/dashboard')
+    }
   }
 
   const handleTestCall = () => {

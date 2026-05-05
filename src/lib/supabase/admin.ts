@@ -464,14 +464,18 @@ export const db = {
       console.error('[updateBusinessSafe] Business not found:', businessId)
       return null
     }
-
+    
+    // Check if shared number mode is enabled
+    const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
+    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    
     // Preserve twilio_phone_number unless explicitly being updated
     const safeUpdates = {
       ...updates,
       // Only update twilio_phone_number if it's explicitly provided in updates
       twilio_phone_number: updates.twilio_phone_number !== undefined 
         ? updates.twilio_phone_number 
-        : actualBusiness.data.twilio_phone_number
+        : (useSharedTwilioNumber ? sharedReplyFlowNumber : actualBusiness.data.twilio_phone_number)
     }
 
     // Log business update for debugging
@@ -513,77 +517,6 @@ export const db = {
     }
     
     return data
-  },
-
-  async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
-    console.log('[getOrCreateBusiness] Starting for user:', userId)
-    
-    // First, try to find existing business
-    const existingBusiness = await this.getBusinessByUserId(userId)
-    
-    if (existingBusiness) {
-      console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
-      console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
-      
-      // If businessData is provided, update the existing business
-      if (businessData && Object.keys(businessData).length > 0) {
-        console.log('[getOrCreateBusiness] Updating existing business with data:', Object.keys(businessData))
-        
-        // Preserve existing twilio_phone_number if not in update payload
-        const updates = {
-          ...businessData,
-          twilio_phone_number: businessData.twilio_phone_number !== undefined 
-            ? businessData.twilio_phone_number 
-            : existingBusiness.twilio_phone_number
-        }
-        
-        console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
-        
-        const updatedBusiness = await this.updateBusiness(existingBusiness.id, updates)
-        if (updatedBusiness) {
-          console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
-          console.log('[getOrCreateBusiness] Updated twilio_phone_number:', updatedBusiness.twilio_phone_number)
-          return updatedBusiness
-        } else {
-          console.error('[getOrCreateBusiness] Failed to update business, returning existing')
-          return existingBusiness
-        }
-      }
-      
-      console.log('[getOrCreateBusiness] No updates needed, returning existing business')
-      return existingBusiness
-    }
-    
-    console.log('[getOrCreateBusiness] No existing business found, creating new business for user:', userId)
-    
-    // MVP: Use shared ReplyFlow number for new businesses
-    // Future: Replace with automated per-business number assignment
-    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
-    
-    // Create new business with provided data or defaults
-    const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
-      user_id: userId,
-      name: businessData?.name || 'My Business',
-      twilio_phone_number: businessData?.twilio_phone_number || sharedReplyFlowNumber,
-      business_phone_number: businessData?.business_phone_number || null,
-      auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-      subscription_status: businessData?.subscription_status || null,
-      stripe_customer_id: businessData?.stripe_customer_id || null,
-      sms_type: businessData?.sms_type || 'toll_free',
-      messaging_status: businessData?.messaging_status || 'active',
-      onboarding_status: businessData?.onboarding_status || 'started',
-    }
-    
-    const createdBusiness = await this.createBusiness(newBusinessData)
-    
-    if (createdBusiness) {
-      console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
-      console.log('[getOrCreateBusiness] Assigned shared ReplyFlow number:', createdBusiness.twilio_phone_number)
-    } else {
-      console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
-    }
-    
-    return createdBusiness
   },
 
   // Lead operations
@@ -1146,5 +1079,76 @@ export const db = {
     }
     
     return data
-  }
+  },
+
+  async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
+    console.log('[getOrCreateBusiness] Starting for user:', userId)
+    
+    // Check if shared number mode is enabled
+    const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
+    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    
+    // First, try to find existing business
+    const existingBusiness = await this.getBusinessByUserId(userId)
+    
+    if (existingBusiness) {
+      console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
+      console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
+      
+      // If businessData is provided, update existing business
+      if (businessData && Object.keys(businessData).length > 0) {
+        console.log('[getOrCreateBusiness] Updating existing business with data:', Object.keys(businessData))
+        
+        // Preserve existing twilio_phone_number if not in update payload
+        const updates = {
+          ...businessData,
+          twilio_phone_number: businessData.twilio_phone_number !== undefined 
+            ? businessData.twilio_phone_number 
+            : (useSharedTwilioNumber ? sharedReplyFlowNumber : existingBusiness.twilio_phone_number)
+        }
+        
+        console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
+        
+        const updatedBusiness = await this.updateBusiness(existingBusiness.id, updates)
+        if (updatedBusiness) {
+          console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
+          console.log('[getOrCreateBusiness] Updated twilio_phone_number:', updatedBusiness.twilio_phone_number)
+          return updatedBusiness
+        } else {
+          console.error('[getOrCreateBusiness] Failed to update business, returning existing')
+          return existingBusiness
+        }
+      }
+      
+      console.log('[getOrCreateBusiness] No updates needed, returning existing business')
+      return existingBusiness
+    }
+    
+    console.log('[getOrCreateBusiness] No existing business found, creating new business for user:', userId)
+    
+    // Create new business with provided data or defaults
+    const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
+      user_id: userId,
+      name: businessData?.name || 'My Business',
+      twilio_phone_number: businessData?.twilio_phone_number || (useSharedTwilioNumber ? sharedReplyFlowNumber : sharedReplyFlowNumber),
+      business_phone_number: businessData?.business_phone_number || null,
+      auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+      subscription_status: businessData?.subscription_status || null,
+      stripe_customer_id: businessData?.stripe_customer_id || null,
+      sms_type: businessData?.sms_type || 'toll_free',
+      messaging_status: businessData?.messaging_status || 'active',
+      onboarding_status: businessData?.onboarding_status || 'started',
+    }
+    
+    const createdBusiness = await this.createBusiness(newBusinessData)
+    
+    if (createdBusiness) {
+      console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
+      console.log('[getOrCreateBusiness] Assigned number:', createdBusiness.twilio_phone_number, '- shared mode:', useSharedTwilioNumber)
+    } else {
+      console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
+    }
+    
+    return createdBusiness
+  },
 }

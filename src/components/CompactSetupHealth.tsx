@@ -184,11 +184,11 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const getPrimaryAction = () => {
     if (!business) return null
     
-    // Check forwarding status
-    const forwardingNotConfigured = !business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled
+    // Check forwarding status - only if subscription is active
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const forwardingNotConfigured = subscriptionValid && (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled)
     
     // Check subscription status
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const subscriptionInactive = !subscriptionValid
     
