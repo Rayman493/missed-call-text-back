@@ -315,7 +315,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
   // HARD ENFORCEMENT: Use centralized assignment helper
   try {
     // Import the centralized assignment helper
-    const { getAssignedTwilioNumber, isSharedModeEnabled } = require('./twilio-assignment')
+    const { getAssignedTwilioNumber, isSharedModeEnabled } = require('@/lib/twilio-assignment')
     
     if (isSharedModeEnabled()) {
       console.log('[Twilio Provisioning] Shared mode enabled - using shared number only')

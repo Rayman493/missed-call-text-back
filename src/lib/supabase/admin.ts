@@ -432,9 +432,33 @@ export const db = {
 
   async createBusiness(business: Omit<Business, 'id' | 'created_at' | 'updated_at'>): Promise<Business | null> {
     console.log('[createBusiness] Inserting business with keys:', Object.keys(business))
+    
+    // HARD ENFORCEMENT: Force shared number in shared mode
+    const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+    
+    let finalBusiness = { ...business }
+    
+    if (isSharedModeEnabled()) {
+      const sharedNumber = getSharedTwilioNumber()
+      
+      // Log override
+      console.log('[Shared Twilio Mode] Forcing business twilio_phone_number to:', sharedNumber)
+      console.log('[Shared Twilio Mode] Original twilio_phone_number was:', business.twilio_phone_number)
+      
+      // Hard override shared number
+      finalBusiness.twilio_phone_number = sharedNumber
+      // twilio_phone_number_sid is not a valid property in Business type
+      
+      // Validate that we're using correct shared number
+      if (business.twilio_phone_number && business.twilio_phone_number !== sharedNumber) {
+        console.error('[Shared Twilio Mode] REJECTED: Attempted to assign non-shared number:', business.twilio_phone_number)
+        console.error('[Shared Twilio Mode] Only allowed number in shared mode:', sharedNumber)
+      }
+    }
+    
     const { data, error } = await supabaseAdmin
       .from('businesses')
-      .insert(business)
+      .insert(finalBusiness)
       .select()
       .single()
 
@@ -444,6 +468,7 @@ export const db = {
     }
 
     console.log('[createBusiness] Business created:', data?.id)
+    console.log('[createBusiness] Final twilio_phone_number:', data?.twilio_phone_number)
     return data
   },
 
@@ -469,7 +494,7 @@ export const db = {
     let assignedTwilioNumber: string
     try {
       // Import the centralized assignment helper
-      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
+      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('@/lib/twilio-assignment')
       
       // Get the assigned number from centralized helper
       const assignment = getAssignedTwilioNumber()
@@ -1112,7 +1137,7 @@ export const db = {
     let assignedTwilioNumber: string
     try {
       // Import the centralized assignment helper
-      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
+      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('@/lib/twilio-assignment')
       
       // Get the assigned number from centralized helper
       const assignment = getAssignedTwilioNumber()

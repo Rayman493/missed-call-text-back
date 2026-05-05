@@ -57,7 +57,7 @@ export function validateTwilioNumberAssignment(proposedNumber: string): { valid:
  * Get the shared Twilio number directly
  */
 export function getSharedTwilioNumber(): string {
-  return SHARED_TWILIO_NUMBER
+  return process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
 }
 
 /**
