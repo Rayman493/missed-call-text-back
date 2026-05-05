@@ -7,6 +7,8 @@ import {
   hasValidSubscription,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
+import { handleBillingAction } from '@/lib/billing'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import Link from 'next/link'
 import { Circle } from 'lucide-react'
 
@@ -17,6 +19,7 @@ interface ChecklistItem {
   status: 'complete' | 'needs-action' | 'not-tested-yet'
   buttonText?: string
   buttonHref?: string
+  buttonOnClick?: () => void
   details?: string
 }
 
@@ -32,6 +35,32 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   const { business, refreshBusiness } = useBusiness()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isHandlingBilling, setIsHandlingBilling] = useState(false)
+
+  const handleStartTrial = async () => {
+    if (isHandlingBilling) return
+    
+    setIsHandlingBilling(true)
+    try {
+      console.log('[GettingStarted] Starting trial activation')
+      const result = await handleBillingAction()
+      
+      if (result.success && result.url) {
+        console.log('[GettingStarted] Redirecting to:', result.action)
+        window.location.href = result.url
+      } else {
+        console.error('[GettingStarted] Billing action failed:', result.error)
+        // If billing action fails, redirect to signup as fallback
+        window.location.href = '/auth/signup'
+      }
+    } catch (error) {
+      console.error('[GettingStarted] Trial activation error:', error)
+      // Fallback to signup
+      window.location.href = '/auth/signup'
+    } finally {
+      setIsHandlingBilling(false)
+    }
+  }
 
   // Calculate if all steps are complete
   const isFullyComplete = () => {
@@ -93,17 +122,31 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
     
-    items.push({
-      id: 'trial',
-      title: 'Start your free trial',
-      description: 'Activate ReplyFlow so your missed-call system can run.',
-      status: subscriptionActive ? 'complete' : 'needs-action',
-      details: subscriptionActive 
-        ? (isTrialing ? '14-day free trial active' : 'Subscription active')
-        : 'Start your 14-day free trial to begin',
-      buttonText: subscriptionActive ? undefined : 'Start 14-Day Free Trial',
-      buttonHref: '/auth/signup'
-    })
+    // Check if user is authenticated (has business context means they're logged in)
+    const isAuthenticated = !!business
+    
+    if (subscriptionActive) {
+      items.push({
+        id: 'trial',
+        title: 'Trial active',
+        description: 'Your ReplyFlow system is ready to capture missed calls.',
+        status: 'complete',
+        details: isTrialing ? '14-day free trial active' : 'Subscription active',
+        buttonText: 'Manage Billing',
+        buttonOnClick: handleStartTrial
+      })
+    } else {
+      items.push({
+        id: 'trial',
+        title: 'Start your free trial',
+        description: 'Activate ReplyFlow so your missed-call system can run.',
+        status: 'needs-action',
+        details: 'Start your 14-day free trial to begin',
+        buttonText: isHandlingBilling ? 'Processing...' : 'Start 14-Day Free Trial',
+        buttonOnClick: isAuthenticated ? handleStartTrial : undefined,
+        buttonHref: isAuthenticated ? undefined : '/auth/signup'
+      })
+    }
 
     // 2. ReplyFlow number ready
     const twilioReady = !!business.twilio_phone_number
@@ -273,13 +316,23 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
                   {item.details}
                 </p>
               )}
-              {item.buttonText && item.buttonHref && (
-                <Link
-                  href={item.buttonHref}
-                  className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  {item.buttonText}
-                </Link>
+              {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
+                item.buttonOnClick ? (
+                  <button
+                    onClick={item.buttonOnClick}
+                    disabled={isHandlingBilling}
+                    className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                  >
+                    {item.buttonText}
+                  </button>
+                ) : (
+                  <Link
+                    href={item.buttonHref!}
+                    className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
+                  >
+                    {item.buttonText}
+                  </Link>
+                )
               )}
             </div>
           </div>
