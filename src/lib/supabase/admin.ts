@@ -465,9 +465,30 @@ export const db = {
       return null
     }
     
-    // Check if shared number mode is enabled
-    const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
-    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    // HARD ENFORCEMENT: Use centralized Twilio assignment
+    let assignedTwilioNumber: string
+    try {
+      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
+      
+      // Get the assigned number from centralized helper
+      const assignment = getAssignedTwilioNumber()
+      assignedTwilioNumber = assignment.phoneNumber
+      
+      // Validate the assignment if trying to update
+      if (updates.twilio_phone_number !== undefined) {
+        const validation = validateTwilioNumberAssignment(updates.twilio_phone_number)
+        if (!validation.valid) {
+          console.error('[updateBusinessSafe] Twilio assignment validation failed:', validation.error)
+          console.error('[updateBusinessSafe] Rejecting update to non-shared number')
+          return null
+        }
+      }
+      
+      console.log('[updateBusinessSafe] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
+    } catch (error) {
+      console.error('[updateBusinessSafe] Centralized assignment failed:', error)
+      return null
+    }
     
     // Preserve twilio_phone_number unless explicitly being updated
     const safeUpdates = {
@@ -475,7 +496,7 @@ export const db = {
       // Only update twilio_phone_number if it's explicitly provided in updates
       twilio_phone_number: updates.twilio_phone_number !== undefined 
         ? updates.twilio_phone_number 
-        : (useSharedTwilioNumber ? sharedReplyFlowNumber : actualBusiness.data.twilio_phone_number)
+        : assignedTwilioNumber
     }
 
     // Log business update for debugging
@@ -1084,9 +1105,27 @@ export const db = {
   async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
     console.log('[getOrCreateBusiness] Starting for user:', userId)
     
-    // Check if shared number mode is enabled
-    const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
-    const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    // HARD ENFORCEMENT: Use centralized Twilio assignment
+    let assignedTwilioNumber: string
+    try {
+      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
+      
+      // Get the assigned number from centralized helper
+      const assignment = getAssignedTwilioNumber()
+      assignedTwilioNumber = assignment.phoneNumber
+      
+      // Validate the assignment
+      const validation = validateTwilioNumberAssignment(assignedTwilioNumber)
+      if (!validation.valid) {
+        console.error('[getOrCreateBusiness] Twilio assignment validation failed:', validation.error)
+        return null
+      }
+      
+      console.log('[getOrCreateBusiness] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
+    } catch (error) {
+      console.error('[getOrCreateBusiness] Centralized assignment failed:', error)
+      return null
+    }
     
     // First, try to find existing business
     const existingBusiness = await this.getBusinessByUserId(userId)
@@ -1104,7 +1143,7 @@ export const db = {
           ...businessData,
           twilio_phone_number: businessData.twilio_phone_number !== undefined 
             ? businessData.twilio_phone_number 
-            : (useSharedTwilioNumber ? sharedReplyFlowNumber : existingBusiness.twilio_phone_number)
+            : assignedTwilioNumber
         }
         
         console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
@@ -1130,7 +1169,7 @@ export const db = {
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       name: businessData?.name || 'My Business',
-      twilio_phone_number: businessData?.twilio_phone_number || (useSharedTwilioNumber ? sharedReplyFlowNumber : sharedReplyFlowNumber),
+      twilio_phone_number: businessData?.twilio_phone_number || assignedTwilioNumber,
       business_phone_number: businessData?.business_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || null,
@@ -1144,7 +1183,7 @@ export const db = {
     
     if (createdBusiness) {
       console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
-      console.log('[getOrCreateBusiness] Assigned number:', createdBusiness.twilio_phone_number, '- shared mode:', useSharedTwilioNumber)
+      console.log('[getOrCreateBusiness] Assigned number:', createdBusiness.twilio_phone_number, '- from centralized assignment')
     } else {
       console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
     }

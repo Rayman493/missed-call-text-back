@@ -306,171 +306,30 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
 export async function provisionTwilioNumber(businessId: string): Promise<{ phoneNumber: string; phoneNumberSid: string } | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
-  const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
 
   if (!accountSid || !authToken) {
     console.error('[Twilio Provisioning] Credentials missing');
     return null
   }
 
-  // Safety guard: Abort provisioning if shared mode is enabled
-  if (useSharedTwilioNumber) {
-    console.warn('[Twilio Provisioning] Shared number mode enabled - aborting Twilio number provisioning');
-    console.warn('[Twilio Provisioning] USE_SHARED_TWILIO_NUMBER=true prevents purchasing new numbers');
-    return null;
-  }
-
-  const client = Twilio(accountSid, authToken);
-
+  // HARD ENFORCEMENT: Use centralized assignment helper
   try {
-    // Idempotency check: Verify both twilio_phone_number and twilio_phone_number_sid exist
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('id, twilio_phone_number, twilio_phone_number_sid')
-      .eq('id', businessId)
-      .single();
-
-    if (business && business.twilio_phone_number && business.twilio_phone_number_sid) {
-      console.log('[Twilio Provisioning] Business already has valid Twilio number and SID, skipping provisioning');
+    const { getAssignedTwilioNumber, isSharedModeEnabled } = require('./twilio-assignment')
+    
+    if (isSharedModeEnabled()) {
+      console.log('[Twilio Provisioning] Shared mode enabled - using shared number only')
+      const assignment = getAssignedTwilioNumber()
       return {
-        phoneNumber: business.twilio_phone_number,
-        phoneNumberSid: business.twilio_phone_number_sid,
-      };
-    }
-
-    // Handle bad state: phone number exists but SID is missing
-    if (business && business.twilio_phone_number && !business.twilio_phone_number_sid) {
-      console.log('[Twilio Provisioning] Bad state detected: phone number exists but SID is missing, verifying in Twilio');
-
-      try {
-        // Verify if the number exists in Twilio Active Numbers
-        const incomingNumbers = await client.incomingPhoneNumbers.list({ phoneNumber: business.twilio_phone_number });
-        
-        if (incomingNumbers.length === 0) {
-          console.log('[Twilio Provisioning] Number does not exist in Twilio Active Numbers');
-          
-          // Check if this is the shared MVP number - if so, don't clear it
-          const sharedReplyFlowNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303';
-          if (business.twilio_phone_number === sharedReplyFlowNumber) {
-            console.log('[Twilio Provisioning] Preserving shared ReplyFlow number, only clearing SID');
-            
-            // Only clear the SID, keep the shared number
-            const { error: clearError } = await supabase
-              .from('businesses')
-              .update({
-                twilio_phone_number_sid: null,
-              })
-              .eq('id', businessId);
-
-            if (clearError) {
-              console.error('[Twilio Provisioning] Failed to clear SID:', clearError);
-            } else {
-              console.log('[Twilio Provisioning] Shared number SID cleared, number preserved');
-            }
-          } else {
-            console.log('[Twilio Provisioning] Clearing bad non-shared number');
-            
-            // Clear the bad phone number (only for non-shared numbers)
-            const { error: clearError } = await supabase
-              .from('businesses')
-              .update({
-                twilio_phone_number: null,
-                twilio_phone_number_sid: null,
-              })
-              .eq('id', businessId);
-
-            if (clearError) {
-              console.error('[Twilio Provisioning] Failed to clear bad saved number:', clearError);
-            } else {
-              console.log('[Twilio Provisioning] Bad saved number cleared');
-            }
-          }
-        } else {
-          console.log('[Twilio Provisioning] Number exists in Twilio, updating SID in database');
-          
-          // Update with the correct SID
-          const { error: updateError } = await supabase
-            .from('businesses')
-            .update({
-              twilio_phone_number_sid: incomingNumbers[0].sid,
-            })
-            .eq('id', businessId);
-
-          if (updateError) {
-            console.error('[Twilio Provisioning] Failed to update SID:', updateError);
-          } else {
-            console.log('[Twilio Provisioning] SID updated successfully');
-            return {
-              phoneNumber: business.twilio_phone_number,
-              phoneNumberSid: incomingNumbers[0].sid,
-            };
-          }
-        }
-      } catch (verifyError) {
-        console.error('[Twilio Provisioning] Error verifying number in Twilio:', verifyError);
-        // Proceed to purchase a new number
+        phoneNumber: assignment.phoneNumber,
+        phoneNumberSid: 'SHARED_MODE' // No SID needed for shared number
       }
     }
-
-    console.log('[Twilio Provisioning] Searching numbers for business:', businessId);
-
-    // Search for available US local numbers with voice + SMS enabled
-    const availableNumbers = await client.availablePhoneNumbers('US')
-      .local
-      .list({
-        voiceEnabled: true,
-        smsEnabled: true,
-        limit: 1,
-      });
-
-    if (!availableNumbers || availableNumbers.length === 0) {
-      console.error('[Twilio Provisioning] No available numbers found');
-      return null
-    }
-
-    const numberToPurchase = availableNumbers[0];
-    console.log('[Twilio Provisioning] Selected available number:', numberToPurchase.phoneNumber);
-
-    // Purchase the number
-    const purchasedNumber = await client.incomingPhoneNumbers.create({
-      phoneNumber: numberToPurchase.phoneNumber,
-      voiceUrl: 'https://replyflowhq.com/api/twilio/voice',
-      smsUrl: 'https://replyflowhq.com/api/twilio/incoming-sms',
-    });
-
-    console.log('[Twilio Provisioning] Purchase succeeded:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid);
-
-    // Verify the number exists by SID after purchase
-    try {
-      const verifiedNumber = await client.incomingPhoneNumbers(purchasedNumber.sid).fetch();
-      console.log('[Twilio Provisioning] Verified number exists in Twilio by SID:', verifiedNumber.phoneNumber);
-    } catch (verifyError) {
-      console.error('[Twilio Provisioning] Failed to verify number by SID after purchase:', verifyError);
-    }
-
-    // Save to database only after purchase succeeds
-    const { error: updateError } = await supabase
-      .from('businesses')
-      .update({
-        twilio_phone_number: purchasedNumber.phoneNumber,
-        twilio_phone_number_sid: purchasedNumber.sid,
-      })
-      .eq('id', businessId);
-
-    if (updateError) {
-      console.error('[Twilio Provisioning] Failed to save number to database:', updateError);
-      // Still return the number since it was purchased, but log the error
-    } else {
-      console.log('[Twilio Provisioning] Saved number to business:', businessId);
-    }
-
-    return {
-      phoneNumber: purchasedNumber.phoneNumber,
-      phoneNumberSid: purchasedNumber.sid,
-    };
   } catch (error) {
-    console.error('[Twilio Provisioning] Purchase failed:', error);
-    // Do not save twilio_phone_number or twilio_phone_number_sid on failure
+    console.error('[Twilio Provisioning] Assignment helper failed:', error)
     return null
   }
+
+  console.error('[Twilio Provisioning] Shared mode is disabled - unique number provisioning not implemented')
+  console.error('[Twilio Provisioning] Set USE_SHARED_TWILIO_NUMBER=true to enable shared mode')
+  return null
 }
