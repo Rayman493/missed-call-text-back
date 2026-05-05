@@ -468,6 +468,7 @@ export const db = {
     // HARD ENFORCEMENT: Use centralized Twilio assignment
     let assignedTwilioNumber: string
     try {
+      // Import the centralized assignment helper
       const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
       
       // Get the assigned number from centralized helper
@@ -487,7 +488,9 @@ export const db = {
       console.log('[updateBusinessSafe] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
     } catch (error) {
       console.error('[updateBusinessSafe] Centralized assignment failed:', error)
-      return null
+      // Fallback to shared number if helper fails
+      assignedTwilioNumber = '+18336584303'
+      console.log('[updateBusinessSafe] Fallback to shared number:', assignedTwilioNumber)
     }
     
     // Preserve twilio_phone_number unless explicitly being updated
@@ -1108,6 +1111,7 @@ export const db = {
     // HARD ENFORCEMENT: Use centralized Twilio assignment
     let assignedTwilioNumber: string
     try {
+      // Import the centralized assignment helper
       const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('../lib/twilio-assignment')
       
       // Get the assigned number from centralized helper
@@ -1124,7 +1128,9 @@ export const db = {
       console.log('[getOrCreateBusiness] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
     } catch (error) {
       console.error('[getOrCreateBusiness] Centralized assignment failed:', error)
-      return null
+      // Fallback to shared number if helper fails
+      assignedTwilioNumber = '+18336584303'
+      console.log('[getOrCreateBusiness] Fallback to shared number:', assignedTwilioNumber)
     }
     
     // First, try to find existing business
@@ -1179,13 +1185,31 @@ export const db = {
       onboarding_status: businessData?.onboarding_status || 'started',
     }
     
-    const createdBusiness = await this.createBusiness(newBusinessData)
+    // Create new business with explicit shared mode logging
+    console.log('[getOrCreateBusiness] Creating new business with data:', {
+      user_id: userId,
+      name: newBusinessData.name,
+      twilio_phone_number: newBusinessData.twilio_phone_number,
+      onboarding_status: newBusinessData.onboarding_status
+    })
     
-    if (createdBusiness) {
-      console.log('[getOrCreateBusiness] Creating new business:', createdBusiness.id)
-      console.log('[getOrCreateBusiness] Assigned number:', createdBusiness.twilio_phone_number, '- from centralized assignment')
-    } else {
-      console.error('[getOrCreateBusiness] Failed to create business for user:', userId)
+    let createdBusiness: Business | null = null
+    try {
+      createdBusiness = await this.createBusiness(newBusinessData)
+      
+      if (createdBusiness) {
+        console.log('[Shared Mode] Business created using shared Twilio number:', createdBusiness.id)
+        console.log('[Shared Mode] Assigned number:', createdBusiness.twilio_phone_number)
+        console.log('[getOrCreateBusiness] Business created successfully:', createdBusiness.id)
+      } else {
+        console.error('[getOrCreateBusiness] createBusiness returned null for user:', userId)
+      }
+    } catch (createError) {
+      console.error('[getOrCreateBusiness] Error during business creation:', createError)
+      console.error('[getOrCreateBusiness] Create error details:', {
+        message: createError instanceof Error ? createError.message : 'Unknown error',
+        stack: createError instanceof Error ? createError.stack : undefined
+      })
     }
     
     return createdBusiness

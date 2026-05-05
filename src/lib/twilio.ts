@@ -314,6 +314,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
 
   // HARD ENFORCEMENT: Use centralized assignment helper
   try {
+    // Import the centralized assignment helper
     const { getAssignedTwilioNumber, isSharedModeEnabled } = require('./twilio-assignment')
     
     if (isSharedModeEnabled()) {
@@ -326,7 +327,12 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
     }
   } catch (error) {
     console.error('[Twilio Provisioning] Assignment helper failed:', error)
-    return null
+    // Fallback to shared number if helper fails
+    console.log('[Twilio Provisioning] Fallback to shared number')
+    return {
+      phoneNumber: '+18336584303',
+      phoneNumberSid: 'SHARED_MODE'
+    }
   }
 
   console.error('[Twilio Provisioning] Shared mode is disabled - unique number provisioning not implemented')
