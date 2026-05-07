@@ -30,7 +30,7 @@ export default function CompliancePage() {
               Compliance & Standards
             </h1>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              ReplyFlowHQ maintains the highest standards for conversational messaging compliance and customer privacy.
+              ReplyFlowHQ LLC maintains the highest standards for conversational messaging compliance during pilot testing and API validation.
             </p>
           </div>
         </div>
@@ -49,17 +49,17 @@ export default function CompliancePage() {
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-gray-400 leading-relaxed">
-                    ReplyFlowHQ is designed exclusively for <strong>conversational customer messaging</strong> 
+                    ReplyFlowHQ LLC is designed exclusively for <strong>conversational pilot testing</strong> 
                     triggered by inbound customer contact. Our use case is fundamentally different from bulk marketing:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">ReplyFlowHQ Model</h3>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">ReplyFlowHQ LLC Pilot Model</h3>
                       <ul className="space-y-2 text-sm text-green-800 dark:text-green-200">
                         <li>• Customer-initiated contact</li>
                         <li>• Conversational context</li>
-                        <li>• Response to missed calls</li>
-                        <li>• One-to-one communication</li>
+                        <li>• API validation/testing</li>
+                        <li>• Internal pilot workflows</li>
                       </ul>
                     </div>
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -173,28 +173,28 @@ export default function CompliancePage() {
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-gray-400 leading-relaxed">
-                    ReplyFlowHQ operates on the principle of <strong>implied consent</strong> through customer initiation:
+                    ReplyFlowHQ LLC operates on the principle of <strong>implied consent</strong> through customer initiation during pilot testing:
                   </p>
                   <div className="mt-6 space-y-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Business Responsibility</h3>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">ReplyFlowHQ LLC Pilot Testing</h3>
                       <p className="text-sm text-blue-800 dark:text-blue-200">
-                        Businesses must ensure they have appropriate consent for communications and maintain compliance 
+                        ReplyFlowHQ LLC ensures appropriate consent for communications during pilot testing and maintains compliance 
                         with all applicable regulations including TCPA and local laws.
                       </p>
                     </div>
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                       <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Customer Initiation</h3>
                       <p className="text-sm text-amber-800 dark:text-amber-200">
-                        When a customer calls your business number, they initiate contact and provide implied consent 
+                        When a customer contacts ReplyFlowHQ LLC during pilot testing, they initiate contact and provide implied consent 
                         for a reasonable response related to their inquiry.
                       </p>
                     </div>
                     <div className="bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Conversational Context</h3>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Conversational Support</h3>
                       <p className="text-sm text-green-800 dark:text-green-200">
                         All messages maintain conversational context directly related to the customer's 
-                        initial contact and subsequent interactions.
+                        initial contact and are limited to pilot testing and support workflows.
                       </p>
                     </div>
                   </div>
@@ -207,12 +207,12 @@ export default function CompliancePage() {
                       </h3>
                       <div className="bg-gray-800 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4 mb-4">
                         <p className="text-gray-800 dark:text-gray-200 italic leading-relaxed">
-                          "Thanks for calling [Business Name]. If we miss your call, we may send you a conversational text message so we can continue helping with your inquiry. Reply STOP to opt out or HELP for help. Do you agree to receive these messages?"
+                          "Thanks for contacting ReplyFlowHQ LLC. As part of our pilot missed-call follow-up testing program, we may send you a conversational text message related to your inquiry. Reply STOP to opt out or HELP for assistance. Do you agree to receive these messages?"
                         </p>
                       </div>
                       <div className="bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4">
                         <p className="text-sm text-indigo-800 dark:text-indigo-200">
-                          <strong>Important:</strong> Messages are only sent after inbound customer contact and are directly related to the customer's inquiry.
+                          <strong>Important Note:</strong> Messages are only sent after inbound contact and are limited to ReplyFlowHQ LLC pilot testing and conversational support workflows.
                         </p>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ export default function CompliancePage() {
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-gray-400 leading-relaxed">
-                    ReplyFlowHQ automatically processes all standard opt-out and help requests:
+                    ReplyFlowHQ LLC automatically processes all standard opt-out and help requests during pilot testing:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="border border-gray-700 rounded-lg p-6">
@@ -283,7 +283,7 @@ export default function CompliancePage() {
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-gray-400 leading-relaxed">
-                    ReplyFlowHQ maintains enterprise-grade data protection and privacy standards:
+                    ReplyFlowHQ LLC maintains enterprise-grade data protection and privacy standards during pilot testing:
                   </p>
                   <div className="mt-6 space-y-4">
                     <div className="flex items-start gap-3">
@@ -329,11 +329,11 @@ export default function CompliancePage() {
             <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-100 mb-6">
-                  Business Responsibilities
+                  ReplyFlowHQ LLC Responsibilities
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-gray-400 leading-relaxed">
-                    While ReplyFlowHQ provides the technology platform, businesses maintain responsibility for:
+                    During pilot testing, ReplyFlowHQ LLC maintains responsibility for:
                   </p>
                   <div className="mt-6 space-y-3">
                     <div className="flex items-start gap-3">
@@ -341,7 +341,7 @@ export default function CompliancePage() {
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
                       <p className="text-gray-400">
-                        <strong>Obtaining proper consent</strong> for customer communications
+                        <strong>Obtaining proper consent</strong> for pilot testing communications
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -357,7 +357,7 @@ export default function CompliancePage() {
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
                   <p className="text-gray-400">
-                        <strong>Maintaining accurate business information</strong> and contact details
+                        <strong>Maintaining accurate ReplyFlowHQ LLC information</strong> and contact details
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -365,15 +365,15 @@ export default function CompliancePage() {
                         <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
                       </div>
                       <p className="text-gray-400">
-                        <strong>Training staff on proper messaging practices</strong> and compliance procedures
+                        <strong>Limited to pilot testing</strong> and conversational support workflows
                       </p>
                     </div>
                   </div>
                   <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Legal Disclaimer:</strong> ReplyFlowHQ provides technology services and is not a law firm. 
-                      Businesses should consult with legal counsel to ensure compliance with all applicable regulations 
-                      for their specific use cases and jurisdictions.
+                      <strong>Legal Disclaimer:</strong> ReplyFlowHQ LLC provides pilot testing services and is not a law firm. 
+                      ReplyFlowHQ LLC should consult with legal counsel to ensure compliance with all applicable regulations 
+                      for pilot testing use cases and jurisdictions.
                     </p>
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export default function CompliancePage() {
                 Compliance Questions?
               </h2>
               <p className="text-blue-100 mb-6">
-                Our compliance team is available to help you understand regulatory requirements and best practices.
+                ReplyFlowHQ LLC compliance team is available to help understand pilot testing regulatory requirements and best practices.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <a
@@ -399,7 +399,7 @@ export default function CompliancePage() {
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
-                  Email Compliance Team
+                  Email ReplyFlowHQ LLC Compliance
                 </a>
                 <a
                   href="/faq"
