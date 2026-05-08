@@ -1372,25 +1372,60 @@ export const db = {
           if (provisioningResult) {
             console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
             console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
+            console.log('[Provisioning] Messaging Service attached:', provisioningResult.messagingServiceAttached)
             
-            // Update business with provisioned number and SID
-            const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
-              twilio_phone_number: provisioningResult.phoneNumber,
-              twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-              sms_type: 'local_a2p',
-              a2p_status: 'approved',
-              messaging_status: 'active',
-              twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-              provisioning_status: 'active',
-              provisioning_error: null,
-              provisioned_at: new Date().toISOString()
-            })
-            
-            if (updatedBusiness) {
-              console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
-              console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
-              console.log('[Provisioning] Business updated successfully')
-              existingBusiness = updatedBusiness
+            // Only save phone fields if Messaging Service attachment succeeded
+            if (provisioningResult.messagingServiceAttached) {
+              console.log('[Provisioning] Messaging Service attachment verified, saving phone fields')
+              
+              // Update business with provisioned number and SID
+              const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
+                twilio_phone_number: provisioningResult.phoneNumber,
+                twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+                sms_type: 'local_a2p',
+                a2p_status: 'approved',
+                messaging_status: 'active',
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                provisioning_status: 'active',
+                provisioning_error: null,
+                provisioned_at: new Date().toISOString()
+              })
+              
+              if (updatedBusiness) {
+                console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
+                console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
+                console.log('[Provisioning] Business updated successfully')
+                existingBusiness = updatedBusiness
+              }
+            } else {
+              console.error('[Provisioning] Messaging Service attachment failed, releasing purchased number')
+              
+              // Release the purchased number if possible
+              try {
+                const Twilio = require('twilio')
+                const accountSid = process.env.TWILIO_ACCOUNT_SID
+                const authToken = process.env.TWILIO_AUTH_TOKEN
+                
+                if (accountSid && authToken && provisioningResult.phoneNumberSid !== 'SHARED_MODE') {
+                  const client = Twilio(accountSid, authToken)
+                  await client.incomingPhoneNumbers(provisioningResult.phoneNumberSid).remove()
+                  console.log('[Provisioning] Released purchased number:', provisioningResult.phoneNumber)
+                }
+              } catch (releaseError) {
+                console.error('[Provisioning] Failed to release purchased number:', releaseError)
+              }
+              
+              // Clear DB phone fields and set failed status
+              const updatedBusiness = await this.updateBusiness(existingBusiness.id, { 
+                twilio_phone_number: null,
+                twilio_phone_number_sid: null,
+                provisioning_status: 'failed',
+                provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+              })
+              
+              if (updatedBusiness) {
+                console.log('[Provisioning] Cleared phone fields and set failed status')
+              }
             }
           } else {
             console.error('[Provisioning] Failed to provision local number for existing business - provisioningResult is null')
@@ -1507,25 +1542,60 @@ export const db = {
             if (provisioningResult) {
               console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
               console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
+              console.log('[Provisioning] Messaging Service attached:', provisioningResult.messagingServiceAttached)
               
-              // Update business with provisioned number and SID
-              const updatedBusiness = await this.updateBusiness(createdBusiness.id, {
-                twilio_phone_number: provisioningResult.phoneNumber,
-                twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-                sms_type: 'local_a2p',
-                a2p_status: 'approved',
-                messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-                provisioning_status: 'active',
-                provisioning_error: null,
-                provisioned_at: new Date().toISOString()
-              })
-              
-              if (updatedBusiness) {
-                console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
-                console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
-                console.log('[Provisioning] Business updated successfully')
-                createdBusiness = updatedBusiness
+              // Only save phone fields if Messaging Service attachment succeeded
+              if (provisioningResult.messagingServiceAttached) {
+                console.log('[Provisioning] Messaging Service attachment verified, saving phone fields')
+                
+                // Update business with provisioned number and SID
+                const updatedBusiness = await this.updateBusiness(createdBusiness.id, {
+                  twilio_phone_number: provisioningResult.phoneNumber,
+                  twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+                  sms_type: 'local_a2p',
+                  a2p_status: 'approved',
+                  messaging_status: 'active',
+                  twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                  provisioning_status: 'active',
+                  provisioning_error: null,
+                  provisioned_at: new Date().toISOString()
+                })
+                
+                if (updatedBusiness) {
+                  console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
+                  console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
+                  console.log('[Provisioning] Business updated successfully')
+                  createdBusiness = updatedBusiness
+                }
+              } else {
+                console.error('[Provisioning] Messaging Service attachment failed, releasing purchased number')
+                
+                // Release the purchased number if possible
+                try {
+                  const Twilio = require('twilio')
+                  const accountSid = process.env.TWILIO_ACCOUNT_SID
+                  const authToken = process.env.TWILIO_AUTH_TOKEN
+                  
+                  if (accountSid && authToken && provisioningResult.phoneNumberSid !== 'SHARED_MODE') {
+                    const client = Twilio(accountSid, authToken)
+                    await client.incomingPhoneNumbers(provisioningResult.phoneNumberSid).remove()
+                    console.log('[Provisioning] Released purchased number:', provisioningResult.phoneNumber)
+                  }
+                } catch (releaseError) {
+                  console.error('[Provisioning] Failed to release purchased number:', releaseError)
+                }
+                
+                // Clear DB phone fields and set failed status
+                const updatedBusiness = await this.updateBusiness(createdBusiness.id, { 
+                  twilio_phone_number: null,
+                  twilio_phone_number_sid: null,
+                  provisioning_status: 'failed',
+                  provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+                })
+                
+                if (updatedBusiness) {
+                  console.log('[Provisioning] Cleared phone fields and set failed status')
+                }
               }
             } else {
               console.error('[Provisioning] Failed to provision local number - provisioningResult is null')

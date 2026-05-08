@@ -305,7 +305,12 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
   return expectedFields.every(field => field in payload)
 }
 
-export async function provisionTwilioNumber(businessId: string): Promise<{ phoneNumber: string; phoneNumberSid: string } | null> {
+export async function provisionTwilioNumber(businessId: string): Promise<{ 
+  phoneNumber: string; 
+  phoneNumberSid: string;
+  messagingServiceAttached: boolean;
+  messagingServiceError?: string;
+} | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
@@ -323,7 +328,8 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
     const sharedNumber = getSharedTwilioNumber()
     return {
       phoneNumber: sharedNumber,
-      phoneNumberSid: 'SHARED_MODE'
+      phoneNumberSid: 'SHARED_MODE',
+      messagingServiceAttached: true
     }
   }
 
@@ -368,6 +374,9 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       throw new Error('Twilio purchase succeeded but SID is missing - cannot proceed without SID')
     }
 
+    let messagingServiceAttached = false;
+    let messagingServiceError: string | undefined;
+
     // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
       console.log('[SenderPool] Adding PN SID to Messaging Service:', purchasedNumber.sid)
@@ -382,6 +391,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
         
         if (alreadyAttached) {
           console.log('[SenderPool] Number already attached to Messaging Service, skipping')
+          messagingServiceAttached = true
         } else {
           // Attach the number to the Messaging Service
           await client.messaging.v1.services(messagingServiceSid)
@@ -401,22 +411,28 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
           
           if (isAttached) {
             console.log('[SenderPool] Verified: Number exists in sender pool')
+            messagingServiceAttached = true
           } else {
-            console.error('[SenderPool] WARNING: Attachment succeeded but verification failed')
+            const errorMsg = 'Attachment succeeded but verification failed'
+            console.error('[SenderPool] WARNING:', errorMsg)
+            messagingServiceError = errorMsg
           }
         }
       } catch (attachmentError) {
+        const errorMsg = attachmentError instanceof Error ? attachmentError.message : 'Unknown attachment error'
         console.error('[SenderPool] Failed to attach number to Messaging Service:', attachmentError)
-        // Don't fail provisioning if attachment fails, log and continue
-        console.log('[SenderPool] Continuing with provisioning despite attachment failure')
+        messagingServiceError = errorMsg
       }
     } else {
       console.log('[SenderPool] No Messaging Service SID configured, skipping attachment')
+      messagingServiceAttached = true // Not applicable
     }
 
     return {
       phoneNumber: purchasedNumber.phoneNumber,
-      phoneNumberSid: purchasedNumber.sid
+      phoneNumberSid: purchasedNumber.sid,
+      messagingServiceAttached,
+      messagingServiceError
     }
   } catch (error) {
     console.error('[Twilio Provisioning] Failed to provision number:', error)
