@@ -63,12 +63,20 @@ export function useSettingsFormState({
       'carrier',
       'phone_carrier',
       'onboarding_step',
-      'onboarding_status'
+      'onboarding_status',
+      'automation_settings'
     ]
 
     return fieldsToCheck.some(field => {
       const currentValue = current[field]
       const originalValue = original[field]
+      
+      // Handle nested object comparison for automation_settings
+      if (field === 'automation_settings') {
+        if (!currentValue && !originalValue) return false
+        if (!currentValue || !originalValue) return true
+        return JSON.stringify(currentValue) !== JSON.stringify(originalValue)
+      }
       
       // Handle null/undefined comparisons
       if (currentValue === null || currentValue === undefined) {

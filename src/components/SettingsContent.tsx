@@ -71,15 +71,8 @@ export default function SettingsContent() {
   } = useSettingsFormState({
     initialBusiness: business,
     onSaveBusiness: async (businessData) => {
-      // Extract automation settings from form data
-      const automationSettings = {
-        spamRepeatFilteringEnabled: getAutomationSettings().spamRepeatFilteringEnabled || false,
-        ignoreRepeatCalls: getAutomationSettings().ignoreRepeatCalls || false,
-        repeatCallWindowMinutes: 15, // Default 15 minutes
-        ignoreBlockedPrivateNumbers: getAutomationSettings().ignoreBlockedPrivateNumbers || false,
-        ignoreSuspectedSpamCallers: getAutomationSettings().ignoreSuspectedSpamCallers || false,
-        blockedNumbers: getAutomationSettings().blockedNumbers || []
-      }
+      // Use automation_settings directly from businessData (already updated via updateBusiness)
+      const automationSettings = businessData.automation_settings || {}
 
       // Only save real business columns that exist in the database schema
       const { error } = await supabase
