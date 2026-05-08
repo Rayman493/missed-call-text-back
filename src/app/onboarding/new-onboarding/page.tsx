@@ -60,23 +60,39 @@ export default function NewOnboardingPage() {
     setLoading(true)
     setError('')
     
-    console.log('[Onboarding] User confirmed forwarding enabled')
-    console.log('[Onboarding] Selected carrier:', selectedCarrier)
+    console.log('[Onboarding] Saving carrier selection')
+    console.log('[Onboarding] Carrier selected:', selectedCarrier)
+    console.log('[Onboarding] Business ID:', business?.id)
     
     try {
       if (business && selectedCarrier) {
-        const { error } = await supabase
-          .from('businesses')
-          .update({ 
-            business_phone_carrier: selectedCarrier,
-            onboarding_status: 'awaiting_test'
+        // Get current user ID
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        // Use API endpoint to save carrier and onboarding status (uses service role key for proper permissions)
+        const response = await fetch('/api/onboarding/carrier', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            carrier: selectedCarrier,
+            businessId: business.id,
+            userId: user?.id,
+            onboardingStatus: 'awaiting_test'
           })
-          .eq('id', business.id)
+        })
 
-        if (error) throw error
+        const data = await response.json()
+
+        if (!response.ok) {
+          console.error('[Onboarding] Save failed with API error:', data.error)
+          throw new Error(data.error || 'Failed to save carrier selection')
+        }
+
+        console.log('[Onboarding] Save success via API')
         await refreshBusiness()
         
-        console.log('[Onboarding] Carrier saved successfully')
         console.log('[Onboarding] Advanced to test setup step')
         
         setStep('test-setup')
@@ -85,8 +101,9 @@ export default function NewOnboardingPage() {
         setError('Please select a carrier before continuing')
       }
     } catch (err) {
-      console.error('[Onboarding] Error saving carrier:', err)
-      setError('Failed to save carrier selection. Please try again.')
+      console.error('[Onboarding] Save failed:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save carrier selection. Please try again.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -180,7 +197,8 @@ export default function NewOnboardingPage() {
     
     // Remove plus sign from phone number for cleaner display
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    const code = carrier.code + phoneNumber
+    // Add space between carrier code and phone number for readability
+    const code = carrier.code + ' ' + phoneNumber
     return carrier.suffix ? code + carrier.suffix : code
   }
 
