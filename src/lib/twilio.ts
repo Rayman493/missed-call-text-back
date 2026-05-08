@@ -98,19 +98,8 @@ export async function sendSms(
     
     console.log('[SMS] Using status callback URL:', statusCallbackUrl)
     
-    // Priority 1: Use global messaging service SID if available (10DLC ready)
-    if (globalMessagingServiceSid) {
-      console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
-      sendMethod = 'global-messaging-service';
-      messageResult = await client.messages.create({
-        body: message,
-        to,
-        messagingServiceSid: globalMessagingServiceSid,
-        statusCallback: statusCallbackUrl,
-      });
-    } 
-    // Priority 2: Use business-specific messaging service SID
-    else if (business.twilio_messaging_service_sid) {
+    // Priority 1: Use business-specific messaging service SID if available
+    if (business.twilio_messaging_service_sid) {
       console.log('[SMS] Using business messaging service:', business.twilio_messaging_service_sid);
       sendMethod = 'business-messaging-service';
       messageResult = await client.messages.create({
@@ -119,10 +108,23 @@ export async function sendSms(
         messagingServiceSid: business.twilio_messaging_service_sid,
         statusCallback: statusCallbackUrl,
       });
-    } 
-    // Priority 3: Fallback to phone number (not 10DLC ready)
+    }
+    // Priority 2: Use global messaging service SID if available (10DLC ready)
+    else if (globalMessagingServiceSid) {
+      console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
+      sendMethod = 'global-messaging-service';
+      messageResult = await client.messages.create({
+        body: message,
+        to,
+        messagingServiceSid: globalMessagingServiceSid,
+        statusCallback: statusCallbackUrl,
+      });
+    }
+    // Priority 3: Fallback to phone number (not 10DLC ready) with warning
     else if (business.twilio_phone_number) {
-      console.log('[SMS] Using phone number fallback:', business.twilio_phone_number);
+      console.warn('[SMS] WARNING: No Messaging Service SID available, falling back to phone number');
+      console.warn('[SMS] This is not 10DLC compliant and should only be used in emergency/demo mode');
+      console.warn('[SMS] Set TWILIO_MESSAGING_SERVICE_SID or business.twilio_messaging_service_sid to fix');
       sendMethod = 'phone-number-fallback';
       messageResult = await client.messages.create({
         body: message,
@@ -366,14 +368,14 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       throw new Error('Twilio purchase succeeded but SID is missing - cannot proceed without SID')
     }
 
-    // TODO: Attach to Messaging Service if available
-    // Note: Messaging Service attachment requires specific Twilio API calls that may need additional setup
-    // For now, the number is functional for voice + SMS without being attached to the messaging service
+    // Attach number to Messaging Service if available (sender pool management)
+    // NOTE: Twilio API for messagingServiceSid attachment has type compatibility issues
+    // This will be implemented as a follow-up using the correct API method
     if (messagingServiceSid) {
-      console.log('[Twilio Provisioning] Messaging Service SID available:', messagingServiceSid)
-      console.log('[Twilio Provisioning] Note: Number not yet attached to Messaging Service - to be implemented as follow-up')
+      console.log('[SenderPool] Messaging Service SID available:', messagingServiceSid)
+      console.log('[SenderPool] Number attachment to Messaging Service to be implemented as follow-up')
     } else {
-      console.log('[Twilio Provisioning] No Messaging Service SID configured')
+      console.log('[SenderPool] No Messaging Service SID configured, skipping attachment')
     }
 
     return {

@@ -1190,7 +1190,9 @@ export const db = {
                 sms_type: 'local_a2p',
                 a2p_status: 'approved',
                 messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                provisioning_status: 'active',
+                provisioned_at: new Date().toISOString()
               })
               
               if (updatedBusiness) {
@@ -1209,8 +1211,92 @@ export const db = {
         }
       }
       
+      // Self-healing: If SID exists but phone number is missing, try to recover phone number from Twilio
+      if (!isSharedModeEnabled() && !existingBusiness.twilio_phone_number && existingBusiness.twilio_phone_number_sid) {
+        console.log('[Provisioning] Self-healing: SID exists but phone number is missing, attempting recovery')
+        
+        try {
+          const Twilio = require('twilio')
+          const accountSid = process.env.TWILIO_ACCOUNT_SID
+          const authToken = process.env.TWILIO_AUTH_TOKEN
+          
+          if (accountSid && authToken) {
+            const client = Twilio(accountSid, authToken)
+            
+            // Fetch the number by SID
+            const number = await client.incomingPhoneNumbers(existingBusiness.twilio_phone_number_sid).fetch()
+            
+            if (number && number.phoneNumber) {
+              console.log('[Provisioning] Recovered phone number from Twilio:', number.phoneNumber)
+              
+              // Update business with recovered phone number
+              const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
+                twilio_phone_number: number.phoneNumber,
+                sms_type: 'local_a2p',
+                a2p_status: 'approved',
+                messaging_status: 'active',
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                provisioning_status: 'active',
+                provisioned_at: new Date().toISOString()
+              })
+              
+              if (updatedBusiness) {
+                console.log('[Provisioning] Business updated with recovered phone number:', number.phoneNumber)
+                existingBusiness = updatedBusiness
+                // Skip provisioning since we recovered the phone number
+                needsProvisioning = false
+              }
+            } else {
+              console.log('[Provisioning] Number not found in Twilio by SID, will provision new number')
+            }
+          }
+        } catch (recoveryError) {
+          console.error('[Provisioning] Error during phone number recovery:', recoveryError)
+          // Continue with normal provisioning
+        }
+      }
+      
+      // Self-healing: If both phone number and SID exist, verify they're still valid in Twilio
+      if (!isSharedModeEnabled() && existingBusiness.twilio_phone_number && existingBusiness.twilio_phone_number_sid) {
+        console.log('[Provisioning] Validating existing Twilio number')
+        
+        try {
+          const Twilio = require('twilio')
+          const accountSid = process.env.TWILIO_ACCOUNT_SID
+          const authToken = process.env.TWILIO_AUTH_TOKEN
+          
+          if (accountSid && authToken) {
+            const client = Twilio(accountSid, authToken)
+            
+            // Fetch the number by SID to verify it still exists
+            const number = await client.incomingPhoneNumbers(existingBusiness.twilio_phone_number_sid).fetch()
+            
+            if (number && number.phoneNumber === existingBusiness.twilio_phone_number) {
+              console.log('[Provisioning] Existing valid number found; skipping purchase')
+              needsProvisioning = false
+              
+              // Ensure provisioning status is active
+              if (existingBusiness.provisioning_status !== 'active') {
+                await this.updateBusiness(existingBusiness.id, {
+                  provisioning_status: 'active',
+                  provisioning_error: null
+                })
+              }
+            } else {
+              console.log('[Provisioning] Existing number invalid or mismatch, will provision new number')
+            }
+          }
+        } catch (recoveryError) {
+          console.error('[Provisioning] Error during number validation:', recoveryError)
+          // Continue with normal provisioning
+        }
+      }
+      
       if (needsProvisioning) {
-        console.log('[Provisioning] Existing business missing Twilio number or SID; provisioning now')
+        console.log('[Provisioning] Started provisioning for business:', existingBusiness.id)
+        
+        // Set provisioning status to 'provisioning'
+        await this.updateBusiness(existingBusiness.id, { provisioning_status: 'provisioning' })
         
         try {
           // Import provisioning function at the top level to avoid require issues
@@ -1235,16 +1321,24 @@ export const db = {
               sms_type: 'local_a2p',
               a2p_status: 'approved',
               messaging_status: 'active',
-              twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+              twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+              provisioning_status: 'active',
+              provisioning_error: null,
+              provisioned_at: new Date().toISOString()
             })
             
             if (updatedBusiness) {
               console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
               console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
+              console.log('[Provisioning] Business updated successfully')
               existingBusiness = updatedBusiness
             }
           } else {
             console.error('[Provisioning] Failed to provision local number for existing business - provisioningResult is null')
+            await this.updateBusiness(existingBusiness.id, { 
+              provisioning_status: 'failed',
+              provisioning_error: 'Provisioning failed - no result returned'
+            })
           }
         } catch (provisioningError) {
           console.error('[Provisioning] Error during number provisioning for existing business:', provisioningError)
@@ -1252,10 +1346,15 @@ export const db = {
             message: provisioningError instanceof Error ? provisioningError.message : 'Unknown error',
             stack: provisioningError instanceof Error ? provisioningError.stack : undefined
           })
+          // Update business with failed status
+          await this.updateBusiness(existingBusiness.id, { 
+            provisioning_status: 'failed',
+            provisioning_error: provisioningError instanceof Error ? provisioningError.message : 'Unknown error'
+          })
           // Continue anyway - business is still functional, but log the error clearly
         }
       } else if (!isSharedModeEnabled()) {
-        console.log('[Provisioning] Skipped; existing valid number found')
+        console.log('[Provisioning] Existing valid number found; skipping purchase')
       }
       
       // If businessData is provided, update existing business
@@ -1303,7 +1402,10 @@ export const db = {
       messaging_status: businessData?.messaging_status || 'active',
       onboarding_status: businessData?.onboarding_status || 'started',
       twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-      a2p_status: 'approved' // Using approved ReplyFlowHQ Messaging Service
+      a2p_status: 'approved', // Using approved ReplyFlowHQ Messaging Service
+      provisioning_status: 'pending', // Start with pending status
+      provisioning_error: null,
+      provisioned_at: null
     }
     
     // Create new business
@@ -1326,7 +1428,11 @@ export const db = {
         
         // Provision a dedicated local number if shared mode is disabled
         if (!isSharedModeEnabled() && !createdBusiness.twilio_phone_number) {
-          console.log('[Provisioning] Provisioning dedicated local number for business:', createdBusiness.id)
+          console.log('[Provisioning] Started provisioning for new business:', createdBusiness.id)
+          
+          // Set provisioning status to 'provisioning'
+          await this.updateBusiness(createdBusiness.id, { provisioning_status: 'provisioning' })
+          
           try {
             // Import provisioning function at the top level to avoid require issues
             const { provisionTwilioNumber } = await import('@/lib/twilio')
@@ -1350,22 +1456,35 @@ export const db = {
                 sms_type: 'local_a2p',
                 a2p_status: 'approved',
                 messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                provisioning_status: 'active',
+                provisioning_error: null,
+                provisioned_at: new Date().toISOString()
               })
               
               if (updatedBusiness) {
                 console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
                 console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
+                console.log('[Provisioning] Business updated successfully')
                 createdBusiness = updatedBusiness
               }
             } else {
               console.error('[Provisioning] Failed to provision local number - provisioningResult is null')
+              await this.updateBusiness(createdBusiness.id, { 
+                provisioning_status: 'failed',
+                provisioning_error: 'Provisioning failed - no result returned'
+              })
             }
           } catch (provisioningError) {
             console.error('[Provisioning] Error during number provisioning for new business:', provisioningError)
             console.error('[Provisioning] Error details:', {
               message: provisioningError instanceof Error ? provisioningError.message : 'Unknown error',
               stack: provisioningError instanceof Error ? provisioningError.stack : undefined
+            })
+            // Update business with failed status
+            await this.updateBusiness(createdBusiness.id, { 
+              provisioning_status: 'failed',
+              provisioning_error: provisioningError instanceof Error ? provisioningError.message : 'Unknown error'
             })
             // Business is still created, just without a number
           }

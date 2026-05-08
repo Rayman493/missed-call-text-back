@@ -50,6 +50,11 @@ export interface Business {
   forwarding_verified?: boolean | null;
   forwarding_verified_at?: string | null;
   
+  // Twilio provisioning lifecycle fields
+  provisioning_status?: 'pending' | 'provisioning' | 'active' | 'failed' | string | null;
+  provisioning_error?: string | null;
+  provisioned_at?: string | null;
+  
   created_at: string;
   updated_at?: string;
 }
