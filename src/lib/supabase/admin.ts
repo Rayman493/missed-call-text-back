@@ -1161,8 +1161,53 @@ export const db = {
       console.log('[getOrCreateBusiness] Existing twilio_phone_number_sid:', (existingBusiness as any).twilio_phone_number_sid || 'null')
       
       // Check if business needs provisioning (shared mode disabled AND missing number or SID)
-      const needsProvisioning = !isSharedModeEnabled() && 
-        (!existingBusiness.twilio_phone_number || !(existingBusiness as any).twilio_phone_number_sid)
+      let needsProvisioning = !isSharedModeEnabled() && 
+        (!existingBusiness.twilio_phone_number || !existingBusiness.twilio_phone_number_sid)
+      
+      // Self-healing: If phone number exists but SID is missing, try to recover SID from Twilio
+      if (!isSharedModeEnabled() && existingBusiness.twilio_phone_number && !existingBusiness.twilio_phone_number_sid) {
+        console.log('[Provisioning] Self-healing: Phone number exists but SID is missing, attempting recovery')
+        
+        try {
+          const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+          const Twilio = require('twilio')
+          const accountSid = process.env.TWILIO_ACCOUNT_SID
+          const authToken = process.env.TWILIO_AUTH_TOKEN
+          
+          if (accountSid && authToken) {
+            const client = Twilio(accountSid, authToken)
+            
+            // Search for the phone number in Twilio
+            const numbers = await client.incomingPhoneNumbers.list({ phoneNumber: existingBusiness.twilio_phone_number, limit: 1 })
+            
+            if (numbers && numbers.length > 0) {
+              const recoveredSid = numbers[0].sid
+              console.log('[Provisioning] Recovered SID from Twilio:', recoveredSid)
+              
+              // Update business with recovered SID
+              const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
+                twilio_phone_number_sid: recoveredSid,
+                sms_type: 'local_a2p',
+                a2p_status: 'approved',
+                messaging_status: 'active',
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+              })
+              
+              if (updatedBusiness) {
+                console.log('[Provisioning] Business updated with recovered SID:', recoveredSid)
+                existingBusiness = updatedBusiness
+                // Skip provisioning since we recovered the SID
+                needsProvisioning = false
+              }
+            } else {
+              console.log('[Provisioning] Phone number not found in Twilio, will provision new number')
+            }
+          }
+        } catch (recoveryError) {
+          console.error('[Provisioning] Error during SID recovery:', recoveryError)
+          // Continue with normal provisioning
+        }
+      }
       
       if (needsProvisioning) {
         console.log('[Provisioning] Existing business missing Twilio number or SID; provisioning now')
@@ -1181,11 +1226,12 @@ export const db = {
           
           if (provisioningResult) {
             console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
-            console.log('[Provisioning] Phone number SID:', provisioningResult.phoneNumberSid)
+            console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
             
-            // Update business with provisioned number
+            // Update business with provisioned number and SID
             const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
               twilio_phone_number: provisioningResult.phoneNumber,
+              twilio_phone_number_sid: provisioningResult.phoneNumberSid,
               sms_type: 'local_a2p',
               a2p_status: 'approved',
               messaging_status: 'active',
@@ -1193,6 +1239,7 @@ export const db = {
             })
             
             if (updatedBusiness) {
+              console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
               console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
               existingBusiness = updatedBusiness
             }
@@ -1294,11 +1341,12 @@ export const db = {
             
             if (provisioningResult) {
               console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
-              console.log('[Provisioning] Phone number SID:', provisioningResult.phoneNumberSid)
+              console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
               
-              // Update business with provisioned number
+              // Update business with provisioned number and SID
               const updatedBusiness = await this.updateBusiness(createdBusiness.id, {
                 twilio_phone_number: provisioningResult.phoneNumber,
+                twilio_phone_number_sid: provisioningResult.phoneNumberSid,
                 sms_type: 'local_a2p',
                 a2p_status: 'approved',
                 messaging_status: 'active',
@@ -1306,6 +1354,7 @@ export const db = {
               })
               
               if (updatedBusiness) {
+                console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
                 console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
                 createdBusiness = updatedBusiness
               }

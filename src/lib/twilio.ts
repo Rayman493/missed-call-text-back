@@ -360,6 +360,12 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
 
     console.log('[Provisioning] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid)
 
+    // Validate that SID is present
+    if (!purchasedNumber.sid) {
+      console.error('[Provisioning] ERROR: Twilio purchase succeeded but SID is missing')
+      throw new Error('Twilio purchase succeeded but SID is missing - cannot proceed without SID')
+    }
+
     // TODO: Attach to Messaging Service if available
     // Note: Messaging Service attachment requires specific Twilio API calls that may need additional setup
     // For now, the number is functional for voice + SMS without being attached to the messaging service
