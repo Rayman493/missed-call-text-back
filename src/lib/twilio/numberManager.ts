@@ -47,6 +47,35 @@ interface ReleaseResult {
  * Provision a Twilio phone number for a business
  */
 export async function provisionNumberForBusiness(businessId: string): Promise<ProvisionResult> {
+  // CRITICAL: HARD ENFORCEMENT - Check shared mode BEFORE any operations
+  const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+  
+  if (isSharedModeEnabled()) {
+    const sharedNumber = getSharedTwilioNumber()
+    console.log('[Shared Number Mode] Using shared toll-free number', sharedNumber)
+    console.log('[Shared Number Mode] Shared mode enabled - NO new number purchases allowed')
+    
+    // In shared mode, we don't purchase numbers - we just return success with shared number
+    return { 
+      success: true, 
+      error: 'Shared mode enabled - no provisioning needed',
+      twilioNumber: {
+        id: 'SHARED_MODE',
+        business_id: businessId,
+        phone_number: sharedNumber,
+        twilio_sid: 'SHARED_MODE',
+        number_type: 'toll_free',
+        status: 'active',
+        sms_status: 'active',
+        assigned_at: new Date().toISOString(),
+        released_at: null,
+        last_error: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    }
+  }
+  
   if (!accountSid || !authToken) {
     console.error('[Twilio Number Manager] Credentials missing');
     return { success: false, error: 'Twilio credentials missing' };
@@ -274,6 +303,34 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
 export async function retryNumberProvisioning(businessId: string): Promise<ProvisionResult> {
   console.log('[Twilio Number Manager] Retry: Starting retry provisioning for business:', businessId);
   console.log('[Twilio Number Manager] Retry provisioning for business:', businessId);
+  
+  // CRITICAL: Check shared mode BEFORE any retry operations
+  const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+  
+  if (isSharedModeEnabled()) {
+    const sharedNumber = getSharedTwilioNumber()
+    console.log('[Shared Number Mode] Retry: Using shared toll-free number', sharedNumber)
+    console.log('[Shared Number Mode] Retry: Shared mode enabled - NO retry provisioning needed')
+    
+    return { 
+      success: true, 
+      error: 'Shared mode enabled - no retry provisioning needed',
+      twilioNumber: {
+        id: 'SHARED_MODE',
+        business_id: businessId,
+        phone_number: sharedNumber,
+        twilio_sid: 'SHARED_MODE',
+        number_type: 'toll_free',
+        status: 'active',
+        sms_status: 'active',
+        assigned_at: new Date().toISOString(),
+        released_at: null,
+        last_error: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    }
+  }
   
   const result = await provisionNumberForBusiness(businessId);
   
