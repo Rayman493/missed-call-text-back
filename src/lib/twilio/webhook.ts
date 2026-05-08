@@ -1,19 +1,19 @@
 import crypto from 'crypto'
 
 /**
- * Validates Twilio webhook signature
+ * Validates Twilio webhook signature using Twilio's validateRequest method
+ * @param authToken - Twilio auth token
  * @param signature - The twilio-signature header
  * @param url - The full URL of the webhook endpoint
- * @param body - The raw request body
+ * @param params - Object of URL parameters (from URLSearchParams)
  * @returns true if valid, false otherwise
  */
 export function validateTwilioSignature(
+  authToken: string,
   signature: string,
   url: string,
-  body: string
+  params: Record<string, string>
 ): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN
-  
   if (!authToken) {
     console.error('[TWILIO-WEBHOOK] TWILIO_AUTH_TOKEN not configured')
     return false
@@ -24,10 +24,15 @@ export function validateTwilioSignature(
     return false
   }
   
-  // Create the signed token
+  // Create the signed token using Twilio's method: HMAC-SHA1(url + sorted params)
+  // Twilio sorts parameters alphabetically and concatenates them as key=value pairs
+  const sortedKeys = Object.keys(params).sort()
+  const paramString = sortedKeys.map(key => `${key}${params[key]}`).join('')
+  const dataToSign = url + paramString
+  
   const signedToken = crypto
     .createHmac('sha1', authToken)
-    .update(url + body, 'utf8')
+    .update(dataToSign, 'utf8')
     .digest('base64')
   
   // Compare securely
@@ -77,16 +82,19 @@ function getPublicUrl(request: Request): string[] {
  * Validates Twilio signature against multiple URL candidates
  */
 function validateTwilioSignatureWithCandidates(
+  authToken: string,
   signature: string,
-  body: string,
+  params: Record<string, string>,
   request: Request
 ): { valid: boolean; usedUrl?: string } {
   const candidates = getPublicUrl(request)
   
   console.log('[TWILIO-WEBHOOK] Signature validation candidates:', candidates.length)
+  console.log('[TWILIO-WEBHOOK] URL candidates:', candidates)
+  console.log('[TWILIO-WEBHOOK] Param keys:', Object.keys(params).sort())
   
   for (const url of candidates) {
-    const isValid = validateTwilioSignature(signature, url, body)
+    const isValid = validateTwilioSignature(authToken, signature, url, params)
     if (isValid) {
       console.log('[TWILIO-WEBHOOK] Signature valid with URL:', url)
       return { valid: true, usedUrl: url }
@@ -99,8 +107,24 @@ function validateTwilioSignatureWithCandidates(
 
 /**
  * Middleware function to validate Twilio webhooks
+ * @param request - The incoming request
+ * @param params - Object of URL parameters (from URLSearchParams)
+ * @param rawBodyLength - Length of raw body for debug logging
+ * @param contentType - Content-type header for debug logging
  */
-export function requireTwilioAuth(request: Request, body: string): boolean {
+export function requireTwilioAuth(
+  request: Request, 
+  params: Record<string, string>,
+  rawBodyLength?: number,
+  contentType?: string
+): boolean {
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  
+  if (!authToken) {
+    console.error('[TWILIO-WEBHOOK] TWILIO_AUTH_TOKEN not configured')
+    return false
+  }
+  
   // Support both header formats that Twilio might send
   const signature = request.headers.get('x-twilio-signature') || request.headers.get('twilio-signature')
   
@@ -110,9 +134,11 @@ export function requireTwilioAuth(request: Request, body: string): boolean {
   }
   
   console.log('[TWILIO-WEBHOOK] Signature header present:', !!signature)
+  console.log('[TWILIO-WEBHOOK] Raw body length:', rawBodyLength || 'unknown')
+  console.log('[TWILIO-WEBHOOK] Content-type:', contentType || 'unknown')
   
   // Try validation with multiple URL candidates
-  const result = validateTwilioSignatureWithCandidates(signature, body, request)
+  const result = validateTwilioSignatureWithCandidates(authToken, signature, params, request)
   
   if (!result.valid) {
     console.error('[TWILIO-WEBHOOK] Invalid webhook signature - POSSIBLE ATTACK')

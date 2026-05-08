@@ -106,33 +106,35 @@ export async function POST(request: NextRequest) {
   try {
     console.log('VOICE WEBHOOK HIT - PRODUCTION');
     
+    // Read raw body exactly once for validation
+    const rawBody = await request.text();
+    const contentType = request.headers.get('content-type') || '';
+    
+    // Parse body into params using URLSearchParams
+    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+    
     // Create Supabase client for forwarding verification
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    const body = await request.text();
-    
-    // Validate Twilio webhook signature - CRITICAL SECURITY
-    if (!requireTwilioAuth(request, body)) {
-      console.error('[Twilio Voice] Invalid webhook signature - POSSIBLE ATTACK')
-      return new Response('Unauthorized', { status: 401 })
-    }
-    console.log('[Twilio Voice] Signature validation passed');
-    
-    const params = new URLSearchParams(body);
-    
-    const From = params.get('From');
-    const To = params.get('To');
-    const CallSid = params.get('CallSid');
+    const From = params.From;
+    const To = params.To;
+    const CallSid = params.CallSid;
     
     // Log essential call details for production monitoring
     console.log('[Twilio Voice] Incoming call:', {
       CallSid,
       From,
       To,
-      CallStatus: params.get('CallStatus')
+      CallStatus: params.CallStatus
     });
     
     if (!From || !To) {
@@ -249,14 +251,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Create call event for analytics (every call counts)
-    const callSid = params.get('CallSid')
+    const callSid = params.CallSid
     try {
       const callEvent = await db.createCallEvent({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         call_status: 'missed',
         twilio_call_sid: callSid,
-        raw_payload: Object.fromEntries(params.entries()),
+        raw_payload: Object.fromEntries(Object.entries(params)),
         created_at: new Date().toISOString(),
       });
       

@@ -6,22 +6,25 @@ export async function POST(req: NextRequest) {
   try {
     console.log('[SYSTEM] [INCOMING-SMS] Received SMS');
     
-    const body = await req.text()
+    // Read raw body exactly once for validation
+    const rawBody = await req.text();
+    const contentType = req.headers.get('content-type') || '';
     
-    // Validate Twilio webhook signature - support both header formats
-    if (!requireTwilioAuth(req, body)) {
-      console.error('[SYSTEM] [INCOMING-SMS] Invalid webhook signature')
-      return new Response('Unauthorized', { status: 401 })
+    // Parse body into params using URLSearchParams
+    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+    if (!isValid) {
+      return new Response('Unauthorized', { status: 401 });
     }
     
     console.log('[SYSTEM] [INCOMING-SMS] Signature validation passed')
     
-    const params = new URLSearchParams(body)
-    
-    const From = params.get('From')
-    const To = params.get('To')
-    const Body = params.get('Body')
-    const MessageSid = params.get('MessageSid')
+    const From = params.From
+    const To = params.To
+    const Body = params.Body
+    const MessageSid = params.MessageSid
     
     if (!From || !To || !Body || !MessageSid) {
       console.error('[SYSTEM] [INCOMING-SMS] Missing required fields:', { From, To, Body, MessageSid })

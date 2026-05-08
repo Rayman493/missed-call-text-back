@@ -36,23 +36,26 @@ export async function POST(req: NextRequest) {
   try {
     console.log('[SYSTEM] [TWILIO-STATUS] Status webhook received');
     
-    const body = await req.text();
+    // Read raw body exactly once for validation
+    const rawBody = await req.text();
+    const contentType = req.headers.get('content-type') || '';
     
-    // Validate Twilio webhook signature
-    if (!requireTwilioAuth(req, body)) {
-      console.error('[SYSTEM] [TWILIO-STATUS] Invalid webhook signature')
-      return new Response('Unauthorized', { status: 401 })
+    // Parse body into params using URLSearchParams
+    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+    if (!isValid) {
+      return new Response('Unauthorized', { status: 401 });
     }
     
-    const params = new URLSearchParams(body);
-    
     // Read all required form fields with fallbacks
-    const MessageSid = params.get('MessageSid');
-    const SmsSid = params.get('SmsSid');
-    const MessageStatus = params.get('MessageStatus');
-    const SmsStatus = params.get('SmsStatus');
-    const ErrorCode = params.get('ErrorCode');
-    const ErrorMessage = params.get('ErrorMessage');
+    const MessageSid = params.MessageSid;
+    const SmsSid = params.SmsSid;
+    const MessageStatus = params.MessageStatus;
+    const SmsStatus = params.SmsStatus;
+    const ErrorCode = params.ErrorCode;
+    const ErrorMessage = params.ErrorMessage;
     
     // Use SID fallback
     const sid = MessageSid || SmsSid;

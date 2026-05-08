@@ -6,13 +6,18 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   try {
-    // Validate Twilio webhook signature - CRITICAL SECURITY
-    const body = await req.text()
-    if (!requireTwilioAuth(req, body)) {
-      console.error('[voice-status] Invalid webhook signature - POSSIBLE ATTACK')
-      return new Response('Unauthorized', { status: 401 })
+    // Read raw body exactly once for validation
+    const rawBody = await req.text();
+    const contentType = req.headers.get('content-type') || '';
+    
+    // Parse body into params using URLSearchParams
+    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+    if (!isValid) {
+      return new Response('Unauthorized', { status: 401 });
     }
-    console.log('[voice-status] Twilio signature validation passed');
     
     // Create fresh Supabase client for this request
     const supabase = createClient(
@@ -20,14 +25,12 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
-    const params = new URLSearchParams(body)
-    
-    const CallSid = params.get('CallSid')
-    const From = params.get('From')
-    const To = params.get('To')
-    const CallStatus = params.get('CallStatus')
-    const Duration = params.get('Duration')
-    const Direction = params.get('Direction')
+    const CallSid = params.CallSid
+    const From = params.From
+    const To = params.To
+    const CallStatus = params.CallStatus
+    const Duration = params.Duration
+    const Direction = params.Direction
     
     // Log essential call status details for production monitoring
     console.log('[voice-status] Call status update:', {
@@ -213,7 +216,7 @@ export async function POST(req: NextRequest) {
     
     // Update or create call event linked to conversation
     if (conversation) {
-      const callSid = params.get('CallSid')
+      const callSid = params.CallSid
       console.log(`[voice-status] Looking for existing call event with CallSid: ${callSid}`)
       
       // First try to find existing call event
@@ -231,7 +234,7 @@ export async function POST(req: NextRequest) {
           .update({
             conversation_id: conversation.id,
             call_status: CallStatus || 'unknown',
-            raw_payload: Object.fromEntries(params.entries()),
+            raw_payload: Object.fromEntries(Object.entries(params)),
           })
           .eq('id', existingCallEvent.id)
         
@@ -249,7 +252,7 @@ export async function POST(req: NextRequest) {
           caller_phone: normalizedCallerPhone,
           call_status: CallStatus || 'unknown',
           twilio_call_sid: callSid,
-          raw_payload: Object.fromEntries(params.entries()),
+          raw_payload: Object.fromEntries(Object.entries(params)),
           created_at: new Date().toISOString(),
         })
         
@@ -379,7 +382,7 @@ export async function POST(req: NextRequest) {
             const followUp2Message = `Good morning, this is ${businessName}. Just checking if you still needed help. Happy to assist.`
             
             // Create idempotency keys to prevent duplicates
-            const callSid = params.get('CallSid') || 'unknown'
+            const callSid = params.CallSid || 'unknown'
             const idempotencyKey1 = `lead:${lead.id}:call:${callSid}:followup:1`
             const idempotencyKey2 = `lead:${lead.id}:call:${callSid}:followup:2`
             
