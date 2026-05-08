@@ -10,12 +10,12 @@ const supabase = createBrowserClient()
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', code: '*71' },
-  { id: 'at&t', name: 'AT&T', code: '*004*#', suffix: '#' },
+  { id: 'at&t', name: 'AT&T', code: '*004*', suffix: '#' },
   { id: 't-mobile', name: 'T-Mobile', code: '**21*', suffix: '#' },
   { id: 'other', name: 'Other', code: null }
 ]
 
-type OnboardingStep = 'number-ready' | 'carrier-selection' | 'enable-forwarding' | 'test-setup' | 'activation-complete'
+type OnboardingStep = 'number-ready' | 'enable-forwarding' | 'test-setup' | 'activation-complete'
 
 export default function NewOnboardingPage() {
   const router = useRouter()
@@ -62,28 +62,10 @@ export default function NewOnboardingPage() {
       if (business && selectedCarrier) {
         const { error } = await supabase
           .from('businesses')
-          .update({ business_phone_carrier: selectedCarrier })
-          .eq('id', business.id)
-
-        if (error) throw error
-        await refreshBusiness()
-        setStep('enable-forwarding')
-      }
-    } catch (err) {
-      console.error('[NewOnboarding] Error saving carrier:', err)
-      setError('Failed to save carrier selection')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleForwardingEnabled = async () => {
-    setLoading(true)
-    try {
-      if (business) {
-        const { error } = await supabase
-          .from('businesses')
-          .update({ onboarding_status: 'awaiting_test' })
+          .update({ 
+            business_phone_carrier: selectedCarrier,
+            onboarding_status: 'awaiting_test'
+          })
           .eq('id', business.id)
 
         if (error) throw error
@@ -91,8 +73,8 @@ export default function NewOnboardingPage() {
         setStep('test-setup')
       }
     } catch (err) {
-      console.error('[NewOnboarding] Error updating onboarding status:', err)
-      setError('Failed to update setup status')
+      console.error('[NewOnboarding] Error saving carrier:', err)
+      setError('Failed to save carrier selection')
     } finally {
       setLoading(false)
     }
@@ -199,104 +181,104 @@ export default function NewOnboardingPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* Step 1: Number Ready */}
+        {/* Step 1: Number Ready with Inline Instructions */}
         {step === 'number-ready' && (
           <div className="bg-gray-800 rounded-lg p-8">
             <h1 className="text-3xl font-bold mb-4">Your ReplyFlow Number Is Ready</h1>
             <p className="text-gray-300 mb-6">
-              Forward missed calls from your business phone to this number to activate automatic text-back.
+              When you miss a call, your carrier automatically forwards it to ReplyFlow so we can instantly text the customer back.
             </p>
             
             <div className="bg-gray-700 rounded-lg p-6 mb-6">
-              <div className="text-4xl font-mono text-center mb-4">
+              <p className="text-gray-400 text-sm mb-2">Your dedicated ReplyFlow number:</p>
+              <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight">
                 {business.twilio_phone_number}
               </div>
               <button
                 onClick={handleCopyNumber}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition mb-4"
               >
                 Copy Number
               </button>
             </div>
 
-            <button
-              onClick={() => setStep('carrier-selection')}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-            >
-              Complete Setup
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: Carrier Selection */}
-        {step === 'carrier-selection' && (
-          <div className="bg-gray-800 rounded-lg p-8">
-            <h1 className="text-3xl font-bold mb-4">What carrier does your business phone use?</h1>
-            
-            <div className="space-y-3 mb-6">
-              {CARRIERS.map(carrier => (
-                <button
-                  key={carrier.id}
-                  onClick={() => handleCarrierSelect(carrier.id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                    selectedCarrier === carrier.id
-                      ? 'border-blue-600 bg-blue-600/20'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  <div className="text-lg font-semibold">{carrier.name}</div>
-                </button>
-              ))}
+            {/* Carrier Selection */}
+            <div className="mb-6">
+              <p className="text-gray-300 font-medium mb-3">What carrier does your business phone use?</p>
+              <div className="space-y-2">
+                {CARRIERS.map(carrier => (
+                  <button
+                    key={carrier.id}
+                    onClick={() => handleCarrierSelect(carrier.id)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition ${
+                      selectedCarrier === carrier.id
+                        ? 'border-blue-600 bg-blue-600/20'
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    <div className="text-lg font-semibold">{carrier.name}</div>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Dynamic Forwarding Instructions */}
+            {selectedCarrier && (
+              <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                <p className="text-gray-400 text-sm mb-2">STEP 1: From your business phone, dial:</p>
+                <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight">
+                  {getForwardingCode()}
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(getForwardingCode())}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition mb-4"
+                >
+                  Copy Forwarding Code
+                </button>
+                <p className="text-gray-400 text-sm text-center mb-4">
+                  This enables missed-call forwarding while your phone still rings normally.
+                </p>
+              </div>
+            )}
+
+            {/* Additional Instructions */}
+            {selectedCarrier && (
+              <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                <p className="text-gray-400 text-sm mb-2">STEP 2:</p>
+                <p className="text-gray-300">Call your business number from another phone and let it ring.</p>
+              </div>
+            )}
+
+            {selectedCarrier && (
+              <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                <p className="text-gray-400 text-sm mb-2">STEP 3:</p>
+                <p className="text-gray-300">ReplyFlow will automatically text the customer back.</p>
+              </div>
+            )}
+
+            {/* Reassurance Text */}
+            {selectedCarrier && (
+              <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 mb-6">
+                <p className="text-blue-300 text-sm">
+                  ✓ Customers still call your normal business number
+                </p>
+                <p className="text-blue-300 text-sm">
+                  ✓ Your phone still rings normally
+                </p>
+              </div>
+            )}
 
             <button
               onClick={handleContinueToForwarding}
               disabled={!selectedCarrier || loading}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
-            >
-              {loading ? 'Saving...' : 'Continue'}
-            </button>
-          </div>
-        )}
-
-        {/* Step 3: Enable Forwarding */}
-        {step === 'enable-forwarding' && (
-          <div className="bg-gray-800 rounded-lg p-8">
-            <h1 className="text-3xl font-bold mb-4">Enable Call Forwarding</h1>
-            <p className="text-gray-300 mb-6">
-              When you miss a call, your carrier will forward it to ReplyFlow automatically so we can text the customer back instantly.
-            </p>
-            <p className="text-gray-400 text-sm mb-6">
-              Your customers will still call your normal business number. ReplyFlow only handles missed calls.
-            </p>
-            
-            <div className="bg-gray-700 rounded-lg p-6 mb-6">
-              <p className="text-gray-400 text-sm mb-4">From your business phone, dial exactly as shown:</p>
-              <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight">
-                {getForwardingCode()}
-              </div>
-              <button
-                onClick={() => navigator.clipboard.writeText(getForwardingCode())}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition mb-4 text-lg"
-              >
-                Copy Code
-              </button>
-              <p className="text-yellow-500 text-sm text-center">
-                ⚠️ You must dial this from your actual business phone.
-              </p>
-            </div>
-
-            <button
-              onClick={handleForwardingEnabled}
-              disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-lg transition text-lg"
             >
               {loading ? 'Saving...' : "I've Enabled Forwarding"}
             </button>
           </div>
         )}
 
-        {/* Step 4: Test Setup */}
+        {/* Step 2: Test Setup */}
         {step === 'test-setup' && (
           <div className="bg-gray-800 rounded-lg p-8">
             <h1 className="text-3xl font-bold mb-4">Test Your Setup</h1>
@@ -337,7 +319,7 @@ export default function NewOnboardingPage() {
           </div>
         )}
 
-        {/* Step 5: Activation Complete */}
+        {/* Step 3: Activation Complete */}
         {step === 'activation-complete' && (
           <div className="bg-gray-800 rounded-lg p-8 text-center">
             <div className="text-6xl mb-4">✅</div>
