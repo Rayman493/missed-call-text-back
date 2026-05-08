@@ -128,12 +128,20 @@ export async function POST(request: NextRequest) {
     const From = params.From;
     const To = params.To;
     const CallSid = params.CallSid;
+    const Called = params.Called;
+    const ForwardedFrom = params.ForwardedFrom;
+    const Caller = params.Caller;
+    const Direction = params.Direction;
     
-    // Log essential call details for production monitoring
-    console.log('[Twilio Voice] Incoming call:', {
-      CallSid,
-      From,
+    // Log raw Twilio params for debugging
+    console.log('[Voice] Raw Twilio params:', {
       To,
+      Called,
+      ForwardedFrom,
+      From,
+      Caller,
+      Direction,
+      CallSid,
       CallStatus: params.CallStatus
     });
     
@@ -157,16 +165,36 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Normalized From:', normalizedFrom);
     console.log('[Twilio Voice] Normalized To:', normalizedTo);
     
-    // Find business by Twilio phone number (try twilio_numbers first, fallback to legacy)
-    console.log('[Twilio Voice] Looking up business for Twilio number:', normalizedTo);
-    const result = await db.getBusinessByTwilioNumber(normalizedTo);
+    // Build candidate lookup numbers from Twilio destination fields
+    const candidateNumbers = new Set<string>();
+    if (To) candidateNumbers.add(toE164(To));
+    if (Called) candidateNumbers.add(toE164(Called));
+    if (ForwardedFrom) candidateNumbers.add(toE164(ForwardedFrom));
     
-    if (!result || !result.business) {
-      console.log('[Twilio Voice] No business found for number:', normalizedTo);
+    const uniqueCandidates = Array.from(candidateNumbers);
+    console.log('[Voice] Candidate business lookup numbers:', uniqueCandidates);
+    
+    // Lookup business by businesses.twilio_phone_number IN candidateNumbers
+    console.log('[Voice] Business lookup query started');
+    let business = null;
+    let lookupSource = null;
+    
+    for (const candidate of uniqueCandidates) {
+      const result = await db.getBusinessByTwilioNumber(candidate);
+      if (result && result.business) {
+        business = result.business;
+        lookupSource = result.source;
+        console.log('[Voice] Business found:', business.id, business.name, 'via', lookupSource, 'using', candidate);
+        break;
+      }
+    }
+    
+    if (!business) {
+      console.log('[Voice] No business found for candidates:', uniqueCandidates);
       
       const twiml = generateTwiMLResponse();
 
-      console.log('[Twilio Voice] Returning fallback TwiML for no business found');
+      console.log('[Voice] Returning fallback TwiML for no business found');
       return new NextResponse(twiml, {
         status: 200,
         headers: { 
@@ -176,10 +204,8 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    const business = result.business;
-    console.log(`[Twilio Voice] Business found: ${business.name} (ID: ${business.id})`);
-    console.log('[Twilio Voice] Voice forwarding number for business:', business.twilio_phone_number);
-    console.log('[Twilio Voice] Business phone number (customer-facing):', business.business_phone_number);
+    console.log('[Voice] Business twilio_phone_number:', business.twilio_phone_number);
+    console.log('[Voice] Business business_phone_number:', business.business_phone_number);
     
     // Log production business resolution
     console.log('VOICE WEBHOOK HIT - PRODUCTION - Business Resolved:', {
@@ -216,11 +242,11 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Business found:', {
       businessId: business.id,
       businessName: business.name,
-      via: result.source
+      via: lookupSource
     });
     
     // Add routing logs as specified
-    if (result.source === 'twilio_numbers') {
+    if (lookupSource === 'twilio_numbers') {
       console.log('[Twilio Voice] routing via twilio_numbers');
     } else {
       console.log('[Twilio Voice] routing via legacy fallback');
@@ -309,14 +335,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if lead already exists
-    console.log('[Twilio Voice] Checking for existing lead for phone:', normalizedCallerPhone);
+    console.log('[Voice] Checking for existing lead for phone:', normalizedCallerPhone);
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
     let lead;
     let shouldSendSms = false;
     
     if (!existingLead) {
-      console.log('[Twilio Voice] No existing lead found, creating new lead');
+      console.log('[Voice] No existing lead found, creating new lead');
+      console.log('[Voice] Creating lead:', {
+        business_id: business.id,
+        caller_phone: normalizedCallerPhone,
+        status: 'new'
+      });
       
       // Create new lead
       lead = await db.createLead({
@@ -331,29 +362,28 @@ export async function POST(request: NextRequest) {
       });
       
       if (lead) {
-        console.log('[Twilio Voice] New lead created successfully:', {
-          leadId: lead.id,
-          businessId: lead.business_id,
-          callerPhone: lead.caller_phone,
-          status: lead.status
-        });
+        console.log('[Voice] Lead created:', lead.id);
         shouldSendSms = true; // Send SMS for new leads
       } else {
-        console.error('[Twilio Voice] Failed to create lead - database returned null');
+        console.error('[Voice] Persistence failed: Lead creation returned null');
+        console.error('[Voice] Returning safe TwiML response without SMS');
+        
+        const twiml = generateTwiMLResponse(business.name);
+        return new NextResponse(twiml, {
+          status: 200,
+          headers: { 
+            "Content-Type": "text/xml",
+            "X-ReplyFlow-Voice-Version": "v2"
+          },
+        });
       }
     } else {
-      console.log('[Twilio Voice] Existing lead found:', {
-        leadId: existingLead.id,
-        businessId: existingLead.business_id,
-        callerPhone: existingLead.caller_phone,
-        status: existingLead.status,
-        createdAt: existingLead.created_at
-      });
+      console.log('[Voice] Existing lead found:', existingLead.id);
       lead = existingLead;
       // For testing, we'll send SMS even for existing leads to ensure the flow works
       // TODO: Add logic to determine if SMS should be sent for existing leads based on business rules
       shouldSendSms = true;
-      console.log('[Twilio Voice] Will send auto-reply SMS for existing lead (testing mode)');
+      console.log('[Voice] Will send auto-reply SMS for existing lead (testing mode)');
     }
     
     // Send auto-reply SMS if appropriate
@@ -386,11 +416,17 @@ export async function POST(request: NextRequest) {
       
       try {
         // Ensure conversation exists before sending SMS
-        console.log('[Twilio Voice] Checking for existing conversation for lead:', lead.id);
+        console.log('[Voice] Checking for existing conversation for lead:', lead.id);
         let conversation = await db.getOpenConversationForLead(lead.id, business.id);
         
         if (!conversation) {
-          console.log('[Twilio Voice] Creating new conversation for lead:', lead.id);
+          console.log('[Voice] Creating conversation:', {
+            lead_id: lead.id,
+            business_id: business.id,
+            status: 'open',
+            source: 'missed_call'
+          });
+          
           conversation = await db.createConversation({
             lead_id: lead.id,
             business_id: business.id,
@@ -401,21 +437,22 @@ export async function POST(request: NextRequest) {
           });
           
           if (conversation) {
-            console.log('[Twilio Voice] Conversation created successfully:', {
-              conversationId: conversation.id,
-              leadId: conversation.lead_id,
-              businessId: conversation.business_id,
-              status: conversation.status
-            });
+            console.log('[Voice] Conversation created:', conversation.id);
           } else {
-            console.error('[Twilio Voice] Failed to create conversation - database returned null');
+            console.error('[Voice] Persistence failed: Conversation creation returned null');
+            console.error('[Voice] Returning safe TwiML response without SMS');
+            
+            const twiml = generateTwiMLResponse(business.name);
+            return new NextResponse(twiml, {
+              status: 200,
+              headers: { 
+                "Content-Type": "text/xml",
+                "X-ReplyFlow-Voice-Version": "v2"
+              },
+            });
           }
         } else {
-          console.log('[Twilio Voice] Using existing conversation:', {
-            conversationId: conversation.id,
-            status: conversation.status,
-            lastActivity: conversation.last_activity_at
-          });
+          console.log('[Voice] Using existing conversation:', conversation.id);
         }
         
         // Prepare auto-reply message
@@ -425,12 +462,11 @@ export async function POST(request: NextRequest) {
         // Replace business name placeholder if present
         const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'My Business');
         
-        console.log('[Twilio Voice] Sending auto-reply SMS:', {
+        console.log('[Voice] Sending SMS:', {
           to: From,
-          messageLength: personalizedMessage.length,
-          messagePreview: personalizedMessage.substring(0, 100) + (personalizedMessage.length > 100 ? '...' : ''),
-          leadId: lead.id,
-          conversationId: conversation?.id
+          lead_id: lead.id,
+          conversation_id: conversation?.id,
+          business_id: business.id
         });
         
         // Send SMS using centralized sendSms function
@@ -440,12 +476,8 @@ export async function POST(request: NextRequest) {
         });
         
         if (messageSid) {
-          console.log('[Twilio Voice] SMS sent successfully:', {
-            messageSid,
-            to: From,
-            leadId: lead.id,
-            conversationId: conversation?.id
-          });
+          console.log('[Voice] SMS sent:', messageSid);
+          console.log('[Voice] Outbound message saved via sendSms function');
 
           // Create follow-up jobs after successful auto-reply SMS
           try {
@@ -456,13 +488,13 @@ export async function POST(request: NextRequest) {
               businessName: business.name
             });
             
-            console.log(`[Twilio Voice] Created ${followUpJobs.length} follow-up jobs for lead: ${lead.id}`);
+            console.log(`[Voice] Created ${followUpJobs.length} follow-up jobs for lead: ${lead.id}`);
           } catch (followUpError) {
-            console.error('[Twilio Voice] Error creating follow-up jobs:', followUpError);
+            console.error('[Voice] Error creating follow-up jobs:', followUpError);
             // Don't fail the voice webhook - follow-up creation is secondary
           }
         } else {
-          console.log('[Twilio Voice] SMS send failed but was logged in database - this is expected behavior');
+          console.log('[Voice] SMS send failed but was logged in database - this is expected behavior');
         }
         
       } catch (smsError: any) {
