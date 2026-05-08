@@ -1268,6 +1268,7 @@ export const db = {
           const Twilio = require('twilio')
           const accountSid = process.env.TWILIO_ACCOUNT_SID
           const authToken = process.env.TWILIO_AUTH_TOKEN
+          const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
           
           if (accountSid && authToken) {
             const client = Twilio(accountSid, authToken)
@@ -1278,6 +1279,35 @@ export const db = {
             if (number && number.phoneNumber === existingBusiness.twilio_phone_number) {
               console.log('[Provisioning] Existing valid number found; skipping purchase')
               needsProvisioning = false
+              
+              // Self-healing: Check if number is attached to Messaging Service sender pool
+              if (messagingServiceSid) {
+                console.log('[SenderPool] Checking if number is attached to Messaging Service sender pool')
+                
+                try {
+                  const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
+                    .phoneNumbers
+                    .list({ limit: 100 })
+                  
+                  const isAttached = existingPhoneNumbers.some((pn: any) => pn.sid === existingBusiness?.twilio_phone_number_sid)
+                  
+                  if (!isAttached) {
+                    console.log('[SenderPool] Number not attached to sender pool, attaching now')
+                    
+                    await client.messaging.v1.services(messagingServiceSid)
+                      .phoneNumbers
+                      .create({
+                        phoneNumberSid: existingBusiness.twilio_phone_number_sid
+                      })
+                    
+                    console.log('[SenderPool] Successfully attached number to sender pool')
+                  } else {
+                    console.log('[SenderPool] Number already attached to sender pool')
+                  }
+                } catch (senderPoolError) {
+                  console.error('[SenderPool] Error checking/attaching to sender pool:', senderPoolError)
+                }
+              }
               
               // Ensure provisioning status is active
               if (existingBusiness.provisioning_status !== 'active') {

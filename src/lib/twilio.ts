@@ -368,12 +368,48 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       throw new Error('Twilio purchase succeeded but SID is missing - cannot proceed without SID')
     }
 
-    // Attach number to Messaging Service if available (sender pool management)
-    // NOTE: Twilio API for messagingServiceSid attachment has type compatibility issues
-    // This will be implemented as a follow-up using the correct API method
+    // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
-      console.log('[SenderPool] Messaging Service SID available:', messagingServiceSid)
-      console.log('[SenderPool] Number attachment to Messaging Service to be implemented as follow-up')
+      console.log('[SenderPool] Adding PN SID to Messaging Service:', purchasedNumber.sid)
+      
+      try {
+        // Check if number is already attached to the Messaging Service
+        const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
+          .phoneNumbers
+          .list({ limit: 100 })
+        
+        const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid)
+        
+        if (alreadyAttached) {
+          console.log('[SenderPool] Number already attached to Messaging Service, skipping')
+        } else {
+          // Attach the number to the Messaging Service
+          await client.messaging.v1.services(messagingServiceSid)
+            .phoneNumbers
+            .create({
+              phoneNumberSid: purchasedNumber.sid
+            })
+          
+          console.log('[SenderPool] Successfully attached number to Messaging Service')
+          
+          // Verify attachment succeeded
+          const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
+            .phoneNumbers
+            .list({ limit: 100 })
+          
+          const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid)
+          
+          if (isAttached) {
+            console.log('[SenderPool] Verified: Number exists in sender pool')
+          } else {
+            console.error('[SenderPool] WARNING: Attachment succeeded but verification failed')
+          }
+        }
+      } catch (attachmentError) {
+        console.error('[SenderPool] Failed to attach number to Messaging Service:', attachmentError)
+        // Don't fail provisioning if attachment fails, log and continue
+        console.log('[SenderPool] Continuing with provisioning despite attachment failure')
+      }
     } else {
       console.log('[SenderPool] No Messaging Service SID configured, skipping attachment')
     }
