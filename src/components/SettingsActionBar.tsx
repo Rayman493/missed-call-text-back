@@ -49,8 +49,6 @@ export default function SettingsActionBar({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  if (!hasUnsavedChanges) return null
-
   const handleSave = async () => {
     clearError()
     await onSave()
@@ -74,10 +72,14 @@ export default function SettingsActionBar({
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                  You have unsaved changes
-                </span>
+                {hasUnsavedChanges && (
+                  <>
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                      You have unsaved changes
+                    </span>
+                  </>
+                )}
               </div>
               
               <div className="flex items-center gap-3">
@@ -87,17 +89,19 @@ export default function SettingsActionBar({
                   </div>
                 )}
                 
-                <button
-                  onClick={handleDiscard}
-                  disabled={isSaving}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Discard Changes
-                </button>
+                {hasUnsavedChanges && (
+                  <button
+                    onClick={handleDiscard}
+                    disabled={isSaving}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Discard Changes
+                  </button>
+                )}
                 
                 <button
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={!hasUnsavedChanges || isSaving}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSaving && (
@@ -126,12 +130,14 @@ export default function SettingsActionBar({
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                Unsaved changes
-              </span>
-            </div>
+            {hasUnsavedChanges && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                  Unsaved changes
+                </span>
+              </div>
+            )}
           </div>
           
           {saveError && (
@@ -141,17 +147,19 @@ export default function SettingsActionBar({
           )}
           
           <div className="flex gap-2">
-            <button
-              onClick={handleDiscard}
-              disabled={isSaving}
-              className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Discard
-            </button>
+            {hasUnsavedChanges && (
+              <button
+                onClick={handleDiscard}
+                disabled={isSaving}
+                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Discard
+              </button>
+            )}
             
             <button
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={!hasUnsavedChanges || isSaving}
               className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSaving && (
