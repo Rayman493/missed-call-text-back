@@ -1197,6 +1197,8 @@ export const db = {
               
               if (updatedBusiness) {
                 console.log('[Provisioning] Business updated with recovered SID:', recoveredSid)
+                console.log('[Provisioning] Marked provisioning_status=active')
+                console.log('[Provisioning] Set provisioned_at timestamp')
                 existingBusiness = updatedBusiness
                 // Skip provisioning since we recovered the SID
                 needsProvisioning = false
@@ -1242,6 +1244,8 @@ export const db = {
               
               if (updatedBusiness) {
                 console.log('[Provisioning] Business updated with recovered phone number:', number.phoneNumber)
+                console.log('[Provisioning] Marked provisioning_status=active')
+                console.log('[Provisioning] Set provisioned_at timestamp')
                 existingBusiness = updatedBusiness
                 // Skip provisioning since we recovered the phone number
                 needsProvisioning = false
@@ -1277,10 +1281,14 @@ export const db = {
               
               // Ensure provisioning status is active
               if (existingBusiness.provisioning_status !== 'active') {
+                console.log('[Provisioning] Marking provisioning_status=active')
                 await this.updateBusiness(existingBusiness.id, {
                   provisioning_status: 'active',
-                  provisioning_error: null
+                  provisioning_error: null,
+                  provisioned_at: existingBusiness.provisioned_at || new Date().toISOString()
                 })
+                console.log('[Provisioning] Set provisioned_at timestamp')
+                existingBusiness = { ...existingBusiness, provisioning_status: 'active', provisioned_at: existingBusiness.provisioned_at || new Date().toISOString() }
               }
             } else {
               console.log('[Provisioning] Existing number invalid or mismatch, will provision new number')
@@ -1289,6 +1297,27 @@ export const db = {
         } catch (recoveryError) {
           console.error('[Provisioning] Error during number validation:', recoveryError)
           // Continue with normal provisioning
+        }
+      }
+      
+      // Self-healing: Promote pending status to active if business has valid numbers
+      if (existingBusiness.provisioning_status === 'pending' && 
+          existingBusiness.twilio_phone_number && 
+          existingBusiness.twilio_phone_number_sid &&
+          existingBusiness.messaging_status === 'active') {
+        console.log('[Provisioning] Self-healing: Business has valid numbers but status is pending, promoting to active')
+        
+        try {
+          await this.updateBusiness(existingBusiness.id, {
+            provisioning_status: 'active',
+            provisioning_error: null,
+            provisioned_at: existingBusiness.provisioned_at || new Date().toISOString()
+          })
+          console.log('[Provisioning] Marked provisioning_status=active')
+          console.log('[Provisioning] Set provisioned_at timestamp')
+          existingBusiness = { ...existingBusiness, provisioning_status: 'active', provisioned_at: existingBusiness.provisioned_at || new Date().toISOString() }
+        } catch (healingError) {
+          console.error('[Provisioning] Error during status promotion:', healingError)
         }
       }
       
