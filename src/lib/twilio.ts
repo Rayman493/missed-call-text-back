@@ -306,36 +306,76 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
 export async function provisionTwilioNumber(businessId: string): Promise<{ phoneNumber: string; phoneNumberSid: string } | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
 
   if (!accountSid || !authToken) {
     console.error('[Twilio Provisioning] Credentials missing');
     return null
   }
 
-  // HARD ENFORCEMENT: Use centralized assignment helper
-  try {
-    // Import the centralized assignment helper
-    const { getAssignedTwilioNumber, isSharedModeEnabled } = require('@/lib/twilio-assignment')
-    
-    if (isSharedModeEnabled()) {
-      console.log('[Twilio Provisioning] Shared mode enabled - using shared number only')
-      const assignment = getAssignedTwilioNumber()
-      return {
-        phoneNumber: assignment.phoneNumber,
-        phoneNumberSid: 'SHARED_MODE' // No SID needed for shared number
-      }
-    }
-  } catch (error) {
-    console.error('[Twilio Provisioning] Assignment helper failed:', error)
-    // Fallback to shared number if helper fails
-    console.log('[Twilio Provisioning] Fallback to shared number')
+  // Check if shared mode is explicitly enabled
+  const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+  
+  if (isSharedModeEnabled()) {
+    console.log('[Twilio Provisioning] Shared mode enabled - using shared number only')
+    const sharedNumber = getSharedTwilioNumber()
     return {
-      phoneNumber: '+18336584303',
+      phoneNumber: sharedNumber,
       phoneNumberSid: 'SHARED_MODE'
     }
   }
 
-  console.error('[Twilio Provisioning] Shared mode is disabled - unique number provisioning not implemented')
-  console.error('[Twilio Provisioning] Set USE_SHARED_TWILIO_NUMBER=true to enable shared mode')
-  return null
+  // Default: Provision a dedicated local number for the business
+  console.log('[Twilio Provisioning] Provisioning dedicated local number for business:', businessId)
+
+  try {
+    const client = Twilio(accountSid, authToken)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+
+    console.log('[Twilio Provisioning] Searching for available local number...')
+    
+    // Search for available US local numbers with voice + SMS enabled
+    const availableNumbers = await client.availablePhoneNumbers('US')
+      .local
+      .list({
+        voiceEnabled: true,
+        smsEnabled: true,
+        limit: 1,
+      })
+
+    if (!availableNumbers || availableNumbers.length === 0) {
+      console.error('[Twilio Provisioning] No available local numbers found')
+      return null
+    }
+
+    const numberToPurchase = availableNumbers[0]
+    console.log('[Twilio Provisioning] Selected available number:', numberToPurchase.phoneNumber)
+
+    // Purchase the number with webhook URLs
+    const purchasedNumber = await client.incomingPhoneNumbers.create({
+      phoneNumber: numberToPurchase.phoneNumber,
+      voiceUrl: `${appUrl}/api/twilio/voice`,
+      smsUrl: `${appUrl}/api/twilio/incoming-sms`,
+    })
+
+    console.log('[Twilio Provisioning] Successfully purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid)
+
+    // TODO: Attach to Messaging Service if available
+    // Note: Messaging Service attachment requires specific Twilio API calls that may need additional setup
+    // For now, the number is functional for voice + SMS without being attached to the messaging service
+    if (messagingServiceSid) {
+      console.log('[Twilio Provisioning] Messaging Service SID available:', messagingServiceSid)
+      console.log('[Twilio Provisioning] Note: Number not yet attached to Messaging Service - to be implemented as follow-up')
+    } else {
+      console.log('[Twilio Provisioning] No Messaging Service SID configured')
+    }
+
+    return {
+      phoneNumber: purchasedNumber.phoneNumber,
+      phoneNumberSid: purchasedNumber.sid
+    }
+  } catch (error) {
+    console.error('[Twilio Provisioning] Failed to provision number:', error)
+    return null
+  }
 }

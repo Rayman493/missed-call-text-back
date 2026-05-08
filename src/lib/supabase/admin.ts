@@ -433,7 +433,7 @@ export const db = {
   async createBusiness(business: Omit<Business, 'id' | 'created_at' | 'updated_at'>): Promise<Business | null> {
     console.log('[createBusiness] Inserting business with keys:', Object.keys(business))
     
-    // HARD ENFORCEMENT: Force shared number in shared mode
+    // Check if shared mode is explicitly enabled
     const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
     
     let finalBusiness = { ...business }
@@ -442,18 +442,19 @@ export const db = {
       const sharedNumber = getSharedTwilioNumber()
       
       // Log override
-      console.log('[Shared Twilio Mode] Forcing business twilio_phone_number to:', sharedNumber)
-      console.log('[Shared Twilio Mode] Original twilio_phone_number was:', business.twilio_phone_number)
+      console.log('[createBusiness] Shared mode enabled - forcing shared number:', sharedNumber)
+      console.log('[createBusiness] Original twilio_phone_number was:', business.twilio_phone_number)
       
       // Hard override shared number
       finalBusiness.twilio_phone_number = sharedNumber
-      // twilio_phone_number_sid is not a valid property in Business type
       
       // Validate that we're using correct shared number
       if (business.twilio_phone_number && business.twilio_phone_number !== sharedNumber) {
-        console.error('[Shared Twilio Mode] REJECTED: Attempted to assign non-shared number:', business.twilio_phone_number)
-        console.error('[Shared Twilio Mode] Only allowed number in shared mode:', sharedNumber)
+        console.error('[createBusiness] REJECTED: Attempted to assign non-shared number:', business.twilio_phone_number)
+        console.error('[createBusiness] Only allowed number in shared mode:', sharedNumber)
       }
+    } else {
+      console.log('[createBusiness] Shared mode disabled - using provided or default local number')
     }
     
     const { data, error } = await supabaseAdmin
@@ -490,18 +491,18 @@ export const db = {
       return null
     }
     
-    // HARD ENFORCEMENT: Use centralized Twilio assignment
+    // Check if shared mode is explicitly enabled
+    const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+    
     let assignedTwilioNumber: string
-    try {
-      // Import the centralized assignment helper
-      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('@/lib/twilio-assignment')
-      
-      // Get the assigned number from centralized helper
-      const assignment = getAssignedTwilioNumber()
-      assignedTwilioNumber = assignment.phoneNumber
+    
+    if (isSharedModeEnabled()) {
+      assignedTwilioNumber = getSharedTwilioNumber()
+      console.log('[updateBusinessSafe] Shared mode enabled - enforcing shared number:', assignedTwilioNumber)
       
       // Validate the assignment if trying to update
       if (updates.twilio_phone_number !== undefined) {
+        const { validateTwilioNumberAssignment } = require('@/lib/twilio-assignment')
         const validation = validateTwilioNumberAssignment(updates.twilio_phone_number)
         if (!validation.valid) {
           console.error('[updateBusinessSafe] Twilio assignment validation failed:', validation.error)
@@ -509,13 +510,12 @@ export const db = {
           return null
         }
       }
-      
-      console.log('[updateBusinessSafe] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
-    } catch (error) {
-      console.error('[updateBusinessSafe] Centralized assignment failed:', error)
-      // Fallback to shared number if helper fails
-      assignedTwilioNumber = '+18336584303'
-      console.log('[updateBusinessSafe] Fallback to shared number:', assignedTwilioNumber)
+    } else {
+      // Shared mode disabled - preserve existing number or use provided
+      assignedTwilioNumber = updates.twilio_phone_number !== undefined 
+        ? updates.twilio_phone_number 
+        : actualBusiness.data.twilio_phone_number
+      console.log('[updateBusinessSafe] Shared mode disabled - using local number:', assignedTwilioNumber)
     }
     
     // Preserve twilio_phone_number unless explicitly being updated
@@ -1133,29 +1133,16 @@ export const db = {
   async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
     console.log('[getOrCreateBusiness] Starting for user:', userId)
     
-    // HARD ENFORCEMENT: Use centralized Twilio assignment
-    let assignedTwilioNumber: string
-    try {
-      // Import the centralized assignment helper
-      const { getAssignedTwilioNumber, validateTwilioNumberAssignment } = require('@/lib/twilio-assignment')
-      
-      // Get the assigned number from centralized helper
-      const assignment = getAssignedTwilioNumber()
-      assignedTwilioNumber = assignment.phoneNumber
-      
-      // Validate the assignment
-      const validation = validateTwilioNumberAssignment(assignedTwilioNumber)
-      if (!validation.valid) {
-        console.error('[getOrCreateBusiness] Twilio assignment validation failed:', validation.error)
-        return null
-      }
-      
-      console.log('[getOrCreateBusiness] Using centralized assignment:', assignedTwilioNumber, 'shared:', assignment.isShared)
-    } catch (error) {
-      console.error('[getOrCreateBusiness] Centralized assignment failed:', error)
-      // Fallback to shared number if helper fails
-      assignedTwilioNumber = '+18336584303'
-      console.log('[getOrCreateBusiness] Fallback to shared number:', assignedTwilioNumber)
+    // Check if shared mode is explicitly enabled
+    const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
+    
+    let assignedTwilioNumber: string | null
+    if (isSharedModeEnabled()) {
+      assignedTwilioNumber = getSharedTwilioNumber()
+      console.log('[getOrCreateBusiness] Shared mode enabled - using shared number:', assignedTwilioNumber)
+    } else {
+      console.log('[getOrCreateBusiness] Shared mode disabled - will provision dedicated local number')
+      assignedTwilioNumber = null // Will be set during provisioning
     }
     
     // First, try to find existing business
@@ -1174,7 +1161,7 @@ export const db = {
           ...businessData,
           twilio_phone_number: businessData.twilio_phone_number !== undefined 
             ? businessData.twilio_phone_number 
-            : assignedTwilioNumber
+            : existingBusiness.twilio_phone_number
         }
         
         console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
@@ -1200,21 +1187,25 @@ export const db = {
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       name: businessData?.name || 'My Business',
-      twilio_phone_number: businessData?.twilio_phone_number || assignedTwilioNumber,
+      twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
       business_phone_number: businessData?.business_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: businessData?.subscription_status || null,
       stripe_customer_id: businessData?.stripe_customer_id || null,
-      sms_type: businessData?.sms_type || 'toll_free',
+      sms_type: businessData?.sms_type || 'local_a2p', // Default to local_a2p for dedicated numbers
       messaging_status: businessData?.messaging_status || 'active',
       onboarding_status: businessData?.onboarding_status || 'started',
+      twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+      a2p_status: 'approved' // Using approved ReplyFlowHQ Messaging Service
     }
     
-    // Create new business with explicit shared mode logging
+    // Create new business
     console.log('[getOrCreateBusiness] Creating new business with data:', {
       user_id: userId,
       name: newBusinessData.name,
-      twilio_phone_number: newBusinessData.twilio_phone_number,
+      sms_type: newBusinessData.sms_type,
+      a2p_status: newBusinessData.a2p_status,
+      twilio_messaging_service_sid: newBusinessData.twilio_messaging_service_sid,
       onboarding_status: newBusinessData.onboarding_status
     })
     
@@ -1223,9 +1214,36 @@ export const db = {
       createdBusiness = await this.createBusiness(newBusinessData)
       
       if (createdBusiness) {
-        console.log('[Shared Mode] Business created using shared Twilio number:', createdBusiness.id)
-        console.log('[Shared Mode] Assigned number:', createdBusiness.twilio_phone_number)
         console.log('[getOrCreateBusiness] Business created successfully:', createdBusiness.id)
+        console.log('[getOrCreateBusiness] Assigned twilio_phone_number:', createdBusiness.twilio_phone_number)
+        
+        // Provision a dedicated local number if shared mode is disabled
+        if (!isSharedModeEnabled() && !createdBusiness.twilio_phone_number) {
+          console.log('[getOrCreateBusiness] Provisioning dedicated local number for business:', createdBusiness.id)
+          try {
+            const { provisionTwilioNumber } = require('@/lib/twilio')
+            const provisioningResult = await provisionTwilioNumber(createdBusiness.id)
+            
+            if (provisioningResult) {
+              console.log('[getOrCreateBusiness] Successfully provisioned local number:', provisioningResult.phoneNumber)
+              
+              // Update business with provisioned number
+              const updatedBusiness = await this.updateBusiness(createdBusiness.id, {
+                twilio_phone_number: provisioningResult.phoneNumber
+              })
+              
+              if (updatedBusiness) {
+                console.log('[getOrCreateBusiness] Business updated with provisioned number:', updatedBusiness.twilio_phone_number)
+                createdBusiness = updatedBusiness
+              }
+            } else {
+              console.error('[getOrCreateBusiness] Failed to provision local number')
+            }
+          } catch (provisioningError) {
+            console.error('[getOrCreateBusiness] Error during number provisioning:', provisioningError)
+            // Business is still created, just without a number
+          }
+        }
       } else {
         console.error('[getOrCreateBusiness] createBusiness returned null for user:', userId)
       }

@@ -13,6 +13,8 @@ export interface TwilioAssignmentResult {
  * 
  * CRITICAL: When USE_SHARED_TWILIO_NUMBER=true, ALL businesses MUST use the shared number
  * This function enforces shared mode and rejects any attempts to assign unique numbers
+ * 
+ * DEFAULT BEHAVIOR: Shared mode is DISABLED by default - businesses get dedicated local numbers
  */
 export function getAssignedTwilioNumber(): TwilioAssignmentResult {
   const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
@@ -25,13 +27,17 @@ export function getAssignedTwilioNumber(): TwilioAssignmentResult {
     }
   }
   
-  throw new Error('[Twilio Assignment] Shared mode is disabled - unique number provisioning not implemented')
+  // Default: Shared mode is disabled - businesses get dedicated local numbers
+  console.log('[Twilio Assignment] Shared mode disabled - businesses will get dedicated local numbers')
+  throw new Error('[Twilio Assignment] Shared mode is disabled - use provisionTwilioNumber() for dedicated local number provisioning')
 }
 
 /**
  * Validate that a Twilio number assignment is allowed
  * 
  * This function prevents any code from assigning a non-shared number when shared mode is enabled
+ * 
+ * DEFAULT BEHAVIOR: Shared mode is DISABLED - unique number assignments are allowed
  */
 export function validateTwilioNumberAssignment(proposedNumber: string): { valid: boolean; error?: string } {
   const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
@@ -47,10 +53,9 @@ export function validateTwilioNumberAssignment(proposedNumber: string): { valid:
     return { valid: true }
   }
   
-  // If shared mode is disabled, we don't support unique assignments yet
-  const error = '[Twilio Assignment] Shared mode is disabled - unique number assignment not implemented'
-  console.error(error)
-  return { valid: false, error }
+  // Default: Shared mode is disabled - unique number assignments are allowed
+  console.log('[Twilio Assignment] Shared mode disabled - unique number assignment approved:', proposedNumber)
+  return { valid: true }
 }
 
 /**

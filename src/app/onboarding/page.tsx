@@ -185,7 +185,7 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Saving business for user:', user.id)
-      // Use centralized getOrCreateBusiness API - backend will auto-assign shared ReplyFlow number
+      // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -196,7 +196,7 @@ export default function OnboardingPage() {
             name: businessName,
             business_phone_number: normalizedPhone,
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-            sms_type: 'toll_free',
+            sms_type: 'local_a2p',
             messaging_status: 'active',
             onboarding_status: 'completed',
             subscription_status: SUBSCRIPTION_STATES.TRIALING,
