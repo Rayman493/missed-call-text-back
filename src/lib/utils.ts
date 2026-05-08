@@ -90,14 +90,15 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 export function getReplyFlowPhoneNumber(business: any): string {
-  // Always return the actual Twilio/ReplyFlow number
-  // This should be the assigned Twilio number or the shared production toll-free number
+  // Always return the business's dedicated Twilio number
+  // Never fall back to shared number in customer-facing code
   if (business?.twilio_phone_number) {
     return business.twilio_phone_number
   }
   
-  // Fallback to shared production toll-free number
-  return '+18336584303' // (833) 658-4303
+  // Return empty string if no dedicated number assigned
+  // This prevents showing the shared toll-free number to customers
+  return ''
 }
 
 export function getReplyFlowPhoneNumberDisplay(business: any): string {

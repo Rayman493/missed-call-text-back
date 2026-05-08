@@ -30,6 +30,7 @@ export default function OnboardingPage() {
   const [demoSuccess, setDemoSuccess] = useState(false)
   const [demoWarning, setDemoWarning] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [provisioningComplete, setProvisioningComplete] = useState(false)
 
   // Check for auth error from callback
   useEffect(() => {
@@ -143,6 +144,19 @@ export default function OnboardingPage() {
     )
   }
 
+  // Show loading transition when provisioning is complete
+  if (provisioningComplete) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-200 text-lg">Setting up your dedicated ReplyFlow number...</p>
+          <p className="text-gray-400 text-sm mt-2">Almost there!</p>
+        </div>
+      </div>
+    )
+  }
+
   const handleOnboarding = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log('[Onboarding] Complete Setup clicked')
@@ -237,8 +251,15 @@ export default function OnboardingPage() {
       // Refresh the page to ensure all state is updated
       router.refresh()
       
-      // Redirect to dashboard to start trial activation
-      router.push('/dashboard')
+      // Show loading transition before redirecting to new onboarding flow
+      setLoading(true)
+      setProvisioningComplete(true)
+      
+      // Brief delay to show loading state for better UX
+      setTimeout(() => {
+        // Redirect to new onboarding flow for setup
+        router.push('/onboarding/new-onboarding')
+      }, 1000)
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'

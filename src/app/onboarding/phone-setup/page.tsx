@@ -129,7 +129,8 @@ function PhoneSetupContent() {
   // TODO: Future enhancement - carrier-specific screenshots
   // TODO: Future enhancement - onboarding analytics tracking
 
-  const twilioNumber = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
+  // Use business's dedicated Twilio number, not the shared fallback
+  const twilioNumber = business?.twilio_phone_number || process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
   const formattedTwilioNumber = formatForDisplay(twilioNumber)
 
   // Load persisted state on mount

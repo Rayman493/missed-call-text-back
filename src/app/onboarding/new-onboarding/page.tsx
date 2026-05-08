@@ -264,16 +264,20 @@ export default function NewOnboardingPage() {
           <div className="bg-gray-800 rounded-lg p-8">
             <h1 className="text-3xl font-bold mb-4">Enable Call Forwarding</h1>
             <p className="text-gray-300 mb-6">
-              From your business phone, dial exactly as shown.
+              When you miss a call, your carrier will forward it to ReplyFlow automatically so we can text the customer back instantly.
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              Your customers will still call your normal business number. ReplyFlow only handles missed calls.
             </p>
             
             <div className="bg-gray-700 rounded-lg p-6 mb-6">
-              <div className="text-3xl font-mono text-center mb-4">
+              <p className="text-gray-400 text-sm mb-4">From your business phone, dial exactly as shown:</p>
+              <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight">
                 {getForwardingCode()}
               </div>
               <button
                 onClick={() => navigator.clipboard.writeText(getForwardingCode())}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition mb-4"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition mb-4 text-lg"
               >
                 Copy Code
               </button>
