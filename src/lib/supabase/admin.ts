@@ -519,10 +519,11 @@ export const db = {
     }
     
     // Preserve twilio_phone_number unless explicitly being updated
+    // CRITICAL: Do NOT include null twilio_phone_number in update payload when shared mode is disabled
     const safeUpdates = {
       ...updates,
-      // Only update twilio_phone_number if it's explicitly provided in updates
-      twilio_phone_number: updates.twilio_phone_number !== undefined 
+      // Only update twilio_phone_number if it's explicitly provided in updates AND not null
+      twilio_phone_number: (updates.twilio_phone_number !== undefined && updates.twilio_phone_number !== null)
         ? updates.twilio_phone_number 
         : assignedTwilioNumber
     }
@@ -553,6 +554,12 @@ export const db = {
   },
 
   async getBusinessByUserId(userId: string): Promise<Business | null> {
+    // Guard: Check for invalid userId before querying Supabase
+    if (!userId || userId === '' || userId === 'undefined' || userId === 'null') {
+      console.error('[getBusinessByUserId] Invalid userId provided:', userId)
+      return null
+    }
+
     const { data, error } = await supabaseAdmin
       .from('businesses')
       .select('*')
@@ -560,7 +567,7 @@ export const db = {
       .limit(1)
       .single()
     
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('[getBusinessByUserId] Error fetching business:', error)
       return null
     }
@@ -1146,11 +1153,51 @@ export const db = {
     }
     
     // First, try to find existing business
-    const existingBusiness = await this.getBusinessByUserId(userId)
+    let existingBusiness = await this.getBusinessByUserId(userId)
     
     if (existingBusiness) {
       console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
       console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
+      console.log('[getOrCreateBusiness] Existing twilio_phone_number_sid:', (existingBusiness as any).twilio_phone_number_sid || 'null')
+      
+      // Check if business needs provisioning (shared mode disabled AND missing number or SID)
+      const needsProvisioning = !isSharedModeEnabled() && 
+        (!existingBusiness.twilio_phone_number || !(existingBusiness as any).twilio_phone_number_sid)
+      
+      if (needsProvisioning) {
+        console.log('[Provisioning] Existing business missing Twilio number or SID; provisioning now')
+        
+        try {
+          const { provisionTwilioNumber } = require('@/lib/twilio')
+          const provisioningResult = await provisionTwilioNumber(existingBusiness.id)
+          
+          if (provisioningResult) {
+            console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
+            console.log('[Provisioning] Phone number SID:', provisioningResult.phoneNumberSid)
+            
+            // Update business with provisioned number
+            const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
+              twilio_phone_number: provisioningResult.phoneNumber,
+              sms_type: 'local_a2p',
+              a2p_status: 'approved',
+              messaging_status: 'active',
+              twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+            })
+            
+            if (updatedBusiness) {
+              console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
+              existingBusiness = updatedBusiness
+            }
+          } else {
+            console.error('[Provisioning] Failed to provision local number for existing business')
+          }
+        } catch (provisioningError) {
+          console.error('[Provisioning] Error during number provisioning for existing business:', provisioningError)
+          // Continue anyway - business is still functional
+        }
+      } else if (!isSharedModeEnabled()) {
+        console.log('[Provisioning] Skipped; existing valid number found')
+      }
       
       // If businessData is provided, update existing business
       if (businessData && Object.keys(businessData).length > 0) {
@@ -1159,7 +1206,8 @@ export const db = {
         // Preserve existing twilio_phone_number if not in update payload
         const updates = {
           ...businessData,
-          twilio_phone_number: businessData.twilio_phone_number !== undefined 
+          // Only update twilio_phone_number if it's explicitly provided in updates AND not null
+          twilio_phone_number: (businessData.twilio_phone_number !== undefined && businessData.twilio_phone_number !== null)
             ? businessData.twilio_phone_number 
             : existingBusiness.twilio_phone_number
         }

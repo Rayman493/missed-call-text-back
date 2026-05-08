@@ -326,13 +326,13 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
   }
 
   // Default: Provision a dedicated local number for the business
-  console.log('[Twilio Provisioning] Provisioning dedicated local number for business:', businessId)
+  console.log('[Provisioning] Provisioning dedicated local number for business:', businessId)
 
   try {
     const client = Twilio(accountSid, authToken)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
 
-    console.log('[Twilio Provisioning] Searching for available local number...')
+    console.log('[Provisioning] Searching for available local number...')
     
     // Search for available US local numbers with voice + SMS enabled
     const availableNumbers = await client.availablePhoneNumbers('US')
@@ -344,12 +344,12 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       })
 
     if (!availableNumbers || availableNumbers.length === 0) {
-      console.error('[Twilio Provisioning] No available local numbers found')
+      console.error('[Provisioning] No available local numbers found')
       return null
     }
 
     const numberToPurchase = availableNumbers[0]
-    console.log('[Twilio Provisioning] Selected available number:', numberToPurchase.phoneNumber)
+    console.log('[Provisioning] Selected available number:', numberToPurchase.phoneNumber)
 
     // Purchase the number with webhook URLs
     const purchasedNumber = await client.incomingPhoneNumbers.create({
@@ -358,7 +358,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{ phone
       smsUrl: `${appUrl}/api/twilio/incoming-sms`,
     })
 
-    console.log('[Twilio Provisioning] Successfully purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid)
+    console.log('[Provisioning] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid)
 
     // TODO: Attach to Messaging Service if available
     // Note: Messaging Service attachment requires specific Twilio API calls that may need additional setup
