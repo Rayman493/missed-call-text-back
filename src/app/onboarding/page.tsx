@@ -82,7 +82,7 @@ export default function OnboardingPage() {
       // Check if user already has a business
       const { data: existingBusiness, error: existingError } = await supabase
         .from('businesses')
-        .select('id, name, onboarding_status, subscription_status')
+        .select('id, name, onboarding_status, subscription_status, twilio_phone_number')
         .eq('user_id', user.id)
         .limit(1)
         .single()
@@ -91,8 +91,16 @@ export default function OnboardingPage() {
         console.log('[Onboarding] User already has business:', {
           businessId: existingBusiness.id,
           onboardingStatus: existingBusiness.onboarding_status,
-          subscriptionStatus: existingBusiness.subscription_status
+          subscriptionStatus: existingBusiness.subscription_status,
+          hasTwilioNumber: !!existingBusiness.twilio_phone_number
         })
+        
+        // If business has a Twilio number, redirect to new onboarding flow
+        if (existingBusiness.twilio_phone_number && existingBusiness.onboarding_status !== 'completed') {
+          console.log('[Onboarding] Business has Twilio number, redirecting to new onboarding flow')
+          router.push('/onboarding/new-onboarding')
+          return
+        }
         
         // User already has a business, check if they should be redirected
         if (existingBusiness.onboarding_status === 'completed') {
