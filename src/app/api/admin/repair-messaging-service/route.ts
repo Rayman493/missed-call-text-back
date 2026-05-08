@@ -75,29 +75,67 @@ export async function POST(request: Request) {
         })
       } else {
         try {
-          console.log('[Repair Messaging Service] Attaching number:', pnSid)
+          console.log('[Repair Messaging Service] Starting attachment for business:', business.id)
+          console.log('[Repair Messaging Service] Messaging Service SID:', messagingServiceSid)
+          console.log('[Repair Messaging Service] Phone Number SID:', pnSid)
+          console.log('[Repair Messaging Service] Phone Number:', business.twilio_phone_number)
           
-          await client.messaging.v1.services(messagingServiceSid)
+          const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .create({
               phoneNumberSid: pnSid
             })
           
-          console.log('[Repair Messaging Service] Successfully attached:', pnSid)
-          attachedCount++
-          details.push({
-            businessId: business.id,
-            phoneNumberSid: pnSid,
-            status: 'attached'
-          })
-        } catch (error) {
-          console.error('[Repair Messaging Service] Failed to attach:', pnSid, error)
+          console.log('[Repair Messaging Service] Attach success')
+          console.log('[Repair Messaging Service] Attached sender SID:', attachedSender.sid)
+          
+          // Verify attachment succeeded
+          const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
+            .phoneNumbers
+            .list({ limit: 100 })
+          
+          const isAttached = updatedPhoneNumbers.some(pn => pn.sid === pnSid)
+          
+          if (isAttached) {
+            console.log('[Repair Messaging Service] Verification passed')
+            attachedCount++
+            details.push({
+              businessId: business.id,
+              phoneNumberSid: pnSid,
+              phoneNumber: business.twilio_phone_number,
+              status: 'attached'
+            })
+          } else {
+            const errorMsg = 'Attachment succeeded but verification failed'
+            console.error('[Repair Messaging Service] Verification failed')
+            console.error('[Repair Messaging Service] ERROR:', errorMsg)
+            failedCount++
+            details.push({
+              businessId: business.id,
+              phoneNumberSid: pnSid,
+              phoneNumber: business.twilio_phone_number,
+              status: 'verification_failed',
+              error: errorMsg
+            })
+          }
+        } catch (error: any) {
+          console.error('[Repair Messaging Service] Attach failed')
+          console.error('[Repair Messaging Service] Error message:', error?.message || 'Unknown error')
+          console.error('[Repair Messaging Service] Error code:', error?.code || 'Unknown code')
+          console.error('[Repair Messaging Service] Error status:', error?.status || 'Unknown status')
+          console.error('[Repair Messaging Service] More info:', error?.moreInfo || 'N/A')
+          console.error('[Repair Messaging Service] Full error:', error)
+          
           failedCount++
           details.push({
             businessId: business.id,
             phoneNumberSid: pnSid,
+            phoneNumber: business.twilio_phone_number,
             status: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error?.message || 'Unknown error',
+            errorCode: error?.code,
+            errorStatus: error?.status,
+            moreInfo: error?.moreInfo
           })
         }
       }

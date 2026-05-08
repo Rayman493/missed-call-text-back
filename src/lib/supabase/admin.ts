@@ -1282,7 +1282,10 @@ export const db = {
               
               // Self-healing: Check if number is attached to Messaging Service sender pool
               if (messagingServiceSid) {
-                console.log('[SenderPool] Checking if number is attached to Messaging Service sender pool')
+                console.log('[SenderPool] Self-healing: Checking if number is attached to Messaging Service sender pool')
+                console.log('[SenderPool] Messaging Service SID:', messagingServiceSid)
+                console.log('[SenderPool] Phone Number SID:', existingBusiness.twilio_phone_number_sid)
+                console.log('[SenderPool] Phone Number:', existingBusiness.twilio_phone_number)
                 
                 try {
                   const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
@@ -1292,20 +1295,39 @@ export const db = {
                   const isAttached = existingPhoneNumbers.some((pn: any) => pn.sid === existingBusiness?.twilio_phone_number_sid)
                   
                   if (!isAttached) {
-                    console.log('[SenderPool] Number not attached to sender pool, attaching now')
+                    console.log('[SenderPool] Self-healing: Number not attached to sender pool, attaching now')
                     
-                    await client.messaging.v1.services(messagingServiceSid)
+                    const attachedSender = await client.messaging.v1.services(messagingServiceSid)
                       .phoneNumbers
                       .create({
                         phoneNumberSid: existingBusiness.twilio_phone_number_sid
                       })
                     
-                    console.log('[SenderPool] Successfully attached number to sender pool')
+                    console.log('[SenderPool] Self-healing: Attach success')
+                    console.log('[SenderPool] Self-healing: Attached sender SID:', attachedSender.sid)
+                    
+                    // Verify attachment succeeded
+                    const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
+                      .phoneNumbers
+                      .list({ limit: 100 })
+                    
+                    const isAttachedAfter = updatedPhoneNumbers.some((pn: any) => pn.sid === existingBusiness?.twilio_phone_number_sid)
+                    
+                    if (isAttachedAfter) {
+                      console.log('[SenderPool] Self-healing: Verification passed')
+                    } else {
+                      console.error('[SenderPool] Self-healing: Verification failed')
+                    }
                   } else {
-                    console.log('[SenderPool] Number already attached to sender pool')
+                    console.log('[SenderPool] Self-healing: Number already attached to sender pool')
                   }
-                } catch (senderPoolError) {
-                  console.error('[SenderPool] Error checking/attaching to sender pool:', senderPoolError)
+                } catch (senderPoolError: any) {
+                  console.error('[SenderPool] Self-healing: Attach failed')
+                  console.error('[SenderPool] Error message:', senderPoolError?.message || 'Unknown error')
+                  console.error('[SenderPool] Error code:', senderPoolError?.code || 'Unknown code')
+                  console.error('[SenderPool] Error status:', senderPoolError?.status || 'Unknown status')
+                  console.error('[SenderPool] More info:', senderPoolError?.moreInfo || 'N/A')
+                  console.error('[SenderPool] Full error:', senderPoolError)
                 }
               }
               

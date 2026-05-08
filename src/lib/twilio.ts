@@ -379,7 +379,10 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
 
     // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
-      console.log('[SenderPool] Adding PN SID to Messaging Service:', purchasedNumber.sid)
+      console.log('[SenderPool] Starting Messaging Service attachment')
+      console.log('[SenderPool] Messaging Service SID:', messagingServiceSid)
+      console.log('[SenderPool] Phone Number SID:', purchasedNumber.sid)
+      console.log('[SenderPool] Phone Number:', purchasedNumber.phoneNumber)
       
       try {
         // Check if number is already attached to the Messaging Service
@@ -391,16 +394,18 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
         
         if (alreadyAttached) {
           console.log('[SenderPool] Number already attached to Messaging Service, skipping')
+          console.log('[SenderPool] Verification passed (already attached)')
           messagingServiceAttached = true
         } else {
           // Attach the number to the Messaging Service
-          await client.messaging.v1.services(messagingServiceSid)
+          const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .create({
               phoneNumberSid: purchasedNumber.sid
             })
           
-          console.log('[SenderPool] Successfully attached number to Messaging Service')
+          console.log('[SenderPool] Attach success')
+          console.log('[SenderPool] Attached sender SID:', attachedSender.sid)
           
           // Verify attachment succeeded
           const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
@@ -410,18 +415,28 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid)
           
           if (isAttached) {
-            console.log('[SenderPool] Verified: Number exists in sender pool')
+            console.log('[SenderPool] Verification passed')
             messagingServiceAttached = true
           } else {
             const errorMsg = 'Attachment succeeded but verification failed'
-            console.error('[SenderPool] WARNING:', errorMsg)
+            console.error('[SenderPool] Verification failed')
+            console.error('[SenderPool] ERROR:', errorMsg)
             messagingServiceError = errorMsg
           }
         }
-      } catch (attachmentError) {
-        const errorMsg = attachmentError instanceof Error ? attachmentError.message : 'Unknown attachment error'
-        console.error('[SenderPool] Failed to attach number to Messaging Service:', attachmentError)
+      } catch (attachmentError: any) {
+        console.error('[SenderPool] Attach failed')
+        console.error('[SenderPool] Error message:', attachmentError?.message || 'Unknown error')
+        console.error('[SenderPool] Error code:', attachmentError?.code || 'Unknown code')
+        console.error('[SenderPool] Error status:', attachmentError?.status || 'Unknown status')
+        console.error('[SenderPool] More info:', attachmentError?.moreInfo || 'N/A')
+        console.error('[SenderPool] Full error:', attachmentError)
+        
+        const errorMsg = attachmentError?.message || 'Unknown attachment error'
         messagingServiceError = errorMsg
+        
+        // Do NOT swallow this error - propagate it
+        throw new Error(`Messaging Service attachment failed: ${errorMsg}`)
       }
     } else {
       console.log('[SenderPool] No Messaging Service SID configured, skipping attachment')
