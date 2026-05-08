@@ -46,8 +46,16 @@ export function validateTwilioSignature(
  * Middleware function to validate Twilio webhooks
  */
 export function requireTwilioAuth(request: Request, body: string): boolean {
-  const signature = request.headers.get('twilio-signature')
+  // Support both header formats that Twilio might send
+  const signature = request.headers.get('x-twilio-signature') || request.headers.get('twilio-signature')
+  
+  if (!signature) {
+    console.error('[TWILIO-WEBHOOK] Missing twilio-signature header (both x-twilio-signature and twilio-signature checked)')
+    return false
+  }
+  
+  // Use the exact URL that Twilio is calling
   const url = request.url
   
-  return validateTwilioSignature(signature || '', url, body)
+  return validateTwilioSignature(signature, url, body)
 }

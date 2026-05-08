@@ -4,7 +4,7 @@ import { processInboundSms } from '@/lib/sms-processing'
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[SYSTEM] [INCOMING-SMS] Received SMS');
+    console.log('[INBOUND SMS] Webhook hit')
     
     const body = await req.text()
     
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const twilioSignature = req.headers.get("x-twilio-signature") || req.headers.get("twilio-signature")
     
     if (!twilioSignature) {
-      console.error('[SYSTEM] [INCOMING-SMS] Missing twilio-signature header')
+      console.error('[INBOUND SMS] Missing twilio-signature header')
       return new Response('Unauthorized', { status: 401 })
     }
     
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
     } as NextRequest
     
     if (!requireTwilioAuth(validationReq, body)) {
-      console.error('[SYSTEM] [INCOMING-SMS] Invalid webhook signature')
+      console.error('[INBOUND SMS] Invalid webhook signature')
       return new Response('Unauthorized', { status: 401 })
     }
     
-    console.log('[SYSTEM] [INCOMING-SMS] Signature validation passed')
+    console.log('[INBOUND SMS] Signature validation passed')
     
     const params = new URLSearchParams(body)
     
@@ -38,28 +38,29 @@ export async function POST(req: NextRequest) {
     const MessageSid = params.get('MessageSid')
     
     if (!From || !To || !Body || !MessageSid) {
-      console.error('[SYSTEM] [INCOMING-SMS] Missing required fields:', { From, To, Body, MessageSid })
+      console.error('[INBOUND SMS] Missing required fields:', { From, To, Body, MessageSid })
       
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Error: Missing required fields</Message>
+  <Message>Service unavailable</Message>
 </Response>`
-
+      
       return new Response(errorTwiml, {
-        status: 400,
+        status: 500,
         headers: {
-          'Content-Type': 'text/xml',
-        },
+          'Content-Type': 'text/xml'
+        }
       })
     }
     
-    console.log('[INBOUND SMS] Processing inbound SMS:', {
+    console.log('[INBOUND SMS] Processing message:', {
+      MessageSid,
       From,
       To,
       BodyLength: Body.length
     })
     
-    // Process the inbound SMS using the shared function
+    // Process inbound SMS using the same shared function as incoming-sms
     const result = await processInboundSms({
       messageSid: MessageSid,
       from: From,
@@ -80,40 +81,26 @@ export async function POST(req: NextRequest) {
     
     console.log('[INBOUND SMS] Processing successful')
     
-    // Add operational logs for successful processing
-    if (result.lead) {
-      console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
-    }
-    
-    if (result.conversation) {
-      console.log('[INBOUND SMS] Conversation found/created:', result.conversation.id)
-    }
-    
-    if (result.message) {
-      console.log('[INBOUND SMS] Message inserted:', result.message.id)
-    }
-    
-    // Return the TwiML response
     return new Response(result.twiml, {
       status: 200,
       headers: {
-        'Content-Type': 'text/xml',
-      },
+        'Content-Type': 'text/xml'
+      }
     })
     
   } catch (error) {
-    console.error('[SYSTEM] [INCOMING-SMS] Unexpected error:', error)
+    console.error('[INBOUND SMS] Unexpected error:', error)
     
     const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Error processing message</Message>
+  <Message>Service unavailable</Message>
 </Response>`
-
+    
     return new Response(errorTwiml, {
       status: 500,
       headers: {
-        'Content-Type': 'text/xml',
-      },
+        'Content-Type': 'text/xml'
+      }
     })
   }
 }
