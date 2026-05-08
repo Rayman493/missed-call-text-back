@@ -26,21 +26,47 @@ export default function NewOnboardingPage() {
   const [testing, setTesting] = useState(false)
   const [testSuccess, setTestSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [isBusinessLoaded, setIsBusinessLoaded] = useState(false)
 
   useEffect(() => {
+    // Only evaluate routing when business is fully loaded
+    if (business === undefined) {
+      console.log('[Routing] Business loading...')
+      return
+    }
+
+    setIsBusinessLoaded(true)
+
     if (!business) {
+      console.log('[Routing] No business found, redirecting to auth')
       router.push('/auth?mode=signin')
       return
     }
 
-    // Check if onboarding is already completed
-    if (business.onboarding_status === 'completed' && business.forwarding_verified) {
+    console.log('[Routing] Business loaded:', {
+      id: business.id,
+      onboarding_status: business.onboarding_status,
+      forwarding_verified: business.forwarding_verified,
+      twilio_phone_number: business.twilio_phone_number
+    })
+
+    // Check if onboarding is already completed - only redirect if BOTH conditions met
+    if (business.onboarding_status === 'completed' && business.forwarding_verified === true) {
+      console.log('[Routing] Onboarding complete, redirecting to dashboard')
       router.push('/dashboard')
       return
     }
 
+    console.log('[Routing] Onboarding incomplete, staying on onboarding')
+    console.log('[Routing] Reason:', {
+      onboarding_status: business.onboarding_status,
+      forwarding_verified: business.forwarding_verified,
+      completed: business.onboarding_status === 'completed' && business.forwarding_verified === true
+    })
+
     // If business doesn't have a Twilio number yet, go back to old onboarding
     if (!business.twilio_phone_number) {
+      console.log('[Routing] No Twilio number, redirecting to old onboarding')
       router.push('/onboarding')
       return
     }
@@ -200,6 +226,15 @@ export default function NewOnboardingPage() {
     // Add space between carrier code and phone number for readability
     const code = carrier.code + ' ' + phoneNumber
     return carrier.suffix ? code + carrier.suffix : code
+  }
+
+  // Show loading screen while business is loading to prevent flicker
+  if (!isBusinessLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   if (!business) {

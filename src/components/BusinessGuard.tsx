@@ -15,26 +15,32 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const checkoutStatus = searchParams?.get('checkout')
 
   useEffect(() => {
-    console.log('[BusinessGuard] State:', { loading, businessId: business?.id, pathname, checkoutStatus, onboardingStatus: business?.onboarding_status })
-    console.log('[Auth Gate] user:', user ? 'authenticated' : 'not authenticated')
-    console.log('[Auth Gate] business:', business ? `exists (${business.id})` : 'none')
-    console.log('[Auth Gate] onboarding_status:', business?.onboarding_status || 'unknown')
+    console.log('[Routing] BusinessGuard evaluating')
+    console.log('[Routing] Loading state:', loading)
+    console.log('[Routing] Business state:', {
+      exists: !!business,
+      id: business?.id,
+      onboarding_status: business?.onboarding_status,
+      forwarding_verified: business?.forwarding_verified,
+      subscription_status: business?.subscription_status
+    })
+    console.log('[Routing] Pathname:', pathname)
     
     // Don't redirect if already on onboarding page
     if (pathname?.startsWith('/onboarding')) {
-      console.log('[BusinessGuard] Already on onboarding, skipping redirect')
+      console.log('[Routing] Already on onboarding, skipping redirect')
       return
     }
     
     // Don't redirect if on homepage - allow logged-in users to see public homepage
     if (pathname === '/') {
-      console.log('[BusinessGuard] On homepage, skipping redirect')
+      console.log('[Routing] On homepage, skipping redirect')
       return
     }
     
     // Don't redirect if checkout=success is present (waiting for webhook)
     if (checkoutStatus === 'success') {
-      console.log('[BusinessGuard] Checkout success mode active, skipping redirect')
+      console.log('[Routing] Checkout success mode active, skipping redirect')
       return
     }
     
@@ -42,24 +48,31 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     if (!loading) {
       // Redirect if no business exists
       if (!business) {
-        console.log('[BusinessGuard] No business found, redirecting to onboarding')
-        console.log('[Auth Gate] redirecting to: /onboarding (no business)')
+        console.log('[Routing] No business found, redirecting to onboarding')
         router.push('/onboarding')
         return
       }
       
-      // Redirect if onboarding is not completed and user doesn't have active subscription
-      if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
-          !isActiveSubscription(business.subscription_status)) {
-        console.log('[BusinessGuard] Onboarding not completed and no active subscription, redirecting to onboarding')
-        console.log('[BusinessGuard] Business state:', {
-          onboardingStatus: business.onboarding_status,
-          subscriptionStatus: business.subscription_status
+      // Redirect if onboarding is not completed AND forwarding is not verified
+      // Only allow access if BOTH conditions are met OR user has active subscription
+      const isOnboardingComplete = business.onboarding_status === 'completed' && business.forwarding_verified === true
+      const hasActiveSubscription = isActiveSubscription(business.subscription_status)
+      
+      if (!isOnboardingComplete && !hasActiveSubscription) {
+        console.log('[Routing] Onboarding incomplete, redirecting to onboarding')
+        console.log('[Routing] Reason:', {
+          onboarding_status: business.onboarding_status,
+          forwarding_verified: business.forwarding_verified,
+          isOnboardingComplete,
+          hasActiveSubscription
         })
-        console.log('[Auth Gate] redirecting to: /onboarding (incomplete onboarding)')
         router.push('/onboarding')
         return
       }
+      
+      console.log('[Routing] Onboarding complete or has active subscription, allowing access')
+    } else {
+      console.log('[Routing] Business still loading, waiting...')
     }
   }, [business, loading, router, pathname, checkoutStatus])
 
@@ -102,8 +115,10 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }
 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
-  if (business.onboarding_status !== 'completed' && business.onboarding_status !== 'phone_setup_completed' &&
-      !isActiveSubscription(business.subscription_status) && pathname?.startsWith('/dashboard')) {
+  const isOnboardingComplete = business.onboarding_status === 'completed' && business.forwarding_verified === true
+  const hasActiveSubscription = isActiveSubscription(business.subscription_status)
+  
+  if (!isOnboardingComplete && !hasActiveSubscription && pathname?.startsWith('/dashboard')) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
