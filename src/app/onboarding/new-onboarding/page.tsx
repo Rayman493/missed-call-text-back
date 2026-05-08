@@ -58,6 +58,11 @@ export default function NewOnboardingPage() {
 
   const handleContinueToForwarding = async () => {
     setLoading(true)
+    setError('')
+    
+    console.log('[Onboarding] User confirmed forwarding enabled')
+    console.log('[Onboarding] Selected carrier:', selectedCarrier)
+    
     try {
       if (business && selectedCarrier) {
         const { error } = await supabase
@@ -70,11 +75,18 @@ export default function NewOnboardingPage() {
 
         if (error) throw error
         await refreshBusiness()
+        
+        console.log('[Onboarding] Carrier saved successfully')
+        console.log('[Onboarding] Advanced to test setup step')
+        
         setStep('test-setup')
+      } else {
+        console.error('[Onboarding] Missing business or carrier selection')
+        setError('Please select a carrier before continuing')
       }
     } catch (err) {
-      console.error('[NewOnboarding] Error saving carrier:', err)
-      setError('Failed to save carrier selection')
+      console.error('[Onboarding] Error saving carrier:', err)
+      setError('Failed to save carrier selection. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -166,7 +178,9 @@ export default function NewOnboardingPage() {
     const carrier = CARRIERS.find(c => c.id === selectedCarrier)
     if (!carrier || !carrier.code) return 'Contact your carrier to enable call forwarding'
     
-    const code = carrier.code + business.twilio_phone_number
+    // Remove plus sign from phone number for cleaner display
+    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
+    const code = carrier.code + phoneNumber
     return carrier.suffix ? code + carrier.suffix : code
   }
 
@@ -265,6 +279,12 @@ export default function NewOnboardingPage() {
                 <p className="text-blue-300 text-sm">
                   ✓ Your phone still rings normally
                 </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-600/20 border border-red-600 text-red-400 p-4 rounded-lg mb-6">
+                {error}
               </div>
             )}
 

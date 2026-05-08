@@ -9,21 +9,7 @@ export async function POST(req: NextRequest) {
     const body = await req.text()
     
     // Validate Twilio webhook signature - support both header formats
-    const twilioSignature = req.headers.get("x-twilio-signature") || req.headers.get("twilio-signature")
-    
-    if (!twilioSignature) {
-      console.error('[SYSTEM] [INCOMING-SMS] Missing twilio-signature header')
-      return new Response('Unauthorized', { status: 401 })
-    }
-    
-    // Create a modified request object for validation
-    const validationReq = {
-      headers: {
-        get: (name: string) => name === 'twilio-signature' ? twilioSignature : req.headers.get(name)
-      }
-    } as NextRequest
-    
-    if (!requireTwilioAuth(validationReq, body)) {
+    if (!requireTwilioAuth(req, body)) {
       console.error('[SYSTEM] [INCOMING-SMS] Invalid webhook signature')
       return new Response('Unauthorized', { status: 401 })
     }
