@@ -734,6 +734,43 @@ export default function DashboardContent() {
               </div>
             )}
 
+            {/* Setup Health Banner - Show when forwarding not verified */}
+            {business?.onboarding_status === 'completed' && !business?.forwarding_verified && (
+              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⚠️</span>
+                    <div>
+                      <p className="text-sm font-semibold text-yellow-100">
+                        Finish testing your setup
+                      </p>
+                      <p className="text-xs text-yellow-300">
+                        Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => router.push('/dashboard/test-setup')}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Test Setup
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Dismiss banner by setting forwarding_verified to true (user chose to skip)
+                        // In a real implementation, this might set a dismissed_at timestamp instead
+                        console.log('[Setup] User dismissed setup banner')
+                      }}
+                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Dismiss for now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (

@@ -54,8 +54,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       }
       
       // Redirect if onboarding is not completed AND forwarding is not verified
-      // Only allow access if BOTH conditions are met OR user has active subscription
-      const isOnboardingComplete = business.onboarding_status === 'completed' && business.forwarding_verified === true
+      // Only allow access if onboarding is completed OR user has active subscription
+      // Note: forwarding_verified can be false if user hasn't tested yet, but they can still access dashboard
+      const isOnboardingComplete = business.onboarding_status === 'completed'
       const hasActiveSubscription = isActiveSubscription(business.subscription_status)
       
       if (!isOnboardingComplete && !hasActiveSubscription) {
@@ -115,7 +116,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }
 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
-  const isOnboardingComplete = business.onboarding_status === 'completed' && business.forwarding_verified === true
+  const isOnboardingComplete = business.onboarding_status === 'completed'
   const hasActiveSubscription = isActiveSubscription(business.subscription_status)
   
   if (!isOnboardingComplete && !hasActiveSubscription && pathname?.startsWith('/dashboard')) {

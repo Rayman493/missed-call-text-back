@@ -95,7 +95,8 @@ export default function NewOnboardingPage() {
         // Get current user ID
         const { data: { user } } = await supabase.auth.getUser()
         
-        // Use API endpoint to save carrier and onboarding status (uses service role key for proper permissions)
+        // Use API endpoint to save carrier and mark onboarding as completed
+        // (uses service role key for proper permissions)
         const response = await fetch('/api/onboarding/carrier', {
           method: 'POST',
           headers: {
@@ -105,7 +106,7 @@ export default function NewOnboardingPage() {
             carrier: selectedCarrier,
             businessId: business.id,
             userId: user?.id,
-            onboardingStatus: 'awaiting_test'
+            onboardingStatus: 'completed'
           })
         })
 
@@ -117,11 +118,13 @@ export default function NewOnboardingPage() {
         }
 
         console.log('[Onboarding] Save success via API')
+        console.log('[Onboarding] Onboarding marked as completed (forwarding_verified=false)')
         await refreshBusiness()
         
-        console.log('[Onboarding] Advanced to test setup step')
+        console.log('[Onboarding] Redirecting to dashboard')
         
-        setStep('test-setup')
+        // Redirect to dashboard instead of test-setup screen
+        router.push('/dashboard')
       } else {
         console.error('[Onboarding] Missing business or carrier selection')
         setError('Please select a carrier before continuing')

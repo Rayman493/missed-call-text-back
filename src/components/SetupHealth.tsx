@@ -84,12 +84,12 @@ export default function SetupHealth() {
     let forwardingDescription: string
     let forwardingDetails: string
 
-    // Not Configured (Red) - Only if no business phone, no setup completion, or forwarding disabled
-    if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
+    // Not Configured (Red) - Only if no Twilio number or onboarding not completed
+    if (!business.twilio_phone_number || business.onboarding_status !== 'completed') {
       forwardingStatus = 'error'
       forwardingTitle = 'Forwarding Not Configured'
       forwardingDescription = 'Call forwarding setup not completed'
-      forwardingDetails = 'Complete phone setup to enable call forwarding'
+      forwardingDetails = 'Complete onboarding to enable call forwarding'
     } 
     // Verified Working (Green) - If forwarding_verified is true
     else if (business.forwarding_verified) {
@@ -100,7 +100,7 @@ export default function SetupHealth() {
         ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
         : 'Forwarding is working correctly'
     } 
-    // Configured / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
+    // Configured / Awaiting Test (Yellow) - Onboarding completed but forwarding not verified
     else {
       forwardingStatus = 'warning'
       forwardingTitle = 'Forwarding Configured'
@@ -304,18 +304,18 @@ export default function SetupHealth() {
           <div className="border-t border-gray-700 pt-5 pb-6 mt-4">
             <h3 className="text-sm font-medium text-gray-300 mb-4">Quick Actions</h3>
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Primary action: Complete Phone Setup if forwarding is not complete */}
-              {!business?.business_phone_number || !business?.phone_setup_completed_at || !business?.call_forwarding_enabled ? (
+              {/* Primary action: Test Setup if forwarding is configured but not verified */}
+              {business?.twilio_phone_number && business?.onboarding_status === 'completed' && !business?.forwarding_verified ? (
                 <button
-                  onClick={handleViewInstructions}
+                  onClick={handleTestCall}
                   className="flex-1 w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  Complete Phone Setup
+                  Test Setup
                 </button>
               ) : null}
               
-              {/* Always show instructions button as secondary action */}
-              {business?.business_phone_number && business?.phone_setup_completed_at && business?.call_forwarding_enabled && (
+              {/* Secondary action: View forwarding instructions */}
+              {business?.twilio_phone_number && business?.onboarding_status === 'completed' && (
                 <button
                   onClick={handleViewInstructions}
                   className="w-full sm:w-auto px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
