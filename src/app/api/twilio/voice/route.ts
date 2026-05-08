@@ -114,39 +114,12 @@ export async function POST(request: NextRequest) {
     
     const body = await request.text();
     
-    // TEMPORARILY DISABLED FOR DEBUGGING - Twilio signature validation
     // Validate Twilio webhook signature - CRITICAL SECURITY
-    const twilioAuthValid = requireTwilioAuth(request, body);
-    console.log('Twilio signature validation passed:', twilioAuthValid);
-    console.log('DEBUG: Signature validation temporarily disabled for debugging');
-    
-    // Log all incoming headers for debugging
-    const allHeaders: Record<string, string> = {};
-    request.headers.forEach((value, key) => {
-      allHeaders[key] = value;
-    });
-    console.log('DEBUG: All incoming headers:', allHeaders);
-    console.log('DEBUG: Request URL:', request.url);
-    console.log('DEBUG: Request body:', body);
-    console.log('DEBUG: Body length:', body.length);
-    
-    // TEMPORARILY ALLOW ALL REQUESTS FOR DEBUGGING
-    // if (!twilioAuthValid) {
-    //   console.error('[Twilio Voice] Invalid webhook signature - POSSIBLE ATTACK')
-    //   return new Response('Unauthorized', { status: 401 })
-    // }
-    
-    // Log request details for debugging
-    console.log('[Twilio Voice] Request details:', {
-      url: request.url,
-      method: request.method,
-      headers: {
-        'twilio-signature': request.headers.get('twilio-signature'),
-        'content-type': request.headers.get('content-type'),
-        'user-agent': request.headers.get('user-agent'),
-      },
-      bodyLength: body.length
-    });
+    if (!requireTwilioAuth(request, body)) {
+      console.error('[Twilio Voice] Invalid webhook signature - POSSIBLE ATTACK')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    console.log('[Twilio Voice] Signature validation passed');
     
     const params = new URLSearchParams(body);
     
@@ -154,32 +127,26 @@ export async function POST(request: NextRequest) {
     const To = params.get('To');
     const CallSid = params.get('CallSid');
     
-    // Log production call details
-    console.log('VOICE WEBHOOK HIT - PRODUCTION - Call Details:', {
+    // Log essential call details for production monitoring
+    console.log('[Twilio Voice] Incoming call:', {
       CallSid,
       From,
       To,
-      CallStatus: params.get('CallStatus'),
-      Direction: params.get('Direction')
+      CallStatus: params.get('CallStatus')
     });
     
     if (!From || !To) {
       console.error('[Twilio Voice] Missing required fields:', { From, To });
       
       const twiml = generateTwiMLResponse();
-
-      console.log('[Twilio Voice] Returning fallback TwiML for missing fields');
       return new NextResponse(twiml, {
         status: 200,
         headers: { 
           "Content-Type": "text/xml",
-          "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
+          "X-ReplyFlow-Voice-Version": "v2"
         },
       });
     }
-    
-    console.log('[Twilio Voice] From:', From);
-    console.log('[Twilio Voice] To:', To);
     
     // Normalize numbers to E.164 format
     const normalizedFrom = toE164(From);

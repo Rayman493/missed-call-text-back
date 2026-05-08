@@ -6,36 +6,19 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   try {
-    // TEMPORARILY DISABLED FOR DEBUGGING - Twilio signature validation
+    // Validate Twilio webhook signature - CRITICAL SECURITY
     const body = await req.text()
-    const twilioAuthValid = requireTwilioAuth(req, body);
-    console.log('DEBUG voice-status: Twilio signature validation passed:', twilioAuthValid);
-    console.log('DEBUG voice-status: Signature validation temporarily disabled for debugging');
-    
-    // Log all incoming headers for debugging
-    const allHeaders: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      allHeaders[key] = value;
-    });
-    console.log('DEBUG voice-status: All incoming headers:', allHeaders);
-    console.log('DEBUG voice-status: Request URL:', req.url);
-    console.log('DEBUG voice-status: Request body:', body);
-    
-    // TEMPORARILY ALLOW ALL REQUESTS FOR DEBUGGING
-    // if (!requireTwilioAuth(req, body)) {
-    //   console.error('[voice-status] Invalid webhook signature - POSSIBLE ATTACK')
-    //   return new Response('Unauthorized', { status: 401 })
-    // }
+    if (!requireTwilioAuth(req, body)) {
+      console.error('[voice-status] Invalid webhook signature - POSSIBLE ATTACK')
+      return new Response('Unauthorized', { status: 401 })
+    }
+    console.log('[voice-status] Twilio signature validation passed');
     
     // Create fresh Supabase client for this request
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    
-    // Log comprehensive webhook details
-    console.log('[Twilio Voice Status Webhook] Received webhook. Headers:', JSON.stringify(Object.fromEntries(req.headers.entries())))
-    console.log('[Twilio Voice Status Webhook] Received webhook. Body params:', JSON.stringify(Object.fromEntries(new URLSearchParams(body).entries())))
     
     const params = new URLSearchParams(body)
     
@@ -46,15 +29,12 @@ export async function POST(req: NextRequest) {
     const Duration = params.get('Duration')
     const Direction = params.get('Direction')
     
-    // Comprehensive logging of call details
-    console.log('[Twilio Voice Status Webhook] Call details:', {
+    // Log essential call status details for production monitoring
+    console.log('[voice-status] Call status update:', {
       CallSid,
-      From,
-      To,
       CallStatus,
       Duration,
-      Direction,
-      Timestamp: new Date().toISOString()
+      Direction
     })
     
     if (!From || !To) {
