@@ -1168,7 +1168,15 @@ export const db = {
         console.log('[Provisioning] Existing business missing Twilio number or SID; provisioning now')
         
         try {
-          const { provisionTwilioNumber } = require('@/lib/twilio')
+          // Import provisioning function at the top level to avoid require issues
+          const { provisionTwilioNumber } = await import('@/lib/twilio')
+          
+          console.log('[Provisioning] Provisioning function type:', typeof provisionTwilioNumber)
+          
+          if (typeof provisionTwilioNumber !== 'function') {
+            throw new Error('Provisioning function is not available or not a function')
+          }
+          
           const provisioningResult = await provisionTwilioNumber(existingBusiness.id)
           
           if (provisioningResult) {
@@ -1189,11 +1197,15 @@ export const db = {
               existingBusiness = updatedBusiness
             }
           } else {
-            console.error('[Provisioning] Failed to provision local number for existing business')
+            console.error('[Provisioning] Failed to provision local number for existing business - provisioningResult is null')
           }
         } catch (provisioningError) {
           console.error('[Provisioning] Error during number provisioning for existing business:', provisioningError)
-          // Continue anyway - business is still functional
+          console.error('[Provisioning] Error details:', {
+            message: provisioningError instanceof Error ? provisioningError.message : 'Unknown error',
+            stack: provisioningError instanceof Error ? provisioningError.stack : undefined
+          })
+          // Continue anyway - business is still functional, but log the error clearly
         }
       } else if (!isSharedModeEnabled()) {
         console.log('[Provisioning] Skipped; existing valid number found')
@@ -1267,28 +1279,45 @@ export const db = {
         
         // Provision a dedicated local number if shared mode is disabled
         if (!isSharedModeEnabled() && !createdBusiness.twilio_phone_number) {
-          console.log('[getOrCreateBusiness] Provisioning dedicated local number for business:', createdBusiness.id)
+          console.log('[Provisioning] Provisioning dedicated local number for business:', createdBusiness.id)
           try {
-            const { provisionTwilioNumber } = require('@/lib/twilio')
+            // Import provisioning function at the top level to avoid require issues
+            const { provisionTwilioNumber } = await import('@/lib/twilio')
+            
+            console.log('[Provisioning] Provisioning function type:', typeof provisionTwilioNumber)
+            
+            if (typeof provisionTwilioNumber !== 'function') {
+              throw new Error('Provisioning function is not available or not a function')
+            }
+            
             const provisioningResult = await provisionTwilioNumber(createdBusiness.id)
             
             if (provisioningResult) {
-              console.log('[getOrCreateBusiness] Successfully provisioned local number:', provisioningResult.phoneNumber)
+              console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
+              console.log('[Provisioning] Phone number SID:', provisioningResult.phoneNumberSid)
               
               // Update business with provisioned number
               const updatedBusiness = await this.updateBusiness(createdBusiness.id, {
-                twilio_phone_number: provisioningResult.phoneNumber
+                twilio_phone_number: provisioningResult.phoneNumber,
+                sms_type: 'local_a2p',
+                a2p_status: 'approved',
+                messaging_status: 'active',
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
               })
               
               if (updatedBusiness) {
-                console.log('[getOrCreateBusiness] Business updated with provisioned number:', updatedBusiness.twilio_phone_number)
+                console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
                 createdBusiness = updatedBusiness
               }
             } else {
-              console.error('[getOrCreateBusiness] Failed to provision local number')
+              console.error('[Provisioning] Failed to provision local number - provisioningResult is null')
             }
           } catch (provisioningError) {
-            console.error('[getOrCreateBusiness] Error during number provisioning:', provisioningError)
+            console.error('[Provisioning] Error during number provisioning for new business:', provisioningError)
+            console.error('[Provisioning] Error details:', {
+              message: provisioningError instanceof Error ? provisioningError.message : 'Unknown error',
+              stack: provisioningError instanceof Error ? provisioningError.stack : undefined
+            })
             // Business is still created, just without a number
           }
         }
