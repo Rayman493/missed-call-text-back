@@ -1404,10 +1404,10 @@ export const db = {
               const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
                 twilio_phone_number: provisioningResult.phoneNumber,
                 twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-                sms_type: 'local_a2p',
-                a2p_status: 'approved',
+                sms_type: 'a2p_local',
+                a2p_status: 'active',
                 messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3',
                 provisioning_status: 'active',
                 provisioning_error: null,
                 provisioned_at: new Date().toISOString()

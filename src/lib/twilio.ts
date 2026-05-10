@@ -41,7 +41,7 @@ export async function sendSms(
   }
 
   console.log('[SMS] Sending SMS to:', to, 'from business:', business.id, 'method:', smsValidation.method);
-  console.log('[SMS] Voice forwarding number for business:', business.twilio_phone_number);
+  console.log('[SMS] Sending from business assigned number:', business.twilio_phone_number);
   console.log('[SMS] Business messaging service SID:', business.twilio_messaging_service_sid);
 
   // Handle simulation mode
@@ -101,6 +101,7 @@ export async function sendSms(
     // Priority 1: Use business-specific messaging service SID if available
     if (business.twilio_messaging_service_sid) {
       console.log('[SMS] Using business messaging service:', business.twilio_messaging_service_sid);
+      console.log('[SMS] Verified sender pool membership via messaging service');
       sendMethod = 'business-messaging-service';
       messageResult = await client.messages.create({
         body: message,
@@ -112,6 +113,7 @@ export async function sendSms(
     // Priority 2: Use global messaging service SID if available (10DLC ready)
     else if (globalMessagingServiceSid) {
       console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
+      console.log('[SMS] Verified sender pool membership via global messaging service');
       sendMethod = 'global-messaging-service';
       messageResult = await client.messages.create({
         body: message,
@@ -313,28 +315,17 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
 } | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
+  // Use approved A2P 10DLC Messaging Service
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
 
   if (!accountSid || !authToken) {
-    console.error('[Twilio Provisioning] Credentials missing');
+    console.error('[Provisioning] Credentials missing');
     return null
   }
 
-  // Check if shared mode is explicitly enabled
-  const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
-  
-  if (isSharedModeEnabled()) {
-    console.log('[Twilio Provisioning] Shared mode enabled - using shared number only')
-    const sharedNumber = getSharedTwilioNumber()
-    return {
-      phoneNumber: sharedNumber,
-      phoneNumberSid: 'SHARED_MODE',
-      messagingServiceAttached: true
-    }
-  }
-
-  // Default: Provision a dedicated local number for the business
+  // Provision a dedicated local number for the business
   console.log('[Provisioning] Provisioning dedicated local number for business:', businessId)
+  console.log('[Provisioning] Using approved Messaging Service:', messagingServiceSid)
 
   try {
     const client = Twilio(accountSid, authToken)
@@ -360,13 +351,21 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     console.log('[Provisioning] Selected available number:', numberToPurchase.phoneNumber)
 
     // Purchase the number with webhook URLs
+    console.log('[Provisioning] Purchasing number with webhooks...')
     const purchasedNumber = await client.incomingPhoneNumbers.create({
       phoneNumber: numberToPurchase.phoneNumber,
       voiceUrl: `${appUrl}/api/twilio/voice`,
+      statusCallback: `${appUrl}/api/twilio/voice-status`,
+      statusCallbackMethod: 'POST',
       smsUrl: `${appUrl}/api/twilio/incoming-sms`,
+      smsMethod: 'POST',
     })
 
-    console.log('[Provisioning] Purchased number:', purchasedNumber.phoneNumber, 'SID:', purchasedNumber.sid)
+    console.log('[Provisioning] Purchased number:', purchasedNumber.phoneNumber)
+    console.log('[Provisioning] Purchased number SID:', purchasedNumber.sid)
+    console.log('[Provisioning] Configured voice webhook:', `${appUrl}/api/twilio/voice`)
+    console.log('[Provisioning] Configured voice status callback:', `${appUrl}/api/twilio/voice-status`)
+    console.log('[Provisioning] Configured messaging webhook:', `${appUrl}/api/twilio/incoming-sms`)
 
     // Validate that SID is present
     if (!purchasedNumber.sid) {
