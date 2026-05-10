@@ -171,8 +171,22 @@ export async function POST(request: NextRequest) {
     if (Called) candidateNumbers.add(toE164(Called));
     if (ForwardedFrom) candidateNumbers.add(toE164(ForwardedFrom));
     
+    // Add shared ReplyFlow number if shared mode is enabled
+    const sharedTwilioNumber = process.env.SHARED_TWILIO_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+    if (sharedTwilioNumber) {
+      candidateNumbers.add(toE164(sharedTwilioNumber));
+      console.log('[Voice] Added shared ReplyFlow number to candidates:', toE164(sharedTwilioNumber));
+    }
+    
+    // Add fallback shared number if present
+    const fallbackSharedNumber = '+18336584303';
+    if (sharedTwilioNumber || process.env.USE_SHARED_TWILIO_NUMBER === 'true') {
+      candidateNumbers.add(fallbackSharedNumber);
+      console.log('[Voice] Added fallback shared number to candidates:', fallbackSharedNumber);
+    }
+    
     const uniqueCandidates = Array.from(candidateNumbers);
-    console.log('[Voice] Candidate business lookup numbers:', uniqueCandidates);
+    console.log('[Voice] Final candidate business lookup numbers:', uniqueCandidates);
     
     // Lookup business by businesses.twilio_phone_number IN candidateNumbers
     console.log('[Voice] Business lookup query started');
@@ -189,8 +203,36 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Fallback: if shared mode is enabled and no business found by candidates, try to resolve single active business
+    if (!business && (process.env.USE_SHARED_TWILIO_NUMBER === 'true' || sharedTwilioNumber)) {
+      console.log('[Voice] Shared mode enabled, attempting to resolve single active business');
+      try {
+        // Get all businesses with provisioning_status='active'
+        const { data: activeBusinesses, error: activeBusinessesError } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('provisioning_status', 'active')
+          .limit(10);
+        
+        if (activeBusinessesError) {
+          console.error('[Voice] Error fetching active businesses:', activeBusinessesError);
+        } else if (activeBusinesses && activeBusinesses.length === 1) {
+          business = activeBusinesses[0];
+          lookupSource = 'shared_mode_fallback';
+          console.log('[Voice] Resolved single active business in shared mode:', business.id, business.name);
+        } else if (activeBusinesses && activeBusinesses.length > 1) {
+          console.log('[Voice] Multiple active businesses found in shared mode, cannot auto-resolve');
+        } else {
+          console.log('[Voice] No active businesses found in shared mode');
+        }
+      } catch (fallbackError) {
+        console.error('[Voice] Error in shared mode fallback:', fallbackError);
+      }
+    }
+    
     if (!business) {
-      console.log('[Voice] No business found for candidates:', uniqueCandidates);
+      console.warn('[Voice] No business found for candidates:', uniqueCandidates);
+      console.warn('[Voice] Shared mode:', process.env.USE_SHARED_TWILIO_NUMBER === 'true' || !!sharedTwilioNumber);
       
       const twiml = generateTwiMLResponse();
 
