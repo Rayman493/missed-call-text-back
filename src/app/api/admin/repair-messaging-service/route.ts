@@ -59,118 +59,26 @@ export async function POST(request: Request) {
 
     const existingSids = new Set(existingPhoneNumbers.map(pn => pn.sid))
 
-    let attachedCount = 0
-    let alreadyAttachedCount = 0
-    let failedCount = 0
-    const details = []
-
-    for (const business of businesses) {
-      const pnSid = business.twilio_phone_number_sid
-
-      if (!pnSid || pnSid === 'SHARED_MODE') {
-        continue
-      }
-
-      console.log(`[Repair Messaging Service] Checking business=${business.id} PN SID=${pnSid} correlation_id=${correlationId}`)
-
-      if (existingSids.has(pnSid)) {
-        console.log(`[Repair Messaging Service] Number already attached=${pnSid} correlation_id=${correlationId}`)
-        alreadyAttachedCount++
-        details.push({
-          businessId: business.id,
-          phoneNumberSid: pnSid,
-          status: 'already_attached'
-        })
-      } else {
-        try {
-          console.log(`[Repair Messaging Service] Starting attachment for business=${business.id} correlation_id=${correlationId}`)
-          console.log(`[Repair Messaging Service] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
-          console.log(`[Repair Messaging Service] Phone Number SID=${pnSid} correlation_id=${correlationId}`)
-          console.log(`[Repair Messaging Service] Phone Number=${business.twilio_phone_number} correlation_id=${correlationId}`)
-          
-          const attachedSender = await client.messaging.v1.services(messagingServiceSid)
-            .phoneNumbers
-            .create({
-              phoneNumberSid: pnSid
-            })
-          
-          console.log(`[Repair Messaging Service] Attach success correlation_id=${correlationId}`)
-          console.log(`[Repair Messaging Service] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
-          
-          // Verify attachment succeeded
-          const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-            .phoneNumbers
-            .list({ limit: 100 })
-          
-          const isAttached = updatedPhoneNumbers.some(pn => pn.sid === pnSid)
-          
-          if (isAttached) {
-            console.log(`[Repair Messaging Service] Verification passed correlation_id=${correlationId}`)
-            attachedCount++
-            details.push({
-              businessId: business.id,
-              phoneNumberSid: pnSid,
-              phoneNumber: business.twilio_phone_number,
-              status: 'attached'
-            })
-          } else {
-            const errorMsg = 'Attachment succeeded but verification failed'
-            console.error(`[Repair Messaging Service] Verification failed correlation_id=${correlationId}`)
-            console.error(`[Repair Messaging Service] ERROR=${errorMsg} correlation_id=${correlationId}`)
-            failedCount++
-            details.push({
-              businessId: business.id,
-              phoneNumberSid: pnSid,
-              phoneNumber: business.twilio_phone_number,
-              status: 'verification_failed',
-              error: errorMsg
-            })
-          }
-        } catch (error: any) {
-          console.error(`[Repair Messaging Service] Attach failed correlation_id=${correlationId}`)
-          console.error(`[Repair Messaging Service] Error message=${error?.message || 'Unknown error'} correlation_id=${correlationId}`)
-          console.error(`[Repair Messaging Service] Error code=${error?.code || 'Unknown code'} correlation_id=${correlationId}`)
-          console.error(`[Repair Messaging Service] Error status=${error?.status || 'Unknown status'} correlation_id=${correlationId}`)
-          console.error(`[Repair Messaging Service] More info=${error?.moreInfo || 'N/A'} correlation_id=${correlationId}`)
-          console.error(`[Repair Messaging Service] Full error correlation_id=${correlationId}`, error)
-          
-          failedCount++
-          details.push({
-            businessId: business.id,
-            phoneNumberSid: pnSid,
-            phoneNumber: business.twilio_phone_number,
-            status: 'failed',
-            error: error?.message || 'Unknown error',
-            errorCode: error?.code,
-            errorStatus: error?.status,
-            moreInfo: error?.moreInfo
-          })
-        }
-      }
-    }
-
-    // Verify final sender pool state
-    const finalPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-      .phoneNumbers
-      .list({ limit: 100 })
-
-    console.log(`[Repair Messaging Service] Final sender pool count=${finalPhoneNumbers.length} correlation_id=${correlationId}`)
-    console.log(`[Repair Messaging Service] Final sender pool numbers=${finalPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
-
-    const summary = {
-      totalBusinessesChecked: businesses.length,
-      alreadyAttached: alreadyAttachedCount,
-      attached: attachedCount,
-      failed: failedCount,
-      finalSenderPoolCount: finalPhoneNumbers.length,
-      details
-    }
-
-    console.log(`[Repair Messaging Service] Summary correlation_id=${correlationId}`, summary)
-
-    return NextResponse.json({ success: true, summary })
-  } catch (error) {
-    console.error('[Repair Messaging Service] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // DISABLED: This repair logic was potentially attaching stale numbers to sender pool
+    // Only provisionTwilioNumber() should attach numbers to sender pool
+    console.log(`[Repair Messaging Service] SKIPPING sender pool repair to prevent stale number attachment correlation_id=${correlationId}`)
+    console.log(`[Repair Messaging Service] Only provisionTwilioNumber() should attach numbers to sender pool correlation_id=${correlationId}`)
+    console.log(`[Repair Messaging Service] This prevents stale persistence/overwrite logic from attaching wrong numbers correlation_id=${correlationId}`)
+    
+    // Return empty results since we're not doing the repair
+    return NextResponse.json({
+      success: true,
+      message: 'Sender pool repair disabled to prevent stale number attachment',
+      attachedCount: 0,
+      alreadyAttachedCount: existingPhoneNumbers.length,
+      failedCount: 0,
+      details: []
+    })
+  } catch (error: any) {
+    console.error(`[Repair Messaging Service] Error correlation_id=${correlationId}`, error)
+    return NextResponse.json(
+      { error: 'Internal server error', details: error?.message },
+      { status: 500 }
+    )
   }
 }

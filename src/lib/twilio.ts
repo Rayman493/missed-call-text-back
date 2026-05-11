@@ -440,6 +440,11 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
 
     // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
+      console.log(`[SenderAttach] ========== START ATTACH ========== correlation_id=${correlationId}`)
+      console.log(`[SenderAttach] phoneNumber=${purchasedPhoneNumber} correlation_id=${correlationId}`)
+      console.log(`[SenderAttach] phoneNumberSid=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
+      console.log(`[SenderAttach] messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
+      
       console.log(`[MessagingService] Attaching phone number correlation_id=${correlationId}`)
       console.log(`[MessagingService] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
       console.log(`[MessagingService] PhoneNumber SID=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
@@ -492,12 +497,23 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedPhoneNumberSid)
           
+          console.log(`[SenderAttach] ========== AFTER ATTACH ========== correlation_id=${correlationId}`)
+          console.log(`[SenderAttach] sender pool numbers: ${updatedPhoneNumbers.map(pn => pn.phoneNumber).join(', ')} correlation_id=${correlationId}`)
+          console.log(`[SenderAttach] sender pool SIDs: ${updatedPhoneNumbers.map(pn => pn.sid).join(', ')} correlation_id=${correlationId}`)
+          console.log(`[SenderAttach] purchased SID in pool: ${isAttached} correlation_id=${correlationId}`)
+          
           if (isAttached) {
+            console.log(`[SenderAttach] ========== ATTACH VERIFICATION PASSED ========== correlation_id=${correlationId}`)
             console.log(`[MessagingService] Verification PASSED correlation_id=${correlationId}`)
             console.log(`[MessagingService] Canonical SID found in sender pool=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
             console.log(`[MessagingService] Added to Messaging Service=${purchasedPhoneNumber} correlation_id=${correlationId}`)
             messagingServiceAttached = true
           } else {
+            console.error(`[SenderAttach] ========== CRITICAL_SENDER_POOL_ATTACH_MISMATCH ========== correlation_id=${correlationId}`)
+            console.error(`[SenderAttach] Expected purchased SID: ${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
+            console.error(`[SenderAttach] Actual sender pool SIDs: ${updatedPhoneNumbers.map(pn => pn.sid).join(', ')} correlation_id=${correlationId}`)
+            console.error(`[SenderAttach] This indicates stale number was attached or attach failed correlation_id=${correlationId}`)
+            
             const errorMsg = 'Attachment succeeded but verification failed'
             console.error(`[MessagingService] Verification FAILED correlation_id=${correlationId}`)
             console.error(`[MessagingService] ERROR=${errorMsg} correlation_id=${correlationId}`)
@@ -781,67 +797,25 @@ export async function repairProvisioningForBusiness(businessId: string): Promise
     }
     
     // Number not in pool, attach it
-    console.log(`[RepairProvisioning] Number not in pool, attaching correlation_id=${correlationId}`)
-    console.log(`[RepairProvisioning] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
-    console.log(`[RepairProvisioning] PhoneNumber SID=${business.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    // DISABLED: This repair logic was potentially attaching stale numbers to sender pool
+    // Only provisionTwilioNumber() should attach numbers to sender pool
+    console.log(`[RepairProvisioning] Number not in pool - SKIPPING attach to prevent stale number attachment correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] Only provisionTwilioNumber() should attach numbers to sender pool correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] This prevents stale persistence/overwrite logic from attaching wrong numbers correlation_id=${correlationId}`)
     
-    try {
-      await client.messaging.v1.services(messagingServiceSid)
-        .phoneNumbers
-        .create({
-          phoneNumberSid: business.twilio_phone_number_sid
-        })
-      
-      console.log(`[RepairProvisioning] Attached to Messaging Service correlation_id=${correlationId}`)
-      
-      // Verify attachment
-      const updatedPool = await client.messaging.v1.services(messagingServiceSid)
-        .phoneNumbers
-        .list({ limit: 100 })
-      
-      const isAttached = updatedPool.some(pn => pn.sid === business.twilio_phone_number_sid)
-      
-      if (isAttached) {
-        console.log(`[RepairProvisioning] Verification passed - number in pool correlation_id=${correlationId}`)
-        console.log(`[RepairProvisioning] Updating provisioning_status to attached correlation_id=${correlationId}`)
-        
-        await supabase
-          .from('businesses')
-          .update({
-            provisioning_status: 'attached',
-            provisioning_error: null,
-            provisioned_at: new Date().toISOString()
-          })
-          .eq('id', businessId)
-        
-        console.log(`[RepairProvisioning] Repair complete - status=attached correlation_id=${correlationId}`)
-        return true
-      } else {
-        console.error(`[RepairProvisioning] Verification failed - number not in pool after attach correlation_id=${correlationId}`)
-        
-        await supabase
-          .from('businesses')
-          .update({
-            provisioning_status: 'failed',
-            provisioning_error: 'Repair failed - number not in pool after attach'
-          })
-          .eq('id', businessId)
-        
-        return false
-      }
-    } catch (attachError) {
-      console.error(`[RepairProvisioning] Attach failed correlation_id=${correlationId}`, attachError)
-      
-      await supabase
-        .from('businesses')
-        .update({
-          provisioning_status: 'failed',
-          provisioning_error: attachError instanceof Error ? attachError.message : 'Unknown attach error'
-        })
-        .eq('id', businessId)
-      
-      return false
-    }
+    // Mark as failed instead of attempting attach
+    console.log(`[RepairProvisioning] Marking provisioning_status as failed correlation_id=${correlationId}`)
+    
+    await supabase
+      .from('businesses')
+      .update({
+        provisioning_status: 'failed',
+        provisioning_error: 'Number not in sender pool - re-provisioning required'
+      })
+      .eq('id', businessId)
+
+    console.log(`[RepairProvisioning] Repair complete - status=failed (re-provisioning required) correlation_id=${correlationId}`)
+    return false
   } catch (error) {
     console.error(`[RepairProvisioning] Repair failed correlation_id=${correlationId}`, error)
     return false

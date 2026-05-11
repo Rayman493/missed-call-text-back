@@ -101,31 +101,11 @@ export async function POST(request: Request) {
     }
 
     // Attach to Messaging Service if missing
-    console.log('[Repair Twilio Provisioning] Checking Messaging Service attachment')
-    try {
-      const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-        .phoneNumbers
-        .list({ limit: 100 })
-
-      const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === business.twilio_phone_number_sid)
-
-      if (!alreadyAttached) {
-        console.log('[Repair Twilio Provisioning] Number not attached, attaching now')
-        
-        const attachedSender = await client.messaging.v1.services(messagingServiceSid)
-          .phoneNumbers
-          .create({
-            phoneNumberSid: business.twilio_phone_number_sid
-          })
-        
-        console.log('[Repair Twilio Provisioning] Attach success, SID:', attachedSender.sid)
-      } else {
-        console.log('[Repair Twilio Provisioning] Number already attached')
-      }
-    } catch (attachError) {
-      console.error('[Repair Twilio Provisioning] Messaging Service attachment failed:', attachError)
-      return NextResponse.json({ error: 'Messaging Service attachment failed' }, { status: 500 })
-    }
+    // DISABLED: This repair logic was potentially attaching stale numbers to sender pool
+    // Only provisionTwilioNumber() should attach numbers to sender pool
+    console.log('[Repair Twilio Provisioning] Skipping Messaging Service attachment to prevent stale number attachment')
+    console.log('[Repair Twilio Provisioning] Only provisionTwilioNumber() should attach numbers to sender pool')
+    console.log('[Repair Twilio Provisioning] This prevents stale persistence/overwrite logic from attaching wrong numbers')
 
     // Verify sender pool
     console.log('[Repair Twilio Provisioning] Verifying sender pool')
