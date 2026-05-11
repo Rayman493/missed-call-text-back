@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         console.log('[STRIPE WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
+        console.log('[ProvisioningState] CHECKOUT.SESSION.COMPLETED webhook triggered')
         
         const session = event.data.object as Stripe.Checkout.Session
         const customerId = session.customer as string
@@ -188,6 +189,27 @@ export async function POST(request: Request) {
           console.log('[stripe-webhook] Could not retrieve subscription status, proceeding with customer and subscription IDs only')
         }
 
+        // Fetch current business state before update for debugging
+        console.log('[ProvisioningState] Fetching current business state before update')
+        const { data: currentBusiness, error: currentBusinessError } = await supabase
+          .from('businesses')
+          .select('id, provisioning_status, provisioning_error, subscription_status, twilio_phone_number, twilio_phone_number_sid')
+          .eq('id', businessId)
+          .single()
+        
+        if (currentBusiness) {
+          console.log('[ProvisioningState] Current business state before update:', {
+            business_id: currentBusiness.id,
+            provisioning_status: currentBusiness.provisioning_status,
+            provisioning_error: currentBusiness.provisioning_error,
+            subscription_status: currentBusiness.subscription_status,
+            twilio_phone_number: currentBusiness.twilio_phone_number,
+            twilio_phone_number_sid: currentBusiness.twilio_phone_number_sid
+          })
+        } else {
+          console.error('[ProvisioningState] Failed to fetch current business state:', currentBusinessError)
+        }
+
         console.log('[STRIPE WEBHOOK] ========== DB UPDATE START ==========')
         console.log('[Stripe Webhook] EVENT: checkout.session.completed')
         console.log('[STRIPE WEBHOOK] Business ID:', businessId)
@@ -213,6 +235,67 @@ export async function POST(request: Request) {
           console.log('[STRIPE WEBHOOK] ========== DB UPDATE SUCCESS ==========')
           console.log('[STRIPE WEBHOOK] Successfully updated business:', businessId)
           console.log('[STRIPE WEBHOOK] Fields updated:', Object.keys(updateData).join(', '))
+          
+          // Fetch updated business state after update
+          console.log('[ProvisioningState] Fetching business state after update')
+          const { data: updatedBusiness, error: updatedBusinessError } = await supabase
+            .from('businesses')
+            .select('id, provisioning_status, provisioning_error, subscription_status, twilio_phone_number, twilio_phone_number_sid')
+            .eq('id', businessId)
+            .single()
+          
+          if (updatedBusiness) {
+            console.log('[ProvisioningState] Business state after update:', {
+              business_id: updatedBusiness.id,
+              provisioning_status: updatedBusiness.provisioning_status,
+              provisioning_error: updatedBusiness.provisioning_error,
+              subscription_status: updatedBusiness.subscription_status,
+              twilio_phone_number: updatedBusiness.twilio_phone_number,
+              twilio_phone_number_sid: updatedBusiness.twilio_phone_number_sid
+            })
+            
+            // Check if provisioning should be triggered
+            const shouldProvision = 
+              (updatedBusiness.subscription_status === 'trialing' || updatedBusiness.subscription_status === 'active') &&
+              !updatedBusiness.twilio_phone_number &&
+              updatedBusiness.provisioning_status !== 'provisioning'
+            
+            console.log('[ProvisioningState] Should trigger provisioning:', shouldProvision)
+            console.log('[ProvisioningState] Provisioning trigger conditions:', {
+              subscription_status: updatedBusiness.subscription_status,
+              has_twilio_phone_number: !!updatedBusiness.twilio_phone_number,
+              provisioning_status: updatedBusiness.provisioning_status,
+              is_trialing_or_active: updatedBusiness.subscription_status === 'trialing' || updatedBusiness.subscription_status === 'active',
+              not_already_provisioning: updatedBusiness.provisioning_status !== 'provisioning'
+            })
+            
+            if (shouldProvision) {
+              console.log('[ProvisioningState] TRIGGERING provisioning from checkout.session.completed webhook')
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    business_id: businessId
+                  })
+                })
+                
+                if (response.ok) {
+                  console.log('[ProvisioningState] Provisioning triggered successfully from webhook')
+                } else {
+                  console.error('[ProvisioningState] Failed to trigger provisioning from webhook:', response.status, await response.text())
+                }
+              } catch (provisioningError) {
+                console.error('[ProvisioningState] Error triggering provisioning from webhook:', provisioningError)
+              }
+            } else {
+              console.log('[ProvisioningState] NOT triggering provisioning - conditions not met')
+            }
+          } else {
+            console.error('[ProvisioningState] Failed to fetch updated business state:', updatedBusinessError)
+          }
         }
 
         // DISABLED: Old Twilio Number Manager provisioning path

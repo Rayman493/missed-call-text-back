@@ -9,7 +9,9 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { business_id } = body
 
+    console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING START ==========')
     console.log('[ProvisioningTrigger] business_id:', business_id)
+    console.log('[ProvisioningTrigger] Request timestamp:', new Date().toISOString())
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -28,10 +30,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    console.log('[ProvisioningTrigger] subscription_status:', business.subscription_status)
-    console.log('[ProvisioningTrigger] existing number:', business.twilio_phone_number)
-    console.log('[ProvisioningTrigger] existing number SID:', business.twilio_phone_number_sid)
-    console.log('[ProvisioningTrigger] provisioning_status:', business.provisioning_status)
+    console.log('[ProvisioningTrigger] Business state before checks:', {
+      business_id: business.id,
+      subscription_status: business.subscription_status,
+      existing_number: business.twilio_phone_number,
+      existing_number_sid: business.twilio_phone_number_sid,
+      provisioning_status: business.provisioning_status,
+      provisioning_error: business.provisioning_error
+    })
 
     // Only trigger provisioning if subscription is trialing or active
     if (business.subscription_status !== 'trialing' && business.subscription_status !== 'active') {

@@ -105,14 +105,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
                              business.call_forwarding_enabled
     const testComplete = business.forwarding_verified
 
-    console.log('[OnboardingState] Computing state:', {
+    console.log('[ProvisioningState] Computing onboarding state:', {
+      business_id: business.id,
       subscription_status: business.subscription_status,
       subscriptionActive,
       twilioReady,
       twilio_phone_number: business.twilio_phone_number,
+      twilio_phone_number_sid: business.twilio_phone_number_sid,
       forwardingComplete,
       testComplete,
-      provisioning_status: business.provisioning_status
+      provisioning_status: business.provisioning_status,
+      provisioning_error: business.provisioning_error,
+      provisioned_at: business.provisioned_at
     })
 
     // Define onboarding state logic

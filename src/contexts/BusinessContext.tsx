@@ -108,8 +108,17 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           throw fetchError
         }
       } else {
-        console.log('[BusinessContext] Business found:', businessData?.id, 'for user:', user.id)
-        console.log('[BusinessContext] Business subscription status:', businessData?.subscription_status)
+        console.log('[ProvisioningState] Business found:', businessData?.id, 'for user:', user.id)
+        console.log('[ProvisioningState] Business subscription status:', businessData?.subscription_status)
+        console.log('[ProvisioningState] Business provisioning state:', {
+          business_id: businessData?.id,
+          provisioning_status: businessData?.provisioning_status,
+          provisioning_error: businessData?.provisioning_error,
+          subscription_status: businessData?.subscription_status,
+          twilio_phone_number: businessData?.twilio_phone_number,
+          twilio_phone_number_sid: businessData?.twilio_phone_number_sid,
+          provisioned_at: businessData?.provisioned_at
+        })
         setBusiness(businessData)
       }
     } catch (err: any) {
