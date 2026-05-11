@@ -148,18 +148,48 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       })
     }
 
-    // 2. ReplyFlow number ready
+    // 2. ReplyFlow number ready (only show after subscription is active)
     const twilioReady = !!business.twilio_phone_number
     
-    items.push({
-      id: 'number',
-      title: 'ReplyFlow number ready',
-      description: 'Your ReplyFlow forwarding number has been assigned.',
-      status: twilioReady ? 'complete' : 'needs-action',
-      details: twilioReady 
-        ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}`
-        : 'Setting up your ReplyFlow number...'
-    })
+    // Only show number ready step if subscription is active
+    if (subscriptionActive) {
+      items.push({
+        id: 'number',
+        title: 'ReplyFlow number ready',
+        description: 'Your ReplyFlow forwarding number has been assigned.',
+        status: twilioReady ? 'complete' : 'needs-action',
+        details: twilioReady 
+          ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}`
+          : business.provisioning_status === 'provisioning'
+            ? 'Provisioning your ReplyFlow number...'
+            : business.provisioning_status === 'failed'
+            ? 'Provisioning failed - click to retry'
+            : 'Setting up your ReplyFlow number...',
+        buttonText: !twilioReady && business.provisioning_status === 'failed' ? 'Retry Provisioning' : undefined,
+        buttonOnClick: !twilioReady && business.provisioning_status === 'failed' ? async () => {
+          // Trigger retry provisioning
+          try {
+            const response = await fetch('/api/admin/retry-twilio-provisioning', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || ''}`
+              },
+              body: JSON.stringify({
+                business_id: business.id,
+                adminSecret: process.env.NEXT_PUBLIC_ADMIN_SECRET || ''
+              })
+            })
+            if (response.ok) {
+              // Refresh business data
+              refreshBusiness()
+            }
+          } catch (error) {
+            console.error('Retry provisioning failed:', error)
+          }
+        } : undefined
+      })
+    }
 
     // 3. Set up call forwarding (only show after subscription is active)
     const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled

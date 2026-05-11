@@ -342,6 +342,86 @@ export async function POST(request: Request) {
             console.error('[DEBUG] Supabase error:', updateError)
           } else {
             console.log('[DEBUG] Update affected 1 row - business:', business.id)
+            
+            // Trigger provisioning if subscription is trialing or active and business has no number
+            if (subscription.status === 'trialing' || subscription.status === 'active') {
+              console.log('[Provisioning] Subscription is trialing or active, checking if provisioning needed')
+              
+              // Fetch business details to check if number is already provisioned
+              const { data: businessDetails, error: detailsError } = await supabase
+                .from('businesses')
+                .select('id, twilio_phone_number, provisioning_status')
+                .eq('id', business.id)
+                .single()
+              
+              if (!detailsError && businessDetails) {
+                console.log('[Provisioning] Business details:', {
+                  id: businessDetails.id,
+                  hasNumber: !!businessDetails.twilio_phone_number,
+                  provisioningStatus: businessDetails.provisioning_status
+                })
+                
+                // Only provision if no number exists and not already provisioning
+                if (!businessDetails.twilio_phone_number && businessDetails.provisioning_status !== 'provisioning') {
+                  console.log('[Provisioning] Triggering provisioning for business:', businessDetails.id)
+                  
+                  try {
+                    // Set provisioning status to 'provisioning'
+                    await supabase
+                      .from('businesses')
+                      .update({ provisioning_status: 'provisioning' })
+                      .eq('id', businessDetails.id)
+                    
+                    // Import and call provisioning function
+                    const { provisionTwilioNumber } = await import('@/lib/twilio')
+                    
+                    const provisioningResult = await provisionTwilioNumber(businessDetails.id)
+                    
+                    if (provisioningResult) {
+                      console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
+                      
+                      // Update business with provisioned number
+                      await supabase
+                        .from('businesses')
+                        .update({
+                          twilio_phone_number: provisioningResult.phoneNumber,
+                          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+                          sms_type: 'a2p_local',
+                          a2p_status: 'active',
+                          messaging_status: 'active',
+                          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                          provisioning_status: 'active',
+                          provisioning_error: null,
+                          provisioned_at: new Date().toISOString()
+                        })
+                        .eq('id', businessDetails.id)
+                      
+                      console.log('[Provisioning] Business updated with provisioned number')
+                    } else {
+                      console.error('[Provisioning] Provisioning failed - no result returned')
+                      await supabase
+                        .from('businesses')
+                        .update({
+                          provisioning_status: 'failed',
+                          provisioning_error: 'Provisioning failed - no result returned'
+                        })
+                        .eq('id', businessDetails.id)
+                    }
+                  } catch (provisioningError) {
+                    console.error('[Provisioning] Error during provisioning:', provisioningError)
+                    await supabase
+                      .from('businesses')
+                      .update({
+                        provisioning_status: 'failed',
+                        provisioning_error: provisioningError instanceof Error ? provisioningError.message : 'Unknown error'
+                      })
+                      .eq('id', businessDetails.id)
+                  }
+                } else {
+                  console.log('[Provisioning] Skipping provisioning - business already has number or is already provisioning')
+                }
+              }
+            }
           }
         } else {
           console.error('[DEBUG] Business not found for customer:', customerId)
