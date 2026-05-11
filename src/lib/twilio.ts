@@ -404,6 +404,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     console.log(`[Provisioning] Purchased number accountSid=${purchasedNumber.accountSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Active account SID=${accountSid} correlation_id=${correlationId}`)
+    console.log(`[Provisioning] Purchased number is SINGLE SOURCE OF TRUTH correlation_id=${correlationId}`)
     
     // Check for account mismatch
     if (purchasedNumber.accountSid !== accountSid) {

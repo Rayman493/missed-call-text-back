@@ -477,26 +477,35 @@ export async function POST(request: Request) {
                     
                     if (provisioningResult) {
                       console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
+                      console.log('[Provisioning] Purchased number from Twilio:', provisioningResult.phoneNumber)
+                      console.log('[Provisioning] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
                       console.log('[Provisioning] Updating business row with provisioned number')
+                      console.log('[Provisioning] Saving number to database:', provisioningResult.phoneNumber)
                       
                       // Update business with provisioned number ONLY if messaging service attached
                       if (provisioningResult.messagingServiceAttached) {
+                        const updatePayload = {
+                          twilio_phone_number: provisioningResult.phoneNumber,
+                          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+                          sms_type: 'a2p_local',
+                          a2p_status: 'active',
+                          messaging_status: 'active',
+                          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                          provisioning_status: 'attached',
+                          provisioning_error: null,
+                          provisioned_at: new Date().toISOString()
+                        }
+                        
+                        console.log('[Provisioning] Update payload twilio_phone_number:', updatePayload.twilio_phone_number)
+                        console.log('[Provisioning] Update payload twilio_phone_number_sid:', updatePayload.twilio_phone_number_sid)
+                        
                         await supabase
                           .from('businesses')
-                          .update({
-                            twilio_phone_number: provisioningResult.phoneNumber,
-                            twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-                            sms_type: 'a2p_local',
-                            a2p_status: 'active',
-                            messaging_status: 'active',
-                            twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-                            provisioning_status: 'attached',
-                            provisioning_error: null,
-                            provisioned_at: new Date().toISOString()
-                          })
+                          .update(updatePayload)
                           .eq('id', businessDetails.id)
 
                         console.log('[Provisioning] Business updated with provisioned number and status=attached')
+                        console.log('[Provisioning] Final business.twilio_phone_number:', provisioningResult.phoneNumber)
                       } else {
                         console.error('[Provisioning] Messaging Service NOT attached - NOT saving number to business')
                         console.error('[Provisioning] Error:', provisioningResult.messagingServiceError)

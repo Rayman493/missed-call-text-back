@@ -77,25 +77,34 @@ export async function POST(request: Request) {
 
     if (provisioningResult) {
       console.log('[ProvisioningTrigger] Provisioning succeeded:', provisioningResult.phoneNumber)
+      console.log('[ProvisioningTrigger] Purchased number from Twilio:', provisioningResult.phoneNumber)
+      console.log('[ProvisioningTrigger] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
       
       // Update business with provisioned number ONLY if messaging service attached
       if (provisioningResult.messagingServiceAttached) {
+        const updatePayload = {
+          twilio_phone_number: provisioningResult.phoneNumber,
+          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+          sms_type: 'a2p_local',
+          a2p_status: 'active',
+          messaging_status: 'active',
+          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+          provisioning_status: 'attached',
+          provisioning_error: null,
+          provisioned_at: new Date().toISOString()
+        }
+        
+        console.log('[ProvisioningTrigger] Saving number to database:', provisioningResult.phoneNumber)
+        console.log('[ProvisioningTrigger] Update payload twilio_phone_number:', updatePayload.twilio_phone_number)
+        console.log('[ProvisioningTrigger] Update payload twilio_phone_number_sid:', updatePayload.twilio_phone_number_sid)
+        
         await supabase
           .from('businesses')
-          .update({
-            twilio_phone_number: provisioningResult.phoneNumber,
-            twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-            sms_type: 'a2p_local',
-            a2p_status: 'active',
-            messaging_status: 'active',
-            twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-            provisioning_status: 'attached',
-            provisioning_error: null,
-            provisioned_at: new Date().toISOString()
-          })
+          .update(updatePayload)
           .eq('id', business.id)
 
         console.log('[ProvisioningTrigger] Business updated with provisioned number and status=attached')
+        console.log('[ProvisioningTrigger] Final business.twilio_phone_number:', provisioningResult.phoneNumber)
 
         return NextResponse.json({
           success: true,
