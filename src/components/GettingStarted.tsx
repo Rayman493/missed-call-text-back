@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
@@ -11,6 +11,15 @@ import { handleBillingAction } from '@/lib/billing'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import Link from 'next/link'
 import { Circle } from 'lucide-react'
+
+type OnboardingState = 
+  | 'loading'
+  | 'no_subscription'
+  | 'provisioning_number'
+  | 'number_ready'
+  | 'forwarding_needed'
+  | 'testing_needed'
+  | 'active_ready'
 
 interface ChecklistItem {
   id: string
@@ -37,6 +46,59 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   const [isAnimating, setIsAnimating] = useState(false)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
 
+  // Compute onboarding state once with useMemo
+  const onboardingState: OnboardingState = useMemo(() => {
+    // Loading state - wait for business to be loaded
+    if (!business) {
+      return 'loading'
+    }
+
+    const subscriptionActive = hasValidSubscription(
+      business.subscription_status, 
+      business.stripe_customer_id, 
+      business.stripe_subscription_id
+    )
+    const twilioReady = !!business.twilio_phone_number
+    const forwardingComplete = business.business_phone_number && 
+                             business.phone_setup_completed_at && 
+                             business.call_forwarding_enabled
+    const testComplete = business.forwarding_verified
+
+    console.log('[OnboardingState] Computing state:', {
+      subscription_status: business.subscription_status,
+      subscriptionActive,
+      twilioReady,
+      twilio_phone_number: business.twilio_phone_number,
+      forwardingComplete,
+      testComplete,
+      provisioning_status: business.provisioning_status
+    })
+
+    // Define onboarding state logic
+    if (!subscriptionActive) {
+      console.log('[OnboardingState] Resolved: no_subscription')
+      return 'no_subscription'
+    }
+
+    if (subscriptionActive && !twilioReady) {
+      console.log('[OnboardingState] Resolved: provisioning_number')
+      return 'provisioning_number'
+    }
+
+    if (twilioReady && !forwardingComplete) {
+      console.log('[OnboardingState] Resolved: forwarding_needed')
+      return 'forwarding_needed'
+    }
+
+    if (forwardingComplete && !testComplete) {
+      console.log('[OnboardingState] Resolved: testing_needed')
+      return 'testing_needed'
+    }
+
+    console.log('[OnboardingState] Resolved: active_ready')
+    return 'active_ready'
+  }, [business])
+
   const handleStartTrial = async () => {
     if (isHandlingBilling) return
     
@@ -62,25 +124,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     }
   }
 
-  // Calculate if all steps are complete
-  const isFullyComplete = () => {
-    if (!business) return false
-    
-    const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-    const twilioReady = !!business.twilio_phone_number
-    
-    // Base requirements: subscription active and ReplyFlow number ready
-    if (!subscriptionActive || !twilioReady) return false
-    
-    // If subscription is active, also require forwarding setup and test
-    if (subscriptionActive) {
-      const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
-      const testComplete = business.forwarding_verified
-      return forwardingComplete && testComplete
-    }
-    
-    return true
-  }
+  // Calculate if all steps are complete based on computed state
+  const isFullyComplete = useMemo(() => {
+    return onboardingState === 'active_ready'
+  }, [onboardingState])
 
   // Load collapse preference from localStorage
   useEffect(() => {
@@ -101,7 +148,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
   // Auto-collapse logic
   useEffect(() => {
-    const complete = isFullyComplete()
+    const complete = isFullyComplete
     
     // Auto-collapse if complete and no user preference exists
     if (complete && typeof window !== 'undefined') {
@@ -117,25 +164,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     if (!business) return []
 
     const items: ChecklistItem[] = []
+    const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
+    const isAuthenticated = !!business
 
     // 1. Start your free trial
-    const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
-    const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
-    
-    // Check if user is authenticated (has business context means they're logged in)
-    const isAuthenticated = !!business
-    
-    if (subscriptionActive) {
-      items.push({
-        id: 'trial',
-        title: 'Trial active',
-        description: 'Your ReplyFlow system is ready to capture missed calls.',
-        status: 'complete',
-        details: isTrialing ? '14-day free trial active' : 'Subscription active',
-        buttonText: 'Manage Billing',
-        buttonOnClick: handleStartTrial
-      })
-    } else {
+    if (onboardingState === 'no_subscription') {
       items.push({
         id: 'trial',
         title: 'Start your free trial',
@@ -146,13 +179,23 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         buttonOnClick: isAuthenticated ? handleStartTrial : undefined,
         buttonHref: isAuthenticated ? undefined : '/auth/signup'
       })
+    } else {
+      // Trial active
+      items.push({
+        id: 'trial',
+        title: 'Trial active',
+        description: 'Your ReplyFlow system is ready to capture missed calls.',
+        status: 'complete',
+        details: isTrialing ? '14-day free trial active' : 'Subscription active',
+        buttonText: 'Manage Billing',
+        buttonOnClick: handleStartTrial
+      })
     }
 
     // 2. ReplyFlow number ready (only show after subscription is active)
-    const twilioReady = !!business.twilio_phone_number
-    
-    // Only show number ready step if subscription is active
-    if (subscriptionActive) {
+    if (onboardingState === 'provisioning_number' || onboardingState === 'forwarding_needed' || onboardingState === 'testing_needed' || onboardingState === 'active_ready') {
+      const twilioReady = onboardingState !== 'provisioning_number' && business.provisioning_status === 'attached'
+      
       items.push({
         id: 'number',
         title: 'ReplyFlow number ready',
@@ -167,17 +210,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
             : 'Setting up your ReplyFlow number...',
         buttonText: !twilioReady && business.provisioning_status === 'failed' ? 'Retry Provisioning' : undefined,
         buttonOnClick: !twilioReady && business.provisioning_status === 'failed' ? async () => {
-          // Trigger retry provisioning
+          // Trigger retry provisioning using repair endpoint
           try {
-            const response = await fetch('/api/admin/retry-twilio-provisioning', {
+            const response = await fetch('/api/admin/repair-twilio-provisioning', {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || ''}`
+                'Content-Type': 'application/json'
               },
               body: JSON.stringify({
                 business_id: business.id,
-                adminSecret: process.env.NEXT_PUBLIC_ADMIN_SECRET || ''
+                adminSecret: process.env.ADMIN_SECRET || ''
               })
             })
             if (response.ok) {
@@ -191,11 +233,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       })
     }
 
-    // 3. Set up call forwarding (only show after subscription is active)
-    const forwardingComplete = business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled
-    
-    // Only show forwarding setup if subscription is active
-    if (subscriptionActive) {
+    // 3. Set up call forwarding (only show after number is ready)
+    if (onboardingState === 'forwarding_needed' || onboardingState === 'testing_needed' || onboardingState === 'active_ready') {
+      const forwardingComplete = onboardingState !== 'forwarding_needed'
+      
       items.push({
         id: 'forwarding',
         title: 'Set up call forwarding',
@@ -206,16 +247,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       })
 
       // 4. Test your setup (only show after forwarding is set up)
-      const testComplete = business.forwarding_verified
-      
-      items.push({
-        id: 'test',
-        title: 'Test your setup',
-        description: 'Call your business number from another phone to confirm everything works.',
-        status: testComplete ? 'complete' : forwardingComplete ? 'needs-action' : 'not-tested-yet',
-        buttonText: testComplete ? undefined : 'View Test Instructions',
-        buttonHref: '/dashboard/test-setup'
-      })
+      if (onboardingState === 'testing_needed' || onboardingState === 'active_ready') {
+        const testComplete = onboardingState !== 'testing_needed'
+        
+        items.push({
+          id: 'test',
+          title: 'Test your setup',
+          description: 'Call your business number from another phone to confirm everything works.',
+          status: testComplete ? 'complete' : forwardingComplete ? 'needs-action' : 'not-tested-yet',
+          buttonText: testComplete ? undefined : 'View Test Instructions',
+          buttonHref: '/dashboard/test-setup'
+        })
+      }
     }
 
     return items
@@ -234,7 +277,22 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     setTimeout(() => setIsAnimating(false), 300)
   }
 
-  const complete = isFullyComplete()
+  const complete = isFullyComplete
+
+  // Show loading state while onboarding state is resolving
+  if (onboardingState === 'loading') {
+    return (
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-6 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+          <div className="flex-1">
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Compact complete collapsed state
   if (complete && !isExpanded) {

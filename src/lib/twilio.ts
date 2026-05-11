@@ -512,16 +512,50 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           console.error(`[Provisioning] CRITICAL ERROR: Canonical number NOT in pool correlation_id=${correlationId}`)
           console.error(`[Provisioning] Canonical number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
           console.error(`[Provisioning] Pool numbers=${finalPoolNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
+          
+          // Release the purchased number since verification failed
+          console.log(`[Provisioning] Releasing number due to verification failure correlation_id=${correlationId}`)
+          try {
+            await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
+            console.log(`[Provisioning] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+          } catch (releaseError) {
+            console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
+          }
+          
           throw new Error(`Critical: Canonical number ${canonicalPhoneNumber} not found in Messaging Service pool after provisioning`)
         }
         
         console.log(`[Provisioning] Final validation passed: canonical number in pool correlation_id=${correlationId}`)
       } catch (validationError: any) {
         console.error(`[Provisioning] Final validation failed correlation_id=${correlationId}`, validationError)
+        
+        // Release the purchased number since verification failed
+        console.log(`[Provisioning] Releasing number due to validation error correlation_id=${correlationId}`)
+        try {
+          await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
+          console.log(`[Provisioning] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+        } catch (releaseError) {
+          console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
+        }
+        
         throw new Error(`Final validation failed: ${validationError.message}`)
       }
+    } else if (!messagingServiceAttached) {
+      console.error(`[Provisioning] Messaging Service attachment failed, not returning result correlation_id=${correlationId}`)
+      
+      // Release the purchased number since attachment failed
+      console.log(`[Provisioning] Releasing number due to attachment failure correlation_id=${correlationId}`)
+      try {
+        await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
+        console.log(`[Provisioning] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+      } catch (releaseError) {
+        console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
+      }
+      
+      return null
     }
     
+    console.log(`[Provisioning] STATUS attached correlation_id=${correlationId}`)
     return {
       phoneNumber: canonicalPhoneNumber,
       phoneNumberSid: canonicalPhoneNumberSid,
