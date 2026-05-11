@@ -391,31 +391,34 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
 
     // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
-      console.log(`[SenderPool] Starting Messaging Service attachment correlation_id=${correlationId}`)
-      console.log(`[SenderPool] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
-      console.log(`[SenderPool] Phone Number SID=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
-      console.log(`[SenderPool] Phone Number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+      console.log(`[MessagingService] Attaching phone number correlation_id=${correlationId}`)
+      console.log(`[MessagingService] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
+      console.log(`[MessagingService] PhoneNumber SID=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+      console.log(`[MessagingService] PhoneNumber=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+      console.log(`[MessagingService] SID type=${canonicalPhoneNumberSid.startsWith('PN') ? 'IncomingPhoneNumber SID (correct)' : 'INVALID - not a PN SID'} correlation_id=${correlationId}`)
       
       try {
         // Check if number is already attached to the Messaging Service
-        console.log(`[SenderPool] Fetching current sender pool correlation_id=${correlationId}`)
+        console.log(`[MessagingService] Fetching current sender pool correlation_id=${correlationId}`)
         const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
           .list({ limit: 100 })
         
-        console.log(`[SenderPool] Current sender pool count=${existingPhoneNumbers.length} correlation_id=${correlationId}`)
-        console.log(`[SenderPool] Current sender pool numbers=${existingPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
+        console.log(`[MessagingService] Current sender pool count=${existingPhoneNumbers.length} correlation_id=${correlationId}`)
+        console.log(`[MessagingService] Current sender pool SIDs=${existingPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
+        console.log(`[MessagingService] Current sender pool numbers=${existingPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
         
         const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
         
         if (alreadyAttached) {
-          console.log(`[SenderPool] Number already attached to Messaging Service, skipping correlation_id=${correlationId}`)
-          console.log(`[SenderPool] Verification passed (already attached) correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Number already attached to Messaging Service, skipping correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Verification PASSED (already attached) correlation_id=${correlationId}`)
           messagingServiceAttached = true
         } else {
           // Attach the number to the Messaging Service
-          console.log(`[SenderPool] Number not attached, starting attachment correlation_id=${correlationId}`)
-          console.log(`[SenderPool] Creating phoneNumberSid=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Number not attached, starting attachment correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Creating phoneNumberSid=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Twilio API method: client.messaging.v1.services(sid).phoneNumbers.create({phoneNumberSid}) correlation_id=${correlationId}`)
           
           const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
@@ -423,70 +426,75 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
               phoneNumberSid: canonicalPhoneNumberSid
             })
           
-          console.log(`[SenderPool] Attach success correlation_id=${correlationId}`)
-          console.log(`[SenderPool] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Attach response received correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Attach response=${JSON.stringify(attachedSender)} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Attached sender phoneNumber=${attachedSender.phoneNumber} correlation_id=${correlationId}`)
           
           // Verify attachment succeeded
-          console.log(`[SenderPool] Verifying attachment correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Verifying attachment correlation_id=${correlationId}`)
           const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .list({ limit: 100 })
           
-          console.log(`[SenderPool] Updated sender pool count=${updatedPhoneNumbers.length} correlation_id=${correlationId}`)
-          console.log(`[SenderPool] Updated sender pool numbers=${updatedPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Updated sender pool count=${updatedPhoneNumbers.length} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Updated sender pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Updated sender pool numbers=${updatedPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
           
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
           
           if (isAttached) {
-            console.log(`[SenderPool] Verification passed correlation_id=${correlationId}`)
-            console.log(`[SenderPool] Added to Messaging Service=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+            console.log(`[MessagingService] Verification PASSED correlation_id=${correlationId}`)
+            console.log(`[MessagingService] Canonical SID found in sender pool=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+            console.log(`[MessagingService] Added to Messaging Service=${canonicalPhoneNumber} correlation_id=${correlationId}`)
             messagingServiceAttached = true
           } else {
             const errorMsg = 'Attachment succeeded but verification failed'
-            console.error(`[SenderPool] Verification failed correlation_id=${correlationId}`)
-            console.error(`[SenderPool] ERROR=${errorMsg} correlation_id=${correlationId}`)
-            console.error(`[SenderPool] Canonical number SID=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
-            console.error(`[SenderPool] Updated pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
+            console.error(`[MessagingService] Verification FAILED correlation_id=${correlationId}`)
+            console.error(`[MessagingService] ERROR=${errorMsg} correlation_id=${correlationId}`)
+            console.error(`[MessagingService] Canonical number SID=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+            console.error(`[MessagingService] Updated pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
+            console.error(`[MessagingService] Canonical SID in pool?=${updatedPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)} correlation_id=${correlationId}`)
             messagingServiceError = errorMsg
             
             // Release the purchased number if attachment fails
-            console.log(`[SenderPool] Releasing purchased number due to attachment failure correlation_id=${correlationId}`)
+            console.log(`[MessagingService] Releasing purchased number due to attachment failure correlation_id=${correlationId}`)
             try {
               await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
-              console.log(`[SenderPool] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+              console.log(`[MessagingService] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
             } catch (releaseError) {
-              console.error(`[SenderPool] Failed to release number correlation_id=${correlationId}`, releaseError)
+              console.error(`[MessagingService] Failed to release number correlation_id=${correlationId}`, releaseError)
             }
             
             throw new Error(errorMsg)
           }
         }
       } catch (attachmentError: any) {
-        console.error(`[SenderPool] Attach failed correlation_id=${correlationId}`)
-        console.error(`[SenderPool] Error message=${attachmentError?.message || 'Unknown error'} correlation_id=${correlationId}`)
-        console.error(`[SenderPool] Error code=${attachmentError?.code || 'Unknown code'} correlation_id=${correlationId}`)
-        console.error(`[SenderPool] Error status=${attachmentError?.status || 'Unknown status'} correlation_id=${correlationId}`)
-        console.error(`[SenderPool] More info=${attachmentError?.moreInfo || 'N/A'} correlation_id=${correlationId}`)
-        console.error(`[SenderPool] Full error correlation_id=${correlationId}`, attachmentError)
+        console.error(`[MessagingService] Attach failed correlation_id=${correlationId}`)
+        console.error(`[MessagingService] Error message=${attachmentError?.message || 'Unknown error'} correlation_id=${correlationId}`)
+        console.error(`[MessagingService] Error code=${attachmentError?.code || 'Unknown code'} correlation_id=${correlationId}`)
+        console.error(`[MessagingService] Error status=${attachmentError?.status || 'Unknown status'} correlation_id=${correlationId}`)
+        console.error(`[MessagingService] More info=${attachmentError?.moreInfo || 'N/A'} correlation_id=${correlationId}`)
+        console.error(`[MessagingService] Full error correlation_id=${correlationId}`, attachmentError)
         
         const errorMsg = attachmentError?.message || 'Unknown attachment error'
         messagingServiceError = errorMsg
         
         // Release the purchased number if attachment fails
-        console.log(`[SenderPool] Releasing purchased number due to attachment error correlation_id=${correlationId}`)
+        console.log(`[MessagingService] Releasing purchased number due to attachment error correlation_id=${correlationId}`)
         try {
           await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
-          console.log(`[SenderPool] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+          console.log(`[MessagingService] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
         } catch (releaseError) {
-          console.error(`[SenderPool] Failed to release number correlation_id=${correlationId}`, releaseError)
+          console.error(`[MessagingService] Failed to release number correlation_id=${correlationId}`, releaseError)
         }
         
         // Do NOT swallow this error - propagate it
         throw new Error(`Messaging Service attachment failed: ${errorMsg}`)
       }
     } else {
-      console.log(`[SenderPool] No Messaging Service SID configured, skipping attachment correlation_id=${correlationId}`)
-      console.log(`[SenderPool] WARNING: Number will not be attached to Messaging Service correlation_id=${correlationId}`)
+      console.log(`[MessagingService] No Messaging Service SID configured, skipping attachment correlation_id=${correlationId}`)
+      console.log(`[MessagingService] WARNING: Number will not be attached to Messaging Service correlation_id=${correlationId}`)
       messagingServiceAttached = true // Not applicable
     }
 
