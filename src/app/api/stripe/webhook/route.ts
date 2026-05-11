@@ -477,22 +477,41 @@ export async function POST(request: Request) {
                     
                     if (provisioningResult) {
                       console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
+                      console.log('[Provisioning] Updating business row with provisioned number')
                       
-                      // Update business with provisioned number
-                      await supabase
-                        .from('businesses')
-                        .update({
-                          twilio_phone_number: provisioningResult.phoneNumber,
-                          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-                          sms_type: 'a2p_local',
-                          a2p_status: 'active',
-                          messaging_status: 'active',
-                          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-                          provisioning_status: 'attached',
-                          provisioning_error: null,
-                          provisioned_at: new Date().toISOString()
-                        })
-                        .eq('id', businessDetails.id)
+                      // Update business with provisioned number ONLY if messaging service attached
+                      if (provisioningResult.messagingServiceAttached) {
+                        await supabase
+                          .from('businesses')
+                          .update({
+                            twilio_phone_number: provisioningResult.phoneNumber,
+                            twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+                            sms_type: 'a2p_local',
+                            a2p_status: 'active',
+                            messaging_status: 'active',
+                            twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                            provisioning_status: 'attached',
+                            provisioning_error: null,
+                            provisioned_at: new Date().toISOString()
+                          })
+                          .eq('id', businessDetails.id)
+
+                        console.log('[Provisioning] Business updated with provisioned number and status=attached')
+                      } else {
+                        console.error('[Provisioning] Messaging Service NOT attached - NOT saving number to business')
+                        console.error('[Provisioning] Error:', provisioningResult.messagingServiceError)
+                        
+                        // Mark as failed
+                        await supabase
+                          .from('businesses')
+                          .update({
+                            provisioning_status: 'failed',
+                            provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+                          })
+                          .eq('id', businessDetails.id)
+                        
+                        console.log('[Provisioning] Business marked as failed')
+                      }
                       
                       console.log('[Provisioning] Business updated with provisioned number')
                     } else {

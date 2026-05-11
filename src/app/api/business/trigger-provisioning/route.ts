@@ -78,30 +78,50 @@ export async function POST(request: Request) {
     if (provisioningResult) {
       console.log('[ProvisioningTrigger] Provisioning succeeded:', provisioningResult.phoneNumber)
       
-      // Update business with provisioned number
-      await supabase
-        .from('businesses')
-        .update({
+      // Update business with provisioned number ONLY if messaging service attached
+      if (provisioningResult.messagingServiceAttached) {
+        await supabase
+          .from('businesses')
+          .update({
+            twilio_phone_number: provisioningResult.phoneNumber,
+            twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+            sms_type: 'a2p_local',
+            a2p_status: 'active',
+            messaging_status: 'active',
+            twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+            provisioning_status: 'attached',
+            provisioning_error: null,
+            provisioned_at: new Date().toISOString()
+          })
+          .eq('id', business.id)
+
+        console.log('[ProvisioningTrigger] Business updated with provisioned number and status=attached')
+
+        return NextResponse.json({
+          success: true,
+          message: 'Provisioning succeeded',
           twilio_phone_number: provisioningResult.phoneNumber,
-          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-          sms_type: 'a2p_local',
-          a2p_status: 'active',
-          messaging_status: 'active',
-          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-          provisioning_status: 'attached',
-          provisioning_error: null,
-          provisioned_at: new Date().toISOString()
+          twilio_phone_number_sid: provisioningResult.phoneNumberSid
         })
-        .eq('id', business.id)
+      } else {
+        console.error('[ProvisioningTrigger] Messaging Service NOT attached - NOT saving number to business')
+        console.error('[ProvisioningTrigger] Error:', provisioningResult.messagingServiceError)
+        
+        // Mark as failed
+        await supabase
+          .from('businesses')
+          .update({
+            provisioning_status: 'failed',
+            provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+          })
+          .eq('id', business.id)
 
-      console.log('[ProvisioningTrigger] Business updated with provisioned number')
-
-      return NextResponse.json({
-        success: true,
-        message: 'Provisioning succeeded',
-        twilio_phone_number: provisioningResult.phoneNumber,
-        twilio_phone_number_sid: provisioningResult.phoneNumberSid
-      })
+        return NextResponse.json({ 
+          error: 'Messaging Service attachment failed',
+          provisioning_status: 'failed',
+          provisioning_error: provisioningResult.messagingServiceError
+        }, { status: 500 })
+      }
     } else {
       console.error('[ProvisioningTrigger] Provisioning failed - no result returned')
       await supabase

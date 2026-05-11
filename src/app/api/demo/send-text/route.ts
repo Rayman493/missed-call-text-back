@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase/admin'
-import { twilioClient } from '@/lib/twilio'
+import { sendSms } from '@/lib/twilio'
 import { demoSmsRateLimiter, isValidPhoneNumber, sanitizeMessageContent } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
@@ -199,18 +199,17 @@ export async function POST(request: Request) {
         throw new Error(errorMsg)
       }
 
-      if (!twilioClient) {
-        throw new Error('Twilio client not initialized')
-      }
-
-      const message = await twilioClient.messages.create({
-        body: autoReplyMessage,
-        from: business.twilio_phone_number,
-        to: demoPhone,
+      const messageSid = await sendSms(business, demoPhone, autoReplyMessage, {
+        lead_id: demoLead.id,
+        conversation_id: conversation.id
       })
 
-      console.log('[demo-send-text] SMS sent successfully:', message.sid)
-      smsSuccess = true
+      if (messageSid) {
+        console.log('[demo-send-text] SMS sent successfully:', messageSid)
+        smsSuccess = true
+      } else {
+        throw new Error('Failed to send SMS')
+      }
     } catch (smsErr: any) {
       console.error('[demo-send-text] SMS send error:', {
         message: smsErr.message,

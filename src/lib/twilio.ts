@@ -621,3 +621,145 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     return null
   }
 }
+
+export async function repairProvisioningForBusiness(businessId: string): Promise<boolean> {
+  const correlationId = `REPAIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  
+  console.log(`[RepairProvisioning] START business_id=${businessId} correlation_id=${correlationId}`)
+  
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
+  
+  if (!accountSid || !authToken) {
+    console.error(`[RepairProvisioning] Credentials missing correlation_id=${correlationId}`)
+    return false
+  }
+  
+  try {
+    const client = Twilio(accountSid, authToken)
+    
+    // Fetch business details
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error')
+      .eq('id', businessId)
+      .single()
+    
+    if (businessError || !business) {
+      console.error(`[RepairProvisioning] Business not found correlation_id=${correlationId}`, businessError)
+      return false
+    }
+    
+    console.log(`[RepairProvisioning] Business twilio_phone_number=${business.twilio_phone_number} correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] Business twilio_phone_number_sid=${business.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] Business provisioning_status=${business.provisioning_status} correlation_id=${correlationId}`)
+    
+    // Check if business has a number SID
+    if (!business.twilio_phone_number_sid) {
+      console.error(`[RepairProvisioning] No number SID found, cannot repair correlation_id=${correlationId}`)
+      return false
+    }
+    
+    // Verify the number exists in Twilio
+    console.log(`[RepairProvisioning] Verifying number exists in Twilio correlation_id=${correlationId}`)
+    try {
+      await client.incomingPhoneNumbers(business.twilio_phone_number_sid).fetch()
+      console.log(`[RepairProvisioning] Number exists in Twilio correlation_id=${correlationId}`)
+    } catch (twilioError) {
+      console.error(`[RepairProvisioning] Number not found in Twilio correlation_id=${correlationId}`, twilioError)
+      // Number doesn't exist, need full provisioning
+      return false
+    }
+    
+    // Check if number is in sender pool
+    console.log(`[RepairProvisioning] Checking sender pool membership correlation_id=${correlationId}`)
+    const senderPool = await client.messaging.v1.services(messagingServiceSid)
+      .phoneNumbers
+      .list({ limit: 100 })
+    
+    const numberInPool = senderPool.find(pn => pn.sid === business.twilio_phone_number_sid)
+    
+    if (numberInPool) {
+      console.log(`[RepairProvisioning] Number already in sender pool correlation_id=${correlationId}`)
+      console.log(`[RepairProvisioning] Updating provisioning_status to attached correlation_id=${correlationId}`)
+      
+      await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'attached',
+          provisioning_error: null
+        })
+        .eq('id', businessId)
+      
+      console.log(`[RepairProvisioning] Repair complete - status=attached correlation_id=${correlationId}`)
+      return true
+    }
+    
+    // Number not in pool, attach it
+    console.log(`[RepairProvisioning] Number not in pool, attaching correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
+    console.log(`[RepairProvisioning] PhoneNumber SID=${business.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    
+    try {
+      await client.messaging.v1.services(messagingServiceSid)
+        .phoneNumbers
+        .create({
+          phoneNumberSid: business.twilio_phone_number_sid
+        })
+      
+      console.log(`[RepairProvisioning] Attached to Messaging Service correlation_id=${correlationId}`)
+      
+      // Verify attachment
+      const updatedPool = await client.messaging.v1.services(messagingServiceSid)
+        .phoneNumbers
+        .list({ limit: 100 })
+      
+      const isAttached = updatedPool.some(pn => pn.sid === business.twilio_phone_number_sid)
+      
+      if (isAttached) {
+        console.log(`[RepairProvisioning] Verification passed - number in pool correlation_id=${correlationId}`)
+        console.log(`[RepairProvisioning] Updating provisioning_status to attached correlation_id=${correlationId}`)
+        
+        await supabase
+          .from('businesses')
+          .update({
+            provisioning_status: 'attached',
+            provisioning_error: null,
+            provisioned_at: new Date().toISOString()
+          })
+          .eq('id', businessId)
+        
+        console.log(`[RepairProvisioning] Repair complete - status=attached correlation_id=${correlationId}`)
+        return true
+      } else {
+        console.error(`[RepairProvisioning] Verification failed - number not in pool after attach correlation_id=${correlationId}`)
+        
+        await supabase
+          .from('businesses')
+          .update({
+            provisioning_status: 'failed',
+            provisioning_error: 'Repair failed - number not in pool after attach'
+          })
+          .eq('id', businessId)
+        
+        return false
+      }
+    } catch (attachError) {
+      console.error(`[RepairProvisioning] Attach failed correlation_id=${correlationId}`, attachError)
+      
+      await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_error: attachError instanceof Error ? attachError.message : 'Unknown attach error'
+        })
+        .eq('id', businessId)
+      
+      return false
+    }
+  } catch (error) {
+    console.error(`[RepairProvisioning] Repair failed correlation_id=${correlationId}`, error)
+    return false
+  }
+}
