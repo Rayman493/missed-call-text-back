@@ -1214,50 +1214,15 @@ export const db = {
       }
       
       // Self-healing: If SID exists but phone number is missing, try to recover phone number from Twilio
+      // DISABLED: This self-healing was overwriting newly purchased numbers with old numbers from Twilio
+      // Only provisionTwilioNumber() should update twilio_phone_number
       if (!isSharedModeEnabled() && !existingBusiness.twilio_phone_number && existingBusiness.twilio_phone_number_sid) {
-        console.log('[Provisioning] Self-healing: SID exists but phone number is missing, attempting recovery')
+        console.log('[Provisioning] SID exists but phone number is missing - SKIPPING self-healing to prevent overwrite')
+        console.log('[Provisioning] This prevents stale persistence/overwrite logic from overwriting newly purchased numbers')
+        console.log('[Provisioning] Phone number will be recovered during provisioning if needed')
         
-        try {
-          const Twilio = require('twilio')
-          const accountSid = process.env.TWILIO_ACCOUNT_SID
-          const authToken = process.env.TWILIO_AUTH_TOKEN
-          
-          if (accountSid && authToken) {
-            const client = Twilio(accountSid, authToken)
-            
-            // Fetch the number by SID
-            const number = await client.incomingPhoneNumbers(existingBusiness.twilio_phone_number_sid).fetch()
-            
-            if (number && number.phoneNumber) {
-              console.log('[Provisioning] Recovered phone number from Twilio:', number.phoneNumber)
-              
-              // Update business with recovered phone number
-              const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
-                twilio_phone_number: number.phoneNumber,
-                sms_type: 'local_a2p',
-                a2p_status: 'approved',
-                messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-                provisioning_status: 'active',
-                provisioned_at: new Date().toISOString()
-              })
-              
-              if (updatedBusiness) {
-                console.log('[Provisioning] Business updated with recovered phone number:', number.phoneNumber)
-                console.log('[Provisioning] Marked provisioning_status=active')
-                console.log('[Provisioning] Set provisioned_at timestamp')
-                existingBusiness = updatedBusiness
-                // Skip provisioning since we recovered the phone number
-                needsProvisioning = false
-              }
-            } else {
-              console.log('[Provisioning] Number not found in Twilio by SID, will provision new number')
-            }
-          }
-        } catch (recoveryError) {
-          console.error('[Provisioning] Error during phone number recovery:', recoveryError)
-          // Continue with normal provisioning
-        }
+        // DO NOT run self-healing - let provisioning handle it
+        // This was causing the bug where newly purchased numbers were being overwritten with old numbers
       }
       
       // Self-healing: If both phone number and SID exist, verify they're still valid in Twilio

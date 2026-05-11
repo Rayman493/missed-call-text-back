@@ -105,6 +105,38 @@ export async function POST(request: Request) {
 
         console.log('[ProvisioningTrigger] Business updated with provisioned number and status=attached')
         console.log('[ProvisioningTrigger] Final business.twilio_phone_number:', provisioningResult.phoneNumber)
+        
+        // HARD VALIDATION: Re-read business row and verify number matches
+        const { data: verifiedBusiness, error: verifyError } = await supabase
+          .from('businesses')
+          .select('twilio_phone_number, twilio_phone_number_sid')
+          .eq('id', business.id)
+          .single()
+        
+        if (verifyError) {
+          console.error('[ProvisioningTrigger] CRITICAL: Failed to verify business after update:', verifyError)
+        } else {
+          console.log('[ProvisioningTrigger] Verified DB twilio_phone_number:', verifiedBusiness.twilio_phone_number)
+          console.log('[ProvisioningTrigger] Verified DB twilio_phone_number_sid:', verifiedBusiness.twilio_phone_number_sid)
+          
+          if (verifiedBusiness.twilio_phone_number !== provisioningResult.phoneNumber) {
+            console.error('[ProvisioningTrigger] CRITICAL NUMBER MISMATCH:')
+            console.error('[ProvisioningTrigger] Expected (purchased):', provisioningResult.phoneNumber)
+            console.error('[ProvisioningTrigger] Actual (DB):', verifiedBusiness.twilio_phone_number)
+            console.error('[ProvisioningTrigger] This indicates stale persistence or overwrite logic!')
+            throw new Error(`CRITICAL: Number mismatch after DB write. Expected ${provisioningResult.phoneNumber}, got ${verifiedBusiness.twilio_phone_number}`)
+          }
+          
+          if (verifiedBusiness.twilio_phone_number_sid !== provisioningResult.phoneNumberSid) {
+            console.error('[ProvisioningTrigger] CRITICAL SID MISMATCH:')
+            console.error('[ProvisioningTrigger] Expected (purchased):', provisioningResult.phoneNumberSid)
+            console.error('[ProvisioningTrigger] Actual (DB):', verifiedBusiness.twilio_phone_number_sid)
+            console.error('[ProvisioningTrigger] This indicates stale persistence or overwrite logic!')
+            throw new Error(`CRITICAL: SID mismatch after DB write. Expected ${provisioningResult.phoneNumberSid}, got ${verifiedBusiness.twilio_phone_number_sid}`)
+          }
+          
+          console.log('[ProvisioningTrigger] HARD VALIDATION PASSED: DB number matches purchased number')
+        }
 
         return NextResponse.json({
           success: true,
