@@ -330,6 +330,9 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     return null
   }
 
+  console.log(`[Twilio] Active account SID=${accountSid} correlation_id=${correlationId}`)
+  console.log(`[Twilio] Purchasing number under account=${accountSid} correlation_id=${correlationId}`)
+
   // Provision a dedicated local number for the business
   console.log(`[Provisioning] Provisioning dedicated local number for business=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using approved Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
@@ -370,6 +373,21 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
 
     console.log(`[Provisioning] Purchased number=${purchasedNumber.phoneNumber} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Purchased number SID=${purchasedNumber.sid} correlation_id=${correlationId}`)
+    console.log(`[Provisioning] Purchased number accountSid=${purchasedNumber.accountSid} correlation_id=${correlationId}`)
+    console.log(`[Provisioning] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
+    console.log(`[Provisioning] Active account SID=${accountSid} correlation_id=${correlationId}`)
+    
+    // Check for account mismatch
+    if (purchasedNumber.accountSid !== accountSid) {
+      console.error(`[MessagingService] Account mismatch detected correlation_id=${correlationId}`)
+      console.error(`[MessagingService] Purchased number accountSid=${purchasedNumber.accountSid} correlation_id=${correlationId}`)
+      console.error(`[MessagingService] Active account SID=${accountSid} correlation_id=${correlationId}`)
+      console.error(`[MessagingService] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
+      console.error(`[MessagingService] ERROR: Number purchased under different account than active Twilio client`)
+      throw new Error(`Account mismatch: Number purchased under account ${purchasedNumber.accountSid} but active client is ${accountSid}`)
+    }
+    
+    console.log(`[MessagingService] Account ownership verified - number purchased under active account correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured voice webhook=${appUrl}/api/twilio/voice correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured voice status callback=${appUrl}/api/twilio/voice-status correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured messaging webhook=${appUrl}/api/twilio/incoming-sms correlation_id=${correlationId}`)
