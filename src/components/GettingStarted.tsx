@@ -100,11 +100,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       return 'loading'
     }
 
-    const subscriptionActive = hasValidSubscription(
-      business.subscription_status, 
-      business.stripe_customer_id, 
-      business.stripe_subscription_id
-    )
+    // Simple inline computation to avoid initialization issues
+    const subscriptionActive = business.subscription_status && 
+      business.stripe_customer_id && 
+      business.stripe_subscription_id && 
+      (business.subscription_status === 'active' || business.subscription_status === 'trialing')
+    
     const twilioReady = !!business.twilio_phone_number && business.provisioning_status === 'active'
     const forwardingComplete = business.business_phone_number && 
                              business.phone_setup_completed_at && 
