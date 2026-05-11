@@ -45,6 +45,47 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
+  const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
+
+  // Fallback provisioning trigger on component mount
+  useEffect(() => {
+    const triggerProvisioningIfNeeded = async () => {
+      if (!business || hasTriggeredProvisioning) return
+      
+      const shouldTrigger = 
+        (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
+        !business.twilio_phone_number_sid &&
+        business.provisioning_status !== 'provisioning'
+      
+      if (shouldTrigger) {
+        console.log('[GettingStarted] Triggering fallback provisioning for business:', business.id)
+        try {
+          const response = await fetch('/api/business/trigger-provisioning', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              business_id: business.id
+            })
+          })
+          
+          if (response.ok) {
+            console.log('[GettingStarted] Fallback provisioning triggered successfully')
+            setHasTriggeredProvisioning(true)
+            // Refresh business after a short delay to get updated status
+            setTimeout(() => refreshBusiness(), 2000)
+          } else {
+            console.error('[GettingStarted] Fallback provisioning trigger failed')
+          }
+        } catch (error) {
+          console.error('[GettingStarted] Error triggering fallback provisioning:', error)
+        }
+      }
+    }
+    
+    triggerProvisioningIfNeeded()
+  }, [business, hasTriggeredProvisioning, refreshBusiness])
 
   // Compute onboarding state once with useMemo
   const onboardingState: OnboardingState = useMemo(() => {

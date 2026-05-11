@@ -342,26 +342,34 @@ export async function POST(request: Request) {
             console.error('[DEBUG] Supabase error:', updateError)
           } else {
             console.log('[DEBUG] Update affected 1 row - business:', business.id)
+          
+          console.log('[Stripe Webhook] subscription status updated:', subscription.status)
+          console.log('[Stripe Webhook] triggering provisioning check for business:', business.id)
+          
+          // Trigger provisioning if subscription is trialing or active and business has no number
+          if (subscription.status === 'trialing' || subscription.status === 'active') {
+            console.log('[ProvisioningTrigger] subscription_status:', subscription.status)
+            console.log('[ProvisioningTrigger] business_id:', business.id)
+            console.log('[Provisioning] Subscription is trialing or active, checking if provisioning needed')
             
-            // Trigger provisioning if subscription is trialing or active and business has no number
-            if (subscription.status === 'trialing' || subscription.status === 'active') {
-              console.log('[Provisioning] Subscription is trialing or active, checking if provisioning needed')
-              
-              // Fetch business details to check if number is already provisioned
-              const { data: businessDetails, error: detailsError } = await supabase
-                .from('businesses')
-                .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error')
-                .eq('id', business.id)
-                .single()
-              
-              if (!detailsError && businessDetails) {
-                console.log('[Provisioning] Business details:', {
-                  id: businessDetails.id,
-                  hasNumber: !!businessDetails.twilio_phone_number,
-                  hasNumberSid: !!businessDetails.twilio_phone_number_sid,
-                  provisioningStatus: businessDetails.provisioning_status,
-                  provisioningError: businessDetails.provisioning_error
-                })
+            // Fetch business details to check if number is already provisioned
+            const { data: businessDetails, error: detailsError } = await supabase
+              .from('businesses')
+              .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error')
+              .eq('id', business.id)
+              .single()
+            
+            if (!detailsError && businessDetails) {
+              console.log('[ProvisioningTrigger] existing number:', businessDetails.twilio_phone_number)
+              console.log('[ProvisioningTrigger] existing number SID:', businessDetails.twilio_phone_number_sid)
+              console.log('[ProvisioningTrigger] provisioning_status:', businessDetails.provisioning_status)
+              console.log('[Provisioning] Business details:', {
+                id: businessDetails.id,
+                hasNumber: !!businessDetails.twilio_phone_number,
+                hasNumberSid: !!businessDetails.twilio_phone_number_sid,
+                provisioningStatus: businessDetails.provisioning_status,
+                provisioningError: businessDetails.provisioning_error
+              })
                 
                 // If provisioning failed, attempt repair
                 if (businessDetails.provisioning_status === 'failed' && businessDetails.twilio_phone_number_sid) {
@@ -451,6 +459,7 @@ export async function POST(request: Request) {
                 // Only provision if no number exists and not already provisioning
                 if (!businessDetails.twilio_phone_number && businessDetails.provisioning_status !== 'provisioning') {
                   console.log('[Provisioning] Triggering provisioning for business:', businessDetails.id)
+                  console.log('[Provisioning] START - calling provisionTwilioNumber')
                   
                   try {
                     // Set provisioning status to 'provisioning'
@@ -458,6 +467,8 @@ export async function POST(request: Request) {
                       .from('businesses')
                       .update({ provisioning_status: 'provisioning' })
                       .eq('id', businessDetails.id)
+                    
+                    console.log('[Provisioning] Set provisioning_status to provisioning for business:', businessDetails.id)
                     
                     // Import and call provisioning function
                     const { provisionTwilioNumber } = await import('@/lib/twilio')
