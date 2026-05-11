@@ -638,10 +638,11 @@ export async function saveProvisionedNumberToBusiness({
 }): Promise<{ success: boolean; dbNumber: string | null; dbNumberSid: string | null }> {
   const correlationId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
-  console.log(`[saveProvisionedNumber] START business_id=${businessId} correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] Purchased phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] Purchased phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] ========== START ========== correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] business_id=${businessId} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] INPUT phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] INPUT phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] INPUT messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
   
   const updatePayload = {
     twilio_phone_number: phoneNumber,
@@ -655,8 +656,8 @@ export async function saveProvisionedNumberToBusiness({
     provisioned_at: new Date().toISOString()
   }
   
-  console.log(`[saveProvisionedNumber] DB update payload twilio_phone_number=${updatePayload.twilio_phone_number} correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] DB update payload twilio_phone_number_sid=${updatePayload.twilio_phone_number_sid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number=${updatePayload.twilio_phone_number} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number_sid=${updatePayload.twilio_phone_number_sid} correlation_id=${correlationId}`)
   
   const { data, error } = await supabase
     .from('businesses')
@@ -666,32 +667,37 @@ export async function saveProvisionedNumberToBusiness({
     .single()
   
   if (error) {
-    console.error(`[saveProvisionedNumber] DB update FAILED correlation_id=${correlationId}`, error)
+    console.error(`[saveProvisionedNumber] DB UPDATE FAILED correlation_id=${correlationId}`, error)
+    console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     return { success: false, dbNumber: null, dbNumberSid: null }
   }
   
-  console.log(`[saveProvisionedNumber] DB update succeeded correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] DB twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
-  console.log(`[saveProvisionedNumber] DB twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB UPDATE SUCCEEDED correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
   
   // HARD ASSERTION: DB number must match purchased number
   if (data.twilio_phone_number !== phoneNumber) {
-    console.error(`[saveProvisionedNumber] CRITICAL_PROVISIONING_NUMBER_MISMATCH correlation_id=${correlationId}`)
-    console.error(`[saveProvisionedNumber] Expected (purchased): ${phoneNumber} correlation_id=${correlationId}`)
-    console.error(`[saveProvisionedNumber] Actual (DB): ${data.twilio_phone_number} correlation_id=${correlationId}`)
-    console.error(`[saveProvisionedNumber] This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ========== CRITICAL MISMATCH ========== correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] EXPECTED (INPUT) phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ACTUAL (DB) twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] MISMATCH DETECTED - This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     throw new Error(`CRITICAL_PROVISIONING_NUMBER_MISMATCH: Expected ${phoneNumber}, got ${data.twilio_phone_number}`)
   }
   
   if (data.twilio_phone_number_sid !== phoneNumberSid) {
-    console.error(`[saveProvisionedNumber] CRITICAL_PROVISIONING_SID_MISMATCH correlation_id=${correlationId}`)
-    console.error(`[saveProvisionedNumber] Expected (purchased): ${phoneNumberSid} correlation_id=${correlationId}`)
-    console.error(`[saveProvisioningNumber] Actual (DB): ${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
-    console.error(`[saveProvisionedNumber] This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ========== CRITICAL SID MISMATCH ========== correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] EXPECTED (INPUT) phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ACTUAL (DB) twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] MISMATCH DETECTED - This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     throw new Error(`CRITICAL_PROVISIONING_SID_MISMATCH: Expected ${phoneNumberSid}, got ${data.twilio_phone_number_sid}`)
   }
   
-  console.log(`[saveProvisionedNumber] HARD ASSERTION PASSED: DB matches purchased number correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] ========== HARD ASSERTION PASSED ========== correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB number matches purchased number correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] ========== END SUCCESS ========== correlation_id=${correlationId}`)
   
   return { 
     success: true, 

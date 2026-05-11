@@ -371,90 +371,9 @@ export async function POST(request: Request) {
                 provisioningError: businessDetails.provisioning_error
               })
                 
-                // If provisioning failed, attempt repair
-                if (businessDetails.provisioning_status === 'failed' && businessDetails.twilio_phone_number_sid) {
-                  console.log('[Provisioning] Provisioning failed, attempting repair for business:', businessDetails.id)
-                  
-                  try {
-                    // Call repair endpoint logic inline
-                    const Twilio = require('twilio')
-                    const accountSid = process.env.TWILIO_ACCOUNT_SID
-                    const authToken = process.env.TWILIO_AUTH_TOKEN
-                    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
-                    const client = Twilio(accountSid, authToken)
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
-                    
-                    // Verify Twilio number exists
-                    try {
-                      await client.incomingPhoneNumbers(businessDetails.twilio_phone_number_sid).fetch()
-                      console.log('[Provisioning Repair] Twilio number verified')
-                    } catch (twilioError) {
-                      console.error('[Provisioning Repair] Twilio number not found:', twilioError)
-                      // Number doesn't exist, need full provisioning
-                    }
-                    
-                    // Configure webhooks
-                    try {
-                      await client.incomingPhoneNumbers(businessDetails.twilio_phone_number_sid).update({
-                        voiceUrl: `${appUrl}/api/twilio/voice`,
-                        voiceMethod: 'POST',
-                        statusCallback: `${appUrl}/api/twilio/voice-status`,
-                        statusCallbackMethod: 'POST',
-                        smsUrl: `${appUrl}/api/twilio/incoming-sms`,
-                        smsMethod: 'POST'
-                      })
-                      console.log('[Provisioning Repair] Webhooks configured')
-                    } catch (webhookError) {
-                      console.error('[Provisioning Repair] Webhook configuration failed:', webhookError)
-                    }
-                    
-                    // Attach to Messaging Service if missing
-                    try {
-                      const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-                        .phoneNumbers
-                        .list({ limit: 100 })
-                      
-                      const alreadyAttached = existingPhoneNumbers.some((pn: any) => pn.sid === businessDetails.twilio_phone_number_sid)
-                      
-                      if (!alreadyAttached) {
-                        console.log('[Provisioning Repair] Attaching to Messaging Service')
-                        await client.messaging.v1.services(messagingServiceSid)
-                          .phoneNumbers
-                          .create({
-                            phoneNumberSid: businessDetails.twilio_phone_number_sid
-                          })
-                        console.log('[Provisioning Repair] Attached to Messaging Service')
-                      }
-                    } catch (attachError) {
-                      console.error('[Provisioning Repair] Attachment failed:', attachError)
-                    }
-                    
-                    // Verify sender pool
-                    try {
-                      const poolNumbers = await client.messaging.v1.services(messagingServiceSid)
-                        .phoneNumbers
-                        .list({ limit: 100 })
-                      
-                      const numberInPool = poolNumbers.find((pn: any) => pn.sid === businessDetails.twilio_phone_number_sid)
-                      
-                      if (numberInPool) {
-                        console.log('[Provisioning Repair] Verification passed - updating status')
-                        await supabase
-                          .from('businesses')
-                          .update({
-                            provisioning_status: 'attached',
-                            provisioning_error: null,
-                            provisioned_at: new Date().toISOString()
-                          })
-                          .eq('id', businessDetails.id)
-                      }
-                    } catch (verifyError) {
-                      console.error('[Provisioning Repair] Verification failed:', verifyError)
-                    }
-                  } catch (repairError) {
-                    console.error('[Provisioning] Repair failed:', repairError)
-                  }
-                }
+                // DISABLED: Repair logic to prevent interference with number persistence
+                // Only provisionTwilioNumber() should handle Twilio number management
+                // This repair logic was potentially using stale data and interfering with new number persistence
                 
                 // Only provision if no number exists and not already provisioning
                 if (!businessDetails.twilio_phone_number && businessDetails.provisioning_status !== 'provisioning') {

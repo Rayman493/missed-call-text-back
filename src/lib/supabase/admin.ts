@@ -1160,161 +1160,28 @@ export const db = {
       console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
       console.log('[getOrCreateBusiness] Existing twilio_phone_number_sid:', (existingBusiness as any).twilio_phone_number_sid || 'null')
       
-      // Check if business needs provisioning (shared mode disabled AND missing number or SID)
-      let needsProvisioning = !isSharedModeEnabled() && 
-        (!existingBusiness.twilio_phone_number || !existingBusiness.twilio_phone_number_sid)
-      
-      // Self-healing: If phone number exists but SID is missing, try to recover SID from Twilio
+      // Self-healing: If SID exists but phone number is missing, try to recover SID from Twilio
+      // DISABLED: This SID recovery was potentially interfering with number persistence
+      // Only provisionTwilioNumber() should update twilio_phone_number_sid
       if (!isSharedModeEnabled() && existingBusiness.twilio_phone_number && !existingBusiness.twilio_phone_number_sid) {
-        console.log('[Provisioning] Self-healing: Phone number exists but SID is missing, attempting recovery')
-        
-        try {
-          const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
-          const Twilio = require('twilio')
-          const accountSid = process.env.TWILIO_ACCOUNT_SID
-          const authToken = process.env.TWILIO_AUTH_TOKEN
-          
-          if (accountSid && authToken) {
-            const client = Twilio(accountSid, authToken)
-            
-            // Search for the phone number in Twilio
-            const numbers = await client.incomingPhoneNumbers.list({ phoneNumber: existingBusiness.twilio_phone_number, limit: 1 })
-            
-            if (numbers && numbers.length > 0) {
-              const recoveredSid = numbers[0].sid
-              console.log('[Provisioning] Recovered SID from Twilio:', recoveredSid)
-              
-              // Update business with recovered SID
-              const updatedBusiness = await this.updateBusiness(existingBusiness.id, {
-                twilio_phone_number_sid: recoveredSid,
-                sms_type: 'local_a2p',
-                a2p_status: 'approved',
-                messaging_status: 'active',
-                twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-                provisioning_status: 'active',
-                provisioned_at: new Date().toISOString()
-              })
-              
-              if (updatedBusiness) {
-                console.log('[Provisioning] Business updated with recovered SID:', recoveredSid)
-                console.log('[Provisioning] Marked provisioning_status=active')
-                console.log('[Provisioning] Set provisioned_at timestamp')
-                existingBusiness = updatedBusiness
-                // Skip provisioning since we recovered the SID
-                needsProvisioning = false
-              }
-            } else {
-              console.log('[Provisioning] Phone number not found in Twilio, will provision new number')
-            }
-          }
-        } catch (recoveryError) {
-          console.error('[Provisioning] Error during SID recovery:', recoveryError)
-          // Continue with normal provisioning
-        }
-      }
-      
-      // Self-healing: If SID exists but phone number is missing, try to recover phone number from Twilio
-      // DISABLED: This self-healing was overwriting newly purchased numbers with old numbers from Twilio
-      // Only provisionTwilioNumber() should update twilio_phone_number
-      if (!isSharedModeEnabled() && !existingBusiness.twilio_phone_number && existingBusiness.twilio_phone_number_sid) {
-        console.log('[Provisioning] SID exists but phone number is missing - SKIPPING self-healing to prevent overwrite')
+        console.log('[Provisioning] Phone number exists but SID missing - SKIPPING SID recovery to prevent overwrite')
         console.log('[Provisioning] This prevents stale persistence/overwrite logic from overwriting newly purchased numbers')
-        console.log('[Provisioning] Phone number will be recovered during provisioning if needed')
+        console.log('[Provisioning] SID will be set during provisioning if needed')
         
-        // DO NOT run self-healing - let provisioning handle it
-        // This was causing the bug where newly purchased numbers were being overwritten with old numbers
+        // DO NOT run SID recovery - let provisioning handle it
+        // This was potentially causing the bug where newly purchased numbers were being overwritten with old numbers
       }
       
       // Self-healing: If both phone number and SID exist, verify they're still valid in Twilio
+      // DISABLED: This validation was potentially overwriting newly purchased numbers with old numbers
+      // Only provisionTwilioNumber() should update twilio_phone_number
       if (!isSharedModeEnabled() && existingBusiness.twilio_phone_number && existingBusiness.twilio_phone_number_sid) {
-        console.log('[Provisioning] Validating existing Twilio number')
+        console.log('[Provisioning] Skipping self-healing validation to prevent overwrite')
+        console.log('[Provisioning] This prevents stale persistence/overwrite logic from overwriting newly purchased numbers')
+        console.log('[Provisioning] Number validation will be handled during provisioning if needed')
         
-        try {
-          const Twilio = require('twilio')
-          const accountSid = process.env.TWILIO_ACCOUNT_SID
-          const authToken = process.env.TWILIO_AUTH_TOKEN
-          const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-          
-          if (accountSid && authToken) {
-            const client = Twilio(accountSid, authToken)
-            
-            // Fetch the number by SID to verify it still exists
-            const number = await client.incomingPhoneNumbers(existingBusiness.twilio_phone_number_sid).fetch()
-            
-            if (number && number.phoneNumber === existingBusiness.twilio_phone_number) {
-              console.log('[Provisioning] Existing valid number found; skipping purchase')
-              needsProvisioning = false
-              
-              // Self-healing: Check if number is attached to Messaging Service sender pool
-              if (messagingServiceSid) {
-                console.log('[SenderPool] Self-healing: Checking if number is attached to Messaging Service sender pool')
-                console.log('[SenderPool] Messaging Service SID:', messagingServiceSid)
-                console.log('[SenderPool] Phone Number SID:', existingBusiness.twilio_phone_number_sid)
-                console.log('[SenderPool] Phone Number:', existingBusiness.twilio_phone_number)
-                
-                try {
-                  const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-                    .phoneNumbers
-                    .list({ limit: 100 })
-                  
-                  const isAttached = existingPhoneNumbers.some((pn: any) => pn.sid === existingBusiness?.twilio_phone_number_sid)
-                  
-                  if (!isAttached) {
-                    console.log('[SenderPool] Self-healing: Number not attached to sender pool, attaching now')
-                    
-                    const attachedSender = await client.messaging.v1.services(messagingServiceSid)
-                      .phoneNumbers
-                      .create({
-                        phoneNumberSid: existingBusiness.twilio_phone_number_sid
-                      })
-                    
-                    console.log('[SenderPool] Self-healing: Attach success')
-                    console.log('[SenderPool] Self-healing: Attached sender SID:', attachedSender.sid)
-                    
-                    // Verify attachment succeeded
-                    const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-                      .phoneNumbers
-                      .list({ limit: 100 })
-                    
-                    const isAttachedAfter = updatedPhoneNumbers.some((pn: any) => pn.sid === existingBusiness?.twilio_phone_number_sid)
-                    
-                    if (isAttachedAfter) {
-                      console.log('[SenderPool] Self-healing: Verification passed')
-                    } else {
-                      console.error('[SenderPool] Self-healing: Verification failed')
-                    }
-                  } else {
-                    console.log('[SenderPool] Self-healing: Number already attached to sender pool')
-                  }
-                } catch (senderPoolError: any) {
-                  console.error('[SenderPool] Self-healing: Attach failed')
-                  console.error('[SenderPool] Error message:', senderPoolError?.message || 'Unknown error')
-                  console.error('[SenderPool] Error code:', senderPoolError?.code || 'Unknown code')
-                  console.error('[SenderPool] Error status:', senderPoolError?.status || 'Unknown status')
-                  console.error('[SenderPool] More info:', senderPoolError?.moreInfo || 'N/A')
-                  console.error('[SenderPool] Full error:', senderPoolError)
-                }
-              }
-              
-              // Ensure provisioning status is active
-              if (existingBusiness.provisioning_status !== 'active') {
-                console.log('[Provisioning] Marking provisioning_status=active')
-                await this.updateBusiness(existingBusiness.id, {
-                  provisioning_status: 'active',
-                  provisioning_error: null,
-                  provisioned_at: existingBusiness.provisioned_at || new Date().toISOString()
-                })
-                console.log('[Provisioning] Set provisioned_at timestamp')
-                existingBusiness = { ...existingBusiness, provisioning_status: 'active', provisioned_at: existingBusiness.provisioned_at || new Date().toISOString() }
-              }
-            } else {
-              console.log('[Provisioning] Existing number invalid or mismatch, will provision new number')
-            }
-          }
-        } catch (recoveryError) {
-          console.error('[Provisioning] Error during number validation:', recoveryError)
-          // Continue with normal provisioning
-        }
+        // DO NOT run self-healing - let provisioning handle it
+        // This was potentially causing the bug where newly purchased numbers were being overwritten with old numbers
       }
       
       // Self-healing: Promote pending status to active if business has valid numbers
