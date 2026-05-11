@@ -80,70 +80,44 @@ export async function POST(request: Request) {
       console.log('[ProvisioningTrigger] Purchased number from Twilio:', provisioningResult.phoneNumber)
       console.log('[ProvisioningTrigger] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
       
-      // Update business with provisioned number ONLY if messaging service attached
+      // Only save number if messaging service attached
       if (provisioningResult.messagingServiceAttached) {
-        const updatePayload = {
-          twilio_phone_number: provisioningResult.phoneNumber,
-          twilio_phone_number_sid: provisioningResult.phoneNumberSid,
-          sms_type: 'a2p_local',
-          a2p_status: 'active',
-          messaging_status: 'active',
-          twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
-          provisioning_status: 'attached',
-          provisioning_error: null,
-          provisioned_at: new Date().toISOString()
-        }
+        // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
+        const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
         
-        console.log('[ProvisioningTrigger] Saving number to database:', provisioningResult.phoneNumber)
-        console.log('[ProvisioningTrigger] Update payload twilio_phone_number:', updatePayload.twilio_phone_number)
-        console.log('[ProvisioningTrigger] Update payload twilio_phone_number_sid:', updatePayload.twilio_phone_number_sid)
-        
-        await supabase
-          .from('businesses')
-          .update(updatePayload)
-          .eq('id', business.id)
-
-        console.log('[ProvisioningTrigger] Business updated with provisioned number and status=attached')
-        console.log('[ProvisioningTrigger] Final business.twilio_phone_number:', provisioningResult.phoneNumber)
-        
-        // HARD VALIDATION: Re-read business row and verify number matches
-        const { data: verifiedBusiness, error: verifyError } = await supabase
-          .from('businesses')
-          .select('twilio_phone_number, twilio_phone_number_sid')
-          .eq('id', business.id)
-          .single()
-        
-        if (verifyError) {
-          console.error('[ProvisioningTrigger] CRITICAL: Failed to verify business after update:', verifyError)
-        } else {
-          console.log('[ProvisioningTrigger] Verified DB twilio_phone_number:', verifiedBusiness.twilio_phone_number)
-          console.log('[ProvisioningTrigger] Verified DB twilio_phone_number_sid:', verifiedBusiness.twilio_phone_number_sid)
-          
-          if (verifiedBusiness.twilio_phone_number !== provisioningResult.phoneNumber) {
-            console.error('[ProvisioningTrigger] CRITICAL NUMBER MISMATCH:')
-            console.error('[ProvisioningTrigger] Expected (purchased):', provisioningResult.phoneNumber)
-            console.error('[ProvisioningTrigger] Actual (DB):', verifiedBusiness.twilio_phone_number)
-            console.error('[ProvisioningTrigger] This indicates stale persistence or overwrite logic!')
-            throw new Error(`CRITICAL: Number mismatch after DB write. Expected ${provisioningResult.phoneNumber}, got ${verifiedBusiness.twilio_phone_number}`)
-          }
-          
-          if (verifiedBusiness.twilio_phone_number_sid !== provisioningResult.phoneNumberSid) {
-            console.error('[ProvisioningTrigger] CRITICAL SID MISMATCH:')
-            console.error('[ProvisioningTrigger] Expected (purchased):', provisioningResult.phoneNumberSid)
-            console.error('[ProvisioningTrigger] Actual (DB):', verifiedBusiness.twilio_phone_number_sid)
-            console.error('[ProvisioningTrigger] This indicates stale persistence or overwrite logic!')
-            throw new Error(`CRITICAL: SID mismatch after DB write. Expected ${provisioningResult.phoneNumberSid}, got ${verifiedBusiness.twilio_phone_number_sid}`)
-          }
-          
-          console.log('[ProvisioningTrigger] HARD VALIDATION PASSED: DB number matches purchased number')
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: 'Provisioning succeeded',
-          twilio_phone_number: provisioningResult.phoneNumber,
-          twilio_phone_number_sid: provisioningResult.phoneNumberSid
+        const saveResult = await saveProvisionedNumberToBusiness({
+          businessId: business.id,
+          phoneNumber: provisioningResult.phoneNumber,
+          phoneNumberSid: provisioningResult.phoneNumberSid,
+          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
         })
+        
+        if (!saveResult.success) {
+          console.error('[ProvisioningTrigger] Failed to save provisioned number to business')
+          await supabase
+            .from('businesses')
+            .update({
+              provisioning_status: 'failed',
+              provisioning_error: 'Failed to save provisioned number to business'
+            })
+            .eq('id', business.id)
+
+          return NextResponse.json({ 
+            error: 'Failed to save provisioned number to business',
+            provisioning_status: 'failed'
+          }, { status: 500 })
+        } else {
+          console.log('[ProvisioningTrigger] Number saved successfully to business')
+          console.log('[ProvisioningTrigger] DB twilio_phone_number:', saveResult.dbNumber)
+          console.log('[ProvisioningTrigger] DB twilio_phone_number_sid:', saveResult.dbNumberSid)
+
+          return NextResponse.json({
+            success: true,
+            message: 'Provisioning succeeded',
+            twilio_phone_number: saveResult.dbNumber,
+            twilio_phone_number_sid: saveResult.dbNumberSid
+          })
+        }
       } else {
         console.error('[ProvisioningTrigger] Messaging Service NOT attached - NOT saving number to business')
         console.error('[ProvisioningTrigger] Error:', provisioningResult.messagingServiceError)

@@ -177,23 +177,22 @@ export async function provisionNumberForBusiness(businessId: string): Promise<Pr
 
     console.log('[Twilio Number Manager] Inserted twilio_number record:', twilioNumber.id);
 
-    // Update businesses table
-    const { error: updateError } = await supabase
-      .from('businesses')
-      .update({
-        assigned_twilio_number_id: twilioNumber.id,
-        twilio_phone_number: purchasedNumber.phoneNumber,
-        twilio_phone_number_sid: purchasedNumber.sid,
-      })
-      .eq('id', businessId);
-
-    if (updateError) {
-      console.error('[Twilio Number Manager] Failed to update business:', updateError);
-      // Don't fail - the number is provisioned and saved, just the business update failed
-    } else {
-      console.log('[Twilio Number Manager] Updated business with assigned number');
+    // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
+    const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
+    
+    const saveResult = await saveProvisionedNumberToBusiness({
+      businessId,
+      phoneNumber: purchasedNumber.phoneNumber,
+      phoneNumberSid: purchasedNumber.sid,
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+    })
+    
+    if (!saveResult.success) {
+      console.error('[Twilio Number Manager] Failed to save provisioned number to business');
+      return { success: false, error: 'Failed to save number to database' };
     }
-
+    
+    console.log('[Twilio Number Manager] Updated business with assigned number:', saveResult.dbNumber);
     console.log('[Twilio Number Manager] Provisioning complete for business:', businessId);
     return { success: true, twilioNumber };
   } catch (error) {

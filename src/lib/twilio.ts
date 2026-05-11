@@ -625,6 +625,81 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
   }
 }
 
+export async function saveProvisionedNumberToBusiness({
+  businessId,
+  phoneNumber,
+  phoneNumberSid,
+  messagingServiceSid
+}: {
+  businessId: string
+  phoneNumber: string
+  phoneNumberSid: string
+  messagingServiceSid: string | null
+}): Promise<{ success: boolean; dbNumber: string | null; dbNumberSid: string | null }> {
+  const correlationId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  
+  console.log(`[saveProvisionedNumber] START business_id=${businessId} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] Purchased phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] Purchased phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
+  
+  const updatePayload = {
+    twilio_phone_number: phoneNumber,
+    twilio_phone_number_sid: phoneNumberSid,
+    sms_type: 'a2p_local',
+    a2p_status: 'active',
+    messaging_status: 'active',
+    twilio_messaging_service_sid: messagingServiceSid,
+    provisioning_status: 'attached',
+    provisioning_error: null,
+    provisioned_at: new Date().toISOString()
+  }
+  
+  console.log(`[saveProvisionedNumber] DB update payload twilio_phone_number=${updatePayload.twilio_phone_number} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB update payload twilio_phone_number_sid=${updatePayload.twilio_phone_number_sid} correlation_id=${correlationId}`)
+  
+  const { data, error } = await supabase
+    .from('businesses')
+    .update(updatePayload)
+    .eq('id', businessId)
+    .select('twilio_phone_number, twilio_phone_number_sid')
+    .single()
+  
+  if (error) {
+    console.error(`[saveProvisionedNumber] DB update FAILED correlation_id=${correlationId}`, error)
+    return { success: false, dbNumber: null, dbNumberSid: null }
+  }
+  
+  console.log(`[saveProvisionedNumber] DB update succeeded correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
+  
+  // HARD ASSERTION: DB number must match purchased number
+  if (data.twilio_phone_number !== phoneNumber) {
+    console.error(`[saveProvisionedNumber] CRITICAL_PROVISIONING_NUMBER_MISMATCH correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] Expected (purchased): ${phoneNumber} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] Actual (DB): ${data.twilio_phone_number} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    throw new Error(`CRITICAL_PROVISIONING_NUMBER_MISMATCH: Expected ${phoneNumber}, got ${data.twilio_phone_number}`)
+  }
+  
+  if (data.twilio_phone_number_sid !== phoneNumberSid) {
+    console.error(`[saveProvisionedNumber] CRITICAL_PROVISIONING_SID_MISMATCH correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] Expected (purchased): ${phoneNumberSid} correlation_id=${correlationId}`)
+    console.error(`[saveProvisioningNumber] Actual (DB): ${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    console.error(`[saveProvisionedNumber] This indicates stale persistence or overwrite logic! correlation_id=${correlationId}`)
+    throw new Error(`CRITICAL_PROVISIONING_SID_MISMATCH: Expected ${phoneNumberSid}, got ${data.twilio_phone_number_sid}`)
+  }
+  
+  console.log(`[saveProvisionedNumber] HARD ASSERTION PASSED: DB matches purchased number correlation_id=${correlationId}`)
+  
+  return { 
+    success: true, 
+    dbNumber: data.twilio_phone_number, 
+    dbNumberSid: data.twilio_phone_number_sid 
+  }
+}
+
 export async function repairProvisioningForBusiness(businessId: string): Promise<boolean> {
   const correlationId = `REPAIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
