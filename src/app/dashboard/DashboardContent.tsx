@@ -37,6 +37,7 @@ import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
+import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -733,6 +734,9 @@ export default function DashboardContent() {
                 </div>
               </div>
             )}
+
+            {/* Provisioning Success Banner - Show after checkout success */}
+            <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
 
             {/* Setup Health Banner - Show when forwarding not verified */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && (

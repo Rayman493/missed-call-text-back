@@ -201,6 +201,21 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     }
   }, [business])
 
+  // Listen for expandGettingStarted event from ProvisioningSuccessBanner
+  useEffect(() => {
+    const handleExpandGettingStarted = () => {
+      console.log('[GettingStarted] Received expandGettingStarted event')
+      setIsExpanded(true)
+      saveCollapsePreference(false) // Save expanded preference
+    }
+
+    window.addEventListener('expandGettingStarted', handleExpandGettingStarted)
+    
+    return () => {
+      window.removeEventListener('expandGettingStarted', handleExpandGettingStarted)
+    }
+  }, [])
+
   const getChecklistItems = (): ChecklistItem[] => {
     if (!business) return []
 

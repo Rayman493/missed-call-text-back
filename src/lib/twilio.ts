@@ -361,6 +361,40 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
   console.log(`[Twilio] Active account SID=${accountSid} correlation_id=${correlationId}`)
   console.log(`[Twilio] Purchasing number under account=${accountSid} correlation_id=${correlationId}`)
 
+  // Database guard: Check if business already has a number or is already provisioning
+  console.log(`[ProvisioningGuard] ========== CHECKING EXISTING STATE ========== correlation_id=${correlationId}`)
+  const { data: existingBusiness } = await supabase
+    .from('businesses')
+    .select('twilio_phone_number, twilio_phone_number_sid, provisioning_status')
+    .eq('id', businessId)
+    .single()
+
+  if (existingBusiness) {
+    console.log(`[ProvisioningGuard] Existing twilio_phone_number=${existingBusiness.twilio_phone_number} correlation_id=${correlationId}`)
+    console.log(`[ProvisioningGuard] Existing twilio_phone_number_sid=${existingBusiness.twilio_phone_number_sid} correlation_id=${correlationId}`)
+    console.log(`[ProvisioningGuard] Existing provisioning_status=${existingBusiness.provisioning_status} correlation_id=${correlationId}`)
+
+    // Hard lock: If already provisioning, block all other paths
+    if (existingBusiness.provisioning_status === 'provisioning') {
+      console.log(`[ProvisioningGuard] ========== HARD LOCK BLOCKED ========== correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Business is already provisioning, blocking duplicate purchase correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] This prevents two separate provisioning systems from running simultaneously correlation_id=${correlationId}`)
+      return null
+    }
+
+    // Database guard: If already has number or is attached, skip purchase
+    if (existingBusiness.twilio_phone_number_sid || existingBusiness.provisioning_status === 'attached') {
+      console.log(`[ProvisioningGuard] ========== EXISTING NUMBER FOUND ========== correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Existing attached number found, skipping purchase correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Business already has twilio_phone_number_sid=${existingBusiness.twilio_phone_number_sid} correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Business provisioning_status=${existingBusiness.provisioning_status} correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] This prevents duplicate number purchases correlation_id=${correlationId}`)
+      return null
+    }
+  }
+
+  console.log(`[ProvisioningGuard] ========== PROCEEDING WITH PROVISIONING ========== correlation_id=${correlationId}`)
+
   // Provision a dedicated local number for the business
   console.log(`[Provisioning] Provisioning dedicated local number for business=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using approved Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)

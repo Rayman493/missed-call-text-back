@@ -215,29 +215,12 @@ export async function POST(request: Request) {
           console.log('[STRIPE WEBHOOK] Fields updated:', Object.keys(updateData).join(', '))
         }
 
-        // Provision Twilio number if business doesn't have one
-        try {
-          const { data: business } = await supabase
-            .from('businesses')
-            .select('id, assigned_twilio_number_id')
-            .eq('id', businessId)
-            .single()
-
-          if (business && !business.assigned_twilio_number_id) {
-            console.log('[STRIPE WEBHOOK] Provisioning Twilio number...')
-            const result = await provisionNumberForBusiness(businessId)
-            if (result.success) {
-              console.log('[STRIPE WEBHOOK] Twilio number provisioned:', result.twilioNumber?.phone_number)
-            } else {
-              console.error('[stripe-webhook] Failed to provision Twilio number for business:', businessId, 'Error:', result.error)
-            }
-          } else if (business && business.assigned_twilio_number_id) {
-            console.log('[stripe-webhook] Business already has assigned Twilio number, skipping provisioning')
-          }
-        } catch (provisionError) {
-          console.error('[stripe-webhook] Error during Twilio provisioning:', provisionError)
-          // Don't fail the webhook if provisioning fails - subscription is still active
-        }
+        // DISABLED: Old Twilio Number Manager provisioning path
+        // Only provisionTwilioNumber() should be used for provisioning
+        // This old path was purchasing a second number and overwriting the correct number
+        console.log('[STRIPE WEBHOOK] SKIPPING old provisionNumberForBusiness to prevent duplicate purchases')
+        console.log('[STRIPE WEBHOOK] Only provisionTwilioNumber() should handle provisioning')
+        console.log('[STRIPE WEBHOOK] This prevents two separate provisioning systems from running')
 
         console.log('[STRIPE WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
         break
