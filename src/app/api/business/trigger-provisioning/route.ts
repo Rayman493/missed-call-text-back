@@ -31,7 +31,16 @@ export async function POST(request: Request) {
 
     if (businessError || !business) {
       console.error('[ProvisioningTrigger] Business not found:', businessError)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      console.error('[ProvisioningTrigger] PostgreSQL error details:', {
+        code: businessError?.code,
+        message: businessError?.message,
+        details: businessError?.details,
+        hint: businessError?.hint
+      } as any)
+      return NextResponse.json({ 
+        error: 'Business not found', 
+        postgres_error: businessError as any
+      }, { status: 404 })
     }
 
     console.log('[ProvisioningTrigger] Business state before checks:', {
