@@ -85,7 +85,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     }
     
     triggerProvisioningIfNeeded()
-  }, [business, hasTriggeredProvisioning, refreshBusiness])
+  }, [business, hasTriggeredProvisioning])
 
   // Compute onboarding state once with useMemo
   const onboardingState: OnboardingState = useMemo(() => {
