@@ -366,6 +366,12 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     console.log('[Provisioning] Configured voice webhook:', `${appUrl}/api/twilio/voice`)
     console.log('[Provisioning] Configured voice status callback:', `${appUrl}/api/twilio/voice-status`)
     console.log('[Provisioning] Configured messaging webhook:', `${appUrl}/api/twilio/incoming-sms`)
+    
+    // Store canonical number for consistency
+    const canonicalPhoneNumber = purchasedNumber.phoneNumber;
+    const canonicalPhoneNumberSid = purchasedNumber.sid;
+    console.log('[Provisioning] Canonical number stored:', canonicalPhoneNumber)
+    console.log('[Provisioning] Canonical number SID stored:', canonicalPhoneNumberSid)
 
     // Validate that SID is present
     if (!purchasedNumber.sid) {
@@ -380,8 +386,8 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     if (messagingServiceSid) {
       console.log('[SenderPool] Starting Messaging Service attachment')
       console.log('[SenderPool] Messaging Service SID:', messagingServiceSid)
-      console.log('[SenderPool] Phone Number SID:', purchasedNumber.sid)
-      console.log('[SenderPool] Phone Number:', purchasedNumber.phoneNumber)
+      console.log('[SenderPool] Phone Number SID:', canonicalPhoneNumberSid)
+      console.log('[SenderPool] Phone Number:', canonicalPhoneNumber)
       
       try {
         // Check if number is already attached to the Messaging Service
@@ -389,7 +395,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           .phoneNumbers
           .list({ limit: 100 })
         
-        const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid)
+        const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
         
         if (alreadyAttached) {
           console.log('[SenderPool] Number already attached to Messaging Service, skipping')
@@ -400,7 +406,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .create({
-              phoneNumberSid: purchasedNumber.sid
+              phoneNumberSid: canonicalPhoneNumberSid
             })
           
           console.log('[SenderPool] Attach success')
@@ -411,10 +417,11 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
             .phoneNumbers
             .list({ limit: 100 })
           
-          const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid)
+          const isAttached = updatedPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
           
           if (isAttached) {
             console.log('[SenderPool] Verification passed')
+            console.log('[SenderPool] Added to Messaging Service:', canonicalPhoneNumber)
             messagingServiceAttached = true
           } else {
             const errorMsg = 'Attachment succeeded but verification failed'
@@ -442,9 +449,13 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
       messagingServiceAttached = true // Not applicable
     }
 
+    console.log('[Provisioning] Final assigned number:', canonicalPhoneNumber)
+    console.log('[Provisioning] Final assigned number SID:', canonicalPhoneNumberSid)
+    console.log('[Provisioning] Messaging Service attached:', messagingServiceAttached)
+    
     return {
-      phoneNumber: purchasedNumber.phoneNumber,
-      phoneNumberSid: purchasedNumber.sid,
+      phoneNumber: canonicalPhoneNumber,
+      phoneNumberSid: canonicalPhoneNumberSid,
       messagingServiceAttached,
       messagingServiceError
     }

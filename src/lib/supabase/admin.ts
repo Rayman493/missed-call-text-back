@@ -1417,6 +1417,64 @@ export const db = {
                 console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
                 console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
                 console.log('[Provisioning] Business updated successfully')
+                
+                // Validate that DB number matches Messaging Service pool
+                console.log('[Provisioning] Validating DB number matches Messaging Service pool')
+                try {
+                  const Twilio = require('twilio')
+                  const accountSid = process.env.TWILIO_ACCOUNT_SID
+                  const authToken = process.env.TWILIO_AUTH_TOKEN
+                  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
+                  
+                  if (accountSid && authToken) {
+                    const client = Twilio(accountSid, authToken)
+                    const poolNumbers = await client.messaging.v1.services(messagingServiceSid)
+                      .phoneNumbers
+                      .list({ limit: 100 })
+                    
+                    const dbNumber = updatedBusiness.twilio_phone_number
+                    const dbNumberSid = updatedBusiness.twilio_phone_number_sid
+                    
+                    console.log('[Provisioning] DB number:', dbNumber)
+                    console.log('[Provisioning] DB number SID:', dbNumberSid)
+                    console.log('[Provisioning] Pool numbers:', poolNumbers.map((pn: any) => pn.phoneNumber))
+                    
+                    const numberInPool = poolNumbers.find((pn: any) => pn.phoneNumber === dbNumber)
+                    
+                    if (numberInPool) {
+                      console.log('[Provisioning] Validation passed: DB number found in Messaging Service pool')
+                    } else {
+                      console.error('[Provisioning] Validation failed: DB number NOT found in Messaging Service pool')
+                      console.error('[Provisioning] DB number:', dbNumber)
+                      console.error('[Provisioning] Pool numbers:', poolNumbers.map((pn: any) => pn.phoneNumber))
+                      
+                      // Attempt repair: remove from DB and mark as failed
+                      console.log('[Provisioning] Attempting repair: clearing DB phone fields')
+                      await this.updateBusiness(existingBusiness.id, {
+                        twilio_phone_number: null,
+                        twilio_phone_number_sid: null,
+                        provisioning_status: 'failed',
+                        provisioning_error: 'Provisioning validation failed: DB number not in Messaging Service pool'
+                      })
+                      
+                      // Release the number from Twilio
+                      try {
+                        if (dbNumberSid) {
+                          await client.incomingPhoneNumbers(dbNumberSid).remove()
+                          console.log('[Provisioning] Released number from Twilio:', dbNumber)
+                        }
+                      } catch (releaseError) {
+                        console.error('[Provisioning] Failed to release number:', releaseError)
+                      }
+                      
+                      throw new Error('Provisioning validation failed: DB number not in Messaging Service pool')
+                    }
+                  }
+                } catch (validationError) {
+                  console.error('[Provisioning] Validation error:', validationError)
+                  // Don't fail the entire provisioning if validation fails, but log the error
+                }
+                
                 existingBusiness = updatedBusiness
               }
             } else {
@@ -1587,6 +1645,64 @@ export const db = {
                   console.log('[Provisioning] Saved twilio_phone_number_sid:', provisioningResult.phoneNumberSid)
                   console.log('[Provisioning] Business updated with dedicated number:', updatedBusiness.twilio_phone_number)
                   console.log('[Provisioning] Business updated successfully')
+                  
+                  // Validate that DB number matches Messaging Service pool
+                  console.log('[Provisioning] Validating DB number matches Messaging Service pool')
+                  try {
+                    const Twilio = require('twilio')
+                    const accountSid = process.env.TWILIO_ACCOUNT_SID
+                    const authToken = process.env.TWILIO_AUTH_TOKEN
+                    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
+                    
+                    if (accountSid && authToken) {
+                      const client = Twilio(accountSid, authToken)
+                      const poolNumbers = await client.messaging.v1.services(messagingServiceSid)
+                        .phoneNumbers
+                        .list({ limit: 100 })
+                      
+                      const dbNumber = updatedBusiness.twilio_phone_number
+                      const dbNumberSid = updatedBusiness.twilio_phone_number_sid
+                      
+                      console.log('[Provisioning] DB number:', dbNumber)
+                      console.log('[Provisioning] DB number SID:', dbNumberSid)
+                      console.log('[Provisioning] Pool numbers:', poolNumbers.map((pn: any) => pn.phoneNumber))
+                      
+                      const numberInPool = poolNumbers.find((pn: any) => pn.phoneNumber === dbNumber)
+                      
+                      if (numberInPool) {
+                        console.log('[Provisioning] Validation passed: DB number found in Messaging Service pool')
+                      } else {
+                        console.error('[Provisioning] Validation failed: DB number NOT found in Messaging Service pool')
+                        console.error('[Provisioning] DB number:', dbNumber)
+                        console.error('[Provisioning] Pool numbers:', poolNumbers.map((pn: any) => pn.phoneNumber))
+                        
+                        // Attempt repair: remove from DB and mark as failed
+                        console.log('[Provisioning] Attempting repair: clearing DB phone fields')
+                        await this.updateBusiness(createdBusiness.id, {
+                          twilio_phone_number: null,
+                          twilio_phone_number_sid: null,
+                          provisioning_status: 'failed',
+                          provisioning_error: 'Provisioning validation failed: DB number not in Messaging Service pool'
+                        })
+                        
+                        // Release the number from Twilio
+                        try {
+                          if (dbNumberSid) {
+                            await client.incomingPhoneNumbers(dbNumberSid).remove()
+                            console.log('[Provisioning] Released number from Twilio:', dbNumber)
+                          }
+                        } catch (releaseError) {
+                          console.error('[Provisioning] Failed to release number:', releaseError)
+                        }
+                        
+                        throw new Error('Provisioning validation failed: DB number not in Messaging Service pool')
+                      }
+                    }
+                  } catch (validationError) {
+                    console.error('[Provisioning] Validation error:', validationError)
+                    // Don't fail the entire provisioning if validation fails, but log the error
+                  }
+                  
                   createdBusiness = updatedBusiness
                 }
               } else {
