@@ -322,6 +322,8 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
 
   console.log(`[Provisioning] START business_id=${businessId} correlation_id=${correlationId}`)
+  console.log(`[Provisioning] TWILIO_MESSAGING_SERVICE_SID env var=${process.env.TWILIO_MESSAGING_SERVICE_SID} correlation_id=${correlationId}`)
+  console.log(`[Provisioning] Using Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
   
   if (!accountSid || !authToken) {
     console.error(`[Provisioning] Credentials missing correlation_id=${correlationId}`)
@@ -396,9 +398,13 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
       
       try {
         // Check if number is already attached to the Messaging Service
+        console.log(`[SenderPool] Fetching current sender pool correlation_id=${correlationId}`)
         const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
           .list({ limit: 100 })
+        
+        console.log(`[SenderPool] Current sender pool count=${existingPhoneNumbers.length} correlation_id=${correlationId}`)
+        console.log(`[SenderPool] Current sender pool numbers=${existingPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
         
         const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
         
@@ -408,6 +414,9 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           messagingServiceAttached = true
         } else {
           // Attach the number to the Messaging Service
+          console.log(`[SenderPool] Number not attached, starting attachment correlation_id=${correlationId}`)
+          console.log(`[SenderPool] Creating phoneNumberSid=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+          
           const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .create({
@@ -418,9 +427,13 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
           console.log(`[SenderPool] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
           
           // Verify attachment succeeded
+          console.log(`[SenderPool] Verifying attachment correlation_id=${correlationId}`)
           const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .list({ limit: 100 })
+          
+          console.log(`[SenderPool] Updated sender pool count=${updatedPhoneNumbers.length} correlation_id=${correlationId}`)
+          console.log(`[SenderPool] Updated sender pool numbers=${updatedPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
           
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === canonicalPhoneNumberSid)
           
@@ -432,7 +445,20 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
             const errorMsg = 'Attachment succeeded but verification failed'
             console.error(`[SenderPool] Verification failed correlation_id=${correlationId}`)
             console.error(`[SenderPool] ERROR=${errorMsg} correlation_id=${correlationId}`)
+            console.error(`[SenderPool] Canonical number SID=${canonicalPhoneNumberSid} correlation_id=${correlationId}`)
+            console.error(`[SenderPool] Updated pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
             messagingServiceError = errorMsg
+            
+            // Release the purchased number if attachment fails
+            console.log(`[SenderPool] Releasing purchased number due to attachment failure correlation_id=${correlationId}`)
+            try {
+              await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
+              console.log(`[SenderPool] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+            } catch (releaseError) {
+              console.error(`[SenderPool] Failed to release number correlation_id=${correlationId}`, releaseError)
+            }
+            
+            throw new Error(errorMsg)
           }
         }
       } catch (attachmentError: any) {
@@ -446,11 +472,21 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
         const errorMsg = attachmentError?.message || 'Unknown attachment error'
         messagingServiceError = errorMsg
         
+        // Release the purchased number if attachment fails
+        console.log(`[SenderPool] Releasing purchased number due to attachment error correlation_id=${correlationId}`)
+        try {
+          await client.incomingPhoneNumbers(canonicalPhoneNumberSid).remove()
+          console.log(`[SenderPool] Released number=${canonicalPhoneNumber} correlation_id=${correlationId}`)
+        } catch (releaseError) {
+          console.error(`[SenderPool] Failed to release number correlation_id=${correlationId}`, releaseError)
+        }
+        
         // Do NOT swallow this error - propagate it
         throw new Error(`Messaging Service attachment failed: ${errorMsg}`)
       }
     } else {
       console.log(`[SenderPool] No Messaging Service SID configured, skipping attachment correlation_id=${correlationId}`)
+      console.log(`[SenderPool] WARNING: Number will not be attached to Messaging Service correlation_id=${correlationId}`)
       messagingServiceAttached = true // Not applicable
     }
 
