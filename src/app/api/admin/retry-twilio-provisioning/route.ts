@@ -53,12 +53,14 @@ export async function POST(request: Request) {
     }
 
     console.log('[Admin Twilio Retry] Provisioning started for business:', business_id);
+    console.log('[Admin Twilio Retry] Manual retry triggered - correlation ID will be generated in provisionTwilioNumber');
 
     // Call provisionTwilioNumber
     const provisioned = await provisionTwilioNumber(business_id)
 
     if (provisioned) {
       console.log('[Admin Twilio Retry] Provisioning complete:', provisioned.phoneNumber);
+      console.log('[Admin Twilio Retry] Provisioned number SID:', provisioned.phoneNumberSid);
       return NextResponse.json({
         success: true,
         twilio_phone_number: provisioned.phoneNumber,

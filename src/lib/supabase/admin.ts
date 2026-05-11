@@ -1376,6 +1376,12 @@ export const db = {
       if (needsProvisioning) {
         console.log('[Provisioning] Started provisioning for business:', existingBusiness.id)
         
+        // Check if provisioning is already in progress
+        if (existingBusiness.provisioning_status === 'provisioning') {
+          console.log('[Provisioning] Provisioning already in progress, skipping')
+          return existingBusiness
+        }
+        
         // Set provisioning status to 'provisioning'
         await this.updateBusiness(existingBusiness.id, { provisioning_status: 'provisioning' })
         
@@ -1395,6 +1401,7 @@ export const db = {
             console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
             console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
             console.log('[Provisioning] Messaging Service attached:', provisioningResult.messagingServiceAttached)
+            console.log('[Provisioning] Saved DB number:', provisioningResult.phoneNumber)
             
             // Only save phone fields if Messaging Service attachment succeeded
             if (provisioningResult.messagingServiceAttached) {
@@ -1604,7 +1611,13 @@ export const db = {
         if (!isSharedModeEnabled() && !createdBusiness.twilio_phone_number) {
           console.log('[Provisioning] Started provisioning for new business:', createdBusiness.id)
           
-          // Set provisioning status to 'provisioning'
+          // Check if provisioning is already in progress
+          if (createdBusiness.provisioning_status === 'provisioning') {
+            console.log('[Provisioning] Provisioning already in progress, skipping')
+            return createdBusiness
+          }
+          
+          // Set provisioning status to 'provisioning' to prevent duplicate provisioning
           await this.updateBusiness(createdBusiness.id, { provisioning_status: 'provisioning' })
           
           try {
@@ -1623,6 +1636,7 @@ export const db = {
               console.log('[Provisioning] Purchased number:', provisioningResult.phoneNumber)
               console.log('[Provisioning] Purchased number SID:', provisioningResult.phoneNumberSid)
               console.log('[Provisioning] Messaging Service attached:', provisioningResult.messagingServiceAttached)
+              console.log('[Provisioning] Saved DB number:', provisioningResult.phoneNumber)
               
               // Only save phone fields if Messaging Service attachment succeeded
               if (provisioningResult.messagingServiceAttached) {

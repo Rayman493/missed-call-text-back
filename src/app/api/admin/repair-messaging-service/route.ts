@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server'
 import Twilio from 'twilio'
 
 export async function POST(request: Request) {
+  // Generate correlation ID for this repair operation
+  const correlationId = `REPAIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  
   try {
+    console.log(`[Repair Messaging Service] START correlation_id=${correlationId}`)
+    
     // Verify admin secret
     const body = await request.json()
     const { adminSecret } = body
@@ -42,12 +47,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No businesses with Twilio numbers found' })
     }
 
-    console.log('[Repair Messaging Service] Found businesses with Twilio numbers:', businesses.length)
+    console.log(`[Repair Messaging Service] Found businesses with Twilio numbers=${businesses.length} correlation_id=${correlationId}`)
 
     // Get current sender pool entries
     const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
       .phoneNumbers
       .list({ limit: 100 })
+
+    console.log(`[Repair Messaging Service] Current sender pool count=${existingPhoneNumbers.length} correlation_id=${correlationId}`)
+    console.log(`[Repair Messaging Service] Current sender pool numbers=${existingPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
 
     const existingSids = new Set(existingPhoneNumbers.map(pn => pn.sid))
 
@@ -63,10 +71,10 @@ export async function POST(request: Request) {
         continue
       }
 
-      console.log('[Repair Messaging Service] Checking business:', business.id, 'PN SID:', pnSid)
+      console.log(`[Repair Messaging Service] Checking business=${business.id} PN SID=${pnSid} correlation_id=${correlationId}`)
 
       if (existingSids.has(pnSid)) {
-        console.log('[Repair Messaging Service] Number already attached:', pnSid)
+        console.log(`[Repair Messaging Service] Number already attached=${pnSid} correlation_id=${correlationId}`)
         alreadyAttachedCount++
         details.push({
           businessId: business.id,
@@ -75,10 +83,10 @@ export async function POST(request: Request) {
         })
       } else {
         try {
-          console.log('[Repair Messaging Service] Starting attachment for business:', business.id)
-          console.log('[Repair Messaging Service] Messaging Service SID:', messagingServiceSid)
-          console.log('[Repair Messaging Service] Phone Number SID:', pnSid)
-          console.log('[Repair Messaging Service] Phone Number:', business.twilio_phone_number)
+          console.log(`[Repair Messaging Service] Starting attachment for business=${business.id} correlation_id=${correlationId}`)
+          console.log(`[Repair Messaging Service] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
+          console.log(`[Repair Messaging Service] Phone Number SID=${pnSid} correlation_id=${correlationId}`)
+          console.log(`[Repair Messaging Service] Phone Number=${business.twilio_phone_number} correlation_id=${correlationId}`)
           
           const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
@@ -86,8 +94,8 @@ export async function POST(request: Request) {
               phoneNumberSid: pnSid
             })
           
-          console.log('[Repair Messaging Service] Attach success')
-          console.log('[Repair Messaging Service] Attached sender SID:', attachedSender.sid)
+          console.log(`[Repair Messaging Service] Attach success correlation_id=${correlationId}`)
+          console.log(`[Repair Messaging Service] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
           
           // Verify attachment succeeded
           const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
@@ -97,7 +105,7 @@ export async function POST(request: Request) {
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === pnSid)
           
           if (isAttached) {
-            console.log('[Repair Messaging Service] Verification passed')
+            console.log(`[Repair Messaging Service] Verification passed correlation_id=${correlationId}`)
             attachedCount++
             details.push({
               businessId: business.id,
@@ -107,8 +115,8 @@ export async function POST(request: Request) {
             })
           } else {
             const errorMsg = 'Attachment succeeded but verification failed'
-            console.error('[Repair Messaging Service] Verification failed')
-            console.error('[Repair Messaging Service] ERROR:', errorMsg)
+            console.error(`[Repair Messaging Service] Verification failed correlation_id=${correlationId}`)
+            console.error(`[Repair Messaging Service] ERROR=${errorMsg} correlation_id=${correlationId}`)
             failedCount++
             details.push({
               businessId: business.id,
@@ -119,12 +127,12 @@ export async function POST(request: Request) {
             })
           }
         } catch (error: any) {
-          console.error('[Repair Messaging Service] Attach failed')
-          console.error('[Repair Messaging Service] Error message:', error?.message || 'Unknown error')
-          console.error('[Repair Messaging Service] Error code:', error?.code || 'Unknown code')
-          console.error('[Repair Messaging Service] Error status:', error?.status || 'Unknown status')
-          console.error('[Repair Messaging Service] More info:', error?.moreInfo || 'N/A')
-          console.error('[Repair Messaging Service] Full error:', error)
+          console.error(`[Repair Messaging Service] Attach failed correlation_id=${correlationId}`)
+          console.error(`[Repair Messaging Service] Error message=${error?.message || 'Unknown error'} correlation_id=${correlationId}`)
+          console.error(`[Repair Messaging Service] Error code=${error?.code || 'Unknown code'} correlation_id=${correlationId}`)
+          console.error(`[Repair Messaging Service] Error status=${error?.status || 'Unknown status'} correlation_id=${correlationId}`)
+          console.error(`[Repair Messaging Service] More info=${error?.moreInfo || 'N/A'} correlation_id=${correlationId}`)
+          console.error(`[Repair Messaging Service] Full error correlation_id=${correlationId}`, error)
           
           failedCount++
           details.push({
@@ -146,6 +154,9 @@ export async function POST(request: Request) {
       .phoneNumbers
       .list({ limit: 100 })
 
+    console.log(`[Repair Messaging Service] Final sender pool count=${finalPhoneNumbers.length} correlation_id=${correlationId}`)
+    console.log(`[Repair Messaging Service] Final sender pool numbers=${finalPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
+
     const summary = {
       totalBusinessesChecked: businesses.length,
       alreadyAttached: alreadyAttachedCount,
@@ -155,7 +166,7 @@ export async function POST(request: Request) {
       details
     }
 
-    console.log('[Repair Messaging Service] Summary:', summary)
+    console.log(`[Repair Messaging Service] Summary correlation_id=${correlationId}`, summary)
 
     return NextResponse.json({ success: true, summary })
   } catch (error) {
