@@ -76,7 +76,11 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
   }
 
   const handleCopyCode = async () => {
-    const code = `*71 +1 (833) 658-4303`
+    const forwardingNumber = business?.twilio_phone_number
+    if (!forwardingNumber) {
+      return
+    }
+    const code = `*71 ${formatPhoneNumber(forwardingNumber)}`
     await navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -176,9 +180,15 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
               
               {/* Phone Number */}
               <div className="text-center">
-                <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
-                  +1 (833) 658-4303
-                </span>
+                {business?.twilio_phone_number ? (
+                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                    {formatPhoneNumber(business.twilio_phone_number)}
+                  </span>
+                ) : (
+                  <span className="text-lg sm:text-xl font-medium text-gray-500 dark:text-gray-400 text-center px-4">
+                    Your ReplyFlow number is still being set up
+                  </span>
+                )}
               </div>
               
               {/* Tap to Copy Hint */}
@@ -193,8 +203,14 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
             <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700">
               <p className="text-sm text-blue-900 dark:text-blue-100 text-center">
                 <span className="font-semibold">What you'll hear:</span><br />
-                Your carrier may say:<br />
-                <span className="font-mono text-blue-800 dark:text-blue-200">"Calls will be forwarded to 1-833-658-4303."</span>
+                {business?.twilio_phone_number ? (
+                  <>
+                    Your carrier may say:<br />
+                    <span className="font-mono text-blue-800 dark:text-blue-200">"Calls will be forwarded to {business.twilio_phone_number.replace('+1', '1-')}."</span>
+                  </>
+                ) : (
+                  <span className="text-blue-700 dark:text-blue-300">Set up forwarding once your ReplyFlow number is assigned</span>
+                )}
               </p>
             </div>
 

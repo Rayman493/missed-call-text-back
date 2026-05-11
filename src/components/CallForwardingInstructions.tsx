@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatPhoneNumber } from '@/lib/utils'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 interface CallForwardingInstructionsProps {
   phoneNumber: string
@@ -11,16 +12,22 @@ interface CallForwardingInstructionsProps {
 
 export default function CallForwardingInstructions({ phoneNumber, isOpen, onClose }: CallForwardingInstructionsProps) {
   const [copied, setCopied] = useState(false)
+  const { business } = useBusiness()
+  
+  // Use business's dedicated ReplyFlow number, fallback to prop if provided
+  const forwardingNumber = business?.twilio_phone_number || phoneNumber
+  
+  console.log('[SetupInstructions] forwardingNumber =', forwardingNumber)
 
   const handleCopyScript = async () => {
-    const script = `Hi, I want unanswered calls from my business number forwarded to this number: ${phoneNumber}. Can you help me set up conditional call forwarding?`
+    const script = `Hi, I want unanswered calls from my business number forwarded to this number: ${forwardingNumber}. Can you help me set up conditional call forwarding?`
     await navigator.clipboard.writeText(script)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleCopyNumber = async () => {
-    await navigator.clipboard.writeText(phoneNumber)
+    await navigator.clipboard.writeText(forwardingNumber)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -106,9 +113,15 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
               
               {/* Phone Number */}
               <div className="text-center">
-                <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
-                  +1 (833) 658-4303
-                </span>
+                {forwardingNumber ? (
+                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                    {formatPhoneNumber(forwardingNumber)}
+                  </span>
+                ) : (
+                  <span className="text-lg sm:text-xl font-medium text-gray-500 dark:text-gray-400 text-center px-4">
+                    Your ReplyFlow number is still being set up
+                  </span>
+                )}
               </div>
               
               {/* Tap to Copy Hint */}
@@ -123,8 +136,14 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
             <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
                 <span className="font-semibold">What you'll hear:</span><br />
-                Your carrier may say:<br />
-                <span className="font-mono text-blue-700 dark:text-blue-300">"Calls will be forwarded to 1-833-658-4303."</span>
+                {forwardingNumber ? (
+                  <>
+                    Your carrier may say:<br />
+                    <span className="font-mono text-blue-700 dark:text-blue-300">"Calls will be forwarded to {forwardingNumber.replace('+1', '1-')}."</span>
+                  </>
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">Set up forwarding once your ReplyFlow number is assigned</span>
+                )}
               </p>
             </div>
 
@@ -166,7 +185,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Support script for your phone provider:</h4>
             <div className="bg-white dark:bg-gray-800 rounded p-3 mb-3">
               <p className="text-sm text-gray-700 dark:text-gray-300 font-mono">
-                "Hi, I want unanswered calls from my business number forwarded to this number: {formatPhoneNumber(phoneNumber)}. Can you help me set up conditional call forwarding?"
+                "Hi, I want unanswered calls from my business number forwarded to this number: {formatPhoneNumber(forwardingNumber)}. Can you help me set up conditional call forwarding?"
               </p>
             </div>
             <button
