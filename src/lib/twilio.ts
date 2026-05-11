@@ -34,15 +34,30 @@ export async function sendSms(
   const smsValidation = validateTwilioForSms();
   
   if (!smsValidation.isValid) {
-    console.error('[SMS] Twilio validation failed:', smsValidation.error);
+    console.error('[SMS Sender] Twilio validation failed:', smsValidation.error);
     // Still log the failed attempt
     await logFailedMessage(business, to, message, options, smsValidation.error || 'Twilio validation failed');
     return null;
   }
 
-  console.log('[SMS] Sending SMS to:', to, 'from business:', business.id, 'method:', smsValidation.method);
-  console.log('[SMS] Sending from business assigned number:', business.twilio_phone_number);
-  console.log('[SMS] Business messaging service SID:', business.twilio_messaging_service_sid);
+  console.log('[SMS Sender] business_id:', business.id);
+  console.log('[SMS Sender] business twilio_phone_number:', business.twilio_phone_number);
+  console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid);
+  console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
+
+  // Verify business has a canonical number and it's attached
+  if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
+    console.error('[SMS Sender] No canonical Twilio number assigned to business');
+    await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business');
+    return null;
+  }
+
+  if (business.provisioning_status !== 'attached') {
+    console.error('[SMS Sender] Business number is not attached to Messaging Service');
+    console.error('[SMS Sender] provisioning_status:', business.provisioning_status);
+    await logFailedMessage(business, to, message, options, 'ReplyFlow number is still provisioning. Try again shortly.');
+    return null;
+  }
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
@@ -78,16 +93,12 @@ export async function sendSms(
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const globalMessagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
 
-  console.log('[SMS] Messaging Service SID exists:', !!globalMessagingServiceSid, 'value:', globalMessagingServiceSid ? globalMessagingServiceSid.substring(0, 8) + '...' : 'none');
-  console.log('[SMS] Business messaging service SID exists:', !!business.twilio_messaging_service_sid);
-
   const client = Twilio(
     process.env.TWILIO_ACCOUNT_SID!,
     process.env.TWILIO_AUTH_TOKEN!
   );
 
   let messageResult;
-  let sendMethod = '';
   let errorMessage = '';
   let errorCode = '';
 
@@ -96,54 +107,71 @@ export async function sendSms(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     
-    console.log('[SMS] Using status callback URL:', statusCallbackUrl)
+    console.log('[SMS Sender] Verifying sender pool membership for SID:', business.twilio_phone_number_sid);
     
-    // Priority 1: Use business-specific messaging service SID if available
-    if (business.twilio_messaging_service_sid) {
-      console.log('[SMS] Using business messaging service:', business.twilio_messaging_service_sid);
-      console.log('[SMS] Verified sender pool membership via messaging service');
-      sendMethod = 'business-messaging-service';
-      messageResult = await client.messages.create({
-        body: message,
-        to,
-        messagingServiceSid: business.twilio_messaging_service_sid,
-        statusCallback: statusCallbackUrl,
-      });
-    }
-    // Priority 2: Use global messaging service SID if available (10DLC ready)
-    else if (globalMessagingServiceSid) {
-      console.log('[SMS] Using global Messaging Service:', globalMessagingServiceSid);
-      console.log('[SMS] Verified sender pool membership via global messaging service');
-      sendMethod = 'global-messaging-service';
-      messageResult = await client.messages.create({
-        body: message,
-        to,
-        messagingServiceSid: globalMessagingServiceSid,
-        statusCallback: statusCallbackUrl,
-      });
-    }
-    // Priority 3: Fallback to phone number (not 10DLC ready) with warning
-    else if (business.twilio_phone_number) {
-      console.warn('[SMS] WARNING: No Messaging Service SID available, falling back to phone number');
-      console.warn('[SMS] This is not 10DLC compliant and should only be used in emergency/demo mode');
-      console.warn('[SMS] Set TWILIO_MESSAGING_SERVICE_SID or business.twilio_messaging_service_sid to fix');
-      sendMethod = 'phone-number-fallback';
+    // Verify the business's number is in the Messaging Service sender pool
+    if (globalMessagingServiceSid) {
+      try {
+        const senderPool = await client.messaging.v1.services(globalMessagingServiceSid)
+          .phoneNumbers
+          .list({ limit: 100 });
+        
+        const numberInPool = senderPool.find(pn => pn.sid === business.twilio_phone_number_sid);
+        
+        if (numberInPool) {
+          console.log('[SMS Sender] sender pool verification passed - number found in pool');
+          console.log('[SMS Sender] final from number:', business.twilio_phone_number);
+          console.log('[SMS Sender] final messagingServiceSid:', globalMessagingServiceSid);
+          
+          // Use Messaging Service with business's canonical number
+          messageResult = await client.messages.create({
+            body: message,
+            to,
+            messagingServiceSid: globalMessagingServiceSid,
+            statusCallback: statusCallbackUrl,
+          });
+        } else {
+          console.error('[SMS Sender] sender pool verification failed - number not in pool');
+          console.error('[SMS Sender] Pool SIDs:', senderPool.map(pn => pn.sid));
+          console.error('[SMS Sender] Business SID:', business.twilio_phone_number_sid);
+          errorMessage = 'Business number not found in Messaging Service sender pool';
+          await logFailedMessage(business, to, message, options, errorMessage);
+          
+          // Trigger repair provisioning
+          console.log('[SMS Sender] Triggering repair provisioning for business:', business.id);
+          try {
+            await fetch('/api/business/trigger-provisioning', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ business_id: business.id })
+            });
+          } catch (repairError) {
+            console.error('[SMS Sender] Failed to trigger repair:', repairError);
+          }
+          
+          return null;
+        }
+      } catch (poolError) {
+        console.error('[SMS Sender] Error checking sender pool:', poolError);
+        errorMessage = 'Failed to verify sender pool membership';
+        await logFailedMessage(business, to, message, options, errorMessage);
+        return null;
+      }
+    } else {
+      // No Messaging Service configured - use direct from with business number
+      console.warn('[SMS Sender] WARNING: No Messaging Service SID configured, using direct from');
+      console.log('[SMS Sender] final from number:', business.twilio_phone_number);
+      console.log('[SMS Sender] final messagingServiceSid: null (direct from)');
+      
       messageResult = await client.messages.create({
         body: message,
         to,
         from: business.twilio_phone_number,
         statusCallback: statusCallbackUrl,
       });
-    } 
-    // No valid sending method available
-    else {
-      console.error('[SMS] No valid sending method available - no messaging service SID or phone number');
-      errorMessage = 'No valid Twilio sending method available';
-      await logFailedMessage(business, to, message, options, errorMessage);
-      return null;
     }
 
-    console.log('[SMS] SMS sent successfully via', sendMethod, ':', { 
+    console.log('[SMS] SMS sent successfully:', { 
       to, 
       sid: messageResult.sid,
       status: messageResult.status 
