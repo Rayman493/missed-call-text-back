@@ -5,9 +5,12 @@ import { provisionTwilioNumber } from '@/lib/twilio'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  let business_id: string = ''
+  
   try {
     const body = await request.json()
-    const { business_id } = body
+    business_id = body.business_id
+    const businessId = business_id // Store in variable for catch block access
 
     console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING START ==========')
     console.log('[ProvisioningTrigger] business_id:', business_id)
@@ -84,17 +87,14 @@ export async function POST(request: Request) {
       })
     }
 
-    // If already provisioning, don't start again
-    if (business.provisioning_status === 'provisioning') {
-      console.log('[ProvisioningTrigger] Already provisioning, skipping')
-      return NextResponse.json({ 
-        success: true,
-        message: 'Already provisioning',
-        provisioning_status: business.provisioning_status
-      })
-    }
-
     console.log('[ProvisioningTrigger] START - calling provisionTwilioNumber')
+    console.log('[ProvisioningTrigger] Business state before provisioning:', {
+      business_id: business.id,
+      provisioning_status: business.provisioning_status,
+      provisioning_lock_id: business.provisioning_lock_id,
+      has_number: !!business.twilio_phone_number,
+      has_number_sid: !!business.twilio_phone_number_sid
+    })
 
     // Acquire lock by setting provisioning status and lock ID
     await supabase
@@ -109,7 +109,38 @@ export async function POST(request: Request) {
     console.log('[ProvisioningTrigger] Set provisioning_status=provisioning, lock_id=', correlationId)
 
     // Call provisioning function with correlation ID
+    console.log('[ProvisioningTrigger] Calling provisionTwilioNumber with correlation_id:', correlationId)
     const provisioningResult = await provisionTwilioNumber(business.id, correlationId)
+
+    console.log('[ProvisioningTrigger] provisionTwilioNumber result:', {
+      success: !!provisioningResult,
+      phoneNumber: provisioningResult?.phoneNumber,
+      phoneNumberSid: provisioningResult?.phoneNumberSid,
+      messagingServiceAttached: provisioningResult?.messagingServiceAttached,
+      messagingServiceError: provisioningResult?.messagingServiceError
+    })
+
+    // Hard assertion: provisioning result must be valid
+    if (!provisioningResult || !provisioningResult.phoneNumber || !provisioningResult.phoneNumberSid) {
+      console.error('[ProvisioningTrigger] CRITICAL ERROR: Invalid provisioning result')
+      console.error('[ProvisioningTrigger] Expected phoneNumber and phoneNumberSid in result')
+      
+      // Clear lock and mark as failed
+      await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
+        })
+        .eq('id', business.id)
+
+      return NextResponse.json({
+        error: 'Provisioning failed - invalid result',
+        provisioning_status: 'failed',
+        provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
+      }, { status: 500 })
+    }
 
     if (provisioningResult) {
       console.log('[ProvisioningTrigger] Provisioning succeeded:', provisioningResult.phoneNumber)
@@ -204,10 +235,33 @@ export async function POST(request: Request) {
 
       console.log('[ProvisioningTrigger] Cleared lock and set status=failed for business:', business.id)
 
-      return NextResponse.json({ error: 'Provisioning failed - no result returned' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Provisioning failed - no result returned',
+        provisioning_status: 'failed'
+      }, { status: 500 })
     }
   } catch (error) {
     console.error('[ProvisioningTrigger] Error:', error)
+    
+    // Create fresh supabase client for error handling
+    const errorSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    // businessId is available from outer scope
+    
+    await errorSupabase
+      .from('businesses')
+      .update({
+        provisioning_status: 'failed',
+        provisioning_lock_id: null,
+        provisioning_error: 'Internal server error'
+      })
+      .eq('id', business_id)
+
+    console.log('[ProvisioningTrigger] Cleared lock and set status=failed for business:', business_id)
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
