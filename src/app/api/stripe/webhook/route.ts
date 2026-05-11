@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { SUBSCRIPTION_STATES } from '@/lib/subscription'
-import { provisionNumberForBusiness, releaseNumberForBusiness } from '@/lib/twilio/numberManager'
+// Legacy numberManager removed - only provisionTwilioNumber should be used for provisioning
 import getStripe from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -720,20 +720,8 @@ export async function POST(request: Request) {
             console.log('[STRIPE CANCEL] All billing fields cleared')
           }
 
-          // Release Twilio number
-          try {
-            console.log('[stripe-webhook] Releasing Twilio number for business:', business.id)
-            const releaseResult = await releaseNumberForBusiness(business.id)
-            
-            if (releaseResult.success) {
-              console.log('[stripe-webhook] Successfully released Twilio number for business:', business.id)
-            } else {
-              console.error('[stripe-webhook] Failed to release Twilio number for business:', business.id, 'Error:', releaseResult.error)
-            }
-          } catch (releaseError) {
-            console.error('[stripe-webhook] Error during Twilio number release:', releaseError)
-            // Don't fail the webhook - subscription is already canceled
-          }
+          // Legacy releaseNumberForBusiness removed - not needed with new provisioning flow
+          console.log('[stripe-webhook] Legacy number release removed - using new provisioning flow')
 
           // Send offboarding email with forwarding disable instructions
           try {

@@ -335,14 +335,14 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
   return expectedFields.every(field => field in payload)
 }
 
-export async function provisionTwilioNumber(businessId: string): Promise<{ 
+export async function provisionTwilioNumber(businessId: string, correlationId?: string): Promise<{ 
   phoneNumber: string; 
   phoneNumberSid: string;
   messagingServiceAttached: boolean;
   messagingServiceError?: string;
 } | null> {
-  // Generate correlation ID for this provisioning operation
-  const correlationId = `PROV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  // Use provided correlation ID or generate one for backwards compatibility
+  const finalCorrelationId = correlationId || `PROV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
@@ -365,7 +365,7 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
   console.log(`[ProvisioningGuard] ========== CHECKING EXISTING STATE ========== correlation_id=${correlationId}`)
   const { data: existingBusiness } = await supabase
     .from('businesses')
-    .select('twilio_phone_number, twilio_phone_number_sid, provisioning_status')
+    .select('twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_lock_id')
     .eq('id', businessId)
     .single()
 
@@ -373,13 +373,26 @@ export async function provisionTwilioNumber(businessId: string): Promise<{
     console.log(`[ProvisioningGuard] Existing twilio_phone_number=${existingBusiness.twilio_phone_number} correlation_id=${correlationId}`)
     console.log(`[ProvisioningGuard] Existing twilio_phone_number_sid=${existingBusiness.twilio_phone_number_sid} correlation_id=${correlationId}`)
     console.log(`[ProvisioningGuard] Existing provisioning_status=${existingBusiness.provisioning_status} correlation_id=${correlationId}`)
+    console.log(`[ProvisioningGuard] Existing provisioning_lock_id=${existingBusiness.provisioning_lock_id} correlation_id=${correlationId}`)
 
-    // Hard lock: If already provisioning, block all other paths
-    if (existingBusiness.provisioning_status === 'provisioning') {
-      console.log(`[ProvisioningGuard] ========== HARD LOCK BLOCKED ========== correlation_id=${correlationId}`)
-      console.log(`[ProvisioningGuard] Business is already provisioning, blocking duplicate purchase correlation_id=${correlationId}`)
-      console.log(`[ProvisioningGuard] This prevents two separate provisioning systems from running simultaneously correlation_id=${correlationId}`)
+    // Smart lock: Only block if provisioning by a different request
+    if (existingBusiness.provisioning_status === 'provisioning' && 
+        existingBusiness.provisioning_lock_id && 
+        existingBusiness.provisioning_lock_id !== finalCorrelationId) {
+      console.log(`[ProvisioningGuard] ========== LOCK BLOCKED (DIFFERENT REQUEST) ========== correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Business is being provisioned by different request, blocking correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Existing lock_id=${existingBusiness.provisioning_lock_id} correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Current correlation_id=${correlationId}`)
       return null
+    }
+
+    // Allow provisioning if same request or no lock
+    if (existingBusiness.provisioning_status === 'provisioning' && 
+        (!existingBusiness.provisioning_lock_id || existingBusiness.provisioning_lock_id === finalCorrelationId)) {
+      console.log(`[ProvisioningGuard] ========== ALLOWING (SAME REQUEST) ========== correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Business is provisioning but this is the same request, allowing correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Existing lock_id=${existingBusiness.provisioning_lock_id} correlation_id=${correlationId}`)
+      console.log(`[ProvisioningGuard] Current correlation_id=${correlationId}`)
     }
 
     // Database guard: If already has number or is attached, skip purchase
