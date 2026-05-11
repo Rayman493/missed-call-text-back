@@ -99,7 +99,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       business.stripe_customer_id, 
       business.stripe_subscription_id
     )
-    const twilioReady = !!business.twilio_phone_number
+    const twilioReady = !!business.twilio_phone_number && business.provisioning_status === 'active'
     const forwardingComplete = business.business_phone_number && 
                              business.phone_setup_completed_at && 
                              business.call_forwarding_enabled
@@ -117,6 +117,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       provisioning_status: business.provisioning_status,
       provisioning_error: business.provisioning_error,
       provisioned_at: business.provisioned_at
+    })
+
+    // UI state logging for debugging
+    console.log('[UI State] Frontend state:', {
+      twilio_phone_number: business.twilio_phone_number,
+      provisioning_status: business.provisioning_status,
+      twilioReady: twilioReady,
+      onboardingState: onboardingState
     })
 
     // Define onboarding state logic
@@ -148,6 +156,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     if (isHandlingBilling) return
     
     setIsHandlingBilling(true)
+    console.log('[GettingStarted] Starting trial...')
+    
+    // Refresh business data to get latest provisioning state
+    await refreshBusiness()
     try {
       console.log('[GettingStarted] Starting trial activation')
       const result = await handleBillingAction()
@@ -264,7 +276,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         details: twilioReady 
           ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}`
           : business.provisioning_status === 'provisioning'
-            ? 'Provisioning your ReplyFlow number...'
+            ? 'Your ReplyFlow number is ready!'
             : business.provisioning_status === 'failed'
             ? 'Provisioning failed - click to retry'
             : 'Setting up your ReplyFlow number...',
