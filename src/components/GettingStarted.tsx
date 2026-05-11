@@ -94,6 +94,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       return 'loading'
     }
 
+    // Defensive guard: ensure business object is fully loaded
+    if (!business.subscription_status || !business.stripe_customer_id || !business.stripe_subscription_id) {
+      console.log('[GettingStarted] Business not fully loaded, using default state')
+      return 'loading'
+    }
+
     const subscriptionActive = hasValidSubscription(
       business.subscription_status, 
       business.stripe_customer_id, 
