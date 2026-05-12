@@ -87,14 +87,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [successMessage, setSuccessMessage] = useState('')
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [showMoreActions, setShowMoreActions] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const supabase = createBrowserClient()
 
-  // ALL hooks must be declared here before any conditional returns
+  // ALL hooks must must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
+  
+  // Close more actions dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMoreActions) {
+        setShowMoreActions(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMoreActions])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false) => {
     // Only scroll if user is near bottom (within 200px) or if forced
@@ -871,86 +884,116 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       )}
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-                ← Dashboard
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+          {/* Top Navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/dashboard" 
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                ← Back to Dashboard
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Lead Details</h1>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <h1 className="text-lg font-medium text-gray-900 dark:text-gray-100">Lead Details</h1>
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowIgnoreModal(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-colors"
-                title="Ignore Contact"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 18.364" />
-                </svg>
-                <span className="hidden sm:inline">Ignore Contact</span>
-              </button>
-              <button
-                onClick={() => setShowRemoveModal(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors"
-                title="Remove Lead"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span className="hidden sm:inline">Remove Lead</span>
-              </button>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Refresh Messages"
               >
                 {refreshing ? (
-                  <>
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent border-solid"></div>
-                    <span>Refreshing...</span>
-                  </>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent border-solid"></div>
                 ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span className="hidden sm:inline">Refresh</span>
-                  </>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 )}
               </button>
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {formatPhoneNumber(lead?.caller_phone || '')}
-                </h1>
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className={`px-1.5 py-0.5 rounded-md text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
-                    {lead?.status}
-                  </span>
-                  {conversation && (
-                    <span className={`px-1.5 py-0.5 rounded-md text-xs font-medium ${
-                      conversation.status === 'open' 
-                        ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {conversation.status}
-                    </span>
-                  )}
-                  {automationStatus && (
-                    <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-md font-medium">
-                      {automationStatus}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
-                  {lead?.last_message_at && (
-                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
-                  )}
-                </div>
+              
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="More actions"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                
+                {showMoreActions && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        setShowIgnoreModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      Ignore Contact
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRemoveModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Remove Lead
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+          
+          {/* Main Lead Identity */}
+          <div className="space-y-4">
+            {/* Phone Number */}
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                {formatPhoneNumber(lead?.caller_phone || '')}
+              </h2>
+            </div>
+            
+            {/* Status Badges */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
+                {lead?.status}
+              </span>
+              {conversation && (
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                  conversation.status === 'open' 
+                    ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}>
+                  {conversation.status}
+                </span>
+              )}
+            </div>
+            
+            {/* Metadata */}
+            <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+              <span>Created {formatRelativeTime(lead?.created_at)}</span>
+              {lead?.last_message_at && (
+                <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+              )}
+            </div>
+            
+            {/* Follow-up Status - Subtle Info */}
+            {automationStatus && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                {automationStatus === 'Follow-ups cancelled after customer reply' 
+                  ? 'Follow-ups stopped after customer replied'
+                  : automationStatus
+                }
+              </div>
+            )}
           </div>
         </div>
       </div>
