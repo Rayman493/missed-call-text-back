@@ -1001,7 +1001,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Thread */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           {/* Message Thread */}
           <div className="p-4 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
             {loading ? (
@@ -1022,7 +1022,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {messagesArray.map((msg: any, index: number) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -1049,25 +1049,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       
                       {/* Message Bubble */}
                       <div className={`max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-1.5 mb-1 justify-end flex-wrap">
+                        <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
                           <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
                             {formatRelativeTime(msg.created_at)}
                           </span>
-                          {isOptimistic && (
-                            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
-                              Sending...
-                            </span>
-                          )}
-                          {isManual && (
-                            <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs rounded-md font-medium">
-                              Manual
-                            </span>
-                          )}
-                          {isFollowUp && (
-                            <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs rounded-md font-medium">
-                              Auto
-                            </span>
-                          )}
                           {isInbound && (
                             <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-md font-medium">
                               Customer
@@ -1075,24 +1060,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )}
                           {isOutbound && !isOptimistic && (
                             <>
-                              {msg.status === 'sent' && (
-                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium">
-                                  Sent
-                                </span>
-                              )}
                               {msg.status === 'delivered' && (
                                 <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium">
                                   Delivered
-                                </span>
-                              )}
-                              {msg.status === 'pending' && (
-                                <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs rounded-md font-medium">
-                                  Pending
-                                </span>
-                              )}
-                              {msg.status === 'undelivered' && (
-                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium">
-                                  Failed
                                 </span>
                               )}
                               {msg.status === 'failed' && (
@@ -1101,6 +1071,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </span>
                               )}
                             </>
+                          )}
+                          {isOptimistic && (
+                            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
+                              Sending...
+                            </span>
                           )}
                         </div>
                         
@@ -1123,85 +1098,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </p>
                         </div>
                         
-                        {/* Error/Warning State */}
-                        {hasError && (
-                          <div className="mt-2">
-                            {msg.error_code === '30007' || msg.error_message?.includes('verification') ? (
-                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-2">
-                                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
-                                  {errorMessage || msg.error_message}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    if (!sending) {
-                                      handleRetry(msg.body, msg.id, msg.clientTempId)
-                                    }
-                                  }}
-                                  disabled={sending}
-                                  className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
-                                >
-                                  {sending ? 'Retrying...' : 'Retry'}
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
-                                <p className="text-xs text-red-700 dark:text-red-300 mb-2">
-                                  {errorMessage || msg.error_message || 'Message failed to send'}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    if (!sending) {
-                                      handleRetry(msg.body, msg.id, msg.clientTempId)
-                                    }
-                                  }}
-                                  disabled={sending}
-                                  className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
-                                >
-                                  {sending ? 'Retrying...' : 'Retry'}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Optimistic Failed State */}
-                        {isOptimistic && msg.status === 'failed' && (
-                          <div className="mt-2">
-                            {msg.error_message?.includes('verification') || msg.error_message?.includes('carrier') ? (
-                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-2">
-                                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
-                                  {msg.error_message}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    if (!sending) {
-                                      handleRetry(msg.body, msg.id, msg.clientTempId)
-                                    }
-                                  }}
-                                  disabled={sending}
-                                  className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded transition-colors"
-                                >
-                                  {sending ? 'Retrying...' : 'Retry'}
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
-                                <p className="text-xs text-red-700 dark:text-red-300 mb-2">
-                                  {msg.error_message}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    if (!sending) {
-                                      handleRetry(msg.body, msg.id, msg.clientTempId)
-                                    }
-                                  }}
-                                  disabled={sending}
-                                  className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded transition-colors"
-                                >
-                                  {sending ? 'Retrying...' : 'Retry'}
-                                </button>
-                              </div>
-                            )}
+                        {/* Subtle Error State */}
+                        {(hasError || (isOptimistic && msg.status === 'failed')) && (
+                          <div className="mt-1 flex items-center gap-2 text-xs">
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Couldn't send.
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (!sending) {
+                                  handleRetry(msg.body, msg.id, msg.clientTempId)
+                                }
+                              }}
+                              disabled={sending}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {sending ? 'Retrying...' : 'Retry'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1290,21 +1203,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Scheduled Follow-ups */}
         {followUpJobs.length > 0 && (
-          <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
+          <div className="mt-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 sm:p-4">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
               Scheduled Follow-ups ({followUpJobs.length})
             </h3>
             
             {/* Check if all follow-ups were cancelled due to customer reply */}
             {followUpJobs.every((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied') ? (
-              <div className="text-center py-6">
+              <div className="text-center py-4">
                 <div className="text-2xl mb-2">✅</div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Follow-up messages were automatically stopped after the customer replied
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {followUpJobs.map((job: any) => {
                   const isPending = job.status === 'pending'
                   const isSent = job.status === 'sent'
