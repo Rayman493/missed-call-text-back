@@ -382,7 +382,7 @@ export default function SettingsContent() {
             <MobileMenu />
 
             {/* Main Content */}
-            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
 
             {/* Settings Sections */}
             <div className="space-y-8">

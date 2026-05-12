@@ -1003,7 +1003,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           {/* Message Thread */}
-          <div className="p-4 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
+          <div className="p-3 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1048,7 +1048,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                       
                       {/* Message Bubble */}
-                      <div className={`max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
+                      <div className={`max-w-[85%] ${isOutbound ? 'text-right' : ''}`}>
                         <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
                           <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
                             {formatRelativeTime(msg.created_at)}
@@ -1158,7 +1158,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                  placeholder="Type a message..."
                   className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
                   rows={1}
                   style={{ minHeight: '44px', maxHeight: '120px' }}
@@ -1168,7 +1168,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   type="button"
                   onClick={() => handleSendMessage()}
                   disabled={sending || !message.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl font-medium transition-colors self-end"
+                  className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors self-end"
                 >
                   {sending ? (
                     <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
