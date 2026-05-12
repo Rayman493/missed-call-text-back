@@ -98,6 +98,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // ALL hooks must must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
+  const [showLeadInfo, setShowLeadInfo] = useState(false)
   
   // Close more actions dropdown when clicking outside
   useEffect(() => {
@@ -955,45 +956,120 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Main Lead Identity */}
-          <div className="space-y-1.5 sm:space-y-2">
-            {/* Phone Number */}
-            <div>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
-            </div>
-            
-            {/* Status Badges */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
-                {lead?.status}
-              </span>
-              {conversation && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                  conversation.status === 'open' 
-                    ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}>
-                  {conversation.status}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
+                  {lead?.status}
                 </span>
-              )}
+                {conversation && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    conversation.status === 'open' 
+                      ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}>
+                    {conversation.status}
+                  </span>
+                )}
+              </div>
             </div>
             
-            {/* Metadata */}
-            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <span>Created {formatRelativeTime(lead?.created_at)}</span>
-              {lead?.last_message_at && (
-                <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
-              )}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh Messages"
+              >
+                {refreshing ? (
+                  <div className="w-3.5 h-3.5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent border-solid"></div>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+              
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="More actions"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                
+                {showMoreActions && (
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        setShowIgnoreModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      Ignore Contact
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRemoveModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Remove Lead
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+          
+          {/* Collapsible Lead Info */}
+          <div className="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+            <button
+              onClick={() => setShowLeadInfo(!showLeadInfo)}
+              className="w-full flex items-center justify-between text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium">
+                  {showLeadInfo ? 'Hide Details' : 'Show Details'}
+                </span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7m7 7V3" />
+                </svg>
+              </div>
+            </button>
             
-            {/* Follow-up Status - Subtle Info */}
-            {automationStatus && (
-              <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/30 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
-                {automationStatus === 'Follow-ups cancelled after customer reply' 
-                  ? 'Follow-ups stopped after customer replied'
-                  : automationStatus
-                }
+            {showLeadInfo && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                  {lead?.last_message_at && (
+                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                  )}
+                </div>
+                
+                {/* Follow-up Status - Subtle Info */}
+                {automationStatus && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/30 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
+                    {automationStatus === 'Follow-ups cancelled after customer reply' 
+                      ? 'Follow-ups stopped after customer replied'
+                      : automationStatus
+                    }
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1001,10 +1077,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-8">
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 pb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           {/* Message Thread */}
-          <div className="p-3 sm:p-6 min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto">
+          <div className="p-2.5 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
