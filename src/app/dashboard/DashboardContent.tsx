@@ -708,11 +708,11 @@ export default function DashboardContent() {
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="max-w-6xl mx-auto space-y-8">
                         
             {/* Billing Error */}
             {billingError && (
-              <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -740,7 +740,7 @@ export default function DashboardContent() {
 
             {/* Setup Health Banner - Show when forwarding not verified */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && (
-              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4">
+              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -778,7 +778,7 @@ export default function DashboardContent() {
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -830,7 +830,7 @@ export default function DashboardContent() {
 
             {/* Inactive Subscription - Primary CTA for New Users */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-800 rounded-xl p-4">
+              <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-900/40 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🚀</span>
@@ -866,7 +866,7 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">📞</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls</h3>
@@ -874,7 +874,7 @@ export default function DashboardContent() {
                 <p className="text-xl sm:text-2xl font-bold text-gray-100">{missedCalls}</p>
                 <p className="text-xs text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
               </div>
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">👥</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Leads Captured</h3>
@@ -882,7 +882,7 @@ export default function DashboardContent() {
                 <p className="text-xl sm:text-2xl font-bold text-blue-400">{leadsRecovered}</p>
                 <p className="text-xs text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
               </div>
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">💬</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Messages Sent</h3>
@@ -890,7 +890,7 @@ export default function DashboardContent() {
                 <p className="text-xl sm:text-2xl font-bold text-green-400">{textsSent}</p>
                 <p className="text-xs text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
               </div>
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-3 sm:p-4">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl">⏰</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups Scheduled</h3>
@@ -902,21 +902,21 @@ export default function DashboardContent() {
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-3">
+              <div className="bg-blue-900/20 border border-blue-900/40 rounded-xl px-4 py-3">
                 <p className="text-blue-300 text-sm">Payment confirmed. Setting up your account...</p>
               </div>
             )}
 
             {/* Checkout cancel message */}
             {checkoutStatus === 'cancelled' && (
-              <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3">
+              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl px-4 py-3">
                 <p className="text-yellow-300 text-sm">Checkout cancelled. You can activate anytime.</p>
               </div>
             )}
 
             {/* Canceling Banner - when scheduled to cancel */}
             {isActive && isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end) && (
-              <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-4">
+              <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⏰</span>
@@ -951,7 +951,7 @@ export default function DashboardContent() {
 
             {/* Billing card - only show when action needed */}
             {!isActive && !business?.stripe_subscription_id && (
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 hover:border-gray-600 transition">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-4 hover:border-gray-600 transition">
                 {webhookConfirming ? (
                   <>
                     <h2 className="text-lg font-semibold text-gray-100 mb-2">Activating your account</h2>
@@ -975,7 +975,7 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
-              <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50">
                 <DashboardEmptyState />
               </div>
             ) : (
@@ -1025,7 +1025,7 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 overflow-hidden">
                   {processedLeads.length === 0 ? (
                     <div className="p-8 text-center">
                       <div className="text-4xl mb-4">🔍</div>
