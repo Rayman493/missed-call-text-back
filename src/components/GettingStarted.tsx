@@ -356,6 +356,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
           <button
             onClick={handleToggle}
             className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
+            aria-expanded={isExpanded}
+            aria-label="Toggle getting started checklist"
           >
             <svg
               className="w-5 h-5 transition-transform duration-300"
@@ -388,6 +390,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
             type="button"
             onClick={handleToggle}
             className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            aria-expanded={isExpanded}
+            aria-label="Toggle getting started checklist"
           >
             <svg
               className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -400,7 +404,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
           </button>
         </div>
       </div>
-      <div className="space-y-2">
+      {isExpanded && (
+        <div className="space-y-2">
         {checklistItems.map((item: ChecklistItem) => (
           <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg">
             <div className="flex-shrink-0 mt-0.5">
@@ -464,7 +469,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
