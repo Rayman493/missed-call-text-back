@@ -1287,61 +1287,96 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Follow-up Jobs */}
+        {/* Scheduled Follow-ups */}
         {followUpJobs.length > 0 && (
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Follow-up Jobs ({followUpJobs.length})
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
+              Scheduled Follow-ups ({followUpJobs.length})
             </h3>
-            <div className="space-y-2">
-              {followUpJobs.map((job: any) => {
-                const isPending = job.status === 'pending'
-                const isSent = job.status === 'sent'
-                const isCancelled = job.status === 'cancelled'
-                const isFailed = job.status === 'failed'
-                
-                return (
-                  <div
-                    key={job.id}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      isPending ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' :
-                      isSent ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                      isCancelled ? 'bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700' :
-                      'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          isPending ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                          isSent ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                          isCancelled ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' :
-                          'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+            
+            {/* Check if all follow-ups were cancelled due to customer reply */}
+            {followUpJobs.every((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied') ? (
+              <div className="text-center py-6">
+                <div className="text-2xl mb-2">✅</div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Follow-up messages were automatically stopped after the customer replied
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {followUpJobs.map((job: any) => {
+                  const isPending = job.status === 'pending'
+                  const isSent = job.status === 'sent'
+                  const isCancelled = job.status === 'cancelled'
+                  const isFailed = job.status === 'failed'
+                  
+                  // Human-friendly status descriptions
+                  const getStatusDescription = () => {
+                    if (isPending && job.scheduled_at) {
+                      const scheduledTime = new Date(job.scheduled_at)
+                      const now = new Date()
+                      const tomorrow = new Date(now)
+                      tomorrow.setDate(tomorrow.getDate() + 1)
+                      
+                      if (scheduledTime.toDateString() === tomorrow.toDateString()) {
+                        return `Will send tomorrow morning`
+                      } else if (scheduledTime > now) {
+                        return `Will send ${formatRelativeTime(job.scheduled_at)}`
+                      } else {
+                        return 'Scheduled to send soon'
+                      }
+                    }
+                    
+                    if (isSent) return 'Sent successfully'
+                    if (isCancelled) {
+                      if (job.cancelled_reason === 'customer_replied') {
+                        return 'Stopped after the customer replied'
+                      }
+                      return 'No longer needed'
+                    }
+                    if (isFailed) return 'Unable to send'
+                    return 'Scheduled'
+                  }
+                  
+                  return (
+                    <div
+                      key={job.id}
+                      className={`p-4 rounded-lg border ${
+                        isPending ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' :
+                        isSent ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' :
+                        isCancelled ? 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700' :
+                        'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+                      }`}
+                    >
+                      {/* Message Preview */}
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
+                          {job.message_body}
+                        </p>
+                      </div>
+                      
+                      {/* Status Line */}
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs ${
+                          isPending ? 'text-blue-600 dark:text-blue-400' :
+                          isSent ? 'text-green-600 dark:text-green-400' :
+                          isCancelled ? 'text-gray-500 dark:text-gray-400' :
+                          'text-red-600 dark:text-red-400'
                         }`}>
-                          {job.status}
+                          {getStatusDescription()}
                         </span>
-                        {job.cancelled_reason && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            ({job.cancelled_reason})
+                        
+                        {(isSent || job.scheduled_at) && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {isSent ? `Sent ${formatRelativeTime(job.sent_at)}` : `Scheduled ${formatRelativeTime(job.scheduled_at)}`}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
-                        {job.message_body}
-                      </p>
                     </div>
-                    <div className="text-right ml-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        ({job.cancelled_reason})
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Sent {formatRelativeTime(job.sent_at)}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
