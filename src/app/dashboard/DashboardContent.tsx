@@ -32,7 +32,6 @@ import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
-import DashboardEmptyState from '@/components/DashboardEmptyState'
 import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
@@ -977,9 +976,7 @@ export default function DashboardContent() {
 
             {/* Missed Call Leads Section - LIVE ACTIVITY */}
             {leads.length === 0 ? (
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <DashboardEmptyState />
-              </div>
+              null
             ) : (
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
