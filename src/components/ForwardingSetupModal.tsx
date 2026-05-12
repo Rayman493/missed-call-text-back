@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
@@ -26,12 +26,28 @@ export default function ForwardingSetupModal() {
   const [saveError, setSaveError] = useState('')
   const [isDismissed, setIsDismissed] = useState(false)
 
+  // Initialize carrier from business data if available
+  useEffect(() => {
+    if (business?.carrier && !selectedCarrier) {
+      setSelectedCarrier(business.carrier)
+    }
+  }, [business?.carrier, selectedCarrier])
+
+  // Reset dismissal state when business state changes significantly
+  useEffect(() => {
+    if (business && !business.call_forwarding_enabled && !business.phone_setup_completed_at && !business.forwarding_verified) {
+      setIsDismissed(false)
+    }
+  }, [business?.call_forwarding_enabled, business?.phone_setup_completed_at, business?.forwarding_verified])
+
   // Check if modal should show
   const shouldShow =
     business &&
     business.twilio_phone_number &&
     (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
     !business.forwarding_verified &&
+    !business.call_forwarding_enabled &&
+    !business.phone_setup_completed_at &&
     business.onboarding_status === 'completed' &&
     !isDismissed
 
@@ -87,6 +103,9 @@ export default function ForwardingSetupModal() {
       await refreshBusiness()
       
       console.log('[ForwardingSetup] Setup completed successfully')
+      
+      // Dismiss modal to prevent reopening
+      setIsDismissed(true)
       
       // Close modal after showing success briefly
       setTimeout(() => {
