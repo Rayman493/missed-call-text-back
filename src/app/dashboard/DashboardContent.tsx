@@ -866,37 +866,36 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls</h3>
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg sm:text-xl text-gray-400">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Missed Calls Recovered</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-100">{missedCalls}</p>
-                <p className="text-xs text-gray-500 mt-1">{missedCalls === 0 ? '0 today' : 'Total'}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Leads Captured</h3>
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg sm:text-xl text-blue-400">👥</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">New Leads</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-blue-400">{leadsRecovered}</p>
-                <p className="text-xs text-gray-500 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Total'}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-100">{leadsRecovered}</p>
+                <p className="text-xs text-gray-400 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Captured'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Messages Sent</h3>
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg sm:text-xl text-green-400">💬</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Conversations Started</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-green-400">{textsSent}</p>
-                <p className="text-xs text-gray-500 mt-1">{textsSent === 0 ? 'No activity yet' : 'Total'}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-100">{textsSent}</p>
+                <p className="text-xs text-gray-400 mt-1">{textsSent === 0 ? 'No conversations yet' : 'Started'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups Scheduled</h3>
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg sm:text-xl text-purple-400">⏰</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Follow-ups Active</h3>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">{followUpsScheduled}</p>
-                <p className="text-xs text-gray-500 mt-1">{followUpsScheduled === 0 ? 'No activity yet' : 'Total'}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-100">{followUpsScheduled}</p>
+                <p className="text-xs text-gray-400 mt-1">{followUpsScheduled === 0 ? 'No follow-ups yet' : 'Active'}</p>
               </div>
             </div>
 
