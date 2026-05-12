@@ -59,6 +59,14 @@ export default function SettingsContent() {
   const [spamFilteringEnabled, setSpamFilteringEnabled] = useState(false)
   const [isSavingSpamFiltering, setIsSavingSpamFiltering] = useState(false)
 
+  // Automation settings local state for immediate visual feedback
+  const [ignoreRepeatCalls, setIgnoreRepeatCalls] = useState(false)
+  const [ignoreBlockedPrivateNumbers, setIgnoreBlockedPrivateNumbers] = useState(false)
+  const [ignoreSuspectedSpamCallers, setIgnoreSuspectedSpamCallers] = useState(false)
+
+  // Save success state for SettingsActionBar
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
   const supabase = createBrowserClient()
 
   // Form state management
@@ -101,6 +109,8 @@ export default function SettingsContent() {
       }
     },
     onBusinessUpdated: (updatedBusiness) => {
+      // Set save success state when business is updated after successful save
+      setSaveSuccess(true)
       refreshBusiness()
       showToast('Settings saved successfully', 'success')
     }
@@ -361,6 +371,10 @@ export default function SettingsContent() {
       // Initialize spam filtering state from business data
       const settings = getAutomationSettings()
       setSpamFilteringEnabled(settings.spamRepeatFilteringEnabled)
+      // Initialize automation settings local state
+      setIgnoreRepeatCalls(settings.ignoreRepeatCalls)
+      setIgnoreBlockedPrivateNumbers(settings.ignoreBlockedPrivateNumbers)
+      setIgnoreSuspectedSpamCallers(settings.ignoreSuspectedSpamCallers)
     }
   }, [business])
 
@@ -579,15 +593,20 @@ export default function SettingsContent() {
                             </div>
                           </div>
                           <button
-                            onClick={() => updateAutomationSetting('ignoreRepeatCalls', !getAutomationSettings().ignoreRepeatCalls)}
+                            onClick={() => {
+                              const newValue = !ignoreRepeatCalls
+                              setIgnoreRepeatCalls(newValue)
+                              updateAutomationSetting('ignoreRepeatCalls', newValue)
+                            }}
+                            disabled={isSaving}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              getAutomationSettings().ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-600'
-                            }`}
-                            aria-label={getAutomationSettings().ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
+                              ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-600'
+                            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            aria-label={ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                getAutomationSettings().ignoreRepeatCalls ? 'translate-x-5' : 'translate-x-1'
+                                ignoreRepeatCalls ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -607,15 +626,20 @@ export default function SettingsContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => updateAutomationSetting('ignoreBlockedPrivateNumbers', !getAutomationSettings().ignoreBlockedPrivateNumbers)}
+                            onClick={() => {
+                              const newValue = !ignoreBlockedPrivateNumbers
+                              setIgnoreBlockedPrivateNumbers(newValue)
+                              updateAutomationSetting('ignoreBlockedPrivateNumbers', newValue)
+                            }}
+                            disabled={isSaving}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              getAutomationSettings().ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-600'
-                            }`}
-                            aria-label={getAutomationSettings().ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
+                              ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-600'
+                            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            aria-label={ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                getAutomationSettings().ignoreBlockedPrivateNumbers ? 'translate-x-5' : 'translate-x-1'
+                                ignoreBlockedPrivateNumbers ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -635,15 +659,20 @@ export default function SettingsContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => updateAutomationSetting('ignoreSuspectedSpamCallers', !getAutomationSettings().ignoreSuspectedSpamCallers)}
+                            onClick={() => {
+                              const newValue = !ignoreSuspectedSpamCallers
+                              setIgnoreSuspectedSpamCallers(newValue)
+                              updateAutomationSetting('ignoreSuspectedSpamCallers', newValue)
+                            }}
+                            disabled={isSaving}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              getAutomationSettings().ignoreSuspectedSpamCallers ? 'bg-blue-600' : 'bg-gray-600'
-                            }`}
-                            aria-label={getAutomationSettings().ignoreSuspectedSpamCallers ? 'Disable spam detection' : 'Enable spam detection'}
+                              ignoreSuspectedSpamCallers ? 'bg-blue-600' : 'bg-gray-600'
+                            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            aria-label={ignoreSuspectedSpamCallers ? 'Disable spam detection' : 'Enable spam detection'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                getAutomationSettings().ignoreSuspectedSpamCallers ? 'translate-x-5' : 'translate-x-1'
+                                ignoreSuspectedSpamCallers ? 'translate-x-5' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -908,6 +937,8 @@ export default function SettingsContent() {
             isSaving={isSaving}
             saveError={saveError}
             clearError={clearSaveError}
+            saveSuccess={saveSuccess}
+            clearSuccess={() => setSaveSuccess(false)}
           />
 
           {/* Delete Account Modal */}
