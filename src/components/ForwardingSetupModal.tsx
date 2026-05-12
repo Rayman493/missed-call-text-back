@@ -111,6 +111,13 @@ export default function ForwardingSetupModal() {
 
     try {
       console.log('[ForwardingSetup] Starting setup completion...')
+      console.log('[ForwardingSetup] Update payload:', {
+        business_id: business.id,
+        forwarding_enabled: true,
+        carrier: selectedCarrier,
+        forwarding_enabled_at: new Date().toISOString(),
+        onboarding_status: 'pending_test'
+      })
       
       // Update Supabase with forwarding enabled and carrier
       const { error } = await supabase
@@ -127,8 +134,20 @@ export default function ForwardingSetupModal() {
         .eq('id', business.id)
 
       if (error) {
-        console.error('[ForwardingSetup] Supabase update failed:', error)
-        setSaveError('Failed to save. Please try again.')
+        console.error('[ForwardingSetup] Supabase update failed:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          attemptedUpdate: {
+            business_id: business.id,
+            forwarding_enabled: true,
+            carrier: selectedCarrier,
+            forwarding_enabled_at: new Date().toISOString(),
+            onboarding_status: 'pending_test'
+          }
+        })
+        setSaveError(`Failed to save. ${error.message || 'Unknown error'} (Code: ${error.code || 'N/A'})`)
         // Revert optimistic UI update on error
         setShowSuccess(false)
       } else {
