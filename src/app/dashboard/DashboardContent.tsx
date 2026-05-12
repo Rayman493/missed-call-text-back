@@ -866,36 +866,36 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-gray-400">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Missed Calls Recovered</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls Recovered</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-100">{missedCalls}</p>
+                <p className="text-3xl sm:text-4xl font-black text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-blue-400">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">New Leads</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-100">{leadsRecovered}</p>
-                <p className="text-xs text-gray-400 mt-1">{leadsRecovered === 0 ? 'Waiting for first call' : 'Captured'}</p>
+                <p className="text-3xl sm:text-4xl font-black text-blue-100">{leadsRecovered}</p>
+                <p className="text-xs text-gray-300 mt-0.5">{leadsRecovered === 0 ? 'Waiting for first call' : 'Captured'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-green-400">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Conversations Started</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-green-100">{textsSent}</p>
-                <p className="text-xs text-gray-400 mt-1">{textsSent === 0 ? 'No conversations yet' : 'Started'}</p>
+                <p className="text-3xl sm:text-4xl font-black text-green-100">{textsSent}</p>
+                <p className="text-xs text-gray-300 mt-0.5">{textsSent === 0 ? 'No conversations yet' : 'Started'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-purple-400">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Follow-ups Active</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups Active</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-100">{followUpsScheduled}</p>
-                <p className="text-xs text-gray-400 mt-1">{followUpsScheduled === 0 ? 'No follow-ups yet' : 'Active'}</p>
+                <p className="text-3xl sm:text-4xl font-black text-purple-100">{followUpsScheduled}</p>
+                <p className="text-xs text-gray-300 mt-0.5">{followUpsScheduled === 0 ? 'No follow-ups yet' : 'Active'}</p>
               </div>
             </div>
 
