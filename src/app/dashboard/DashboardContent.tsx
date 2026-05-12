@@ -656,7 +656,7 @@ export default function DashboardContent() {
 
   // missedCalls is now tracked in state
   const textsSent = leads.reduce((count, lead) => {
-    return count + (lead.messages?.filter((m: any) => m.direction === 'outbound').length || 0)
+    return count + (lead.messages?.length > 0 ? 1 : 0)
   }, 0)
   const replies = leads.reduce((count, lead) => {
     return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
