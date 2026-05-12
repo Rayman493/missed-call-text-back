@@ -23,6 +23,7 @@ export default function ForwardingSetupModal() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [carrierError, setCarrierError] = useState('')
+  const [saveError, setSaveError] = useState('')
 
   // Check if modal should show
   const shouldShow = 
@@ -60,10 +61,12 @@ export default function ForwardingSetupModal() {
 
     if (!selectedCarrier) {
       setCarrierError('Choose your carrier first so we can show the right forwarding code.')
+      setSaveError('')
       return
     }
 
     setCarrierError('')
+    setSaveError('')
     setLoading(true)
     try {
       const { error } = await supabase
@@ -86,6 +89,7 @@ export default function ForwardingSetupModal() {
       }, 1500)
     } catch (error) {
       console.error('[ForwardingSetup] Failed to complete setup:', error)
+      setSaveError('Failed to save. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -159,14 +163,14 @@ export default function ForwardingSetupModal() {
             <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-6 space-y-4">
               <div>
                 <p className="text-blue-400 text-sm mb-2">Dial this exact code on your business phone:</p>
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-3xl font-mono font-semibold text-white">
+                <div className="space-y-3">
+                  <p className="text-2xl sm:text-3xl font-mono font-semibold text-white break-all">
                     {getForwardingCode()}
                   </p>
                   <button
                     onClick={handleCopyCode}
                     disabled={!getForwardingCode() || getForwardingCode() === 'Contact your carrier to enable call forwarding'}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     {copiedCode ? (
                       <>
@@ -209,6 +213,12 @@ export default function ForwardingSetupModal() {
             {carrierError && (
               <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
                 <p className="text-red-300 text-sm">{carrierError}</p>
+              </div>
+            )}
+
+            {saveError && (
+              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+                <p className="text-red-300 text-sm">{saveError}</p>
               </div>
             )}
 
