@@ -60,16 +60,18 @@ export default function ForwardingSetupModal() {
 
   const handleCompleteSetup = async () => {
     if (!business) return
-
     if (!selectedCarrier) {
-      setCarrierError('Choose your carrier first so we can show the right forwarding code.')
-      setSaveError('')
+      setCarrierError('Please select your carrier.')
       return
     }
 
     setCarrierError('')
     setSaveError('')
     setLoading(true)
+    
+    // Optimistic UI update - show success immediately
+    setShowSuccess(true)
+
     try {
       const { error } = await supabase
         .from('businesses')
@@ -81,9 +83,11 @@ export default function ForwardingSetupModal() {
 
       if (error) throw error
 
+      // Refresh business data in background
       await refreshBusiness()
-      setShowSuccess(true)
-
+      
+      console.log('[ForwardingSetup] Setup completed successfully')
+      
       // Close modal after showing success briefly
       setTimeout(() => {
         router.push('/dashboard/test-setup')
@@ -91,6 +95,8 @@ export default function ForwardingSetupModal() {
     } catch (error) {
       console.error('[ForwardingSetup] Failed to complete setup:', error)
       setSaveError('Failed to save. Please try again.')
+      // Revert optimistic UI update on error
+      setShowSuccess(false)
     } finally {
       setLoading(false)
     }
@@ -206,19 +212,19 @@ export default function ForwardingSetupModal() {
           {/* Action Buttons */}
           <div className="space-y-3">
             {carrierError && (
-              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
                 <p className="text-red-300 text-sm">{carrierError}</p>
               </div>
             )}
 
             {saveError && (
-              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
                 <p className="text-red-300 text-sm">{saveError}</p>
               </div>
             )}
 
             {showSuccess && (
-              <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
+              <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 transition-all duration-300 ease-in-out">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-green-400" />
                   <div>
