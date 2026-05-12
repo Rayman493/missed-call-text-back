@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { hasValidSubscription, isActiveSubscription } from '@/lib/subscription'
 
 const supabase = createBrowserClient()
 
@@ -47,8 +48,34 @@ export default function NewOnboardingPage() {
       id: business.id,
       onboarding_status: business.onboarding_status,
       forwarding_verified: business.forwarding_verified,
-      twilio_phone_number: business.twilio_phone_number
+      twilio_phone_number: business.twilio_phone_number,
+      subscription_status: business.subscription_status,
+      stripe_customer_id: business.stripe_customer_id,
+      stripe_subscription_id: business.stripe_subscription_id
     })
+
+    // Check if user has valid subscription (active or trialing with Stripe IDs)
+    const hasValidSub = hasValidSubscription(
+      business.subscription_status,
+      business.stripe_customer_id,
+      business.stripe_subscription_id
+    )
+    const isActiveSub = isActiveSubscription(business.subscription_status)
+
+    console.log('[Routing] Subscription check:', {
+      hasValidSub,
+      isActiveSub,
+      subscription_status: business.subscription_status,
+      stripe_customer_id: business.stripe_customer_id,
+      stripe_subscription_id: business.stripe_subscription_id
+    })
+
+    // If no valid subscription, redirect to dashboard to activate trial/subscription
+    if (!hasValidSub) {
+      console.log('[Routing] No valid subscription, redirecting to dashboard for activation')
+      router.push('/dashboard')
+      return
+    }
 
     // Check if onboarding is already completed - only redirect if BOTH conditions met
     if (business.onboarding_status === 'completed' && business.forwarding_verified === true) {
