@@ -218,7 +218,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Validate Twilio environment for SMS operations
         const accountSid = process.env.TWILIO_ACCOUNT_SID
         const authToken = process.env.TWILIO_AUTH_TOKEN
-        const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+        const globalMessagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
 
         if (!accountSid || !authToken || !accountSid.startsWith('AC')) {
           throw new Error('Twilio credentials not properly configured')
@@ -226,16 +226,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const client = require('twilio')(accountSid, authToken)
         
+        // Comprehensive logging before send
+        console.log('[Manual SMS] business_id:', business.id)
+        console.log('[Manual SMS] business twilio_phone_number:', business.twilio_phone_number)
+        console.log('[Manual SMS] business twilio_phone_number_sid:', business.twilio_phone_number_sid)
+        console.log('[Manual SMS] business provisioning_status:', business.provisioning_status)
+        console.log('[Manual SMS] messagingServiceSid:', globalMessagingServiceSid)
         console.log('[Manual SMS] Sending SMS via Twilio to:', lead.caller_phone)
         
-        const messageResult = await client.messages.create({
-          body: message.trim(),
-          from: business.twilio_phone_number,
-          to: lead.caller_phone
-        })
+        let messageResult
+        
+        // Verify business's number is in Messaging Service sender pool
+        if (globalMessagingServiceSid) {
+          try {
+            const senderPool = await client.messaging.v1.services(globalMessagingServiceSid)
+              .phoneNumbers
+              .list({ limit: 100 });
+            
+            const numberInPool = senderPool.find((pn: any) => pn.sid === business.twilio_phone_number_sid);
+            
+            if (numberInPool) {
+              console.log('[Manual SMS] sender pool verification passed - number found in pool');
+              console.log('[Manual SMS] final messagingServiceSid:', globalMessagingServiceSid);
+              console.log('[Manual SMS] chosen sender:', business.twilio_phone_number);
+              
+              // Use Messaging Service
+              messageResult = await client.messages.create({
+                body: message.trim(),
+                to: lead.caller_phone,
+                messagingServiceSid: globalMessagingServiceSid,
+              });
+            } else {
+              console.error('[Manual SMS] sender pool verification failed - number not in pool');
+              console.error('[Manual SMS] Pool SIDs:', senderPool.map((pn: any) => pn.sid));
+              console.error('[Manual SMS] Business SID:', business.twilio_phone_number_sid);
+              throw new Error('Business number not found in Messaging Service sender pool');
+            }
+          } catch (poolError) {
+            console.error('[Manual SMS] Error checking sender pool:', poolError);
+            throw new Error('Failed to verify sender pool membership');
+          }
+        } else {
+          // No Messaging Service configured - fallback to direct from
+          console.warn('[Manual SMS] WARNING: No Messaging Service SID configured, using direct from');
+          console.log('[Manual SMS] final from number:', business.twilio_phone_number);
+          console.log('[Manual SMS] final messagingServiceSid: null (direct from)');
+          
+          messageResult = await client.messages.create({
+            body: message.trim(),
+            from: business.twilio_phone_number,
+            to: lead.caller_phone
+          });
+        }
         
         messageSid = messageResult.sid
-        console.log('[Manual SMS] Twilio send success:', { messageSid })
+        console.log('[Manual SMS] Twilio send success:', { messageSid, from: messageResult.from, to: messageResult.to })
         
       } catch (error: any) {
         console.error('[Manual SMS] Twilio send failed:', error)
