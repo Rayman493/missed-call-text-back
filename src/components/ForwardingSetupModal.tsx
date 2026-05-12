@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 import { CheckCircle2, Loader2, Copy, X, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { hasActiveAccess, isReadyForForwardingSetup } from '@/lib/subscription-utils'
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', code: '*71' },
@@ -48,14 +49,7 @@ export default function ForwardingSetupModal() {
   }, [business?.subscription_status])
 
   // Check if modal should show
-  const shouldShow =
-    business &&
-    business.twilio_phone_number &&
-    (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
-    !business.forwarding_verified &&
-    !business.call_forwarding_enabled &&
-    !business.phone_setup_completed_at &&
-    !isDismissed
+  const shouldShow = isReadyForForwardingSetup(business) && !isDismissed
 
   // Don't show modal if business data is still loading
   if (!business || !business.subscription_status) {

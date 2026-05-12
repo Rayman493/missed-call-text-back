@@ -1,16 +1,18 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { useBusiness } from '@/contexts/BusinessContext'
 import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
   hasValidSubscription,
   SUBSCRIPTION_STATES 
 } from '@/lib/subscription'
-import { handleBillingAction } from '@/lib/billing'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import Link from 'next/link'
+import { formatPhoneNumber } from '@/lib/utils'
+import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { Circle } from 'lucide-react'
+import Link from 'next/link'
+import { handleBillingAction } from '@/lib/billing'
 
 type OnboardingState = 
   | 'loading'
@@ -89,7 +91,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
   // Simple inline onboarding state computation to avoid initialization issues
   const onboardingState = useMemo(() => {
-    const hasTrial = business?.subscription_status === 'trialing' || business?.subscription_status === 'active'
+    const hasTrial = hasActiveTrial(business)
     const hasNumber = Boolean(business?.twilio_phone_number)
     const number = business?.twilio_phone_number ?? null
     const provisioningStatus = business?.provisioning_status ?? 'pending'
@@ -119,14 +121,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   })
 
   // Simple onboarding state logic using direct business values
-  const hasTrial = business?.subscription_status === 'trialing' || business?.subscription_status === 'active'
+  const hasTrial = hasActiveTrial(business)
   const hasNumber = Boolean(business?.twilio_phone_number)
   const number = business?.twilio_phone_number ?? null
   const provisioningStatus = business?.provisioning_status ?? 'pending'
-  const subscriptionActive = business?.subscription_status && 
-    business?.stripe_customer_id && 
-    business?.stripe_subscription_id && 
-    (business?.subscription_status === 'active' || business?.subscription_status === 'trialing')
+  const subscriptionActive = hasActiveAccess(business)
   const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
   const forwardingComplete = business?.forwarding_verified
   const testComplete = business?.forwarding_verified

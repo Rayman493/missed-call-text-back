@@ -21,6 +21,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import Link from 'next/link'
@@ -838,15 +839,31 @@ export default function DashboardContent() {
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🚀</span>
                     <div>
-                      <p className="text-sm font-semibold text-blue-100">
-                        Start your 14-day free trial
-                      </p>
-                      <p className="text-xs text-blue-300">
-                        Activate ReplyFlow to capture missed calls and grow your business
-                      </p>
-                      <p className="text-xs text-blue-400 mt-1">
-                        No charge today. Cancel anytime before your trial ends.
-                      </p>
+                      {hasActiveTrial(business) ? (
+                        <>
+                          <p className="text-sm font-semibold text-blue-100">
+                            Free trial active
+                          </p>
+                          <p className="text-xs text-blue-300">
+                            {getTrialDisplay()}
+                          </p>
+                          <p className="text-xs text-blue-400 mt-1">
+                            Upgrade anytime during or after trial.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-blue-100">
+                            Start your 14-day free trial
+                          </p>
+                          <p className="text-xs text-blue-300">
+                            Activate ReplyFlow to capture missed calls and grow your business
+                          </p>
+                          <p className="text-xs text-blue-400 mt-1">
+                            No charge today. Cancel anytime before your trial ends.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   <button
