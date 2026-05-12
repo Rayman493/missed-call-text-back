@@ -207,7 +207,7 @@ function PhoneSetupContent() {
         call_forwarding_enabled: true,
         phone_setup_completed_at: new Date().toISOString(),
         onboarding_step: 'phone_setup_completed',
-        onboarding_status: SUBSCRIPTION_STATES.TRIALING,
+        onboarding_status: 'completed',
         updated_at: new Date().toISOString()
       }
 
