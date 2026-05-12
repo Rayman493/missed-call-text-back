@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import ConversationComposer from '@/components/ConversationComposer'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
@@ -887,15 +888,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
           {/* Top Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link 
                 href="/dashboard" 
                 className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 ← Back to Dashboard
               </Link>
-              <span className="text-gray-300 dark:text-gray-600 text-xs">|</span>
+              <span className="text-gray-300 dark:text-gray-600 text-xs hidden sm:inline">|</span>
               <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100">Lead Details</h1>
             </div>
             
@@ -1014,7 +1015,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                   No messages yet
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 max-w-md mx-auto">
                   Messages will appear here after missed calls, replies, or manual sends.
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-500">
@@ -1022,7 +1023,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {messagesArray.map((msg: any, index: number) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -1049,7 +1050,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       
                       {/* Message Bubble */}
                       <div className={`max-w-[85%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
+                        <div className="flex items-center gap-1.5 mb-1 justify-end flex-wrap">
                           <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
                             {formatRelativeTime(msg.created_at)}
                           </span>
@@ -1139,59 +1140,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         )}
 
           {/* Send Message Input */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-              <div className="flex gap-3">
-                <textarea
-                  ref={(textarea) => {
-                    if (textarea) {
-                      // Auto-resize textarea
-                      textarea.style.height = 'auto'
-                      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
-                    }
-                  }}
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value)
-                    // Auto-resize on change
-                    const textarea = e.target
-                    textarea.style.height = 'auto'
-                    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
-                  }}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a message..."
-                  className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
-                  rows={1}
-                  style={{ minHeight: '44px', maxHeight: '120px' }}
-                  disabled={sending}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage()}
-                  disabled={sending || !message.trim()}
-                  className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors self-end"
-                >
-                  {sending ? (
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              {error && (
-                <div className={`text-sm p-3 rounded-lg border ${
-                  error.includes('verification') || error.includes('carrier')
-                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-                }`}>
-                  <p>{error}</p>
-                </div>
-              )}
+          <ConversationComposer
+            message={message}
+            setMessage={setMessage}
+            handleSendMessage={handleSendMessage}
+            sending={sending}
+          />
+          {error && (
+            <div className={`text-sm p-3 rounded-lg border ${
+              error.includes('verification') || error.includes('carrier')
+                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+            }`}>
+              <p>{error}</p>
             </div>
+          )}
         </div>
 
         {/* Success Message */}

@@ -375,7 +375,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
   // Full expanded state - Simple normal-flow layout
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-6 mb-6">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-4 sm:p-6 mb-4 sm:mb-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
