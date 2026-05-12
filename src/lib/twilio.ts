@@ -43,12 +43,14 @@ export async function sendSms(
   console.log('[SMS Sender] business_id:', business.id);
   console.log('[SMS Sender] business twilio_phone_number:', business.twilio_phone_number);
   console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid);
+  console.log('[SMS Sender] business messaging_service_sid:', business.messaging_service_sid);
   console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
 
   console.log('[sms] outbound message queued:', {
     business_id: business.id,
     business_phone: business.twilio_phone_number,
     business_phone_sid: business.twilio_phone_number_sid,
+    messaging_service_sid: business.messaging_service_sid,
     provisioning_status: business.provisioning_status,
     to_phone: to,
     message_body: message.substring(0, 50) + '...',
@@ -56,19 +58,15 @@ export async function sendSms(
     conversation_id: options?.conversation_id
   });
 
-  // Verify business has a canonical number and it's attached
+  // Verify business has a canonical number
   if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
     console.error('[SMS Sender] No canonical Twilio number assigned to business');
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business');
     return null;
   }
 
-  if (business.provisioning_status !== 'attached') {
-    console.error('[SMS Sender] Business number is not attached to Messaging Service');
-    console.error('[SMS Sender] provisioning_status:', business.provisioning_status);
-    await logFailedMessage(business, to, message, options, 'ReplyFlow number is still provisioning. Try again shortly.');
-    return null;
-  }
+  // NOTE: Removed pre-send blocker based on local provisioning_status
+  // Local DB state may be stale. Instead, verify against Twilio API sender pool below.
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
@@ -311,7 +309,6 @@ async function logFailedMessage(
         to_phone: to,
         twilio_message_sid: null,
         status: 'failed',
-        failed_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
         error_message: errorMessage || 'Failed to send SMS',
         error_code: errorCode || 'UNKNOWN',
