@@ -56,6 +56,11 @@ export default function ForwardingSetupModal() {
     return null
   }
 
+  // Don't show modal if forwarding is already enabled or onboarding is in test/complete state
+  if (business.call_forwarding_enabled || business.onboarding_status === 'pending_test' || business.onboarding_status === 'complete') {
+    return null
+  }
+
   // Debug logs for subscription state tracking
   console.log('[ForwardingSetupModal] Debug state:', {
     subscription_status: business?.subscription_status,
@@ -105,28 +110,38 @@ export default function ForwardingSetupModal() {
     setShowSuccess(true)
 
     try {
+      console.log('[ForwardingSetup] Starting setup completion...')
+      
+      // Update Supabase with forwarding enabled and carrier
       const { error } = await supabase
         .from('businesses')
         .update({
-          call_forwarding_enabled: true,
-          carrier: selectedCarrier
+          id: business.id,
+          data: {
+            forwarding_enabled: true,
+            carrier: selectedCarrier,
+            forwarding_enabled_at: new Date().toISOString(),
+            onboarding_status: 'pending_test'
+          }
         })
         .eq('id', business.id)
 
-      if (error) throw error
-
-      // Refresh business data in background
-      await refreshBusiness()
-      
-      console.log('[ForwardingSetup] Setup completed successfully')
-      
-      // Dismiss modal to prevent reopening
-      setIsDismissed(true)
-      
-      // Close modal after showing success briefly
-      setTimeout(() => {
-        router.push('/dashboard/test-setup')
-      }, 1500)
+      if (error) {
+        console.error('[ForwardingSetup] Supabase update failed:', error)
+        setSaveError('Failed to save. Please try again.')
+        // Revert optimistic UI update on error
+        setShowSuccess(false)
+      } else {
+        console.log('[ForwardingSetup] Setup completed successfully')
+        
+        // Update local business state immediately to prevent modal from reopening
+        await refreshBusiness()
+        
+        // Close modal after successful update
+        setTimeout(() => {
+          router.push('/dashboard/test-setup')
+        }, 1500)
+      }
     } catch (error) {
       console.error('[ForwardingSetup] Failed to complete setup:', error)
       setSaveError('Failed to save. Please try again.')
