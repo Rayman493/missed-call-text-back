@@ -740,7 +740,7 @@ export default function DashboardContent() {
 
             {/* Setup Health Banner - Show when forwarding not verified */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && (
-              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2.5">
+              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -804,7 +804,7 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-2">
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-1.5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🎉</span>
@@ -858,14 +858,16 @@ export default function DashboardContent() {
             )}
                         
             {/* Live Activity Section - Top Priority */}
-            <LiveActivity 
-              leads={leads}
-              followUpJobs={followUpJobs}
-              missedCalls={missedCalls}
-            />
+            <div className="mb-6">
+              <LiveActivity 
+                leads={leads}
+                followUpJobs={followUpJobs}
+                missedCalls={missedCalls}
+              />
+            </div>
 
             {/* Hero Metrics Section */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-gray-400">📞</span>
@@ -976,7 +978,7 @@ export default function DashboardContent() {
               </div>
             ) : (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                   <div>
                     <h2 className="text-xl sm:text-2xl font-semibold text-gray-100">Your Leads</h2>
                     <p className="text-sm text-gray-400">People who called but did not reach you.</p>
@@ -989,7 +991,7 @@ export default function DashboardContent() {
                 </div>
                 
                 {/* Search and Filters */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <div className="relative">
                       <input
