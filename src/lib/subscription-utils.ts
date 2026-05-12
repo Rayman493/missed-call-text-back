@@ -10,6 +10,8 @@ export interface Business {
   phone_setup_completed_at?: string | null;
   forwarding_verified?: boolean | null;
   setup_completed_at?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 /**
@@ -73,6 +75,8 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
   return (
     hasActiveAccess(business) &&
     Boolean(business.twilio_phone_number) &&
+    Boolean(business.stripe_customer_id) &&
+    Boolean(business.stripe_subscription_id) &&
     !isForwardingComplete(business) &&
     !isSetupComplete(business)
   );

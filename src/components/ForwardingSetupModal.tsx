@@ -56,6 +56,17 @@ export default function ForwardingSetupModal() {
     return null
   }
 
+  // Debug logs for subscription state tracking
+  console.log('[ForwardingSetupModal] Debug state:', {
+    subscription_status: business?.subscription_status,
+    stripe_customer_id: business?.stripe_customer_id,
+    stripe_subscription_id: business?.stripe_subscription_id,
+    twilio_phone_number: business?.twilio_phone_number,
+    hasActiveAccess: hasActiveAccess(business),
+    isReadyForForwardingSetup: isReadyForForwardingSetup(business),
+    shouldShow: isReadyForForwardingSetup(business) && !isDismissed
+  })
+
   if (!shouldShow) {
     return null
   }

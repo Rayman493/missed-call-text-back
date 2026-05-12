@@ -1248,7 +1248,7 @@ export const db = {
       twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
       business_phone_number: businessData?.business_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-      subscription_status: businessData?.subscription_status || null,
+      subscription_status: null, // Don't set subscription status during business creation
       stripe_customer_id: businessData?.stripe_customer_id || null,
       sms_type: businessData?.sms_type || 'local_a2p', // Default to local_a2p for dedicated numbers
       messaging_status: businessData?.messaging_status || 'active',

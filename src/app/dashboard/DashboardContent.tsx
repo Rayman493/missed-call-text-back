@@ -839,7 +839,7 @@ export default function DashboardContent() {
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🚀</span>
                     <div>
-                      {hasActiveTrial(business) ? (
+                      {hasActiveTrial(business) && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) ? (
                         <>
                           <p className="text-sm font-semibold text-blue-100">
                             Free trial active
