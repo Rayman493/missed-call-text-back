@@ -871,28 +871,28 @@ export default function DashboardContent() {
               <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-gray-400">📞</span>
-                  <h3 className="text-sm sm:text-base font-medium text-gray-400">Missed Calls</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-100">{missedCalls}</p>
               </div>
               <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-blue-400">👥</span>
-                  <h3 className="text-sm sm:text-base font-medium text-gray-400">New Leads</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">New Leads</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-100">{leadsRecovered}</p>
               </div>
               <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-green-400">💬</span>
-                  <h3 className="text-sm sm:text-base font-medium text-gray-400">Conversations</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Conversations</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-100">{textsSent}</p>
               </div>
               <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-purple-400">⏰</span>
-                  <h3 className="text-sm sm:text-base font-medium text-gray-400">Follow-ups</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-100">{followUpsScheduled}</p>
               </div>
@@ -991,7 +991,7 @@ export default function DashboardContent() {
                 </div>
                 
                 {/* Search and Filters */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
                   <div className="flex-1">
                     <div className="relative">
                       <input
@@ -999,9 +999,9 @@ export default function DashboardContent() {
                         placeholder="Search by phone, message, or status..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-600 rounded-lg sm:rounded-xl bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       />
-                      <svg className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="absolute left-3 top-2.5 sm:top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
@@ -1010,7 +1010,7 @@ export default function DashboardContent() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="all">All</option>
                       <option value="new">New</option>
@@ -1025,7 +1025,7 @@ export default function DashboardContent() {
                 {/* Lead Cards */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className="p-8 text-center">
+                    <div className="p-6 sm:p-8 text-center">
                       <div className="text-4xl mb-4">🔍</div>
                       <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                         {searchQuery.trim() ? 'No search results' : 'No leads yet'}
@@ -1062,10 +1062,10 @@ export default function DashboardContent() {
                         }
 
                         return (
-                        <div key={lead.id} className={`p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-3 mb-2">
+                              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                                   messageStatus.color === 'green' ? 'bg-green-100 dark:bg-green-900/30' :
                                   messageStatus.color === 'red' ? 'bg-red-100 dark:bg-red-900/30' :
@@ -1075,7 +1075,7 @@ export default function DashboardContent() {
                                   <span className="text-lg">{messageStatus.icon}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
                                     <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
                                     {hasUnreadReply && (
                                       <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full flex-shrink-0 animate-pulse">
@@ -1088,7 +1088,7 @@ export default function DashboardContent() {
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
+                                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
                                 </div>
                               </div>
                               {latestMessage && (
