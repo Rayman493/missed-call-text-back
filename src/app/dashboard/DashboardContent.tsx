@@ -38,6 +38,7 @@ import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
+import ForwardingSetupModal from '@/components/ForwardingSetupModal'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -737,6 +738,9 @@ export default function DashboardContent() {
 
             {/* Provisioning Success Banner - Show after checkout success */}
             <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+
+            {/* Forwarding Setup Modal - Show after trial activation if setup not complete */}
+            <ForwardingSetupModal />
 
             {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
