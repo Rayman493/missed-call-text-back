@@ -261,6 +261,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       })
     }
 
+    // 2. ReplyFlow number ready (only show after subscription is active)
+    if (currentOnboardingState === 'provisioning_number' || currentOnboardingState === 'forwarding_needed' || currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
+      items.push({
+        id: 'number',
+        title: 'ReplyFlow number ready',
+        description: 'Your dedicated ReplyFlow number is ready.',
+        status: 'complete',
+        details: `Your ReplyFlow number is: ${business.twilio_phone_number}`,
+        buttonText: 'Manage Billing',
+        buttonOnClick: handleStartTrial
+      })
+    }
+
     // 3. Set up call forwarding (only show after number is ready)
     if (currentOnboardingState === 'forwarding_needed' || currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
       items.push({
@@ -268,7 +281,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         title: 'Set up call forwarding',
         description: 'Forward missed calls from your business phone to ReplyFlow.',
         status: forwardingComplete ? 'complete' : 'needs-action',
-        details: forwardingComplete ? 'Call forwarding set up successfully' : 'Not set up yet',
+        details: forwardingComplete ? 'Call forwarding set up successfully' : 'Forward your business calls to activate missed-call texting',
         buttonText: forwardingComplete ? undefined : 'View Setup Instructions',
         buttonHref: '/onboarding/phone-setup'
       })
@@ -284,19 +297,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         details: testComplete ? 'Setup tested successfully' : 'Not tested yet',
         buttonText: testComplete ? undefined : 'View Test Instructions',
         buttonHref: '/dashboard/test-setup'
-      })
-    }
-
-    // 2. ReplyFlow number ready (only show after subscription is active)
-    if (currentOnboardingState === 'provisioning_number' || currentOnboardingState === 'forwarding_needed' || currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
-      items.push({
-        id: 'number',
-        title: 'ReplyFlow number ready',
-        description: 'Your dedicated ReplyFlow number is ready to use.',
-        status: 'complete',
-        details: `Your ReplyFlow number is: ${business.twilio_phone_number}`,
-        buttonText: 'Manage Billing',
-        buttonOnClick: handleStartTrial
       })
     }
 
