@@ -24,11 +24,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
-  const [demoPhone, setDemoPhone] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sendingDemo, setSendingDemo] = useState(false)
-  const [demoSuccess, setDemoSuccess] = useState(false)
-  const [demoWarning, setDemoWarning] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const [provisioningComplete, setProvisioningComplete] = useState(false)
 
@@ -269,64 +265,6 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleSendDemoText = async () => {
-    if (!demoPhone) {
-      setError('Please enter a mobile number for the demo')
-      return
-    }
-
-    const normalizedDemoPhone = normalizePhoneNumber(demoPhone)
-    if (!normalizedDemoPhone) {
-      setError('Please enter a valid mobile number')
-      return
-    }
-
-    setSendingDemo(true)
-    setError('')
-
-    try {
-      // Get current session for auth
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError || !session) {
-        setError('Authentication required. Please sign in again.')
-        setSendingDemo(false)
-        return
-      }
-
-      // Call the demo text API
-      const response = await fetch('/api/demo/send-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          demoPhone: normalizedDemoPhone,
-          businessName: businessName || 'Your Business'
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to send demo text' }))
-        throw new Error(errorData.error || 'Failed to send demo text')
-      }
-
-      const data = await response.json()
-      setDemoSuccess(true)
-      setDemoWarning(data.warning || '')
-      
-      // Refresh business context to show updated lead count
-      await refreshBusiness()
-      
-    } catch (err: any) {
-      console.error('[Onboarding] Demo text failed:', err)
-      setError(err.message || 'Failed to send demo text')
-    } finally {
-      setSendingDemo(false)
-    }
-  }
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 sm:p-8">
@@ -390,33 +328,13 @@ export default function OnboardingPage() {
                 id="businessPhone"
                 type="tel"
                 value={businessPhone}
-                onChange={(e) => {
-                  setBusinessPhone(e.target.value)
-                  setDemoPhone(e.target.value) // Auto-fill demo phone with business phone
-                }}
+                onChange={(e) => setBusinessPhone(e.target.value)}
                 required
                 placeholder="(555) 123-4567"
                 className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
               />
               <p className="mt-2 text-xs text-gray-400">
                 The phone number your customers already call
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="demoPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                Your Mobile Number (for demo)
-              </label>
-              <input
-                id="demoPhone"
-                type="tel"
-                value={demoPhone}
-                onChange={(e) => setDemoPhone(e.target.value)}
-                placeholder="(555) 987-6543"
-                className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
-              />
-              <p className="mt-2 text-xs text-gray-400">
-                We'll send you a demo text so you can see how it works
               </p>
             </div>
 
@@ -435,25 +353,6 @@ export default function OnboardingPage() {
               )}
             </button>
             <p className="text-sm text-gray-400 text-center mt-3">Takes less than 5 minutes to complete</p>
-
-            {demoSuccess && (
-              <div className="mt-4 bg-green-900/20 border border-green-800 rounded-lg p-4">
-                <p className="text-sm text-green-200 mb-2">
-                  ✓ Demo text sent successfully!
-                </p>
-                <p className="text-xs text-green-300">
-                  This is exactly what your customers will receive when you miss a call.
-                </p>
-                <p className="text-xs text-green-300 mt-2">
-                  Next: Set up call forwarding so this happens automatically for real customers.
-                </p>
-                {demoWarning && (
-                  <p className="text-xs text-yellow-300 mt-2">
-                    ⚠️ {demoWarning}
-                  </p>
-                )}
-              </div>
-            )}
           </form>
 
           {/* Live Preview Section */}
