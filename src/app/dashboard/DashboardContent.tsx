@@ -741,8 +741,8 @@ export default function DashboardContent() {
             {/* Forwarding Setup Modal - Show after trial activation if setup not complete */}
             <ForwardingSetupModal />
 
-            {/* Setup Health Banner - Show when forwarding not enabled AND user has valid subscription AND setup not completed */}
-            {business?.onboarding_status === 'completed' && !business?.call_forwarding_enabled && !business?.phone_setup_completed_at && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+            {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed */}
+            {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
               <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">

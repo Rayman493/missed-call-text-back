@@ -128,9 +128,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     business?.stripe_subscription_id && 
     (business?.subscription_status === 'active' || business?.subscription_status === 'trialing')
   const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
-  const forwardingComplete = business?.business_phone_number && 
-                           business?.phone_setup_completed_at && 
-                           business?.call_forwarding_enabled
+  const forwardingComplete = business?.forwarding_verified
   const testComplete = business?.forwarding_verified
 
   let currentOnboardingState: OnboardingState = 'loading'

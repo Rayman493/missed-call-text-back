@@ -218,28 +218,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Mark forwarding as verified if this is the first successful forwarded call
-    if (!business.forwarding_verified) {
-      console.log(`[Twilio Voice] Marking forwarding as verified for business ${business.id}`);
-      try {
-        const { error: updateError } = await supabase
-          .from('businesses')
-          .update({ 
-            forwarding_verified: true, 
-            forwarding_verified_at: new Date().toISOString() 
-          })
-          .eq('id', business.id);
-
-        if (updateError) {
-          console.error('[Twilio Voice] Error updating forwarding verification:', updateError);
-        } else {
-          console.log(`[Twilio Voice] Forwarding verified successfully for business ${business.id}`);
-        }
-      } catch (verificationError) {
-        console.error('[Twilio Voice] Exception updating forwarding verification:', verificationError);
-      }
-    } else {
-      console.log(`[Twilio Voice] Forwarding already verified for business ${business.id} at ${business.forwarding_verified_at}`);
-    }
+    // Note: We'll mark it verified after SMS is successfully sent to ensure full setup verification
+    let shouldMarkForwardingVerified = !business.forwarding_verified
 
     console.log('[Twilio Voice] Business found:', {
       businessId: business.id,
@@ -484,6 +464,30 @@ export async function POST(request: NextRequest) {
           console.log('[Voice] Outbound message saved via sendSms function');
           await timelineEvents.messageSent(business.id, lead.id, conversation?.id, '', messageSid);
 
+          // Mark forwarding as verified after SMS is successfully sent
+          if (shouldMarkForwardingVerified) {
+            console.log(`[Twilio Voice] Marking forwarding as verified for business ${business.id} after successful SMS`);
+            try {
+              const { error: updateError } = await supabase
+                .from('businesses')
+                .update({ 
+                  forwarding_verified: true, 
+                  forwarding_verified_at: new Date().toISOString(),
+                  phone_setup_completed_at: new Date().toISOString(),
+                  onboarding_status: 'completed'
+                })
+                .eq('id', business.id);
+
+              if (updateError) {
+                console.error('[Twilio Voice] Error updating forwarding verification:', updateError);
+              } else {
+                console.log(`[Twilio Voice] Forwarding verified successfully for business ${business.id}`);
+              }
+            } catch (verificationError) {
+              console.error('[Twilio Voice] Exception updating forwarding verification:', verificationError);
+            }
+          }
+
           // Create follow-up jobs after successful auto-reply SMS
           try {
             const followUpJobs = await createFollowUpJobs({
@@ -500,6 +504,10 @@ export async function POST(request: NextRequest) {
           }
         } else {
           console.log('[Voice] SMS send failed but was logged in database - this is expected behavior');
+          // Do not mark forwarding as verified if SMS failed
+          if (shouldMarkForwardingVerified) {
+            console.log('[Voice] SMS failed, not marking forwarding as verified');
+          }
         }
         
       } catch (smsError: any) {
