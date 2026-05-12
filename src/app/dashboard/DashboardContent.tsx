@@ -712,7 +712,7 @@ export default function DashboardContent() {
                         
             {/* Billing Error */}
             {billingError && (
-              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -740,7 +740,7 @@ export default function DashboardContent() {
 
             {/* Setup Health Banner - Show when forwarding not verified */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && (
-              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-4">
+              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2.5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -778,7 +778,7 @@ export default function DashboardContent() {
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-4">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -804,7 +804,7 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-3">
+              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🎉</span>
@@ -866,14 +866,14 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-1 sm:p-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-gray-400">📞</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls Recovered</h3>
                 </div>
                 <p className="text-3xl sm:text-4xl font-black text-gray-100">{missedCalls}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-1 sm:p-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-blue-400">👥</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">New Leads</h3>
@@ -881,7 +881,7 @@ export default function DashboardContent() {
                 <p className="text-3xl sm:text-4xl font-black text-blue-100">{leadsRecovered}</p>
                 <p className="text-xs text-gray-300 mt-0.5">{leadsRecovered === 0 ? 'Waiting for first call' : 'Captured'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-1 sm:p-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-green-400">💬</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Conversations</h3>
@@ -889,7 +889,7 @@ export default function DashboardContent() {
                 <p className="text-3xl sm:text-4xl font-black text-green-100">{textsSent}</p>
                 <p className="text-xs text-gray-300 mt-0.5">{textsSent === 0 ? 'No conversations yet' : 'Started'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-2 sm:p-2.5">
+              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-1 sm:p-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-lg sm:text-xl text-purple-400">⏰</span>
                   <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups Active</h3>
@@ -979,7 +979,7 @@ export default function DashboardContent() {
               </div>
             ) : (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
                   <div>
                     <h2 className="text-xl sm:text-2xl font-semibold text-gray-100">Your Leads</h2>
                     <p className="text-sm text-gray-400">People who called but did not reach you.</p>
