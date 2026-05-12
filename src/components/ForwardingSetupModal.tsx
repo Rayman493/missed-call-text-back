@@ -32,6 +32,7 @@ export default function ForwardingSetupModal() {
     business.twilio_phone_number &&
     (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
     !business.call_forwarding_enabled &&
+    !business.phone_setup_completed_at &&
     business.onboarding_status === 'completed' &&
     !isDismissed
 

@@ -2,15 +2,23 @@
 
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CheckCircle, AlertCircle, Clock, Phone, MessageSquare, Inbox, RefreshCw } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase/browser'
+import { useRouter } from 'next/navigation'
+import { CheckCircle, AlertCircle, Clock, Phone, MessageSquare, Inbox, RefreshCw, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 
 export default function TestSetupPage() {
-  const { business } = useBusiness()
+  const { business, refreshBusiness } = useBusiness()
+  const router = useRouter()
+  const supabase = createBrowserClient()
   const [activeStep, setActiveStep] = useState<number>(1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const toggleStep = (step: number) => {
     const newCompleted = new Set(completedSteps)
@@ -22,11 +30,50 @@ export default function TestSetupPage() {
     setCompletedSteps(newCompleted)
   }
 
-  const markComplete = () => {
-    // Mark the test as complete in the business
-    // This would update the forwarding_verified status
-    alert('Setup test marked as complete! This will update your onboarding status.')
+  const markComplete = async () => {
+  if (!business) return
+
+  // Check if setup criteria are satisfied
+  const canComplete = business.call_forwarding_enabled && business.twilio_phone_number
+
+  if (!canComplete) {
+    setShowConfirmation(true)
+    return
   }
+
+  await persistSetupCompletion()
+}
+
+const persistSetupCompletion = async () => {
+  if (!business) return
+
+  setLoading(true)
+  setError('')
+  try {
+    const { error } = await supabase
+      .from('businesses')
+      .update({
+        phone_setup_completed_at: new Date().toISOString(),
+        onboarding_status: 'completed'
+      })
+      .eq('id', business.id)
+
+    if (error) throw error
+
+    await refreshBusiness()
+    setSuccess(true)
+
+    // Redirect to dashboard after showing success briefly
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1500)
+  } catch (error) {
+    console.error('[TestSetup] Failed to mark setup complete:', error)
+    setError('Failed to save. Please try again.')
+  } finally {
+    setLoading(false)
+  }
+}
 
   const steps = [
     {
@@ -207,21 +254,88 @@ export default function TestSetupPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={markComplete}
-                disabled={completedSteps.size < steps.length}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Mark Setup as Complete
-              </button>
-              <Link
-                href="/dashboard"
-                className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                Return to Dashboard
-              </Link>
+            <div className="space-y-4">
+              {error && (
+                <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                    <div>
+                      <p className="text-green-100 font-semibold">Setup Complete!</p>
+                      <p className="text-green-300 text-sm">Redirecting to dashboard...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showConfirmation && (
+                <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-amber-100 font-semibold mb-2">
+                        Are you sure ReplyFlow is working?
+                      </p>
+                      <p className="text-amber-300 text-sm mb-4">
+                        It looks like call forwarding may not be enabled yet. Please complete the forwarding setup before marking setup complete.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            setShowConfirmation(false)
+                            persistSetupCompletion()
+                          }}
+                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          Yes, Mark Complete
+                        </button>
+                        <button
+                          onClick={() => setShowConfirmation(false)}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={markComplete}
+                  disabled={loading || success}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : success ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Setup Complete
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Mark Setup as Complete
+                    </>
+                  )}
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  Return to Dashboard
+                </Link>
+              </div>
             </div>
           </div>
         </div>
