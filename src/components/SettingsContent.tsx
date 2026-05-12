@@ -55,6 +55,10 @@ export default function SettingsContent() {
   const [label, setLabel] = useState('')
   const [reason, setReason] = useState('')
 
+  // Spam filtering local state for immediate visual feedback
+  const [spamFilteringEnabled, setSpamFilteringEnabled] = useState(false)
+  const [isSavingSpamFiltering, setIsSavingSpamFiltering] = useState(false)
+
   const supabase = createBrowserClient()
 
   // Form state management
@@ -150,6 +154,30 @@ export default function SettingsContent() {
   const updateBlockedNumbers = (text: string) => {
     const numbers = text.split('\n').filter((n: string) => n.trim()).map((n: string) => n.trim())
     updateAutomationSetting('blockedNumbers', numbers)
+  }
+
+  // Handler to toggle spam filtering with immediate visual feedback
+  const handleToggleSpamFiltering = async () => {
+    const newValue = !spamFilteringEnabled
+    
+    // Immediate visual feedback
+    setSpamFilteringEnabled(newValue)
+    
+    // Update form state
+    updateAutomationSetting('spamRepeatFilteringEnabled', newValue)
+    
+    // Persist to Supabase
+    setIsSavingSpamFiltering(true)
+    try {
+      await saveChanges()
+    } catch (error) {
+      // Revert on error
+      setSpamFilteringEnabled(!newValue)
+      updateAutomationSetting('spamRepeatFilteringEnabled', !newValue)
+      showToast('Failed to update spam filtering setting', 'error')
+    } finally {
+      setIsSavingSpamFiltering(false)
+    }
   }
 
   // Fetch ignored contacts
@@ -330,6 +358,9 @@ export default function SettingsContent() {
   useEffect(() => {
     if (business) {
       fetchIgnoredContacts()
+      // Initialize spam filtering state from business data
+      const settings = getAutomationSettings()
+      setSpamFilteringEnabled(settings.spamRepeatFilteringEnabled)
     }
   }, [business])
 
@@ -499,7 +530,7 @@ export default function SettingsContent() {
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-3">
                           <h3 className="text-base font-semibold text-gray-100">Spam & Repeat Call Filtering</h3>
-                          {getAutomationSettings().spamRepeatFilteringEnabled && (
+                          {spamFilteringEnabled && (
                             <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded-full font-medium">
                               Active
                             </span>
@@ -513,22 +544,23 @@ export default function SettingsContent() {
                         </div>
                       </div>
                       <button
-                        onClick={() => updateAutomationSetting('spamRepeatFilteringEnabled', !getAutomationSettings().spamRepeatFilteringEnabled)}
+                        onClick={handleToggleSpamFiltering}
+                        disabled={isSavingSpamFiltering}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          getAutomationSettings().spamRepeatFilteringEnabled ? 'bg-blue-600' : 'bg-gray-600'
-                        }`}
-                        aria-label={getAutomationSettings().spamRepeatFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
+                          spamFilteringEnabled ? 'bg-blue-600' : 'bg-gray-600'
+                        } ${isSavingSpamFiltering ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        aria-label={spamFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            getAutomationSettings().spamRepeatFilteringEnabled ? 'translate-x-6' : 'translate-x-1'
+                            spamFilteringEnabled ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
                       </button>
                     </div>
 
                     {/* Filtering Options - Only show when enabled */}
-                    {getAutomationSettings().spamRepeatFilteringEnabled && (
+                    {spamFilteringEnabled && (
                       <div className="space-y-6 border-t border-gray-600 pt-6">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
