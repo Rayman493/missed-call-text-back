@@ -955,21 +955,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Main Lead Identity */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {/* Phone Number */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
             </div>
             
             {/* Status Badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
                 {lead?.status}
               </span>
               {conversation && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
                   conversation.status === 'open' 
                     ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' 
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -1023,7 +1023,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-3 sm:space-y-4">
                 {messagesArray.map((msg: any, index: number) => {
                   const errorMessage = getErrorMessage(msg.error_code)
                   const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -1037,10 +1037,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex items-start gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+                      className={`flex items-start gap-2 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
                     >
-                      {/* Avatar */}
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      {/* Avatar - Hide on mobile for cleaner look */}
+                      <div className={`hidden sm:flex flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         isInbound 
                           ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
                           : 'bg-gradient-to-br from-gray-400 to-gray-500 text-white'
@@ -1049,8 +1049,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                       
                       {/* Message Bubble */}
-                      <div className={`max-w-[85%] ${isOutbound ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-1.5 mb-1 justify-end flex-wrap">
+                      <div className={`max-w-[90%] sm:max-w-[85%] ${isOutbound ? 'text-right' : ''}`}>
+                        <div className="flex items-center gap-1 mb-0.5 justify-end flex-wrap">
                           <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
                             {formatRelativeTime(msg.created_at)}
                           </span>
@@ -1062,26 +1062,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {isOutbound && !isOptimistic && (
                             <>
                               {msg.status === 'delivered' && (
-                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium">
+                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium hidden sm:inline">
                                   Delivered
                                 </span>
                               )}
                               {msg.status === 'failed' && (
-                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium">
+                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium hidden sm:inline">
                                   Failed
                                 </span>
                               )}
                             </>
                           )}
                           {isOptimistic && (
-                            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
+                            <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
                               Sending...
                             </span>
                           )}
                         </div>
                         
                         <div
-                          className={`rounded-2xl px-4 py-3 relative ${
+                          className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 relative ${
                             isInbound
                               ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
                               : isOptimistic && isSending
@@ -1094,7 +1094,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <div className="w-2 h-2 bg-white/30 rounded-full animate-ping"></div>
                             </div>
                           )}
-                          <p className="text-sm leading-relaxed break-words">
+                          <p className="text-sm sm:text-base leading-relaxed break-words">
                             {msg.body || 'No content'}
                           </p>
                         </div>
@@ -1166,8 +1166,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Scheduled Follow-ups */}
         {followUpJobs.length > 0 && (
-          <div className="mt-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 sm:p-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+          <div className="mt-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-2.5 sm:p-3 sm:p-4">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2.5 sm:mb-3">
               Scheduled Follow-ups ({followUpJobs.length})
             </h3>
             
