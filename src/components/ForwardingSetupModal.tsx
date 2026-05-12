@@ -38,7 +38,14 @@ export default function ForwardingSetupModal() {
     if (business && !business.call_forwarding_enabled && !business.phone_setup_completed_at && !business.forwarding_verified) {
       setIsDismissed(false)
     }
-  }, [business?.call_forwarding_enabled, business?.phone_setup_completed_at, business?.forwarding_verified])
+  }, [business?.call_forwarding_enabled, business?.phone_setup_completed_at, business?.forwarding_verified, business?.subscription_status])
+
+  // Also reset dismissal when subscription becomes active
+  useEffect(() => {
+    if (business && (business.subscription_status === 'trialing' || business.subscription_status === 'active')) {
+      setIsDismissed(false)
+    }
+  }, [business?.subscription_status])
 
   // Check if modal should show
   const shouldShow =
@@ -48,8 +55,12 @@ export default function ForwardingSetupModal() {
     !business.forwarding_verified &&
     !business.call_forwarding_enabled &&
     !business.phone_setup_completed_at &&
-    business.onboarding_status === 'completed' &&
     !isDismissed
+
+  // Don't show modal if business data is still loading
+  if (!business || !business.subscription_status) {
+    return null
+  }
 
   if (!shouldShow) {
     return null
