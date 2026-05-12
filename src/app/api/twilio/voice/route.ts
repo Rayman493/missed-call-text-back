@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
-import { normalizePhoneNumber } from '@/lib/twilio';
 import { sendSms } from '@/lib/twilio';
+import { normalizePhoneNumber } from '@/lib/twilio';
+import { timelineEvents } from '@/lib/event-timeline';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
         business = result.business;
         lookupSource = result.source;
         console.log('[Voice] Business found:', business.id, business.name, 'via', lookupSource, 'using', candidate);
+        await timelineEvents.callReceived(business.id, '', '', From, To);
         break;
       }
     }
@@ -363,6 +365,7 @@ export async function POST(request: NextRequest) {
       
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);
+        await timelineEvents.leadCreated(business.id, lead.id, '', normalizedCallerPhone);
         shouldSendSms = true; // Send SMS for new leads
       } else {
         console.error('[Voice] Persistence failed: Lead creation returned null');
@@ -438,6 +441,7 @@ export async function POST(request: NextRequest) {
           
           if (conversation) {
             console.log('[Voice] Conversation created:', conversation.id);
+            await timelineEvents.conversationCreated(business.id, lead.id, conversation.id);
           } else {
             console.error('[Voice] Persistence failed: Conversation creation returned null');
             console.error('[Voice] Returning safe TwiML response without SMS');
@@ -478,6 +482,7 @@ export async function POST(request: NextRequest) {
         if (messageSid) {
           console.log('[Voice] SMS sent:', messageSid);
           console.log('[Voice] Outbound message saved via sendSms function');
+          await timelineEvents.messageSent(business.id, lead.id, conversation?.id, '', messageSid);
 
           // Create follow-up jobs after successful auto-reply SMS
           try {

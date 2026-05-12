@@ -18,10 +18,11 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[Message Status Callback] Received status update')
+    console.log('[twilio] status callback received')
     
-    const body = await req.text()
-    const params = new URLSearchParams(body)
+    // Read raw body for signature validation
+    const rawBody = await req.text()
+    const params = new URLSearchParams(rawBody)
     
     const MessageSid = params.get('MessageSid')
     const MessageStatus = params.get('MessageStatus')
@@ -29,19 +30,18 @@ export async function POST(req: NextRequest) {
     const ErrorMessage = params.get('ErrorMessage')
     
     if (!MessageSid || !MessageStatus) {
-      console.error('[Message Status Callback] Missing required fields:', { MessageSid, MessageStatus })
-      // Always return 200 to Twilio to avoid retries
+      console.error('[twilio] status callback missing required fields:', { MessageSid, MessageStatus })
       return new Response('OK', { status: 200 })
     }
     
-    console.log('[Message Status Callback] Processing update:', {
-      MessageSid,
-      MessageStatus,
-      ErrorCode,
-      ErrorMessage
+    console.log('[twilio] status update processing:', {
+      message_sid: MessageSid,
+      message_status: MessageStatus,
+      error_code: ErrorCode,
+      error_message: ErrorMessage
     })
     
-    // Find message by twilio_message_sid
+    // Find message by twilio_message_sid with correlation data
     const { data: message, error: messageError } = await supabase
       .from('messages')
       .select('*')
@@ -49,14 +49,24 @@ export async function POST(req: NextRequest) {
       .single()
     
     if (messageError || !message) {
-      console.error('[Message Status Callback] Message not found for MessageSid:', MessageSid)
-      // Always return 200 to Twilio to avoid retries
+      console.error('[twilio] message not found for sid:', MessageSid)
       return new Response('OK', { status: 200 })
     }
     
+    // Log correlation data
+    console.log('[twilio] status update correlation:', {
+      message_id: message.id,
+      conversation_id: message.conversation_id,
+      lead_id: message.lead_id,
+      message_sid: MessageSid,
+      from_status: message.status,
+      to_status: MessageStatus.toLowerCase()
+    })
+    
     // Prepare update data based on status
     const updateData: any = {
-      status: MessageStatus.toLowerCase()
+      status: MessageStatus.toLowerCase(),
+      status_updated_at: new Date().toISOString()
     }
     
     // Set timestamps based on status
@@ -77,22 +87,25 @@ export async function POST(req: NextRequest) {
       .eq('id', message.id)
     
     if (updateError) {
-      console.error('[Message Status Callback] Error updating message status:', updateError)
+      console.error('[twilio] status update failed:', {
+        message_id: message.id,
+        message_sid: MessageSid,
+        error: updateError
+      })
     } else {
-      console.log('[Message Status Callback] Successfully updated message status:', {
-        messageId: message.id,
-        MessageSid,
-        MessageStatus,
-        updateData
+      console.log('[twilio] status updated successfully:', {
+        message_id: message.id,
+        conversation_id: message.conversation_id,
+        lead_id: message.lead_id,
+        message_sid: MessageSid,
+        status: MessageStatus.toLowerCase()
       })
     }
     
-    // Always return 200 to Twilio to avoid retries
     return new Response('OK', { status: 200 })
     
   } catch (error) {
-    console.error('[Message Status Callback] Unexpected error:', error)
-    // Always return 200 to Twilio to avoid retries
+    console.error('[twilio] status callback unexpected error:', error)
     return new Response('OK', { status: 200 })
   }
 }

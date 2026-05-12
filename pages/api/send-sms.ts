@@ -171,7 +171,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('[Manual SMS] Conversation found:', conversation.id)
       }
 
-      // Insert message with pending status using same schema as working implementations
+      // Insert message with queued status - start proper lifecycle
       const messagePayload = {
         lead_id: leadId,
         conversation_id: conversation.id,
@@ -179,11 +179,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         body: message.trim(),
         from_phone: business.twilio_phone_number,
         to_phone: lead.caller_phone,
-        status: 'pending',
+        status: 'queued',
         created_at: new Date().toISOString()
       }
 
-      console.log('[Manual SMS] Message insert payload:', JSON.stringify(messagePayload, null, 2))
+      console.log('[manual-sms] message queued:', {
+        lead_id: leadId,
+        conversation_id: conversation.id,
+        message_body: message.trim().substring(0, 50) + '...',
+        to_phone: lead.caller_phone,
+        from_phone: business.twilio_phone_number
+      })
       
       const { data: messageRecord, error: messageError } = await supabaseAdmin
         .from('messages')
@@ -191,23 +197,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .select()
         .single()
 
-      console.log('[Manual SMS] Message insert result:', { data: messageRecord, error: messageError })
-
       if (messageError) {
-        console.error('[Manual SMS] Message insert error:', messageError)
+        console.error('[manual-sms] message insert failed:', {
+          conversation_id: conversation.id,
+          lead_id: leadId,
+          error: messageError
+        })
         return res.status(500).json(
           { error: 'Failed to create message record', details: messageError.message }
         )
       }
 
       if (!messageRecord) {
-        console.error('[Manual SMS] Message insert returned no data')
+        console.error('[manual-sms] message insert returned no data')
         return res.status(500).json(
           { error: 'Failed to create message record - no data returned' }
         )
       }
 
-      console.log('[Manual SMS] Created pending message id:', messageRecord.id)
+      console.log('[manual-sms] message queued successfully:', {
+        message_id: messageRecord.id,
+        conversation_id: conversation.id,
+        lead_id: leadId
+      })
 
       // Send SMS using direct Twilio call to avoid duplicate message inserts
       let messageSid: string | null = null
@@ -226,13 +238,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const client = require('twilio')(accountSid, authToken)
         
-        // Comprehensive logging before send
-        console.log('[Manual SMS] business_id:', business.id)
-        console.log('[Manual SMS] business twilio_phone_number:', business.twilio_phone_number)
-        console.log('[Manual SMS] business twilio_phone_number_sid:', business.twilio_phone_number_sid)
-        console.log('[Manual SMS] business provisioning_status:', business.provisioning_status)
-        console.log('[Manual SMS] messagingServiceSid:', globalMessagingServiceSid)
-        console.log('[Manual SMS] Sending SMS via Twilio to:', lead.caller_phone)
+        // Update status to sending while API call is in progress
+        await supabaseAdmin
+          .from('messages')
+          .update({ status: 'sending', status_updated_at: new Date().toISOString() })
+          .eq('id', messageRecord.id)
+
+        console.log('[manual-sms] message sending:', {
+          message_id: messageRecord.id,
+          conversation_id: conversation.id,
+          lead_id: leadId,
+          business_id: business.id,
+          business_phone: business.twilio_phone_number,
+          business_phone_sid: business.twilio_phone_number_sid,
+          provisioning_status: business.provisioning_status,
+          messaging_service_sid: globalMessagingServiceSid,
+          to_phone: lead.caller_phone
+        })
         
         let messageResult
         
@@ -246,9 +268,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const numberInPool = senderPool.find((pn: any) => pn.sid === business.twilio_phone_number_sid);
             
             if (numberInPool) {
-              console.log('[Manual SMS] sender pool verification passed - number found in pool');
-              console.log('[Manual SMS] final messagingServiceSid:', globalMessagingServiceSid);
-              console.log('[Manual SMS] chosen sender:', business.twilio_phone_number);
+              console.log('[manual-sms] sender pool verification passed');
+              console.log('[manual-sms] using messaging service:', globalMessagingServiceSid);
+              console.log('[manual-sms] chosen sender:', business.twilio_phone_number);
               
               // Use Messaging Service
               messageResult = await client.messages.create({
@@ -257,9 +279,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 messagingServiceSid: globalMessagingServiceSid,
               });
             } else {
-              console.error('[Manual SMS] sender pool verification failed - number not in pool');
-              console.error('[Manual SMS] Pool SIDs:', senderPool.map((pn: any) => pn.sid));
-              console.error('[Manual SMS] Business SID:', business.twilio_phone_number_sid);
+              console.error('[manual-sms] sender pool verification failed');
+              console.error('[manual-sms] pool sids:', senderPool.map((pn: any) => pn.sid));
+              console.error('[manual-sms] business sid:', business.twilio_phone_number_sid);
               throw new Error('Business number not found in Messaging Service sender pool');
             }
           } catch (poolError) {
@@ -268,9 +290,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         } else {
           // No Messaging Service configured - fallback to direct from
-          console.warn('[Manual SMS] WARNING: No Messaging Service SID configured, using direct from');
-          console.log('[Manual SMS] final from number:', business.twilio_phone_number);
-          console.log('[Manual SMS] final messagingServiceSid: null (direct from)');
+          console.warn('[manual-sms] warning: no messaging service configured, using direct from');
+          console.log('[manual-sms] final from number:', business.twilio_phone_number);
+          console.log('[manual-sms] final messaging service sid: null (direct from)');
           
           messageResult = await client.messages.create({
             body: message.trim(),
@@ -280,10 +302,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         
         messageSid = messageResult.sid
-        console.log('[Manual SMS] Twilio send success:', { messageSid, from: messageResult.from, to: messageResult.to })
+        console.log('[manual-sms] twilio accepted message:', {
+          message_id: messageRecord.id,
+          conversation_id: conversation.id,
+          lead_id: leadId,
+          message_sid: messageResult.sid,
+          from: messageResult.from,
+          to: messageResult.to,
+          status: messageResult.status
+        })
         
       } catch (error: any) {
-        console.error('[Manual SMS] Twilio send failed:', error)
+        console.error('[manual-sms] twilio send failed:', {
+          message_id: messageRecord.id,
+          conversation_id: conversation.id,
+          lead_id: leadId,
+          error_code: error?.code,
+          error_message: error?.message,
+          error_status: error?.status
+        })
         errorMessage = error.message || 'Failed to send SMS'
         errorCode = error.code || 'UNKNOWN'
         messageSid = null
@@ -293,7 +330,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let updatedMessage: any = messageRecord
       
       if (!messageSid) {
-        console.log('[Manual SMS] Updating message id to failed:', messageRecord.id)
+        console.log('[manual-sms] marking message as failed:', messageRecord.id)
         
         const { data: failedMessage } = await supabaseAdmin
           .from('messages')
@@ -301,6 +338,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             status: 'failed',
             error_message: errorMessage || 'Failed to send SMS. Your Twilio number may still be pending verification.',
             error_code: errorCode,
+            failed_at: new Date().toISOString(),
             status_updated_at: new Date().toISOString()
           })
           .eq('id', messageRecord.id)
@@ -309,7 +347,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         updatedMessage = failedMessage
         
-        console.log('[Manual SMS] Updated message id after Twilio failure:', failedMessage?.id)
+        console.log('[manual-sms] message marked as failed:', {
+          message_id: messageRecord.id,
+          conversation_id: conversation.id,
+          lead_id: leadId,
+          error_code: errorCode,
+          error_message: errorMessage
+        })
         
         return res.status(500).json({
           success: false,
@@ -318,14 +362,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      console.log('[Manual SMS] Updating message id after Twilio success:', messageRecord.id)
+      console.log('[manual-sms] marking message as sent:', messageRecord.id)
       
-      // Update message status to sent
+      // Update message status to sent - Twilio accepted it
       const { data: sentMessage } = await supabaseAdmin
         .from('messages')
         .update({
           status: 'sent',
           twilio_message_sid: messageSid,
+          sent_at: new Date().toISOString(),
           status_updated_at: new Date().toISOString()
         })
         .eq('id', messageRecord.id)
@@ -333,7 +378,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .single()
       
       updatedMessage = sentMessage
-      console.log('[Manual SMS] Returning message id:', sentMessage?.id)
+      console.log('[manual-sms] message marked as sent:', {
+        message_id: messageRecord.id,
+        conversation_id: conversation.id,
+        lead_id: leadId,
+        message_sid: messageSid
+      })
 
       // Update conversation activity
       await supabaseAdmin

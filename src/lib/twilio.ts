@@ -45,6 +45,17 @@ export async function sendSms(
   console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid);
   console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
 
+  console.log('[sms] outbound message queued:', {
+    business_id: business.id,
+    business_phone: business.twilio_phone_number,
+    business_phone_sid: business.twilio_phone_number_sid,
+    provisioning_status: business.provisioning_status,
+    to_phone: to,
+    message_body: message.substring(0, 50) + '...',
+    lead_id: options?.lead_id,
+    conversation_id: options?.conversation_id
+  });
+
   // Verify business has a canonical number and it's attached
   if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
     console.error('[SMS Sender] No canonical Twilio number assigned to business');
@@ -119,9 +130,8 @@ export async function sendSms(
         const numberInPool = senderPool.find(pn => pn.sid === business.twilio_phone_number_sid);
         
         if (numberInPool) {
-          console.log('[SMS Sender] sender pool verification passed - number found in pool');
-          console.log('[SMS Sender] final from number:', business.twilio_phone_number);
-          console.log('[SMS Sender] final messagingServiceSid:', globalMessagingServiceSid);
+          console.log('[sms] sender pool verification passed');
+          console.log('[sms] using messaging service:', globalMessagingServiceSid);
           
           // Use Messaging Service with business's canonical number
           messageResult = await client.messages.create({
@@ -131,14 +141,14 @@ export async function sendSms(
             statusCallback: statusCallbackUrl,
           });
         } else {
-          console.error('[SMS Sender] sender pool verification failed - number not in pool');
-          console.error('[SMS Sender] Pool SIDs:', senderPool.map(pn => pn.sid));
-          console.error('[SMS Sender] Business SID:', business.twilio_phone_number_sid);
+          console.error('[sms] sender pool verification failed');
+          console.error('[sms] pool sids:', senderPool.map(pn => pn.sid));
+          console.error('[sms] business sid:', business.twilio_phone_number_sid);
           errorMessage = 'Business number not found in Messaging Service sender pool';
           await logFailedMessage(business, to, message, options, errorMessage);
           
           // Trigger repair provisioning
-          console.log('[SMS Sender] Triggering repair provisioning for business:', business.id);
+          console.log('[sms] triggering repair provisioning for business:', business.id);
           try {
             await fetch('/api/business/trigger-provisioning', {
               method: 'POST',
@@ -146,7 +156,7 @@ export async function sendSms(
               body: JSON.stringify({ business_id: business.id })
             });
           } catch (repairError) {
-            console.error('[SMS Sender] Failed to trigger repair:', repairError);
+            console.error('[sms] failed to trigger repair:', repairError);
           }
           
           return null;
@@ -159,9 +169,8 @@ export async function sendSms(
       }
     } else {
       // No Messaging Service configured - use direct from with business number
-      console.warn('[SMS Sender] WARNING: No Messaging Service SID configured, using direct from');
-      console.log('[SMS Sender] final from number:', business.twilio_phone_number);
-      console.log('[SMS Sender] final messagingServiceSid: null (direct from)');
+      console.warn('[sms] warning: no messaging service configured, using direct from');
+      console.log('[sms] final from number:', business.twilio_phone_number);
       
       messageResult = await client.messages.create({
         body: message,
@@ -171,10 +180,13 @@ export async function sendSms(
       });
     }
 
-    console.log('[SMS] SMS sent successfully:', { 
-      to, 
-      sid: messageResult.sid,
-      status: messageResult.status 
+    console.log('[sms] twilio accepted message:', {
+      business_id: business.id,
+      to,
+      message_sid: messageResult.sid,
+      status: messageResult.status,
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id
     });
 
     // Insert successful message record into database
@@ -188,28 +200,40 @@ export async function sendSms(
         from_phone: business.twilio_phone_number,
         to_phone: to,
         twilio_message_sid: messageResult.sid,
-        status: messageResult.status || 'queued',
+        status: 'sent', // Twilio accepted it
         sent_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
         error_code: null,
         error_message: null,
         created_at: new Date().toISOString(),
       });
 
     if (insertError) {
-      console.error('[SMS] Failed to insert message record:', insertError);
+      console.error('[sms] message insert failed:', {
+        message_sid: messageResult.sid,
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        error: insertError
+      });
     } else {
-      console.log('[SMS] Message record inserted successfully:', messageResult.sid);
+      console.log('[sms] message inserted successfully:', {
+        message_sid: messageResult.sid,
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id
+      });
     }
 
     return messageResult.sid
   } catch (error: any) {
-    console.error('[SMS] Error sending SMS:', {
+    console.error('[sms] twilio send failed:', {
+      business_id: business.id,
       to,
-      businessId: business.id,
-      errorCode: error?.code,
-      errorMessage: error?.message,
-      errorStatus: error?.status,
-      moreInfo: error?.moreInfo
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      error_code: error?.code,
+      error_message: error?.message,
+      error_status: error?.status,
+      more_info: error?.moreInfo
     });
     
     // Extract error details for logging
@@ -218,31 +242,31 @@ export async function sendSms(
     
     // Log specific Twilio error codes for debugging
     if (error?.code) {
-      console.error('[SMS] Twilio error code:', error.code, '- Common issues:');
-      switch (error.code) {
+      console.error('[sms] twilio error code:', error?.code, '- common issues:');
+      switch (error?.code) {
         case 21614:
-          console.error('[SMS] - To number is not a valid mobile number');
+          console.error('[sms] - to number is not a valid mobile number');
           break;
         case 21612:
-          console.error('[SMS] - From number not enabled for SMS');
+          console.error('[sms] - from number not enabled for sms');
           break;
         case 21610:
-          console.error('[SMS] - Attempt to send to unsubscribed recipient');
+          console.error('[sms] - attempt to send to unsubscribed recipient');
           break;
         case 21611:
-          console.error('[SMS] - Message cannot be sent to the To number');
+          console.error('[sms] - message cannot be sent to the to number');
           break;
         case 21408:
-          console.error('[SMS] - Permission to send an SMS has not been enabled');
+          console.error('[sms] - permission to send an sms has not been enabled');
           break;
         case 30001:
-          console.error('[SMS] - Queue overflow');
+          console.error('[sms] - queue overflow');
           break;
         case 30002:
-          console.error('[SMS] - Account suspended');
+          console.error('[sms] - account suspended');
           break;
         default:
-          console.error('[SMS] - Unknown Twilio error code');
+          console.error('[sms] - unknown twilio error code');
       }
     }
     
@@ -267,7 +291,14 @@ async function logFailedMessage(
   errorCode?: string
 ): Promise<void> {
   try {
-    console.log('[SMS] Logging failed message attempt for business:', business.id, 'to:', to);
+    console.log('[sms] logging failed message:', {
+      business_id: business.id,
+      to,
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      error_message: errorMessage,
+      error_code: errorCode
+    });
     
     const { error: insertError } = await supabase
       .from('messages')
@@ -280,18 +311,25 @@ async function logFailedMessage(
         to_phone: to,
         twilio_message_sid: null,
         status: 'failed',
+        failed_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
         error_message: errorMessage || 'Failed to send SMS',
         error_code: errorCode || 'UNKNOWN',
         created_at: new Date().toISOString(),
       });
 
     if (insertError) {
-      console.error('[SMS] Failed to insert failed message record:', insertError);
+      console.error('[sms] failed message insert error:', {
+        business_id: business.id,
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        error: insertError
+      });
     } else {
-      console.log('[SMS] Failed message record inserted successfully');
+      console.log('[sms] failed message logged successfully');
     }
   } catch (logError) {
-    console.error('[SMS] Error logging failed message:', logError);
+    console.error('[sms] error logging failed message:', logError);
     // Don't throw - this is just logging
   }
 }

@@ -270,7 +270,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         status: forwardingComplete ? 'complete' : 'needs-action',
         details: forwardingComplete ? 'Call forwarding set up successfully' : 'Not set up yet',
         buttonText: forwardingComplete ? undefined : 'View Setup Instructions',
-        buttonHref: '/dashboard/setup'
+        buttonHref: '/onboarding/phone-setup'
       })
     }
 
