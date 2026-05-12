@@ -24,14 +24,16 @@ export default function ForwardingSetupModal() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [carrierError, setCarrierError] = useState('')
   const [saveError, setSaveError] = useState('')
+  const [isDismissed, setIsDismissed] = useState(false)
 
   // Check if modal should show
-  const shouldShow = 
+  const shouldShow =
     business &&
     business.twilio_phone_number &&
     (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
-    !business.forwarding_verified &&
-    business.onboarding_status === 'completed'
+    !business.call_forwarding_enabled &&
+    business.onboarding_status === 'completed' &&
+    !isDismissed
 
   if (!shouldShow) {
     return null
@@ -72,8 +74,7 @@ export default function ForwardingSetupModal() {
       const { error } = await supabase
         .from('businesses')
         .update({
-          forwarding_verified: true,
-          forwarding_verified_at: new Date().toISOString(),
+          call_forwarding_enabled: true,
           carrier: selectedCarrier
         })
         .eq('id', business.id)
@@ -108,14 +109,8 @@ export default function ForwardingSetupModal() {
           </div>
           <button
             onClick={() => {
-              // Allow user to dismiss by marking as verified (they chose to skip)
-              if (business) {
-                supabase
-                  .from('businesses')
-                  .update({ forwarding_verified: true })
-                  .eq('id', business.id)
-                  .then(() => refreshBusiness())
-              }
+              // Allow user to dismiss modal without marking setup complete
+              setIsDismissed(true)
             }}
             className="text-gray-400 hover:text-white transition-colors"
           >
@@ -256,13 +251,8 @@ export default function ForwardingSetupModal() {
               </button>
               <button
                 onClick={() => {
-                  if (business) {
-                    supabase
-                      .from('businesses')
-                      .update({ forwarding_verified: true })
-                      .eq('id', business.id)
-                      .then(() => refreshBusiness())
-                  }
+                  // Allow user to dismiss modal without marking setup complete
+                  setIsDismissed(true)
                 }}
                 className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-xl transition-colors"
               >
