@@ -6,11 +6,61 @@ import ProvidersWrapper from '@/components/ProvidersWrapper'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow - $49/month | 14-day Free Trial',
-  description: 'Automatically respond to missed calls with ReplyFlow. 14-day free trial, then $49/month. No contracts. Capture leads and grow your business.',
+  title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
+  description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
+  keywords: ['missed call text back', 'automated SMS', 'local business', 'lead capture', 'customer communication', 'SMS automation'],
+  authors: [{ name: 'ReplyFlowHQ' }],
+  creator: 'ReplyFlowHQ',
+  publisher: 'ReplyFlowHQ',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://replyflowhq.com',
+    title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
+    description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
+    siteName: 'ReplyFlowHQ',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'ReplyFlowHQ - Missed-Call Text Back Automation',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
+    description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
+    images: ['/og-image.png'],
+    creator: '@replyflowhq',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   icons: {
     icon: '/favicon.svg',
     apple: '/apple-touch-icon.svg',
+  },
+  verification: {
+    google: 'google9f3f4231ba864d62.html',
   },
 }
 
