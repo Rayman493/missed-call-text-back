@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
+import { getDashboardUrl, logUrlResolution } from '@/lib/urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,13 +73,13 @@ export async function POST(request: Request) {
       })
     }
 
-    // Create billing portal session
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    console.log('[stripe-portal] Creating portal session with return_url:', `${siteUrl}/dashboard`)
+    // Create billing portal session with canonical URL
+    const returnUrl = getDashboardUrl()
+    logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
     
     const session = await stripe.billingPortal.sessions.create({
       customer: business.stripe_customer_id,
-      return_url: `${siteUrl}/dashboard`,
+      return_url: returnUrl,
     })
 
     console.log('[stripe-portal] Portal session created:', session.url)

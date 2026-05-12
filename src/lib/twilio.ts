@@ -236,7 +236,7 @@ export async function sendSms(
       more_info: error?.moreInfo
     });
     
-    // Extract error details for logging
+    // Extract error details for logging (internal only)
     errorCode = error?.code || 'UNKNOWN';
     errorMessage = error?.message || 'Unknown error occurred';
     

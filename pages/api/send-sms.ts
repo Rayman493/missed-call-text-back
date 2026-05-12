@@ -322,7 +322,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error_status: error?.status
         })
         errorMessage = error.message || 'Failed to send SMS'
-        errorCode = error.code || 'UNKNOWN'
+        errorCode = error.code || null // Never use UNKNOWN fallback
         messageSid = null
       }
 
@@ -357,7 +357,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         return res.status(500).json({
           success: false,
-          error: errorMessage || 'Message could not be sent. Your Twilio number may still be pending verification.',
+          error: 'Couldn\'t send. Try again.',
           message: failedMessage
         })
       }

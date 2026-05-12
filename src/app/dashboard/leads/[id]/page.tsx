@@ -8,8 +8,8 @@ import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
-function getErrorMessage(errorCode?: string | null): string | null {
-  if (!errorCode) return null
+function getErrorMessage(errorCode: string): string {
+  // Only show user-friendly messages for known error codes
   if (errorCode === '30007') {
     return 'Carrier verification still pending. Delivery may fail until approved.'
   }
@@ -19,7 +19,8 @@ function getErrorMessage(errorCode?: string | null): string | null {
   if (errorCode === '21612') {
     return 'Phone number not enabled for SMS.'
   }
-  return `Twilio error: ${errorCode}`
+  // Never expose technical error codes or UNKNOWN to users
+  return 'Couldn\'t send. Try again.'
 }
 
 function getStatusColor(status: string): string {

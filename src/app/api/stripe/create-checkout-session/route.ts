@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import getStripe from '@/lib/stripe'
+import { getAppBaseUrl, logUrlResolution } from '@/lib/urls'
 import { db } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -82,9 +84,11 @@ export async function POST(request: Request) {
         .eq('id', business.id)
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://replyflowhq.com'
+    const siteUrl = getAppBaseUrl()
     const origin = request.headers.get('origin') || siteUrl
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
+    
+    logUrlResolution('stripe-checkout-site-url', siteUrl, user.id, business.id)
     
     console.log('[stripe-checkout] Environment check:', {
       origin,
