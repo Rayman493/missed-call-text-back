@@ -40,16 +40,6 @@ export default function Navigation() {
       >
         Dashboard
       </Link>
-      <Link
-        href="/dashboard/leads"
-        className={`text-sm font-medium transition-colors ${
-          isActive('/dashboard/leads')
-            ? 'text-blue-400'
-            : 'text-gray-400 hover:text-gray-100'
-        }`}
-      >
-        Leads
-      </Link>
           </nav>
   )
 }
