@@ -102,6 +102,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
+  const conversationContainerRef = useRef<HTMLDivElement>(null)
   
   // Close more actions dropdown when clicking outside
   useEffect(() => {
@@ -116,14 +117,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [showMoreActions])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false) => {
+    // Scroll conversation container to bottom
+    const container = conversationContainerRef.current
+    if (!container) return
+
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
-    const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
     
     if (force || isNearBottom || behavior === 'auto') {
       setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
+        container.scrollTo({
+          top: container.scrollHeight,
           behavior
         })
         setShowJumpButton(false)
@@ -214,16 +219,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
+    const container = conversationContainerRef.current
+    if (!container) return
+
     const handleScroll = () => {
       const scrollThreshold = 200
-      const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
       setShowJumpButton(!isNearBottom && messagesArray.length > 0)
     }
 
-    window.addEventListener('scroll', handleScroll)
+    container.addEventListener('scroll', handleScroll)
     handleScroll() // Check initial position
     
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
   }, [messagesArray.length])
 
   const followUpJobs = leadData?.followUpJobs || []
@@ -420,13 +428,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               // Auto-scroll if user is near bottom
               setTimeout(() => {
-                const scrollThreshold = 200
-                const isNearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - scrollThreshold
-                if (isNearBottom) {
-                  scrollToBottom('smooth')
-                } else {
-                  setShowJumpButton(true)
-                }
+                scrollToBottom('smooth')
               }, 100)
               
               return {
@@ -600,7 +602,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       
       // Scroll to bottom to show the new message
       setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+        scrollToBottom('smooth')
       }, 50)
     } catch (err) {
       // Update optimistic message to failed state
@@ -1083,7 +1085,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 pb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           {/* Message Thread */}
-          <div className="p-2.5 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto">
+          <div ref={conversationContainerRef} className="p-2.5 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
