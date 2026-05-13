@@ -124,7 +124,7 @@ export default function ForwardingSetupModal() {
         .from('businesses')
         .update({
           id: business.id,
-          forwarding_enabled: true,
+          call_forwarding_enabled: true,
           carrier: selectedCarrier,
           forwarding_enabled_at: new Date().toISOString(),
           onboarding_status: 'pending_test'
