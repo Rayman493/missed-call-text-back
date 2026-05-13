@@ -4,6 +4,8 @@ import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import { motion } from 'framer-motion'
+import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 // Footer with theme support for homepage
 function HomepageFooter() {
@@ -105,6 +107,13 @@ function HomepageFooter() {
 }
 
 export default function Home() {
+  const { user } = useAuth()
+  const { business } = useBusiness()
+  
+  // Check if user is authenticated and has active trial/subscription
+  const isAuthenticated = !!user
+  const hasActiveAccount = isAuthenticated && !!business
+  
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <SSRSafeNavbar forceDark={true} />
@@ -136,10 +145,10 @@ export default function Home() {
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/signup"
+                href={hasActiveAccount ? "/dashboard" : "/signup"}
                 className="h-12 px-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:from-blue-500 hover:to-blue-400 transition-all hover:-translate-y-[1px] flex items-center justify-center"
               >
-                Start Your Free Trial
+                {hasActiveAccount ? "Go to Dashboard" : "Start Your Free Trial"}
               </Link>
               <Link
                 href="/demo"
