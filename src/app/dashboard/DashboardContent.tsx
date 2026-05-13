@@ -669,9 +669,9 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className={`min-h-screen ${bgTokens.app} flex flex-col`}>
+        <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col`}>
           {/* App Header */}
-          <header className={`sticky top-0 z-50 ${bgTokens.card} ${borderTokens.default} flex-shrink-0`}>
+          <header className={`sticky top-0 z-50 bg-white/90 dark:bg-slate-900 backdrop-blur border-b border-slate-200 dark:border-slate-700 flex-shrink-0`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -682,8 +682,8 @@ export default function DashboardContent() {
                   </div>
                   <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
                     <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
-                      <span className={textTokens.muted}>Reply</span>
-                      <span className="text-blue-500">Flow</span>
+                      <span className="text-slate-800 dark:text-white">Reply</span>
+                      <span className="text-blue-600 dark:text-blue-400">Flow</span>
                     </span>
                   </Link>
                   {/* Desktop navigation - only visible on desktop */}
@@ -870,7 +870,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleStartSubscription}
                     disabled={checkoutLoading}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-all hover:shadow-md hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                   >
                     {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
                   </button>
@@ -889,33 +889,33 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className={`${themeClasses.card} p-3 sm:p-4`}>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl text-gray-400">📞</span>
-                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Missed Calls</h3>
+                  <span className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-lg sm:text-xl">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Missed Calls</h3>
                 </div>
-                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black ${textTokens.primary}`}>{missedCalls}</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white">{missedCalls}</p>
               </div>
-              <div className={`${themeClasses.card} p-3 sm:p-4`}>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl text-blue-400">👥</span>
-                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>New Leads</h3>
+                  <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">👥</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">New Leads</h3>
                 </div>
-                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100`}>{leadsRecovered}</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100">{leadsRecovered}</p>
               </div>
-              <div className={`${themeClasses.card} p-3 sm:p-4`}>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl text-green-400">💬</span>
-                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Conversations</h3>
+                  <span className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">💬</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Conversations</h3>
                 </div>
-                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100`}>{textsSent}</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100">{textsSent}</p>
               </div>
-              <div className={`${themeClasses.card} p-3 sm:p-4`}>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg sm:text-xl text-purple-400">⏰</span>
-                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Follow-ups</h3>
+                  <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">⏰</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Follow-ups</h3>
                 </div>
-                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100`}>{followUpsScheduled}</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100">{followUpsScheduled}</p>
               </div>
             </div>
 
@@ -1042,14 +1042,14 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className={`${themeClasses.card} overflow-hidden`}>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className="p-6 sm:p-8 text-center">
-                      <div className="text-4xl mb-4">🔍</div>
-                      <h3 className={`text-lg font-medium ${textTokens.primary} mb-2`}>
+                    <div className="p-6 sm:p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg m-4">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl">🔍</div>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                         {searchQuery.trim() ? 'No search results' : 'No leads yet'}
                       </h3>
-                      <p className={`text-sm ${textTokens.muted}`}>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Missed calls will appear here once ReplyFlow starts capturing leads.'
@@ -1081,7 +1081,7 @@ export default function DashboardContent() {
                         }
 
                         return (
-                        <div key={lead.id} className={`p-3 sm:p-4 ${bgTokens.cardHover} transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
