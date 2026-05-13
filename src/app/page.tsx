@@ -110,10 +110,10 @@ export default function Home() {
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center py-24 md:py-32 text-center bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
+      <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
         {/* Subtle hero glow */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.10),transparent_60%)] pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -153,7 +153,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 py-32 border-t border-slate-200 dark:border-slate-800">
+      <section className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 py-24 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -170,7 +170,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
               viewport={{ once: true }}
-              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-8 text-center"
+              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-10 text-center"
             >
               <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +185,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               viewport={{ once: true }}
-              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-8 text-center"
+              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-10 text-center"
             >
               <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
               viewport={{ once: true }}
-              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-8 text-center"
+              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-10 text-center"
             >
               <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-800 dark:to-slate-950 py-32 border-t border-slate-200 dark:border-slate-800">
+      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-800 dark:to-slate-950 py-24 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -223,10 +223,10 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-8">
               Ready to never miss a customer again?
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 leading-relaxed">
+            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-12 leading-relaxed">
               Built for service businesses that never want to miss another lead.
             </p>
             <Link
