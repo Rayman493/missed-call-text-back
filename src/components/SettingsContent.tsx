@@ -389,11 +389,11 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gray-900">
+          <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading settings...</p>
+                <p className="text-slate-500 dark:text-gray-400">Loading settings...</p>
               </div>
             </div>
           </div>
@@ -447,7 +447,7 @@ export default function SettingsContent() {
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Account Status
                     </label>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-slate-500 dark:text-gray-400">
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
@@ -575,20 +575,20 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-6 border-t border-gray-600 pt-6">
+                      <div className="space-y-6 border-t border-slate-200 dark:border-gray-600 pt-6">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-gray-100">Prevent duplicate auto-replies</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Prevent duplicate auto-replies</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-gray-300 mb-2">
+                            <p className="text-sm text-slate-600 dark:text-gray-300 mb-2">
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
-                            <div className="text-xs text-gray-400 italic">
+                            <div className="text-xs text-slate-500 dark:text-gray-400 italic">
                               Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
                             </div>
                           </div>
@@ -679,15 +679,15 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Blocked Numbers List */}
-                        <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
                           <div className="mb-3">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-gray-100">Blocked phone numbers</h4>
-                              <span className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Blocked phone numbers</h4>
+                              <span className="text-xs px-2 py-1 bg-slate-200 text-slate-700 dark:bg-gray-700 dark:text-gray-300 rounded-full font-medium">
                                 Optional
                               </span>
                             </div>
-                            <p className="text-sm text-gray-300 mb-3">
+                            <p className="text-sm text-slate-600 dark:text-gray-300 mb-3">
                               ReplyFlow will ignore calls from these numbers and will not create leads or send texts.
                             </p>
                           </div>
@@ -696,9 +696,9 @@ export default function SettingsContent() {
                             onChange={(e) => updateBlockedNumbers(e.target.value)}
                             rows={4}
                             placeholder="+14125551234&#10;+14125559876"
-                            className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100 text-sm font-mono"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-400 text-sm font-mono"
                           />
-                          <div className="text-xs text-gray-400 mt-2">
+                          <div className="text-xs text-slate-500 dark:text-gray-400 mt-2">
                             Enter one phone number per line in format: +14125551234
                           </div>
                         </div>
@@ -792,9 +792,9 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
+              <div id="ignored-contacts" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-100">Ignored Contacts</h2>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100">Ignored Contacts</h2>
                   <button
                     onClick={() => setShowAddModal(true)}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -853,7 +853,7 @@ export default function SettingsContent() {
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-4 px-3 py-1 text-xs font-medium text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 rounded-lg transition-colors"
+                            className="ml-4 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                           >
                             Unignore
                           </button>
@@ -865,12 +865,12 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Billing</h2>
+              <div id="billing" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Billing</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-100">Current Plan</h3>
-                    <p className="text-sm text-gray-400">
+                    <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Current Plan</h3>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">
                       {getPricingDisplay()} 
                       {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                     </p>
@@ -879,7 +879,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('portal')}
                       disabled={isOpeningPortal}
-                      className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-slate-200 text-slate-800 dark:bg-gray-600 dark:text-white font-medium rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
                       Manage Billing
                     </button>
@@ -989,22 +989,22 @@ export default function SettingsContent() {
           {/* Reset Demo Data Modal */}
           {showResetModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-gray-100 mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
                   Reset Demo Data
                 </h2>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
                   This will delete all leads, conversations, messages, and follow-up jobs for this business. Business settings and subscription will remain intact. This action cannot be undone.
                 </p>
                 <div className="mb-4">
-                  <label className="block text-sm text-gray-300 mb-2">
+                  <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
                     Type <span className="font-mono font-bold">RESET</span> to confirm
                   </label>
                   <input
                     type="text"
                     value={resetConfirmText}
                     onChange={(e) => setResetConfirmText(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-700 text-white"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
                     placeholder="RESET"
                   />
                 </div>
@@ -1034,47 +1034,47 @@ export default function SettingsContent() {
           {/* Add Ignored Contact Modal */}
           {showAddModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-gray-100 mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
                   Add Ignored Contact
                 </h2>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
                   ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-300 mb-2">
+                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-300 mb-2">
+                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
                       Label
                     </label>
                     <input
                       type="text"
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
                       placeholder="Family, Employee, Vendor, etc."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-300 mb-2">
+                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
                       Notes/Reason
                     </label>
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white resize-none"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400 resize-none"
                       placeholder="Personal contact, employee, vendor, etc."
                     />
                   </div>
