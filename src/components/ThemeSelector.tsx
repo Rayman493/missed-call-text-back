@@ -14,7 +14,11 @@ export default function ThemeSelector() {
 
   if (!mounted) {
     return (
-      <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+      <div className="grid grid-cols-3 gap-1">
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+      </div>
     )
   }
 
@@ -25,19 +29,20 @@ export default function ThemeSelector() {
   ]
 
   return (
-    <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-1">
       {themes.map(({ value, label, icon: Icon }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
             theme === value
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
           }`}
           title={`Switch to ${label} theme`}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="h-3.5 w-3.5" />
+          <span className="sm:hidden">{label}</span>
           <span className="hidden sm:inline">{label}</span>
         </button>
       ))}

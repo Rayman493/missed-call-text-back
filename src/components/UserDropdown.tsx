@@ -59,7 +59,7 @@ export default function UserDropdown() {
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+          <div className="absolute right-0 z-20 mt-2 w-64 min-w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
             <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                 {user?.email || 'No email'}
