@@ -23,16 +23,16 @@ export default function ForwardingSetupModal() {
   const [loading, setLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [carrierError, setCarrierError] = useState('')
+  const [business_phone_carrierError, setCarrierError] = useState('')
   const [saveError, setSaveError] = useState('')
   const [isDismissed, setIsDismissed] = useState(false)
 
-  // Initialize carrier from business data if available
+  // Initialize business_phone_carrier from business data if available
   useEffect(() => {
-    if (business?.carrier && !selectedCarrier) {
-      setSelectedCarrier(business.carrier)
+    if (business?.business_phone_carrier && !selectedCarrier) {
+      setSelectedCarrier(business.business_phone_carrier)
     }
-  }, [business?.carrier, selectedCarrier])
+  }, [business?.business_phone_carrier, selectedCarrier])
 
   // Reset dismissal state when business state changes significantly
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function ForwardingSetupModal() {
 
   const handleCopyCode = () => {
     const code = getForwardingCode()
-    if (code && code !== 'Contact your carrier to enable call forwarding') {
+    if (code && code !== 'Contact your business_phone_carrier to enable call forwarding') {
       navigator.clipboard.writeText(code)
       setCopiedCode(true)
       setTimeout(() => setCopiedCode(false), 2000)
@@ -87,18 +87,18 @@ export default function ForwardingSetupModal() {
 
   const getForwardingCode = () => {
     if (!business?.twilio_phone_number) return ''
-    const carrier = CARRIERS.find(c => c.id === selectedCarrier)
-    if (!carrier || !carrier.code) return 'Contact your carrier to enable call forwarding'
+    const business_phone_carrier = CARRIERS.find(c => c.id === selectedCarrier)
+    if (!business_phone_carrier || !business_phone_carrier.code) return 'Contact your business_phone_carrier to enable call forwarding'
     
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    const code = carrier.code + ' ' + phoneNumber
-    return carrier.suffix ? code + carrier.suffix : code
+    const code = business_phone_carrier.code + ' ' + phoneNumber
+    return business_phone_carrier.suffix ? code + business_phone_carrier.suffix : code
   }
 
   const handleCompleteSetup = async () => {
     if (!business) return
     if (!selectedCarrier) {
-      setCarrierError('Please select your carrier.')
+      setCarrierError('Please select your business_phone_carrier.')
       return
     }
 
@@ -113,21 +113,22 @@ export default function ForwardingSetupModal() {
       console.log('[ForwardingSetup] Starting setup completion...')
       console.log('[ForwardingSetup] Update payload:', {
         business_id: business.id,
-        forwarding_enabled: true,
-        carrier: selectedCarrier,
-        forwarding_enabled_at: new Date().toISOString(),
+        call_forwarding_enabled: true,
+        business_phone_carrier: selectedCarrier,
+        phone_setup_completed_at: new Date().toISOString(),
         onboarding_status: 'pending_test'
       })
       
-      // Update Supabase with forwarding enabled and carrier
+      // Update Supabase with forwarding enabled and business_phone_carrier
       const { error } = await supabase
         .from('businesses')
         .update({
           id: business.id,
           call_forwarding_enabled: true,
-          carrier: selectedCarrier,
-          forwarding_enabled_at: new Date().toISOString(),
-          onboarding_status: 'pending_test'
+          call_forwarding_status: "enabled",
+          business_phone_carrier: selectedCarrier,
+          phone_setup_completed_at: new Date().toISOString(),
+          onboarding_status: "pending_test"
         })
         .eq('id', business.id)
 
@@ -139,9 +140,9 @@ export default function ForwardingSetupModal() {
           hint: error.hint,
           attemptedUpdate: {
             business_id: business.id,
-            forwarding_enabled: true,
-            carrier: selectedCarrier,
-            forwarding_enabled_at: new Date().toISOString(),
+            call_forwarding_enabled: true,
+            business_phone_carrier: selectedCarrier,
+            phone_setup_completed_at: new Date().toISOString(),
             onboarding_status: 'pending_test'
           }
         })
@@ -208,19 +209,19 @@ export default function ForwardingSetupModal() {
 
           {/* Carrier Selection */}
           <div>
-            <p className="text-white font-medium mb-3">What carrier does your business phone use?</p>
+            <p className="text-white font-medium mb-3">What business_phone_carrier does your business phone use?</p>
             <div className="grid grid-cols-2 gap-3">
-              {CARRIERS.map(carrier => (
+              {CARRIERS.map(business_phone_carrier => (
                 <button
-                  key={carrier.id}
-                  onClick={() => setSelectedCarrier(carrier.id)}
+                  key={business_phone_carrier.id}
+                  onClick={() => setSelectedCarrier(business_phone_carrier.id)}
                   className={`p-4 rounded-xl border-2 transition text-left ${
-                    selectedCarrier === carrier.id
+                    selectedCarrier === business_phone_carrier.id
                       ? 'border-blue-600 bg-blue-600/20'
                       : 'border-gray-700 hover:border-gray-600 bg-gray-800'
                   }`}
                 >
-                  <div className="text-lg font-semibold text-white">{carrier.name}</div>
+                  <div className="text-lg font-semibold text-white">{business_phone_carrier.name}</div>
                 </button>
               ))}
             </div>
@@ -237,7 +238,7 @@ export default function ForwardingSetupModal() {
                   </p>
                   <button
                     onClick={handleCopyCode}
-                    disabled={!getForwardingCode() || getForwardingCode() === 'Contact your carrier to enable call forwarding'}
+                    disabled={!getForwardingCode() || getForwardingCode() === 'Contact your business_phone_carrier to enable call forwarding'}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     {copiedCode ? (
@@ -278,9 +279,9 @@ export default function ForwardingSetupModal() {
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {carrierError && (
+            {business_phone_carrierError && (
               <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
-                <p className="text-red-300 text-sm">{carrierError}</p>
+                <p className="text-red-300 text-sm">{business_phone_carrierError}</p>
               </div>
             )}
 
