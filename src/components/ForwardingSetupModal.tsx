@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
-import { CheckCircle2, Loader2, Copy, X, ArrowRight } from 'lucide-react'
+import { isReadyForForwardingSetup, hasActiveAccess } from '@/lib/subscription-utils'
+import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import { useRouter } from 'next/navigation'
-import { hasActiveAccess, isReadyForForwardingSetup } from '@/lib/subscription-utils'
+import { X, CheckCircle2, Copy } from 'lucide-react'
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', code: '*71' },
@@ -172,12 +173,12 @@ export default function ForwardingSetupModal() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Connect your business phone</h2>
-            <p className="text-gray-400 text-sm">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Connect your business phone</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
               Forward missed calls to ReplyFlow so we can text customers back automatically.
             </p>
           </div>
@@ -186,7 +187,7 @@ export default function ForwardingSetupModal() {
               // Allow user to dismiss modal without marking setup complete
               setIsDismissed(true)
             }}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -195,13 +196,13 @@ export default function ForwardingSetupModal() {
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* ReplyFlow Number - Secondary */}
-          <div className="bg-gray-700/50 border border-gray-600 rounded-xl p-4">
-            <p className="text-gray-400 text-sm mb-1">Your ReplyFlow forwarding number:</p>
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Your ReplyFlow forwarding number:</p>
             <div className="flex items-center gap-3">
-              <p className="text-xl font-mono text-white">
+              <p className="text-xl font-mono text-slate-900 dark:text-white">
                 {formatPhoneNumber(business.twilio_phone_number)}
               </p>
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">
                 (This number is included in the dial code below)
               </p>
             </div>
@@ -209,7 +210,7 @@ export default function ForwardingSetupModal() {
 
           {/* Carrier Selection */}
           <div>
-            <p className="text-white font-medium mb-3">What business_phone_carrier does your business phone use?</p>
+            <p className="font-medium mb-3 text-slate-900 dark:text-white">What business_phone_carrier does your business phone use?</p>
             <div className="grid grid-cols-2 gap-3">
               {CARRIERS.map(business_phone_carrier => (
                 <button
@@ -218,10 +219,10 @@ export default function ForwardingSetupModal() {
                   className={`p-4 rounded-xl border-2 transition text-left ${
                     selectedCarrier === business_phone_carrier.id
                       ? 'border-blue-600 bg-blue-600/20'
-                      : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
-                  <div className="text-lg font-semibold text-white">{business_phone_carrier.name}</div>
+                  <div className="text-lg font-semibold text-slate-900 dark:text-white">{business_phone_carrier.name}</div>
                 </button>
               ))}
             </div>
@@ -229,17 +230,17 @@ export default function ForwardingSetupModal() {
 
           {/* Forwarding Instructions */}
           {selectedCarrier && (
-            <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-6 space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 space-y-4">
               <div>
-                <p className="text-blue-400 text-sm mb-2">Dial this exact code on your business phone:</p>
-                <div className="space-y-3">
-                  <p className="text-2xl sm:text-3xl font-mono font-semibold text-white break-all">
+                <p className="text-sm mb-2 text-blue-600 dark:text-blue-400">Dial this exact code on your business phone:</p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-2xl sm:text-3xl font-mono font-semibold text-slate-900 dark:text-white break-all">
                     {getForwardingCode()}
                   </p>
                   <button
                     onClick={handleCopyCode}
                     disabled={!getForwardingCode() || getForwardingCode() === 'Contact your business_phone_carrier to enable call forwarding'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                   >
                     {copiedCode ? (
                       <>
@@ -249,29 +250,24 @@ export default function ForwardingSetupModal() {
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        Copy forwarding code
+                        Copy code
                       </>
                     )}
                   </button>
                 </div>
               </div>
-
-              <div>
-                <p className="text-gray-400 text-sm mb-2">STEP 2:</p>
-                <p className="text-white">Call your business number from another phone and let it ring.</p>
-              </div>
-
-              <div>
-                <p className="text-gray-400 text-sm mb-2">STEP 3:</p>
-                <p className="text-white">ReplyFlow will automatically text the customer back.</p>
-              </div>
-
-              <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
-                <p className="text-blue-300 text-sm">
-                  ✓ Customers still call your normal business number
+              <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                <p className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  Your phone still rings normally
                 </p>
-                <p className="text-blue-300 text-sm">
-                  ✓ Your phone still rings normally
+                <p className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  ReplyFlow texts customers who call
+                </p>
+                <p className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  Your phone still rings normally
                 </p>
               </div>
             </div>
@@ -280,59 +276,40 @@ export default function ForwardingSetupModal() {
           {/* Action Buttons */}
           <div className="space-y-3">
             {business_phone_carrierError && (
-              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
-                <p className="text-red-300 text-sm">{business_phone_carrierError}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
+                <p className="text-sm text-red-600 dark:text-red-400">{business_phone_carrierError}</p>
               </div>
             )}
 
             {saveError && (
-              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
-                <p className="text-red-300 text-sm">{saveError}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
+                <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
               </div>
             )}
 
             {showSuccess && (
-              <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 transition-all duration-300 ease-in-out">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400" />
-                  <div>
-                    <p className="text-green-100 font-semibold">Great — now test your setup with a call.</p>
-                    <p className="text-green-300 text-sm">Call your business number from another phone and let it ring once.</p>
-                  </div>
-                </div>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
+                <p className="text-sm text-green-600 dark:text-green-400">Setup completed! Redirecting to test setup...</p>
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleCompleteSetup}
-                disabled={!selectedCarrier || loading || !business?.twilio_phone_number}
-                className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : showSuccess ? (
-                  <>
-                    <CheckCircle2 className="w-5 h-5" />
-                    Saved
-                  </>
-                ) : (
-                  'I Enabled Forwarding'
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  // Allow user to dismiss modal without marking setup complete
-                  setIsDismissed(true)
-                }}
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-xl transition-colors"
-              >
-                Skip for Now
-              </button>
-            </div>
+            <button
+              onClick={handleCompleteSetup}
+              disabled={loading || !selectedCarrier}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white w-full py-3 font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  I Enabled Forwarding
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

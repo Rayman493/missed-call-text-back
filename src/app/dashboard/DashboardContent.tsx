@@ -24,6 +24,7 @@ import {
 import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
+import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
@@ -668,9 +669,9 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900/30 flex flex-col">
+        <div className={`min-h-screen ${bgTokens.app} flex flex-col`}>
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 flex-shrink-0">
+          <header className={`sticky top-0 z-50 ${bgTokens.card} ${borderTokens.default} flex-shrink-0`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -681,7 +682,7 @@ export default function DashboardContent() {
                   </div>
                   <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
                     <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
-                      <span className="text-gray-100">Reply</span>
+                      <span className={textTokens.muted}>Reply</span>
                       <span className="text-blue-500">Flow</span>
                     </span>
                   </Link>
@@ -808,15 +809,15 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-1.5">
+              <div className={`${themeClasses.banner} rounded-xl p-1.5`}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🎉</span>
                     <div>
-                      <p className="text-sm font-semibold text-blue-100">
+                      <p className={`text-sm font-semibold ${textTokens.primary}`}>
                         Free trial active
                       </p>
-                      <p className="text-xs text-blue-300">
+                      <p className={`text-xs ${textTokens.secondary}`}>
                         Billing starts at $49/month after trial unless you cancel.
                       </p>
                     </div>
@@ -824,7 +825,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleManageSubscription}
                     disabled={isOpeningBilling}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${buttonTokens.primary} px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
                   </button>
@@ -834,32 +835,32 @@ export default function DashboardContent() {
 
             {/* Inactive Subscription - Primary CTA for New Users */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-900/40 rounded-xl p-4">
+              <div className={`${bgTokens.muted} ${borderTokens.focus} rounded-xl p-4`}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🚀</span>
                     <div>
                       {hasActiveTrial(business) && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) ? (
                         <>
-                          <p className="text-sm font-semibold text-blue-100">
+                          <p className={`text-sm font-semibold ${textTokens.primary}`}>
                             Free trial active
                           </p>
-                          <p className="text-xs text-blue-300">
+                          <p className={`text-xs ${textTokens.secondary}`}>
                             {getTrialDisplay()}
                           </p>
-                          <p className="text-xs text-blue-400 mt-1">
+                          <p className={`text-xs ${textTokens.link} mt-1`}>
                             Upgrade anytime during or after trial.
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-sm font-semibold text-blue-100">
+                          <p className={`text-sm font-semibold ${textTokens.primary}`}>
                             Start your 14-day free trial
                           </p>
-                          <p className="text-xs text-blue-300">
+                          <p className={`text-xs ${textTokens.secondary}`}>
                             Activate ReplyFlow to capture missed calls and grow your business
                           </p>
-                          <p className="text-xs text-blue-400 mt-1">
+                          <p className={`text-xs ${textTokens.muted} mt-1`}>
                             No charge today. Cancel anytime before your trial ends.
                           </p>
                         </>
@@ -888,33 +889,33 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
+              <div className={`${themeClasses.card} p-3 sm:p-4`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-gray-400">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Missed Calls</h3>
+                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-100">{missedCalls}</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black ${textTokens.primary}`}>{missedCalls}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
+              <div className={`${themeClasses.card} p-3 sm:p-4`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-blue-400">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">New Leads</h3>
+                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-100">{leadsRecovered}</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100`}>{leadsRecovered}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
+              <div className={`${themeClasses.card} p-3 sm:p-4`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-green-400">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Conversations</h3>
+                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-100">{textsSent}</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100`}>{textsSent}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 p-3 sm:p-4">
+              <div className={`${themeClasses.card} p-3 sm:p-4`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg sm:text-xl text-purple-400">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-400">Follow-ups</h3>
+                  <h3 className={`text-xs sm:text-sm font-medium ${textTokens.muted}`}>Follow-ups</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-100">{followUpsScheduled}</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100`}>{followUpsScheduled}</p>
               </div>
             </div>
 
@@ -1017,7 +1018,7 @@ export default function DashboardContent() {
                         placeholder="Search by phone, message, or status..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-600 rounded-lg sm:rounded-xl bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className={`w-full pl-10 pr-4 py-2.5 sm:py-3 ${borderTokens.default} rounded-lg sm:rounded-xl ${bgTokens.input} ${textTokens.primary} placeholder:${textTokens.muted} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                       />
                       <svg className="absolute left-3 top-2.5 sm:top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1028,7 +1029,7 @@ export default function DashboardContent() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`px-3 py-2.5 sm:px-4 sm:py-3 ${borderTokens.default} rounded-lg sm:rounded-xl ${bgTokens.input} ${textTokens.primary} text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     >
                       <option value="all">All</option>
                       <option value="new">New</option>
@@ -1041,14 +1042,14 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 overflow-hidden">
+                <div className={`${themeClasses.card} overflow-hidden`}>
                   {processedLeads.length === 0 ? (
                     <div className="p-6 sm:p-8 text-center">
                       <div className="text-4xl mb-4">🔍</div>
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      <h3 className={`text-lg font-medium ${textTokens.primary} mb-2`}>
                         {searchQuery.trim() ? 'No search results' : 'No leads yet'}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className={`text-sm ${textTokens.muted}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Missed calls will appear here once ReplyFlow starts capturing leads.'
@@ -1056,7 +1057,7 @@ export default function DashboardContent() {
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <div className={`divide-y ${borderTokens.light}`}>
                       {processedLeads.map((lead) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
                           ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
@@ -1080,7 +1081,7 @@ export default function DashboardContent() {
                         }
 
                         return (
-                        <div key={lead.id} className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-3 sm:p-4 ${bgTokens.cardHover} transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
