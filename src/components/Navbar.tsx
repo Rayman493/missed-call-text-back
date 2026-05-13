@@ -49,7 +49,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Dark theme only - forceDark parameter kept for API compatibility
   
   return (
-    <header className="w-full bg-slate-800/90 border-b border-slate-700">
+    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-200 dark:border-slate-700' : 'bg-slate-800/90 border-b border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link 
@@ -57,8 +57,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           className="flex items-center hover:opacity-90 transition"
         >
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
-            <span className="text-white">Reply</span>
-            <span className="text-blue-400">Flow</span>
+            <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
+            <span className="text-blue-600 dark:text-blue-400">Flow</span>
           </span>
         </Link>
 
@@ -72,13 +72,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors`}
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/faq"
-                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
                   >
                     FAQ
                   </Link>
@@ -111,7 +111,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               <div className="relative">
                 <button
                   onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors px-3 py-2 rounded-lg hover:bg-gray-800"
+                  className={`flex items-center gap-2 text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors px-3 py-2 rounded-lg ${isPublicPage && !forceDark ? 'hover:bg-slate-100 dark:hover:bg-gray-800' : 'hover:bg-gray-800'}`}
                   aria-expanded={isAccountDropdownOpen}
                   aria-haspopup="true"
                 >
@@ -168,25 +168,25 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             <>
               <Link
                 href="/#features"
-                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
               >
                 Features
               </Link>
               <Link
                 href="/faq"
-                className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors hidden sm:block"
+                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
               >
                 FAQ
               </Link>
               <Link
                 href="/auth?mode=signin"
-                className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                className={`px-4 py-2 text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 border border-gray-600 hover:bg-gray-800 hover:text-gray-100'} rounded-lg transition-colors`}
               >
                 Sign In
               </Link>
               <Link
                 href="/auth?mode=signup"
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow"
               >
                 Start Free Trial
               </Link>
