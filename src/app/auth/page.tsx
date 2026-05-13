@@ -12,21 +12,21 @@ function AuthFooter() {
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <p className="text-slate-600 dark:text-slate-400 text-sm">
+          <p className="text-slate-600 dark:text-slate-400 text-base">
             © {currentYear} ReplyFlowHQ. All rights reserved.
           </p>
           <div className="flex items-center gap-6 mt-4 md:mt-0">
             <a
               href="/privacy"
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-sm transition-colors"
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors"
             >
               Privacy Policy
             </a>
             <a
               href="/terms"
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-sm transition-colors"
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors"
             >
               Terms of Service
             </a>
@@ -135,9 +135,9 @@ function AuthContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-6 sm:p-8">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 sm:p-8">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
               <span className="text-xl font-bold text-blue-600 dark:text-blue-400">RF</span>
@@ -159,7 +159,7 @@ function AuthContent() {
           )}
           
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 mb-6">
               <p className="text-sm text-red-600 dark:text-red-300 mb-4">{error}</p>
               {existingAccount && !isSignIn && (
                 <div className="space-y-3">
@@ -169,7 +169,7 @@ function AuthContent() {
                       setExistingAccount(false)
                       router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
                     }}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
                   >
                     Sign In
                   </button>
@@ -200,7 +200,7 @@ function AuthContent() {
                 required
                 autoComplete="email"
                 name="email"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
 
@@ -218,14 +218,14 @@ function AuthContent() {
                 minLength={6}
                 autoComplete={isSignIn ? "current-password" : "new-password"}
                 name="password"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
             >
               {loading ? (isSignIn ? 'Signing in...' : 'Signing up...') : (isSignIn ? 'Sign In' : 'Sign Up')}
             </button>

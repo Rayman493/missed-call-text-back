@@ -9,16 +9,16 @@ export const metadata: Metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <SSRSafeNavbar />
       
       {/* Hero Section */}
-      <div className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-900/30 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
               <svg
-                className="w-8 h-8 text-green-400"
+                className="w-8 h-8 text-green-600 dark:text-green-400"
                 fill="currentColor"
                 viewBox="0 0 20 20"
                 aria-hidden="true"
@@ -26,10 +26,10 @@ export default function CompliancePage() {
                 <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 00-2.812 2.812 3.066 3.066 0 01-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 00-2.812-2.812 3.066 3.066 0 01-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 002.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-100 mb-6">
+            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white mb-6">
               Compliance & Standards
             </h1>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
               ReplyFlowHQ LLC maintains the highest standards for conversational messaging compliance during pilot testing and API validation.
             </p>
           </div>
@@ -37,14 +37,14 @@ export default function CompliancePage() {
       </div>
 
       {/* Compliance Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="space-y-12">
           
           {/* Conversational Messaging Use Case */}
           <section>
-            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
-                <h2 className="text-2xl font-semibold text-gray-100 mb-6">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
                   Conversational Messaging Use Case
                 </h2>
                 <div className="prose prose-invert max-w-none">
