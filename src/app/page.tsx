@@ -8,18 +8,18 @@ function HomepageFooter() {
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-16">
           
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RF</span>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">RF</span>
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">ReplyFlowHQ</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">ReplyFlowHQ</span>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md text-base">
+            <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md text-base leading-relaxed">
               Conversational missed-call response automation for modern businesses. 
               Capture leads and provide exceptional customer service.
             </p>
@@ -35,8 +35,8 @@ function HomepageFooter() {
 
           {/* Product */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-6">Product</h3>
-            <ul className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-8">Product</h3>
+            <ul className="space-y-4">
               <li>
                 <Link href="/#features" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors">
                   Features
@@ -57,8 +57,8 @@ function HomepageFooter() {
 
           {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-6">Company</h3>
-            <ul className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-8">Company</h3>
+            <ul className="space-y-4">
               <li>
                 <Link href="/faq" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors">
                   FAQ
@@ -84,7 +84,7 @@ function HomepageFooter() {
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+        <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-slate-600 dark:text-slate-400 text-base">
               © {currentYear} ReplyFlowHQ. All rights reserved.
@@ -107,7 +107,7 @@ export default function Home() {
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center px-4 py-32 md:py-40 text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-950">
+      <section className="flex flex-col items-center justify-center px-4 py-24 md:py-32 text-center bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
         <div className="space-y-8 max-w-4xl">
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight text-slate-900 dark:text-white">
             Never Lose Another Customer Who Calls You
@@ -126,7 +126,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               href="/signup"
-              className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] flex items-center justify-center"
+              className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all hover:-translate-y-[1px] flex items-center justify-center"
             >
               Start Your Free Trial
             </Link>
@@ -147,32 +147,32 @@ export default function Home() {
             How It Works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-8 text-center">
-              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-8 text-center">
+              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Missed call comes in</h3>
-              <p className="text-base text-slate-600 dark:text-slate-400">Customer calls your business but you can't answer</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Missed call comes in</h3>
+              <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed">Customer calls your business but you can't answer</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-8 text-center">
-              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-8 text-center">
+              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">ReplyFlow texts them instantly</h3>
-              <p className="text-base text-slate-600 dark:text-slate-400">Automatic personalized text response within seconds</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">ReplyFlow texts them instantly</h3>
+              <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed">Automatic personalized text response within seconds</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-8 text-center">
-              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-8 text-center">
+              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                 <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Lead captured</h3>
-              <p className="text-base text-slate-600 dark:text-slate-400">Customer appears in your dashboard ready to follow up</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Lead captured</h3>
+              <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed">Customer appears in your dashboard ready to follow up</p>
             </div>
           </div>
         </div>
