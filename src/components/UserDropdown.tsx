@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { handleBillingAction } from '@/lib/billing'
+import ThemeSelector from '@/components/ThemeSelector'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -64,6 +65,13 @@ export default function UserDropdown() {
                 {user?.email || 'No email'}
               </p>
             </div>
+            
+            {/* Theme Selector */}
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Theme</p>
+              <ThemeSelector />
+            </div>
+            
             <button
               onClick={() => navigateToSettings('account')}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

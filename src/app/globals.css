@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent flash of unstyled content */
 :root {
   color-scheme: dark;
 }
@@ -14,6 +15,56 @@ body {
   background-color: #020617;
   color: #ffffff;
   min-height: 100vh;
+}
+
+/* Theme transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Light mode styles */
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Dark mode styles */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #020617;
+  color: #ffffff;
+}
+
+/* System theme support */
+@media (prefers-color-scheme: light) {
+  html:not(.dark):not(.light) {
+    color-scheme: light;
+  }
+  
+  html:not(.dark):not(.light) body {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.dark):not(.light) {
+    color-scheme: dark;
+  }
+  
+  html:not(.dark):not(.light) body {
+    background-color: #020617;
+    color: #ffffff;
+  }
 }
 
 #__next,
