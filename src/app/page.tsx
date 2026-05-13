@@ -131,10 +131,10 @@ export default function Home() {
             <div className="flex flex-col items-center gap-2">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
               <span className="text-slate-700 dark:text-slate-300 text-lg">Only $49/month after trial</span>
-              <span className="text-slate-500 dark:text-slate-500 text-sm">No contracts</span>
+              <span className="text-slate-400 dark:text-slate-500 text-sm">No contracts</span>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/signup"
                 className="h-12 px-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:from-blue-500 hover:to-blue-400 transition-all hover:-translate-y-[1px] flex items-center justify-center"
