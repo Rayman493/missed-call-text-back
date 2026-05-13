@@ -8,7 +8,7 @@ function HomepageFooter() {
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16">
           
           {/* Company Info */}
@@ -107,42 +107,44 @@ export default function Home() {
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center px-4 py-24 md:py-32 text-center bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
-        <div className="space-y-8 max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight text-slate-900 dark:text-white">
-            Never Lose Another Customer Who Calls You
-          </h1>
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            ReplyFlow instantly texts back missed calls so you can capture leads, book jobs, and grow your business automatically.
-          </p>
-          
-          {/* Pricing Information */}
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-            <span className="text-slate-700 dark:text-slate-300 text-lg">Only $49/month after trial</span>
-            <span className="text-slate-500 dark:text-slate-500 text-sm">No contracts</span>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link
-              href="/signup"
-              className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all hover:-translate-y-[1px] flex items-center justify-center"
-            >
-              Start Your Free Trial
-            </Link>
-            <Link
-              href="/demo"
-              className="h-12 px-8 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm hover:shadow-md flex items-center justify-center"
-            >
-              View Demo
-            </Link>
+      <section className="flex flex-col items-center justify-center py-24 md:py-32 text-center bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 space-y-8">
+          <div className="flex flex-col items-center text-center">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight text-slate-900 dark:text-white">
+              Never Lose Another Customer Who Calls You
+            </h1>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl">
+              ReplyFlow instantly texts back missed calls so you can capture leads, book jobs, and grow your business automatically.
+            </p>
+            
+            {/* Pricing Information */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
+              <span className="text-slate-700 dark:text-slate-300 text-lg">Only $49/month after trial</span>
+              <span className="text-slate-500 dark:text-slate-500 text-sm">No contracts</span>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/signup"
+                className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all hover:-translate-y-[1px] flex items-center justify-center"
+              >
+                Start Your Free Trial
+              </Link>
+              <Link
+                href="/demo"
+                className="h-12 px-8 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm hover:shadow-md flex items-center justify-center"
+              >
+                View Demo
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="bg-white dark:bg-slate-900 py-32 px-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto">
+      <section className="bg-white dark:bg-slate-900 py-32 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white text-center mb-20">
             How It Works
           </h2>
@@ -179,8 +181,8 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-950 py-32 px-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-950 py-32 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8">
             Ready to never miss a customer again?
           </h2>
