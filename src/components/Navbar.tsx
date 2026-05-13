@@ -56,7 +56,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           href={isLoggedIn ? '/dashboard' : '/'} 
           className="flex items-center hover:opacity-90 transition"
         >
-          <span className="text-xl md:text-2xl font-semibold tracking-tight">
+          <span className="text-2xl md:text-3xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
             <span className="text-blue-600 dark:text-blue-400">Flow</span>
           </span>
