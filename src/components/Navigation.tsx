@@ -40,6 +40,12 @@ export default function Navigation() {
       >
         Dashboard
       </Link>
+      <Link
+        href="/"
+        className="text-sm font-medium text-gray-400 hover:text-gray-100 transition-colors"
+      >
+        View Homepage
+      </Link>
           </nav>
   )
 }
