@@ -182,6 +182,7 @@ export default function DashboardContent() {
   const [callEvents, setCallEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [testSmsMessage, setTestSmsMessage] = useState('')
@@ -195,6 +196,17 @@ export default function DashboardContent() {
   const router = useRouter()
 
   const supabase = createBrowserClient()
+
+  // Initialize setup banner dismissal state from sessionStorage
+  useEffect(() => {
+    const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
+    setIsSetupBannerDismissed(dismissed)
+  }, [])
+
+  const handleDismissSetupBanner = () => {
+    setIsSetupBannerDismissed(true)
+    sessionStorage.setItem('replyflow_setup_banner_dismissed', 'true')
+  }
   
   const handleManageSubscription = async () => {
     console.log('[Dashboard] Manage Subscription clicked')
@@ -743,8 +755,8 @@ export default function DashboardContent() {
             {/* Forwarding Setup Modal - Show after trial activation if setup not complete */}
             <ForwardingSetupModal />
 
-            {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed */}
-            {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+            {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
+            {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
               <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -766,11 +778,7 @@ export default function DashboardContent() {
                       Test Setup
                     </button>
                     <button
-                      onClick={() => {
-                        // Dismiss banner by setting forwarding_verified to true (user chose to skip)
-                        // In a real implementation, this might set a dismissed_at timestamp instead
-                        console.log('[Setup] User dismissed setup banner')
-                      }}
+                      onClick={handleDismissSetupBanner}
                       className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-colors"
                     >
                       Dismiss for now
