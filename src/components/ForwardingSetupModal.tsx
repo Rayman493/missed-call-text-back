@@ -124,12 +124,10 @@ export default function ForwardingSetupModal() {
         .from('businesses')
         .update({
           id: business.id,
-          data: {
-            forwarding_enabled: true,
-            carrier: selectedCarrier,
-            forwarding_enabled_at: new Date().toISOString(),
-            onboarding_status: 'pending_test'
-          }
+          forwarding_enabled: true,
+          carrier: selectedCarrier,
+          forwarding_enabled_at: new Date().toISOString(),
+          onboarding_status: 'pending_test'
         })
         .eq('id', business.id)
 
