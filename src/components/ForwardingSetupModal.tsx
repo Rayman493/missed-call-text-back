@@ -117,7 +117,7 @@ export default function ForwardingSetupModal() {
     return business_phone_carrier.suffix ? code + business_phone_carrier.suffix : code
   }
 
-  // Returns the human-readable display form, e.g. '*71 1 (218) 423-6763'
+  // Returns the human-readable display form, e.g. '*71 (218) 423-6763'
   // so non-technical users can verify each digit at a glance.
   const getForwardingCodeDisplay = () => {
     if (!business?.twilio_phone_number) return ''

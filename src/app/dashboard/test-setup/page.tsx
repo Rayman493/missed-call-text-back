@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { CheckCircle, Phone, MessageSquare, Inbox, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -18,6 +18,16 @@ export default function TestSetupPage() {
   const [isPolling, setIsPolling] = useState(false)
   const [latestLead, setLatestLead] = useState<any>(null)
   const [liveStatus, setLiveStatus] = useState<'waiting' | 'call_detected' | 'sms_sent' | 'lead_captured'>('waiting')
+  const [currentStep, setCurrentStep] = useState(1)
+  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Auto-scroll to active step when it changes
+  useEffect(() => {
+    if (stepRefs.current[currentStep - 1]) {
+      stepRefs.current[currentStep - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [currentStep])
 
   // Check if setup is already verified on mount
   useEffect(() => {
@@ -48,6 +58,8 @@ export default function TestSetupPage() {
           clearInterval(pollInterval)
           await refreshBusiness()
           await fetchLatestLead()
+          // Auto-progress to final step
+          setCurrentStep(6)
         }
       } catch (error) {
         console.error('[TestSetup] Polling error:', error)
@@ -201,7 +213,7 @@ export default function TestSetupPage() {
 
             {/* Live Status Section */}
             {!success && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8 border-2 border-blue-200 dark:border-blue-800 animate-pulse">
                 <div className="flex items-center gap-3">
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     liveStatus === 'waiting' ? 'bg-blue-100 dark:bg-blue-900/30' :
@@ -227,6 +239,7 @@ export default function TestSetupPage() {
                       {liveStatus === 'lead_captured' && 'Lead captured in dashboard'}
                     </p>
                   </div>
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 </div>
               </div>
             )}
@@ -265,15 +278,18 @@ export default function TestSetupPage() {
             </div>
 
             {/* SMS Verification Note */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-8">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-8">
               <div className="flex items-start gap-3">
-                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                  <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">
                     SMS Verification Pending
                   </h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
-                    SMS delivery may be limited while carrier verification is pending. This typically takes 1-2 business days. During this time, you may experience delayed or limited SMS delivery.
+                  <p className="text-xs text-blue-800 dark:text-blue-300">
+                    SMS delivery may be limited while carrier verification is pending. This typically takes 1-2 business days.
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                    Most test messages arrive within 5–15 seconds.
                   </p>
                 </div>
               </div>
@@ -287,41 +303,44 @@ export default function TestSetupPage() {
               <div className="space-y-4">
                 {steps.map((step, index) => {
                   const Icon = step.icon
-                  const isActive = !success && index === 0
+                  const isActive = !success && index === currentStep - 1
                   const isCompleted = success && step.number <= 5
                   
                   return (
                     <div 
                       key={step.number}
-                      className={`flex items-start gap-4 p-4 rounded-lg border transition-all ${
+                      ref={(el) => {
+                        stepRefs.current[index] = el
+                      }}
+                      className={`flex items-start gap-4 p-4 rounded-lg border transition-all duration-300 ${
                         isCompleted 
                           ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' 
                           : isActive
-                          ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10'
+                          ? 'border-2 border-blue-500 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/10'
                           : 'border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                         isCompleted 
                           ? 'bg-green-600 text-white' 
                           : isActive
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
                         {isCompleted ? (
-                          <CheckCircle className="w-4 h-4" />
+                          <CheckCircle className="w-4 h-4 animate-in zoom-in duration-200" />
                         ) : (
                           <span className="text-sm font-semibold">{step.number}</span>
                         )}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Icon className={`w-5 h-5 ${
+                          <Icon className={`w-5 h-5 transition-colors duration-300 ${
                             isCompleted ? 'text-green-600 dark:text-green-400' :
                             isActive ? 'text-blue-600 dark:text-blue-400' :
                             'text-gray-600 dark:text-gray-400'
                           }`} />
-                          <h3 className={`text-base font-semibold ${
+                          <h3 className={`text-base font-semibold transition-colors duration-300 ${
                             isCompleted ? 'text-green-900 dark:text-green-100' :
                             isActive ? 'text-blue-900 dark:text-blue-100' :
                             'text-gray-900 dark:text-gray-100'
@@ -333,7 +352,7 @@ export default function TestSetupPage() {
                           {step.description}
                         </p>
                         {isCompleted && (
-                          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 animate-in fade-in slide-in-from-left-2 duration-300">
                             <CheckCircle className="w-4 h-4" />
                             <span>{step.outcome}</span>
                           </div>
@@ -346,22 +365,46 @@ export default function TestSetupPage() {
             </div>
 
             {/* Troubleshooting */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Troubleshooting
-              </h2>
-              <div className="space-y-4">
-                {troubleshooting.map((item, index) => (
-                  <div key={index} className="border-l-4 border-amber-500 pl-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                      {item.issue}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {item.solution}
-                    </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+              <button
+                onClick={() => setTroubleshootingOpen(!troubleshootingOpen)}
+                className="w-full p-4 flex items-center justify-between text-left"
+              >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Need help troubleshooting?
+                </h2>
+                <svg
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                    troubleshootingOpen ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {troubleshootingOpen && (
+                <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {troubleshooting.map((item, index) => (
+                      <div key={index} className="border-l-4 border-amber-500 pl-4">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                          {item.issue}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {item.solution}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -422,7 +465,7 @@ export default function TestSetupPage() {
                     href="/dashboard"
                     className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 text-center"
                   >
-                    I'll test later
+                    Finish later
                   </Link>
                 </>
               )}
