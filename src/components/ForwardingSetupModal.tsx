@@ -165,7 +165,8 @@ export default function ForwardingSetupModal() {
           call_forwarding_status: "enabled",
           business_phone_carrier: selectedCarrier,
           phone_setup_completed_at: new Date().toISOString(),
-          onboarding_status: "pending_test"
+          onboarding_status: "pending_test",
+          onboarding_step: "phone_setup_completed"
         })
         .eq('id', business.id)
 
