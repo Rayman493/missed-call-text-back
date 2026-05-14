@@ -304,12 +304,12 @@ export default function ForwardingSetupModal() {
                 <p className="font-medium text-slate-900 dark:text-white">Dial your forwarding code</p>
               </div>
               {hasValidCode ? (
-                <div className="bg-white dark:bg-slate-800/40 border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/80 dark:text-blue-400/80 mb-2.5 text-center">
+                <div className="bg-white dark:bg-slate-800/40 border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-3.5 sm:p-4.5 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-2.5 text-center">
                     Dial this exact code
                   </p>
                   <div 
-                    className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 sm:py-5 mb-3 overflow-x-auto cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-colors"
+                    className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 sm:py-4.5 mb-3 overflow-x-auto cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-colors"
                     onClick={handleCopyCode}
                     title="Click to copy code"
                   >
@@ -340,7 +340,7 @@ export default function ForwardingSetupModal() {
                       </>
                     )}
                   </button>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2.5">
+                  <p className="text-[11px] text-slate-400/70 dark:text-slate-500/70 text-center mt-2">
                     Open your phone app and dial this exactly as shown.
                   </p>
                 </div>
