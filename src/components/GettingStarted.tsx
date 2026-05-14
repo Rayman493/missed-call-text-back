@@ -117,7 +117,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
   const provisioningStatus = business?.provisioning_status ?? 'pending'
   const subscriptionActive = hasActiveAccess(business)
   const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
-  const forwardingComplete = business?.forwarding_verified
+  const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
   const testComplete = business?.forwarding_verified
 
   let currentOnboardingState: OnboardingState = 'loading'
@@ -128,9 +128,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     currentOnboardingState = 'no_subscription'
   } else if (subscriptionActive && !twilioReady) {
     currentOnboardingState = 'provisioning_number'
-  } else if (twilioReady && !forwardingComplete) {
+  } else if (twilioReady && !forwardingSetupComplete) {
     currentOnboardingState = 'forwarding_needed'
-  } else if (forwardingComplete && !testComplete) {
+  } else if (forwardingSetupComplete && !testComplete) {
     currentOnboardingState = 'testing_needed'
   } else {
     currentOnboardingState = 'active_ready'
@@ -227,7 +227,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
     const trialDone = subscriptionActive
     const numberDone = trialDone && twilioReady
-    const forwardingDone = Boolean(forwardingComplete)
+    const forwardingDone = Boolean(forwardingSetupComplete)
     const testDone = Boolean(testComplete)
 
     return [
