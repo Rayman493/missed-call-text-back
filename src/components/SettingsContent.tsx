@@ -382,11 +382,11 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
+          <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-slate-500 dark:text-gray-400">Loading settings...</p>
+                <p className="text-slate-500 dark:text-slate-400">Loading settings...</p>
               </div>
             </div>
           </div>
@@ -398,7 +398,7 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col">
+          <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -425,8 +425,8 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-8">
               {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Account</h2>
+              <div id="account" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Account</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
@@ -448,14 +448,14 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Billing</h2>
+              <div id="billing" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Billing</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
                       Subscription Status
                     </label>
-                    <div className="text-sm text-slate-500 dark:text-gray-400">
+                    <div className="text-sm text-slate-500 dark:text-slate-500">
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
@@ -463,22 +463,22 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Business Info</h2>
+              <div id="business" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Business Info</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
                       Business Phone Number
                     </label>
                     <input
@@ -486,7 +486,7 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                     />
                   </div>
                 </div>
@@ -494,74 +494,74 @@ export default function SettingsContent() {
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-2">Messaging & Automation</h2>
-                  <p className="text-sm text-slate-600 dark:text-gray-400 mb-3">
+                <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-2">Messaging & Automation</h2>
+                  <p className="text-sm text-slate-400 dark:text-slate-400 mb-3">
                     Auto-reply messages, business hours, spam filtering, and ignored contacts unlock
                     once you start your free trial. Your dedicated ReplyFlow number is provisioned
                     automatically right after activation.
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-500">
                     Use the Billing section below to start your 14-day free trial. No charge today.
                   </p>
                 </div>
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Messaging Settings</h2>
+              <div id="messaging" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Messaging Settings</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
                       Auto Reply Message
                     </label>
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
                       After Hours Message
                     </label>
                     <textarea
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
+              <div id="automation" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-2">Automation Settings</h2>
-                  <p className="text-sm text-slate-500 dark:text-gray-400">
+                  <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-2">Automation Settings</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-500">
                     Configure how ReplyFlow automatically handles your missed calls and follow-ups.
                   </p>
                 </div>
                 
                 <div className="space-y-6">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="bg-slate-50 dark:bg-gray-700/50 rounded-lg border border-slate-200 dark:border-gray-600 p-4 sm:p-6">
+                  <div className="bg-slate-900/50 dark:bg-slate-900/50 rounded-lg border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-base font-semibold text-slate-900 dark:text-gray-100">Spam & Repeat Call Filtering</h3>
+                          <h3 className="text-base font-semibold text-slate-100 dark:text-slate-100">Spam & Repeat Call Filtering</h3>
                           {spamFilteringEnabled && (
-                            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
+                            <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-gray-300 mb-2">
+                        <p className="text-sm text-slate-400 dark:text-slate-400 mb-2">
                           Control which callers receive automated text responses and which calls ReplyFlow should ignore.
                         </p>
-                        <div className="text-xs text-slate-500 dark:text-gray-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-500">
                           📋 Filtered calls will not create leads, trigger automations, or appear in your inbox.
                         </div>
                       </div>
@@ -569,7 +569,7 @@ export default function SettingsContent() {
                         onClick={handleToggleSpamFiltering}
                         disabled={isSavingSpamFiltering}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          spamFilteringEnabled ? 'bg-blue-600' : 'bg-gray-600'
+                          spamFilteringEnabled ? 'bg-blue-600' : 'bg-slate-600'
                         } ${isSavingSpamFiltering ? 'opacity-50 cursor-not-allowed' : ''}`}
                         aria-label={spamFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
@@ -583,20 +583,20 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-6 border-t border-slate-200 dark:border-gray-600 pt-6">
+                      <div className="space-y-6 border-t border-slate-700 dark:border-slate-700 pt-6">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-slate-900 dark:bg-slate-900 rounded-lg border border-slate-700 dark:border-slate-700">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Prevent duplicate auto-replies</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-slate-100 dark:text-slate-100">Prevent duplicate auto-replies</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-gray-300 mb-2">
+                            <p className="text-sm text-slate-400 dark:text-slate-400 mb-2">
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
-                            <div className="text-xs text-slate-500 dark:text-gray-400 italic">
+                            <div className="text-xs text-slate-500 dark:text-slate-500 italic">
                               Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
                             </div>
                           </div>
@@ -608,7 +608,7 @@ export default function SettingsContent() {
                             }}
                             disabled={isSaving}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              ignoreRepeatCalls ? 'bg-blue-600' : 'bg-gray-600'
+                              ignoreRepeatCalls ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
                           >
@@ -621,15 +621,15 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-slate-900 dark:bg-slate-900 rounded-lg border border-slate-700 dark:border-slate-700">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Skip blocked or hidden callers</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-slate-100 dark:text-slate-100">Skip blocked or hidden callers</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-gray-300">
+                            <p className="text-sm text-slate-400 dark:text-slate-400">
                               Prevent automated texts from being sent to callers who hide their number or appear as 'Unknown'.
                             </p>
                           </div>
@@ -641,7 +641,7 @@ export default function SettingsContent() {
                             }}
                             disabled={isSaving}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-gray-600'
+                              ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
                           >
