@@ -30,17 +30,17 @@ export default function DashboardEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6">
       {/* Empty State Icon */}
-      <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-        <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+        <svg className="w-12 h-12 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
         </svg>
       </div>
 
       {/* Empty State Message */}
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 text-center">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3 text-center">
         No missed-call leads yet
       </h2>
-      <p className="text-gray-600 dark:text-gray-400 text-center mb-8 max-w-md">
+      <p className="text-slate-600 dark:text-slate-400 text-center mb-8 max-w-md">
         Call your ReplyFlow number to test your setup. Missed calls and replies will appear here.
       </p>
 
@@ -62,13 +62,13 @@ export default function DashboardEmptyState() {
       <div className="flex flex-col sm:flex-row gap-4">
         <button
           onClick={handleTestSetup}
-          className="bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium"
+          className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
           Optional Real-World Test
         </button>
         <button
           onClick={handleViewInstructions}
-          className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-6 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+          className="bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 py-3 px-6 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium"
         >
           View Setup Instructions
         </button>
@@ -76,7 +76,7 @@ export default function DashboardEmptyState() {
 
       {/* Additional Help */}
       <div className="mt-8 text-center max-w-md">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Your missed calls and customer replies will appear here.
         </p>
       </div>
