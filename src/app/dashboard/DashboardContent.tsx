@@ -748,7 +748,7 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Setup Progress - Primary focus when onboarding incomplete, sticky */}
-                <div className="sticky top-4 z-10">
+                <div className={`sticky top-4 z-10 ${!isOnboardingComplete ? 'ring-2 ring-blue-500/30 dark:ring-blue-400/30' : ''}`}>
                   <GettingStarted isOnboardingComplete={isOnboardingComplete} />
                 </div>
               </>
@@ -876,17 +876,17 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Trial Banner - Lower Priority */}
+            {/* Trial Banner - Lower Priority - Reduced height */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className={`${themeClasses.banner} rounded-xl p-1.5`}>
+              <div className={`${themeClasses.banner} rounded-xl px-3 py-2`}>
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">🎉</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🎉</span>
                     <div>
-                      <p className={`text-sm font-semibold ${textTokens.primary}`}>
+                      <p className={`text-xs font-semibold ${textTokens.primary}`}>
                         Free trial active
                       </p>
-                      <p className={`text-xs ${textTokens.secondary}`}>
+                      <p className={`text-[10px] ${textTokens.secondary}`}>
                         Billing starts at $49/month after trial unless you cancel.
                       </p>
                     </div>
@@ -894,7 +894,7 @@ export default function DashboardContent() {
                   <button
                     onClick={handleManageSubscription}
                     disabled={isOpeningBilling}
-                    className={`${buttonTokens.primary} px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
                   </button>
@@ -967,32 +967,32 @@ export default function DashboardContent() {
                   <span className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
                   <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Missed Calls</h3>
                 </div>
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white mb-1">{missedCalls}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">total missed</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-1">{missedCalls}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Waiting for first call</p>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
                   <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">New Leads</h3>
                 </div>
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-blue-600 dark:text-blue-100 mb-1">{leadsRecovered}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">captured leads</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100 mb-1">{leadsRecovered}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Ready to capture leads</p>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
                   <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Conversations</h3>
                 </div>
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-green-600 dark:text-green-100 mb-1">{textsSent}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">messages sent</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100 mb-1">{textsSent}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Customer replies appear here</p>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
                   <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Follow-ups</h3>
                 </div>
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-purple-600 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">scheduled</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Automation ready</p>
               </div>
                 </div>
               </>
@@ -1124,14 +1124,14 @@ export default function DashboardContent() {
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
                     <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700' : 'bg-slate-50/30 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-700/50'}`}>
-                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl">🔍</div>
+                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
                       <h3 className="text-base font-medium text-slate-900 dark:text-white mb-2">
-                        {searchQuery.trim() ? 'No search results' : 'Your captured calls will appear here'}
+                        {searchQuery.trim() ? 'No search results' : 'Your missed-call assistant is ready'}
                       </h3>
                       <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
-                          : 'Once your setup is live, missed calls and conversations will appear automatically.'
+                          : 'Your first missed call and customer conversation will appear here automatically.'
                         }
                       </p>
                     </div>

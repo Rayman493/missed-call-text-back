@@ -129,21 +129,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
   const testComplete = business?.forwarding_verified
 
-  let currentOnboardingState: OnboardingState = 'loading'
-  
-  if (!business) {
-    currentOnboardingState = 'loading'
-  } else if (!subscriptionActive) {
-    currentOnboardingState = 'no_subscription'
-  } else if (subscriptionActive && !twilioReady) {
-    currentOnboardingState = 'provisioning_number'
-  } else if (twilioReady && !forwardingSetupComplete) {
-    currentOnboardingState = 'forwarding_needed'
-  } else if (forwardingSetupComplete && !testComplete) {
-    currentOnboardingState = 'testing_needed'
-  } else {
-    currentOnboardingState = 'active_ready'
-  }
+  const currentOnboardingState = useMemo(() => {
+    if (!business) return 'loading'
+    if (!subscriptionActive) return 'no_subscription'
+    if (!twilioReady) return 'provisioning_number'
+    if (!forwardingSetupComplete) return 'forwarding_needed'
+    if (!testComplete) return 'testing_needed'
+    return 'active_ready'
+  }, [business, subscriptionActive, twilioReady, forwardingSetupComplete, testComplete])
 
   const handleStartTrial = async () => {
     if (isHandlingBilling) return
@@ -316,6 +309,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   }
 
   const complete = isFullyComplete
+  const isOnTestStep = currentOnboardingState === 'testing_needed'
 
   // Show loading state while onboarding state is resolving
   if (currentOnboardingState === 'loading') {
@@ -378,13 +372,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-5 sm:p-6">
+    <div className={`rounded-2xl border p-5 sm:p-6 ${!complete ? 'border-blue-300 dark:border-blue-600/50 bg-white dark:bg-slate-900/40 shadow-md' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40'}`}>
       {/* Header with progress */}
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">
-              {complete ? 'Setup Complete' : 'Setup Progress'}
+              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
               {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
@@ -395,15 +389,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </p>
             )}
             {!complete && doneSteps === 3 && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">
-                You're one quick test away from going live.
-              </p>
+              <Link
+                href="/dashboard/test-setup"
+                className="inline-block mt-3 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all hover:-translate-y-[1px] shadow-sm hover:shadow-md animate-pulse"
+              >
+                Complete Final Test
+              </Link>
             )}
           </div>
           <button
-            type="button"
             onClick={handleToggle}
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors flex-shrink-0"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >

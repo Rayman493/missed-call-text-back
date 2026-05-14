@@ -54,9 +54,9 @@ export default function Navigation() {
       </Link>
       <Link
         href="/"
-        className="ml-2 px-3 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white hover:bg-slate-700/40 transition-colors"
+        className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white hover:bg-slate-700/40 transition-colors"
       >
-        View Homepage
+        Public Site
       </Link>
     </nav>
   )
