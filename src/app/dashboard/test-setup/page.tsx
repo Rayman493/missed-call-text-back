@@ -21,13 +21,21 @@ export default function TestSetupPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [isMounted, setIsMounted] = useState(false)
 
-  // Auto-scroll to active step when it changes
+  // Force scroll to top on mount
   useEffect(() => {
+    window.scrollTo(0, 0)
+    setIsMounted(true)
+  }, [])
+
+  // Auto-scroll to active step when it changes (but NOT on initial mount)
+  useEffect(() => {
+    if (!isMounted) return // Skip on initial mount
     if (stepRefs.current[currentStep - 1]) {
       stepRefs.current[currentStep - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
-  }, [currentStep])
+  }, [currentStep, isMounted])
 
   // Check if setup is already verified on mount
   useEffect(() => {
