@@ -83,15 +83,35 @@ export default function ForwardingSetupModal() {
     }
   }
 
+  // Returns the raw dial-code string used for the clipboard / actual dialing,
+  // e.g. '*71 12184236763' or '*004*12184236763#'
   const getForwardingCode = () => {
     if (!business?.twilio_phone_number) return ''
     const business_phone_carrier = CARRIERS.find(c => c.id === selectedCarrier)
     if (!business_phone_carrier || !business_phone_carrier.code) return 'Contact your business_phone_carrier to enable call forwarding'
-    
+
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
     const code = business_phone_carrier.code + ' ' + phoneNumber
     return business_phone_carrier.suffix ? code + business_phone_carrier.suffix : code
   }
+
+  // Returns the human-readable display form, e.g. '*71 1 (218) 423-6763'
+  // so non-technical users can verify each digit at a glance.
+  const getForwardingCodeDisplay = () => {
+    if (!business?.twilio_phone_number) return ''
+    const business_phone_carrier = CARRIERS.find(c => c.id === selectedCarrier)
+    if (!business_phone_carrier || !business_phone_carrier.code) return ''
+
+    const formattedNumber = formatPhoneNumber(business.twilio_phone_number)
+    const code = `${business_phone_carrier.code} ${formattedNumber}`
+    return business_phone_carrier.suffix ? code + business_phone_carrier.suffix : code
+  }
+
+  const hasValidCode = Boolean(
+    selectedCarrier &&
+    business?.twilio_phone_number &&
+    CARRIERS.find(c => c.id === selectedCarrier)?.code
+  )
 
   const handleCompleteSetup = async () => {
     if (!business) return
@@ -191,7 +211,7 @@ export default function ForwardingSetupModal() {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-8">
           {/* ReplyFlow Number - Secondary */}
           <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Your ReplyFlow forwarding number:</p>
@@ -225,24 +245,34 @@ export default function ForwardingSetupModal() {
             </div>
           </div>
 
-          {/* Forwarding Instructions */}
+          {/* Forwarding Instructions - dedicated dial code card */}
           {selectedCarrier && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 space-y-4">
-              <div>
-                <p className="text-sm mb-2 text-blue-600 dark:text-blue-400">Dial this exact code on your business phone:</p>
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-2xl sm:text-3xl font-mono font-semibold text-slate-900 dark:text-white break-all">
-                    {getForwardingCode()}
+            <div className="space-y-5">
+              {hasValidCode ? (
+                <div className="bg-white dark:bg-slate-800/40 border-2 border-blue-200 dark:border-blue-700/50 rounded-2xl p-5 sm:p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3 text-center">
+                    Dial this exact code
                   </p>
+                  <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-5 sm:py-6 mb-4 overflow-x-auto">
+                    <code
+                      aria-label="Forwarding dial code"
+                      className="block font-mono font-semibold text-slate-900 dark:text-white text-center text-2xl sm:text-3xl lg:text-4xl tracking-wider whitespace-nowrap select-all"
+                    >
+                      {getForwardingCodeDisplay()}
+                    </code>
+                  </div>
                   <button
                     onClick={handleCopyCode}
-                    disabled={!getForwardingCode() || getForwardingCode() === 'Contact your business_phone_carrier to enable call forwarding'}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all ${
+                      copiedCode
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60'
+                    }`}
                   >
                     {copiedCode ? (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        Forwarding code copied
+                        Copied!
                       </>
                     ) : (
                       <>
@@ -251,22 +281,50 @@ export default function ForwardingSetupModal() {
                       </>
                     )}
                   </button>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-3">
+                    Open your phone app and dial this exactly as shown.
+                  </p>
                 </div>
+              ) : (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
+                  Contact your carrier to learn how to forward unanswered calls to{' '}
+                  <span className="font-mono font-semibold">{formatPhoneNumber(business.twilio_phone_number)}</span>.
+                </div>
+              )}
+
+              {/* What happens next */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300 mb-3">
+                  What happens after you dial
+                </p>
+                <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    Your phone still rings normally
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    ReplyFlow texts customers who call when you don’t answer
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    Takes about 30 seconds — nothing else to install
+                  </li>
+                </ul>
               </div>
-              <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  Your phone still rings normally
-                </p>
-                <p className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  ReplyFlow texts customers who call
-                </p>
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  Your phone still rings normally
-                </p>
-              </div>
+
+              {/* Help link */}
+              <p className="text-xs text-center text-slate-500 dark:text-slate-400">
+                Not sure how call forwarding works?{' '}
+                <a
+                  href="/faq#forwarding"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  See the quick guide
+                </a>
+              </p>
             </div>
           )}
 
