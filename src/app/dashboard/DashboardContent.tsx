@@ -677,7 +677,7 @@ export default function DashboardContent() {
       <BusinessGuard>
         <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col`}>
           {/* App Header */}
-          <header className={`sticky top-0 z-50 bg-white/90 dark:bg-slate-900 backdrop-blur border-b border-slate-200 dark:border-slate-700 flex-shrink-0`}>
+          <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -687,9 +687,9 @@ export default function DashboardContent() {
                     <MobileMenu />
                   </div>
                   <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
-                    <span className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
-                      <span className="text-slate-800 dark:text-white">Reply</span>
-                      <span className="text-blue-600 dark:text-blue-400">Flow</span>
+                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
+                      <span className="text-white">Reply</span>
+                      <span className="text-blue-400">Flow</span>
                     </span>
                   </Link>
                   {/* Desktop navigation - only visible on desktop */}

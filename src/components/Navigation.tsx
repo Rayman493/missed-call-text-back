@@ -28,14 +28,16 @@ export default function Navigation() {
     return null
   }
 
+  // Header is dark on all authenticated app pages, so this nav uses a dark-only
+  // colour scheme to stay legible regardless of light/dark theme.
   return (
-    <nav className="flex items-center gap-1 sm:gap-2">
+    <nav className="flex items-center gap-1">
       <Link
         href="/dashboard"
         className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
           pathname === '/dashboard'
-            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
-            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+            ? 'text-white bg-slate-700/60'
+            : 'text-slate-300 hover:text-white hover:bg-slate-700/40'
         }`}
       >
         Dashboard
@@ -44,15 +46,15 @@ export default function Navigation() {
         href="/dashboard/leads"
         className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
           isActive('/dashboard/leads')
-            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
-            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+            ? 'text-white bg-slate-700/60'
+            : 'text-slate-300 hover:text-white hover:bg-slate-700/40'
         }`}
       >
         Conversations
       </Link>
       <Link
         href="/"
-        className="ml-1 sm:ml-2 px-3 py-1.5 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+        className="ml-2 px-3 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white hover:bg-slate-700/40 transition-colors"
       >
         View Homepage
       </Link>
