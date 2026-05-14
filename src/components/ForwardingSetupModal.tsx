@@ -202,12 +202,12 @@ export default function ForwardingSetupModal() {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30">
+      <div className="bg-card rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-card border border-border p-5 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1.5">Connect your business phone</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
+            <h2 className="text-xl font-bold text-foreground mb-1.5">Connect your business phone</h2>
+            <p className="text-muted-foreground text-sm">
               Forward missed calls to ReplyFlow so we can text customers back automatically.
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function ForwardingSetupModal() {
               // Allow user to dismiss modal without marking setup complete
               setIsDismissed(true)
             }}
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -225,15 +225,15 @@ export default function ForwardingSetupModal() {
         {/* Content */}
         <div className="p-6 space-y-5">
           {/* ReplyFlow Number - Secondary */}
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+          <div className="bg-muted border border-border rounded-xl p-3">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm text-slate-500 dark:text-slate-400">Your ReplyFlow forwarding number:</p>
+              <p className="text-sm text-muted-foreground">Your ReplyFlow forwarding number:</p>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                 Dedicated ReplyFlow number
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-2xl font-mono font-semibold text-slate-900 dark:text-white">
+              <p className="text-2xl font-mono font-semibold text-foreground">
                 {formatPhoneNumber(business.twilio_phone_number)}
               </p>
             </div>
@@ -245,9 +245,9 @@ export default function ForwardingSetupModal() {
               <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                 Step 1
               </span>
-              <p className="font-medium text-slate-900 dark:text-white">Choose your carrier</p>
+              <p className="font-medium text-foreground">Choose your carrier</p>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               Select the provider for your business phone number.
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -261,11 +261,11 @@ export default function ForwardingSetupModal() {
                     className={`group relative p-3.5 rounded-xl border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
                       isSelected
                         ? 'border-2 border-blue-500 bg-blue-50/80 dark:bg-blue-900/30 shadow-sm ring-2 ring-blue-500/20'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        : 'border-border bg-card hover:border-slate-300 dark:hover:border-slate-500 hover:bg-muted'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className={`text-base font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-white'}`}>
+                      <div className={`text-base font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-foreground'}`}>
                         {business_phone_carrier.name}
                       </div>
                       {isSelected && (
@@ -280,9 +280,9 @@ export default function ForwardingSetupModal() {
 
           {/* Placeholder when no carrier selected */}
           {!selectedCarrier && (
-            <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
-              <Phone className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+              <Phone className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">
                 Select your carrier to see your forwarding code
               </p>
             </div>
@@ -299,21 +299,21 @@ export default function ForwardingSetupModal() {
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                   Step 2
                 </span>
-                <p className="font-medium text-slate-900 dark:text-white">Dial your forwarding code</p>
+                <p className="font-medium text-foreground">Dial your forwarding code</p>
               </div>
               {hasValidCode ? (
-                <div className="bg-white dark:bg-slate-800/40 border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-3.5 sm:p-4.5 shadow-sm">
+                <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-3.5 sm:p-4.5 shadow-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-2.5 text-center">
                     Dial this exact code
                   </p>
                   <div 
-                    className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 sm:py-4.5 mb-3 overflow-x-auto cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-colors"
+                    className="bg-muted border border-border rounded-xl px-4 py-3.5 sm:py-4.5 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={handleCopyCode}
                     title="Click to copy code"
                   >
                     <code
                       aria-label="Forwarding dial code"
-                      className="block font-mono font-semibold text-slate-900 dark:text-white text-center text-2xl sm:text-3xl lg:text-4xl tracking-widest whitespace-nowrap select-all"
+                      className="block font-mono font-semibold text-foreground text-center text-2xl sm:text-3xl lg:text-4xl tracking-widest whitespace-nowrap select-all"
                     >
                       {getForwardingCodeDisplay()}
                     </code>
@@ -323,7 +323,7 @@ export default function ForwardingSetupModal() {
                     className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
                       copiedCode
                         ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                        : 'bg-transparent dark:bg-transparent border-slate-200/70 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/30 hover:border-slate-300 dark:hover:border-slate-500'
+                        : 'bg-transparent dark:bg-transparent border-border text-muted-foreground hover:bg-muted hover:border-slate-300 dark:hover:border-slate-500'
                     }`}
                   >
                     {copiedCode ? (
@@ -338,7 +338,7 @@ export default function ForwardingSetupModal() {
                       </>
                     )}
                   </button>
-                  <p className="text-[11px] text-slate-400/70 dark:text-slate-500/70 text-center mt-2">
+                  <p className="text-[11px] text-muted-foreground/70 text-center mt-2">
                     Open your phone app and dial this exactly as shown.
                   </p>
                 </div>
@@ -354,7 +354,7 @@ export default function ForwardingSetupModal() {
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/70 dark:text-blue-400/70 mb-2">
                   What happens after you dial
                 </p>
-                <ul className="space-y-1 text-sm text-slate-600/80 dark:text-slate-300/80">
+                <ul className="space-y-1 text-sm text-muted-foreground/80">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
                     Your phone still rings normally
@@ -368,14 +368,14 @@ export default function ForwardingSetupModal() {
                     Takes about 30 seconds — nothing else to install
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                     Your carrier may confirm the forwarding number out loud
                   </li>
                 </ul>
               </div>
 
               {/* Help link */}
-              <p className="text-xs text-center text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-center text-muted-foreground">
                 Not sure how call forwarding works?{' '}
                 <button
                   onClick={() => setShowQuickGuide(true)}
@@ -406,7 +406,7 @@ export default function ForwardingSetupModal() {
               disabled={loading}
               className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-3 sm:py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
-              } ${ctaHighlighted ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' : ''}`}
+              } ${ctaHighlighted ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-white dark:ring-offset-card' : ''}`}
             >
               {loading ? (
                 <>
@@ -418,7 +418,7 @@ export default function ForwardingSetupModal() {
                 </>
               ) : 'Continue to Test Setup'}
             </button>
-            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
+            <p className="text-xs text-center text-muted-foreground mt-2">
               Usually takes less than 30 seconds.
             </p>
           </div>
@@ -428,17 +428,17 @@ export default function ForwardingSetupModal() {
       {/* Quick Guide Modal */}
       {showQuickGuide && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Call Forwarding Quick Guide</h3>
+          <div className="bg-card rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Call Forwarding Quick Guide</h3>
               <button
                 onClick={() => setShowQuickGuide(false)}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 space-y-4 text-sm text-slate-700 dark:text-slate-200">
+            <div className="p-5 space-y-4 text-sm text-foreground">
               <p>Call forwarding redirects unanswered calls from your business phone to your ReplyFlow number. When customers call and you don't answer, ReplyFlow automatically sends them a text message.</p>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -458,9 +458,9 @@ export default function ForwardingSetupModal() {
                   <p>Click "I Enabled Forwarding" to complete setup.</p>
                 </div>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg p-3 mt-4">
-                <p className="font-medium text-slate-900 dark:text-white mb-1">Important notes:</p>
-                <ul className="space-y-1.5 text-slate-600 dark:text-slate-300">
+              <div className="bg-muted border border-border rounded-lg p-3 mt-4">
+                <p className="font-medium text-foreground mb-1">Important notes:</p>
+                <ul className="space-y-1.5 text-muted-foreground">
                   <li>• Your phone still rings normally — forwarding only activates when you don't answer</li>
                   <li>• Setup takes about 30 seconds</li>
                   <li>• You can disable forwarding anytime by dialing your carrier's deactivation code</li>
