@@ -23,6 +23,7 @@ export default function TestSetupPage() {
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isMounted, setIsMounted] = useState(false)
   const hasScrolledToTopRef = useRef(false)
+  const hasInitializedActiveStepRef = useRef(false)
 
   // Disable browser scroll restoration for this route
   useEffect(() => {
@@ -41,10 +42,18 @@ export default function TestSetupPage() {
     })
   }, [])
 
-  // Auto-scroll to active step when it changes (but NOT on initial mount)
+  // Auto-scroll to active step when it changes (but NOT on initial mount and NOT for step 1)
   useEffect(() => {
+    if (!hasInitializedActiveStepRef.current) {
+      hasInitializedActiveStepRef.current = true
+      console.log('[TestSetup] skipping initial active-step scroll')
+      return
+    }
+
     if (!isMounted) return // Skip on initial mount
     if (!hasScrolledToTopRef.current) return // Skip if we haven't scrolled to top yet
+    if (currentStep === 1) return // Don't auto-scroll to step 1 (hero already shows instructions)
+
     if (stepRefs.current[currentStep - 1]) {
       console.log('[TestSetup] active step changed to', currentStep, '- scrolling into view')
       stepRefs.current[currentStep - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
