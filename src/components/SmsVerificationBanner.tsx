@@ -31,7 +31,7 @@ export default function SmsVerificationBanner({ business }: SmsVerificationBanne
             Setup in progress (1–2 days)
           </h3>
           <p className="text-xs text-blue-800 dark:text-blue-200 mt-0.5">
-            Your auto-text is active, but some carriers may delay messages until verification completes.
+            Your text replies are active, but some carriers may delay messages until verification completes.
           </p>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -43,7 +43,7 @@ export default function SmsVerificationBanner({ business }: SmsVerificationBanne
             <ul className="text-xs text-blue-800 dark:text-blue-200 mt-1.5 space-y-0.5 list-disc list-inside">
               <li>Messages may show as undelivered during verification</li>
               <li>Once approved, delivery becomes reliable</li>
-              <li>You can still test flows and view leads normally</li>
+              <li>You can still test and view leads normally</li>
             </ul>
           )}
         </div>

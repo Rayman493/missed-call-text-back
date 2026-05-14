@@ -15,7 +15,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
   if (errorCode === '30007') {
-    return 'Carrier verification still pending. Delivery may fail until approved.'
+    return 'Phone setup still pending. Delivery may fail until approved.'
   }
   if (errorCode === '21614') {
     return 'Number is not a valid mobile number.'
@@ -538,7 +538,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         } else if (result.error === 'Business not found') {
           setError('Business not found. Please contact support.')
         } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
-          setError('Carrier verification still pending. Delivery may fail until approved.')
+          setError('Phone setup still pending. Delivery may fail until approved.')
         } else {
           setError('Failed to send message. Please try again.')
         }
@@ -735,7 +735,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         } else if (result.error === 'Business not found') {
           setError('Business not found. Please contact support.')
         } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
-          setError('Carrier verification still pending. Delivery may fail until approved.')
+          setError('Phone setup still pending. Delivery may fail until approved.')
         } else {
           setError(result.error || 'Failed to send message')
         }

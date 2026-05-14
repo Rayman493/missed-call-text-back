@@ -84,7 +84,7 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
               Setting up your ReplyFlow number...
             </h3>
             <p className="text-sm text-blue-300 mb-4">
-              We're provisioning your dedicated phone number. This usually takes 10-20 seconds.
+              We're setting up your dedicated phone number. This usually takes 10-20 seconds.
             </p>
             {isPolling && (
               <div className="flex items-center gap-2 text-xs text-blue-400">
@@ -113,16 +113,16 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-red-100 mb-2">
-              Number provisioning failed
+              Number setup failed
             </h3>
             <p className="text-sm text-red-300 mb-4">
-              {business.provisioning_error || 'Something went wrong while provisioning your number. Please try again.'}
+              {business.provisioning_error || 'Something went wrong while setting up your number. Please try again.'}
             </p>
             <Link
               href="/dashboard/settings"
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              Retry Provisioning
+              Retry Setup
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
