@@ -20,7 +20,7 @@ export default function RootLayoutMinimal({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         {children}
       </body>
     </html>

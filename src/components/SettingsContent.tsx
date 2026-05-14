@@ -382,11 +382,11 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
+          <div className="min-h-screen bg-background">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-slate-500 dark:text-slate-400">Loading settings...</p>
+                <p className="text-muted-foreground">Loading settings...</p>
               </div>
             </div>
           </div>
@@ -398,16 +398,16 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
+          <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
+            <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                   <div className="flex items-center gap-4">
-                    <Link href="/dashboard" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                       ← Dashboard
                     </Link>
-                    <h1 className="text-lg font-semibold text-white">Settings</h1>
+                    <h1 className="text-lg font-semibold text-foreground">Settings</h1>
                   </div>
                   <div className="flex items-center gap-4">
                     <UserDropdown />
@@ -425,22 +425,22 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-8">
               {/* Account Section */}
-              <div id="account" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Account</h2>
+              <div id="account" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Account</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Email
                     </label>
-                    <div className="text-sm text-slate-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       {user?.email}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Account Status
                     </label>
-                    <div className="text-sm text-slate-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
@@ -448,14 +448,14 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Billing</h2>
+              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Billing</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Subscription Status
                     </label>
-                    <div className="text-sm text-slate-500 dark:text-slate-500">
+                    <div className="text-sm text-muted-foreground">
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
@@ -463,22 +463,22 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Business Info</h2>
+              <div id="business" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Business Info</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Business Phone Number
                     </label>
                     <input
@@ -486,7 +486,7 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
@@ -494,74 +494,74 @@ export default function SettingsContent() {
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
-                <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
-                  <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-2">Messaging & Automation</h2>
-                  <p className="text-sm text-slate-400 dark:text-slate-400 mb-3">
+                <div className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Messaging & Automation</h2>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Auto-reply messages, business hours, spam filtering, and ignored contacts unlock
                     once you start your free trial. Your dedicated ReplyFlow number is provisioned
                     automatically right after activation.
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Use the Billing section below to start your 14-day free trial. No charge today.
                   </p>
                 </div>
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">Messaging Settings</h2>
+              <div id="messaging" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Messaging Settings</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Auto Reply Message
                     </label>
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       After Hours Message
                     </label>
                     <textarea
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-slate-900 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+              <div id="automation" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-2">Automation Settings</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-500">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Automation Settings</h2>
+                  <p className="text-sm text-muted-foreground">
                     Configure how ReplyFlow automatically handles your missed calls and follow-ups.
                   </p>
                 </div>
                 
                 <div className="space-y-6">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="bg-slate-900/50 dark:bg-slate-900/50 rounded-lg border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+                  <div className="bg-muted rounded-lg border border-border p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-base font-semibold text-slate-100 dark:text-slate-100">Spam & Repeat Call Filtering</h3>
+                          <h3 className="text-base font-semibold text-foreground">Spam & Repeat Call Filtering</h3>
                           {spamFilteringEnabled && (
                             <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-400 dark:text-slate-400 mb-2">
+                        <p className="text-sm text-muted-foreground mb-2">
                           Control which callers receive automated text responses and which calls ReplyFlow should ignore.
                         </p>
-                        <div className="text-xs text-slate-500 dark:text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           📋 Filtered calls will not create leads, trigger automations, or appear in your inbox.
                         </div>
                       </div>
@@ -583,20 +583,20 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-6 border-t border-slate-700 dark:border-slate-700 pt-6">
+                      <div className="space-y-6 border-t border-border pt-6">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-4 bg-slate-900 dark:bg-slate-900 rounded-lg border border-slate-700 dark:border-slate-700">
+                        <div className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-100 dark:text-slate-100">Prevent duplicate auto-replies</h4>
+                              <h4 className="text-sm font-semibold text-foreground">Prevent duplicate auto-replies</h4>
                               <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-slate-400 dark:text-slate-400 mb-2">
+                            <p className="text-sm text-muted-foreground mb-2">
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
-                            <div className="text-xs text-slate-500 dark:text-slate-500 italic">
+                            <div className="text-xs text-muted-foreground italic">
                               Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
                             </div>
                           </div>
@@ -621,15 +621,15 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-4 bg-slate-900 dark:bg-slate-900 rounded-lg border border-slate-700 dark:border-slate-700">
+                        <div className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-100 dark:text-slate-100">Skip blocked or hidden callers</h4>
+                              <h4 className="text-sm font-semibold text-foreground">Skip blocked or hidden callers</h4>
                               <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-slate-400 dark:text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                               Prevent automated texts from being sent to callers who hide their number or appear as 'Unknown'.
                             </p>
                           </div>
@@ -654,15 +654,15 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Spam Detection */}
-                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <div className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border">
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Skip suspected spam callers</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-foreground">Skip suspected spam callers</h4>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-gray-300">
+                            <p className="text-sm text-muted-foreground">
                               Automatically identify and skip calls from numbers suspected of being spam or robocalls.
                             </p>
                           </div>
@@ -687,15 +687,15 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Blocked Numbers List */}
-                        <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <div className="p-4 bg-muted rounded-lg border border-border">
                           <div className="mb-3">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Blocked phone numbers</h4>
-                              <span className="text-xs px-2 py-1 bg-slate-200 text-slate-700 dark:bg-gray-700 dark:text-gray-300 rounded-full font-medium">
+                              <h4 className="text-sm font-semibold text-foreground">Blocked phone numbers</h4>
+                              <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full font-medium">
                                 Optional
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-gray-300 mb-3">
+                            <p className="text-sm text-muted-foreground mb-3">
                               ReplyFlow will ignore calls from these numbers and will not create leads or send texts.
                             </p>
                           </div>
@@ -704,9 +704,9 @@ export default function SettingsContent() {
                             onChange={(e) => updateBlockedNumbers(e.target.value)}
                             rows={4}
                             placeholder="+14125551234&#10;+14125559876"
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-400 text-sm font-mono"
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground text-sm font-mono"
                           />
-                          <div className="text-xs text-slate-500 dark:text-gray-400 mt-2">
+                          <div className="text-xs text-muted-foreground mt-2">
                             Enter one phone number per line in format: +14125551234
                           </div>
                         </div>
@@ -715,20 +715,20 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-gray-700/50 rounded-lg border border-slate-200 dark:border-gray-600">
+                  <div className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border">
                     <div className="flex-1 pr-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Business Hours Only</h3>
+                        <h3 className="text-sm font-medium text-foreground">Business Hours Only</h3>
                         {formBusiness.business_hours_enabled && (
-                          <span className="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
+                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
                             Active
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-gray-400 mb-2">
+                      <p className="text-sm text-muted-foreground mb-2">
                         Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
                       </p>
-                      <div className="text-xs text-slate-500 dark:text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         🕐 Prevents late-night texts and respects customer communication preferences.
                       </div>
                     </div>
@@ -800,9 +800,9 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
+              <div id="ignored-contacts" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100">Ignored Contacts</h2>
+                  <h2 className="text-lg font-semibold text-foreground">Ignored Contacts</h2>
                   <button
                     onClick={() => setShowAddModal(true)}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -812,7 +812,7 @@ export default function SettingsContent() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
                       These phone numbers will not create leads or receive automated texts. Use this for personal contacts, family, or other numbers you don't want to treat as business leads.
                     </p>
                   </div>
@@ -822,10 +822,10 @@ export default function SettingsContent() {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-8 bg-slate-50 dark:bg-gray-700/50 rounded-lg border border-slate-200 dark:border-gray-600">
+                    <div className="text-center py-8 bg-muted rounded-lg border border-border">
                       <div className="text-4xl mb-2">📵</div>
-                      <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100 mb-2">Prevent personal calls from becoming leads</h3>
-                      <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                      <h3 className="text-sm font-medium text-foreground mb-2">Prevent personal calls from becoming leads</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
                         Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
                       </p>
                       <button
@@ -840,20 +840,20 @@ export default function SettingsContent() {
                       {ignoredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-gray-700/50 rounded-lg border border-slate-200 dark:border-gray-600"
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-slate-900 dark:text-gray-100">
+                              <span className="text-sm font-medium text-foreground">
                                 {formatPhoneNumber(contact.phone_number)}
                               </span>
                               {contact.label && (
-                                <span className="text-xs px-2 py-1 bg-slate-200 dark:bg-gray-600 text-slate-700 dark:text-gray-300 rounded-full">
+                                <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full">
                                   {contact.label}
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-gray-400">
+                            <div className="text-xs text-muted-foreground">
                               {contact.reason && `Reason: ${contact.reason}`}
                               {contact.reason && contact.created_at && ' • '}
                               {contact.created_at && `Added ${new Date(contact.created_at).toLocaleDateString()}`}
@@ -876,12 +876,12 @@ export default function SettingsContent() {
               )}
 
               {/* Billing Section */}
-              <div id="billing" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Billing</h2>
+              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Billing</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Current Plan</h3>
-                    <p className="text-sm text-slate-500 dark:text-gray-400">
+                    <h3 className="text-sm font-medium text-foreground">Current Plan</h3>
+                    <p className="text-sm text-muted-foreground">
                       {getPricingDisplay()} 
                       {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                     </p>
@@ -890,7 +890,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('portal')}
                       disabled={isOpeningPortal}
-                      className="px-4 py-2 bg-slate-200 text-slate-800 dark:bg-gray-600 dark:text-white font-medium rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
                     >
                       Manage Billing
                     </button>
@@ -908,12 +908,12 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-red-200 dark:border-red-700 p-4 sm:p-6">
+              <div id="danger" className="bg-card rounded-2xl shadow-sm border border-red-200 dark:border-red-700 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Delete Account</h3>
-                    <p className="text-sm text-slate-600 dark:text-gray-400 mb-2">
+                    <h3 className="text-sm font-medium text-foreground">Delete Account</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
                       Permanently delete your account and all data.
                     </p>
                     <button
@@ -943,14 +943,14 @@ export default function SettingsContent() {
           {/* Delete Account Modal */}
           {showDeleteModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
+              <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-foreground mb-4">
                   Delete your account?
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-3">
+                <p className="text-sm text-muted-foreground mb-3">
                   This will:
                 </p>
-                <ul className="text-sm text-slate-600 dark:text-gray-400 mb-4 list-disc pl-5 space-y-1">
+                <ul className="text-sm text-muted-foreground mb-4 list-disc pl-5 space-y-1">
                   <li>Cancel your active subscription in Stripe immediately</li>
                   <li>Permanently delete your business, leads, messages, conversations, and follow-ups</li>
                   <li>Sign you out and delete your login</li>
@@ -959,7 +959,7 @@ export default function SettingsContent() {
                   This action cannot be undone.
                 </p>
                 <div className="mb-4">
-                  <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm text-foreground mb-2">
                     Type <span className="font-mono font-bold">DELETE</span> to confirm
                   </label>
                   <input
@@ -967,7 +967,7 @@ export default function SettingsContent() {
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                     placeholder="Type DELETE"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="flex justify-end gap-3">
@@ -977,7 +977,7 @@ export default function SettingsContent() {
                       setDeleteConfirmText('')
                     }}
                     disabled={isDeleting}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -996,47 +996,47 @@ export default function SettingsContent() {
           {/* Add Ignored Contact Modal */}
           {showAddModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
+              <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-foreground mb-4">
                   Add Ignored Contact
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm text-foreground mb-2">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm text-foreground mb-2">
                       Label
                     </label>
                     <input
                       type="text"
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
-                      placeholder="Family, Employee, Vendor, etc."
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
+                      placeholder="Optional label (e.g., 'Spam', 'Personal')"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm text-foreground mb-2">
                       Notes/Reason
                     </label>
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400 resize-none"
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground resize-none"
                       placeholder="Personal contact, employee, vendor, etc."
                     />
                   </div>
@@ -1050,7 +1050,7 @@ export default function SettingsContent() {
                       setReason('')
                     }}
                     disabled={isAdding}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>

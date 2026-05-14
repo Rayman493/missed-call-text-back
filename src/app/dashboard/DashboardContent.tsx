@@ -657,8 +657,8 @@ export default function DashboardContent() {
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-400">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">
           {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
         </div>
       </div>
@@ -678,9 +678,9 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className={`min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col`}>
+        <div className={`min-h-screen bg-background flex flex-col`}>
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
+          <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -691,7 +691,7 @@ export default function DashboardContent() {
                   </div>
                   <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
                     <span className="text-xl md:text-2xl font-semibold tracking-tight">
-                      <span className="text-white">Reply</span>
+                      <span className="text-foreground">Reply</span>
                       <span className="text-blue-400">Flow</span>
                     </span>
                   </Link>
@@ -808,7 +808,7 @@ export default function DashboardContent() {
                     </button>
                     <button
                       onClick={handleDismissSetupBanner}
-                      className="px-2.5 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-colors"
+                      className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
                     >
                       Dismiss
                     </button>
@@ -841,7 +841,7 @@ export default function DashboardContent() {
                   </div>
                   <button
                     onClick={handleDismissSetupBanner}
-                    className="px-2.5 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-colors"
+                    className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
                   >
                     Dismiss
                   </button>
@@ -912,14 +912,14 @@ export default function DashboardContent() {
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
                       Ready to activate
                     </div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-3">
                       Start capturing missed calls
                     </h1>
-                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-6">
+                    <p className="text-sm sm:text-base text-muted-foreground mb-6">
                       Activate ReplyFlow to provision your dedicated number and turn every missed
                       call into a conversation.
                     </p>
-                    <ul className="text-sm text-slate-700 dark:text-slate-200 mb-8 space-y-2 text-left max-w-md mx-auto">
+                    <ul className="text-sm text-foreground mb-8 space-y-2 text-left max-w-md mx-auto">
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
                         Get your dedicated ReplyFlow number
@@ -940,7 +940,7 @@ export default function DashboardContent() {
                     >
                       {checkoutLoading ? 'Starting…' : 'Start Your 14-Day Free Trial'}
                     </button>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">
+                    <p className="text-xs text-muted-foreground mt-4">
                       No charge today. Cancel anytime before your trial ends.
                     </p>
                   </div>
@@ -962,37 +962,37 @@ export default function DashboardContent() {
 
                 {/* Hero Metrics Section */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-slate-800 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Missed Calls</h3>
+                  <span className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-100 dark:text-white mb-1">{missedCalls}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500">Waiting for first call</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-1">{missedCalls}</p>
+                <p className="text-xs text-muted-foreground">Waiting for first call</p>
               </div>
-              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-blue-900/30 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">New Leads</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">New Leads</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-400 dark:text-blue-100 mb-1">{leadsRecovered}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500">Ready to capture leads</p>
+                <p className="text-xs text-muted-foreground">Ready to capture leads</p>
               </div>
-              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-green-900/30 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Conversations</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-400 dark:text-green-100 mb-1">{textsSent}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500">Customer replies appear here</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-400 dark:text-green-100 mb-1">{replies}</p>
+                <p className="text-xs text-muted-foreground">Customer replies appear here</p>
               </div>
-              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-purple-900/30 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Follow-ups</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Follow-ups</h3>
                 </div>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-400 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500">Automation ready</p>
+                <p className="text-xs text-muted-foreground">Automation ready</p>
               </div>
                 </div>
               </>
@@ -1049,20 +1049,20 @@ export default function DashboardContent() {
 
             {/* Billing card - only show when action needed */}
             {!isActive && !business?.stripe_subscription_id && (
-              <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4 hover:border-slate-600 transition">
+              <div className="bg-card rounded-lg border border-border p-4 hover:border-border transition">
                 {webhookConfirming ? (
                   <>
-                    <h2 className="text-lg font-semibold text-slate-100 mb-2">Activating your account</h2>
-                    <p className="text-sm text-slate-400 mb-4">Please wait while we confirm your payment...</p>
+                    <h2 className="text-lg font-semibold text-foreground mb-2">Activating your account</h2>
+                    <p className="text-sm text-muted-foreground mb-4">Please wait while we confirm your payment...</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold text-slate-100 mb-2">Start Capturing Missed Calls</h2>
-                    <p className="text-sm text-slate-400 mb-4">Start capturing missed calls instantly.</p>
+                    <h2 className="text-lg font-semibold text-foreground mb-2">Start Capturing Missed Calls</h2>
+                    <p className="text-sm text-muted-foreground mb-4">Start capturing missed calls instantly.</p>
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading}
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium rounded-lg transition-colors"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-medium rounded-lg transition-colors"
                     >
                       {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
                     </button>
@@ -1078,11 +1078,11 @@ export default function DashboardContent() {
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Your Leads</h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">People who called but did not reach you.</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Your Leads</h2>
+                    <p className="text-sm text-muted-foreground mt-1">People who called but did not reach you.</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                    <span className="text-sm text-muted-foreground">
                       {processedLeads.length} of {leads.length} leads
                     </span>
                   </div>
@@ -1099,7 +1099,7 @@ export default function DashboardContent() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className={`w-full pl-10 pr-4 py-3 ${borderTokens.default} rounded-xl ${bgTokens.input} ${textTokens.primary} placeholder:${textTokens.muted} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm transition-all`}
                       />
-                      <svg className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
@@ -1121,14 +1121,14 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-slate-900/50 dark:bg-slate-900/50 border-slate-700 dark:border-slate-700' : 'bg-slate-900/30 dark:bg-slate-900/30 border-slate-700/50 dark:border-slate-700/50'}`}>
-                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-800 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
-                      <h3 className="text-base font-medium text-slate-100 dark:text-white mb-2">
+                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-muted border-border' : 'bg-muted/50 border-border/50'}`}>
+                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
+                      <h3 className="text-base font-medium text-foreground mb-2">
                         {searchQuery.trim() ? 'No search results' : 'Your missed-call assistant is ready'}
                       </h3>
-                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-400 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
+                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Your first missed call and customer conversation will appear here automatically.'
@@ -1154,13 +1154,13 @@ export default function DashboardContent() {
                             case 'green': return 'bg-green-900/30 dark:bg-green-900/30 text-green-300 dark:text-green-300'
                             case 'amber': return 'bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300'
                             case 'purple': return 'bg-purple-900/30 dark:bg-purple-900/30 text-purple-300 dark:text-purple-300'
-                            case 'gray': return 'bg-slate-800 dark:bg-slate-800 text-slate-300 dark:text-slate-300'
+                            case 'gray': return 'bg-muted text-muted-foreground'
                             default: return 'bg-blue-900/30 dark:bg-blue-900/30 text-blue-300 dark:text-blue-300'
                           }
                         }
 
                         return (
-                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-muted transition-colors ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
@@ -1174,7 +1174,7 @@ export default function DashboardContent() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <p className="font-bold text-lg text-slate-100 dark:text-white truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                    <p className="font-bold text-lg text-foreground truncate">{formatLeadPhone(lead.caller_phone)}</p>
                                     {hasUnreadReply && (
                                       <span className="px-2.5 py-1 bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300 text-xs font-semibold rounded-full flex-shrink-0 animate-pulse">
                                         Needs response
@@ -1186,17 +1186,17 @@ export default function DashboardContent() {
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{formatRelativeTime(lastActivity)}</p>
+                                  <p className="text-xs sm:text-sm text-muted-foreground">{formatRelativeTime(lastActivity)}</p>
                                 </div>
                               </div>
                               {latestMessage && (
                                 <div className="ml-13">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    <span className="text-xs text-muted-foreground">
                                       {latestMessage.direction === 'inbound' ? 'Customer:' : 'You:'}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-slate-400 dark:text-slate-300 truncate">{latestMessage.body}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{latestMessage.body}</p>
                                 </div>
                               )}
                             </div>

@@ -198,11 +198,11 @@ export default function LeadsPage() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
+          <div className="min-h-screen bg-background">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-slate-500 dark:text-gray-400">Loading leads...</p>
+                <p className="text-muted-foreground">Loading leads...</p>
               </div>
             </div>
           </div>
@@ -214,16 +214,16 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
+          <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center gap-4">
-                  <Link href="/dashboard" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                  <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     ← Dashboard
                   </Link>
-                  <h1 className="text-lg font-semibold text-white">Leads</h1>
+                  <h1 className="text-lg font-semibold text-foreground">Leads</h1>
                 </div>
                 <div className="flex items-center gap-4">
                   <UserDropdown />
@@ -253,10 +253,10 @@ export default function LeadsPage() {
             {/* Leads Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-gray-100">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
                 </h2>
-                <p className="text-slate-600 dark:text-gray-400 mt-1">
+                <p className="text-muted-foreground mt-1">
                   {leads.length} {leads.length === 1 ? 'lead' : 'leads'} total
                 </p>
               </div>
@@ -264,7 +264,7 @@ export default function LeadsPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-700"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors"
                 >
                   Filters
                 </button>
@@ -273,10 +273,10 @@ export default function LeadsPage() {
 
             {/* Filters */}
             {showFilters && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-4 mb-8">
+              <div className="bg-card rounded-xl border border-border p-4 mb-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Search
                     </label>
                     <input
@@ -284,17 +284,17 @@ export default function LeadsPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by phone or message..."
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Status
                     </label>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground"
                     >
                       <option value="all">All Status</option>
                       <option value="new">New</option>
@@ -313,8 +313,8 @@ export default function LeadsPage() {
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-900/30 mb-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-2">Loading leads</h3>
-                <p className="text-slate-600 dark:text-gray-400 text-sm">Please wait while we fetch your conversation history...</p>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Loading leads</h3>
+                <p className="text-muted-foreground text-sm">Please wait while we fetch your conversation history...</p>
               </div>
             )}
 
@@ -326,7 +326,7 @@ export default function LeadsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-2">Unable to load leads</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Unable to load leads</h3>
                 <div className="text-red-600 dark:text-red-400 mb-6 max-w-md mx-auto">{error}</div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
@@ -340,7 +340,7 @@ export default function LeadsPage() {
                   </button>
                   <Link
                     href="/dashboard/settings"
-                    className="inline-flex items-center px-4 py-2 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-slate-300 dark:hover:bg-gray-600 transition-colors"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg hover:bg-secondary/80 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -360,10 +360,10 @@ export default function LeadsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-100 dark:text-white mb-3">
+                <h3 className="text-lg font-semibold text-foreground mb-3">
                   Your captured calls will appear here
                 </h3>
-                <div className="text-slate-400 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                <div className="text-muted-foreground mb-6 max-w-md mx-auto">
                   <p className="mb-2">Once your setup is live, missed calls and conversations will appear automatically.</p>
                   <p className="text-sm">ReplyFlow will automatically send them a text message to capture the lead.</p>
                 </div>
@@ -379,7 +379,7 @@ export default function LeadsPage() {
                   </Link>
                   <Link
                     href="/demo"
-                    className="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-800 text-slate-300 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-700 dark:hover:bg-slate-700 transition-colors"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg hover:bg-secondary/80 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -392,8 +392,8 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.length > 0 && (
-              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-sm border border-slate-700 dark:border-slate-700 overflow-hidden">
-                <div className="divide-y divide-slate-700 dark:divide-slate-700">
+              <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                <div className="divide-y divide-border">
                   {sortedLeads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -421,7 +421,7 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-5 sm:p-6 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors relative ${
+                        className={`block p-5 sm:p-6 hover:bg-muted transition-colors relative ${
                           isUnread ? 'bg-blue-900/10 dark:bg-blue-900/10' : ''
                         } ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}
                       >
@@ -443,7 +443,7 @@ export default function LeadsPage() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className={`font-semibold text-slate-100 dark:text-white truncate ${
+                                  <p className={`font-semibold text-foreground truncate ${
                                     isUnread ? 'font-bold' : ''
                                   }`}>
                                     {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
@@ -455,15 +455,15 @@ export default function LeadsPage() {
                                     <span className="px-2 py-0.5 bg-red-900/30 text-red-300 text-xs font-medium rounded-full flex-shrink-0">Needs Response</span>
                                   )}
                                 </div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">{formatRelativeTime(lastActivity)}</p>
+                                <p className="text-sm text-muted-foreground">{formatRelativeTime(lastActivity)}</p>
                               </div>
                             </div>
                             {latestMessage && (
                               <div className="ml-13">
                                 <p className={`text-sm truncate ${
                                   latestMessage.direction === 'inbound'
-                                    ? 'text-slate-400 dark:text-slate-300'
-                                    : 'text-blue-400 dark:text-blue-400'
+                                    ? 'text-muted-foreground'
+                                    : 'text-blue-400'
                                 } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
                                   {latestMessage.direction === 'inbound' && 'Customer: '}
                                   {latestMessage.body}
@@ -476,13 +476,13 @@ export default function LeadsPage() {
                               statusBadge === 'New' ? 'bg-blue-900/30 text-blue-300' :
                               statusBadge === 'Qualified' ? 'bg-purple-900/30 text-purple-300' :
                               statusBadge === 'Replied' ? 'bg-green-900/30 text-green-300' :
-                              statusBadge === 'Closed' ? 'bg-slate-700 text-slate-300' :
+                              statusBadge === 'Closed' ? 'bg-muted text-muted-foreground' :
                               statusBadge === 'Blocked' ? 'bg-red-900/30 text-red-400' :
-                              'bg-slate-700 text-slate-300'
+                              'bg-muted text-muted-foreground'
                             }`}>
                               {statusBadge}
                             </span>
-                            <div className="text-blue-400 dark:text-blue-400 hover:text-blue-300 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap">
+                            <div className="text-blue-400 hover:text-blue-300 text-sm font-medium whitespace-nowrap">
                               View →
                             </div>
                           </div>

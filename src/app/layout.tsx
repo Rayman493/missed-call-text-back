@@ -92,7 +92,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen bg-slate-950 text-white antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <ProvidersWrapper>{children}</ProvidersWrapper>
       </body>
     </html>

@@ -314,12 +314,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   // Show loading state while onboarding state is resolving
   if (currentOnboardingState === 'loading') {
     return (
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-6 mb-6">
+      <div className="rounded-2xl border border-border bg-transparent p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+          <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
           <div className="flex-1">
-            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
+            <div className="h-5 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
           </div>
         </div>
       </div>
@@ -372,18 +372,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}>
+    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-border bg-card'}`}>
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
         <div className="min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">
             {complete ? 'Setup Complete ✓' : 'Setup Progress'}
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
           </p>
           {!complete && (
-            <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {doneSteps} of {totalSteps} steps completed
             </p>
           )}
@@ -399,7 +399,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         {complete && (
           <button
             onClick={handleToggle}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >
@@ -416,7 +416,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       </div>
 
       {/* Slim progress bar */}
-      <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-2">
         <div
           className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80' : 'bg-gradient-to-r from-blue-500/80 to-indigo-500/80'}`}
           style={{ width: `${progressPct}%` }}
@@ -430,7 +430,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {!complete && (
         <button
           onClick={handleToggle}
-          className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-400 transition-colors flex items-center gap-1"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
           aria-expanded={isExpanded}
           aria-label="Toggle setup checklist"
         >
@@ -460,7 +460,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isCurrent
                       ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm'
-                      : 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/30'
+                      : 'bg-muted/50 border-border'
                 }`}
               >
                 <div className="flex-shrink-0 mt-0.5">
@@ -475,7 +475,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold ${
                         isCurrent
                           ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {stepNum}
@@ -487,9 +487,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
-                        : isCurrent
-                          ? 'text-slate-900 dark:text-slate-100'
-                          : 'text-slate-900 dark:text-slate-100'
+                        : 'text-foreground'
                     }`}>
                       Step {stepNum} — {item.title}
                     </h3>
@@ -499,7 +497,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
                           : isCurrent
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
@@ -507,16 +505,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   </div>
                   <p className={`text-xs sm:text-sm mb-1.5 ${
                     isComplete
-                      ? 'text-slate-600/60 dark:text-slate-400/50'
-                      : 'text-slate-600 dark:text-slate-400'
+                      ? 'text-muted-foreground/60'
+                      : 'text-muted-foreground'
                   }`}>
                     {item.description}
                   </p>
                   {item.details && (
                     <p className={`text-[11px] mb-2 ${
                       isComplete
-                        ? 'text-slate-500/50 dark:text-slate-500/40'
-                        : 'text-slate-500 dark:text-slate-500'
+                        ? 'text-muted-foreground/50'
+                        : 'text-muted-foreground'
                     }`}>
                       {item.details}
                     </p>
@@ -528,7 +526,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                           isCurrent
                             ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                            : 'bg-slate-600 hover:bg-slate-700 text-white'
+                            : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
                         }`}
                       >
                         {item.buttonText}
@@ -539,7 +537,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         className={`inline-block px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                           isCurrent
                             ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                            : 'bg-slate-600 hover:bg-slate-700 text-white'
+                            : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
                         }`}
                       >
                         {item.buttonText}

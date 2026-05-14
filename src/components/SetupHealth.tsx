@@ -61,12 +61,12 @@ export default function SetupHealth() {
 
   if (loading || !business) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Setup Health</h2>
+      <div className="bg-card rounded-xl shadow-lg p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Setup Health</h2>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-4 bg-muted rounded mb-3"></div>
+          <div className="h-4 bg-muted rounded mb-3"></div>
+          <div className="h-4 bg-muted rounded"></div>
         </div>
       </div>
     )
@@ -192,7 +192,7 @@ export default function SetupHealth() {
         )
       default:
         return (
-          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
         )
@@ -204,7 +204,7 @@ export default function SetupHealth() {
       case 'healthy': return 'text-green-600 dark:text-green-400'
       case 'warning': return 'text-yellow-600 dark:text-yellow-400'
       case 'error': return 'text-red-600 dark:text-red-400'
-      default: return 'text-gray-600 dark:text-gray-400'
+      default: return 'text-muted-foreground'
     }
   }
 
@@ -213,7 +213,7 @@ export default function SetupHealth() {
       case 'healthy': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
       case 'warning': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
       case 'error': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
-      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -236,38 +236,38 @@ export default function SetupHealth() {
     setTestCompleted(true)
   }
 
-  const handleCloseModal = () => {
-    setIsTestModalOpen(false)
-  }
+const handleCloseModal = () => {
+  setIsTestModalOpen(false)
+}
 
-  return (
-    <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-      {/* Header - Clickable to toggle collapse */}
-      <button
-        onClick={handleHeaderClick}
-        className="w-full p-6 flex items-center justify-between hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
-        aria-expanded={!isCollapsed}
-        aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Setup Health details`}
+return (
+  <div className="bg-card rounded-xl shadow-lg overflow-hidden">
+    {/* Header - Clickable to toggle collapse */}
+    <button
+      onClick={handleHeaderClick}
+      className="w-full p-6 flex items-center justify-between hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
+      aria-expanded={!isCollapsed}
+      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Setup Health details`}
+    >
+      <div className="flex items-center gap-3">
+        <h2 className="text-xl font-semibold text-foreground">Setup Health</h2>
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
+          {overallStatus === 'healthy' ? 'Healthy' :
+           overallStatus === 'warning' ? 'Warning' :
+           overallStatus === 'error' ? 'Error' : 'Unknown'}
+        </span>
+      </div>
+      <svg
+        className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${
+          isCollapsed ? 'transform rotate-180' : ''
+        }`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
       >
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-gray-100">Setup Health</h2>
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
-            {overallStatus === 'healthy' ? 'Healthy' :
-             overallStatus === 'warning' ? 'Warning' :
-             overallStatus === 'error' ? 'Error' : 'Unknown'}
-          </span>
-        </div>
-        <svg
-          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-            isCollapsed ? 'transform rotate-180' : ''
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
 
       {/* Collapsible Content */}
       {!isCollapsed && (
@@ -280,19 +280,19 @@ export default function SetupHealth() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-medium text-gray-200 break-words">{item.title}</h3>
+                    <h3 className="text-sm font-medium text-foreground break-words">{item.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
                       item.status === 'healthy' ? 'bg-green-900/30 text-green-400' :
                       item.status === 'warning' ? 'bg-yellow-900/30 text-yellow-400' :
                       item.status === 'error' ? 'bg-red-900/30 text-red-400' :
-                      'bg-gray-700 text-gray-400'
+                      'bg-muted text-muted-foreground'
                     }`}>
                       {item.status === 'healthy' ? 'Healthy' :
                        item.status === 'warning' ? 'Warning' :
                        item.status === 'error' ? 'Error' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere">{item.description}</p>
                   {item.details && (
                     <p className={`text-xs mt-1 break-words overflow-wrap-anywhere ${getStatusColor(item.status)}`}>{item.details}</p>
                   )}
@@ -301,8 +301,8 @@ export default function SetupHealth() {
             ))}
           </div>
 
-          <div className="border-t border-gray-700 pt-5 pb-6 mt-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-4">Quick Actions</h3>
+          <div className="border-t border-border pt-5 pb-6 mt-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Quick Actions</h3>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Primary action: Test Setup if forwarding is configured but not verified */}
               {business?.twilio_phone_number && business?.onboarding_status === 'completed' && !business?.forwarding_verified ? (
@@ -318,7 +318,7 @@ export default function SetupHealth() {
               {business?.twilio_phone_number && business?.onboarding_status === 'completed' && (
                 <button
                   onClick={handleViewInstructions}
-                  className="w-full sm:w-auto px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="w-full sm:w-auto px-4 py-3 bg-secondary text-secondary-foreground hover:bg-secondary/80 text-sm font-medium rounded-lg transition-colors"
                 >
                   View Instructions
                 </button>

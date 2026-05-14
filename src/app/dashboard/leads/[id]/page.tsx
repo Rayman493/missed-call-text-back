@@ -44,7 +44,7 @@ function getStatusColor(status: string): string {
     case 'simulated':
       return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
     default:
-      return 'bg-slate-800 dark:bg-slate-800 text-slate-200 dark:text-slate-200'
+      return 'bg-muted text-muted-foreground'
   }
 }
 
@@ -808,23 +808,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <main className="h-screen bg-slate-950 dark:bg-slate-950 p-4 sm:p-8">
+      <main className="h-screen bg-background p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Skeleton Header */}
-          <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6 mb-6">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-4 sm:p-6 mb-6">
             <div className="animate-pulse">
-              <div className="h-6 bg-slate-800 dark:bg-slate-800 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-slate-800 dark:bg-slate-800 rounded w-1/2"></div>
+              <div className="h-6 bg-muted rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
             </div>
           </div>
           
           {/* Skeleton Messages */}
-          <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-sm border border-slate-700 dark:border-slate-700 p-4 sm:p-6">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-4 sm:p-6">
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className={`h-4 bg-slate-800 dark:bg-slate-800 rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
-                  <div className={`h-3 bg-slate-800 dark:bg-slate-800 rounded w-3/4 mt-1 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                  <div className={`h-4 bg-muted rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
+                  <div className={`h-3 bg-muted rounded w-3/4 mt-1 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
                 </div>
               ))}
             </div>
@@ -836,19 +836,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (!leadData) {
     return (
-      <main className="h-screen bg-slate-950 dark:bg-slate-950 p-4 sm:p-8">
+      <main className="h-screen bg-background p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <Link
               href="/dashboard"
-              className="inline-flex items-center text-blue-400 dark:text-blue-400 hover:text-blue-300 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+              className="inline-flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
             >
               ← Back to dashboard
             </Link>
           </div>
-          <div className="bg-slate-900 dark:bg-slate-900 rounded-lg shadow border border-slate-700 dark:border-slate-700 p-8 text-center">
-            <h1 className="text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">Lead not found</h1>
-            <p className="text-slate-400 dark:text-slate-400 mb-6">
+          <div className="bg-card rounded-lg shadow border border-border p-8 text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-2">Lead not found</h1>
+            <p className="text-muted-foreground mb-6">
               {error || 'The lead you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
             </p>
             <Link
@@ -880,7 +880,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
+    <main className="min-h-screen bg-background flex flex-col">
       {/* Debug Box - Development Only */}
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-yellow-900/20 dark:bg-yellow-900/20 border border-yellow-800 dark:border-yellow-800 p-4 m-4 rounded-lg">
@@ -891,7 +891,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-900 border-b border-slate-700 dark:border-slate-700 shadow-sm">
+      <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2">
           {/* Primary Row - Compact */}
           <div className="flex items-center justify-between">
@@ -899,7 +899,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Back Button */}
               <Link 
                 href="/dashboard" 
-                className="flex-shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:hover:text-slate-300 transition-colors"
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -907,7 +907,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </Link>
               
               {/* Phone Number */}
-              <h2 className="text-base sm:text-lg font-semibold text-slate-100 dark:text-slate-100 leading-tight truncate">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground leading-tight truncate">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
               
@@ -920,7 +920,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
                     conversation.status === 'open' 
                       ? 'bg-green-900/50 dark:bg-green-900/50 text-green-300 dark:text-green-300' 
-                      : 'bg-slate-800 dark:bg-slate-800 text-slate-300 dark:text-slate-300'
+                      : 'bg-muted text-muted-foreground'
                   }`}>
                     {conversation.status}
                   </span>
@@ -933,11 +933,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:hover:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Refresh"
               >
                 {refreshing ? (
-                  <div className="w-3.5 h-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent border-solid"></div>
+                  <div className="w-3.5 h-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent border-solid"></div>
                 ) : (
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -948,7 +948,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="relative">
                 <button
                   onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:hover:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                   title="More"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -957,7 +957,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 
                 {showMoreActions && (
-                  <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 dark:bg-slate-900 rounded-lg shadow-lg border border-slate-700 dark:border-slate-700 py-1 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">
                     <button
                       onClick={() => {
                         setShowIgnoreModal(true)
@@ -972,7 +972,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         setShowRemoveModal(true)
                         setShowMoreActions(false)
                       }}
-                      className="w-full px-3 py-1.5 text-left text-xs text-slate-300 dark:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors"
+                      className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
                     >
                       Remove Lead
                     </button>
@@ -983,10 +983,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Inline Details Toggle */}
-          <div className="mt-2 sm:mt-3 border-t border-gray-100 dark:border-gray-700 pt-2">
+          <div className="mt-2 sm:mt-3 border-t border-border pt-2">
             <button
               onClick={() => setShowLeadInfo(!showLeadInfo)}
-              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <span>{showLeadInfo ? 'Hide details' : 'Show details'}</span>
               <svg
@@ -1001,7 +1001,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             
             {showLeadInfo && (
               <div className="mt-2 space-y-1.5">
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
                   {lead?.last_message_at && (
                     <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
@@ -1010,7 +1010,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 
                 {/* Follow-up Status - Subtle Info */}
                 {automationStatus && (
-                  <div className="text-xs text-slate-400 dark:text-slate-400 bg-slate-900/50 dark:bg-slate-900/50 px-2 py-1 rounded border border-slate-700 dark:border-slate-700">
+                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded border border-border">
                     {automationStatus === 'Follow-ups cancelled after customer reply' 
                       ? 'Follow-ups stopped after customer replied'
                       : automationStatus
@@ -1025,7 +1025,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Thread */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 pb-8">
-        <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-sm border border-slate-800 dark:border-slate-800 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           {/* Message Thread */}
           <div ref={conversationContainerRef} className="p-2.5 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto">
             {loading ? (
@@ -1035,13 +1035,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : messagesArray.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-5xl mb-4">💬</div>
-                <h3 className="text-xl font-semibold text-slate-100 dark:text-slate-100 mb-3">
+                <h3 className="text-xl font-semibold text-foreground mb-3">
                   No messages yet
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400 mb-2 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 max-w-md mx-auto">
                   Messages will appear here after missed calls, replies, or manual sends.
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Start the conversation by sending a message below.
                 </p>
               </div>
@@ -1101,25 +1101,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Ignore Contact Modal */}
       {showIgnoreModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Ignore this contact?
             </h2>
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               ReplyFlow will stop creating leads, sending automatic messages, and scheduling follow-ups for this number.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowIgnoreModal(false)}
                 disabled={isIgnoring}
-                className="px-4 py-2 text-sm font-medium text-slate-400 dark:text-slate-400 bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleIgnoreContact}
                 disabled={isIgnoring}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-red-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isIgnoring ? (
                   <>
@@ -1138,25 +1138,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Remove Lead Modal */}
       {showRemoveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-slate-100 dark:text-slate-100 mb-4">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Remove this lead?
             </h2>
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               This will remove the lead from your active inbox. Conversation history may still be kept for your records.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowRemoveModal(false)}
                 disabled={isRemoving}
-                className="px-4 py-2 text-sm font-medium text-slate-400 dark:text-slate-400 bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRemoveLead}
                 disabled={isRemoving}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-red-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRemoving ? (
                   <>

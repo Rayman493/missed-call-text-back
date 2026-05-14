@@ -18,7 +18,7 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
       ), 
-      style: "bg-slate-800 dark:bg-slate-800 text-slate-400 dark:text-slate-400 border border-slate-700 dark:border-slate-700" 
+      style: "bg-muted text-muted-foreground border-border" 
     },
     sending: { 
       label: "Sending...", 
@@ -28,27 +28,27 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
       ), 
-      style: "bg-blue-900/30 dark:bg-blue-900/30 text-blue-400 dark:text-blue-400 border border-blue-800 dark:border-blue-800" 
+      style: "bg-blue-900/30 text-blue-400 border-blue-800" 
     },
     sent: { 
       label: "Sent", 
       icon: "→", 
-      style: "bg-blue-900/30 dark:bg-blue-900/30 text-blue-400 dark:text-blue-400 border border-blue-800 dark:border-blue-800" 
+      style: "bg-blue-900/30 text-blue-400 border-blue-800" 
     },
     delivered: { 
       label: "Delivered", 
       icon: "✓", 
-      style: "bg-green-900/30 dark:bg-green-900/30 text-green-400 dark:text-green-400 border border-green-800 dark:border-green-800" 
+      style: "bg-green-900/30 text-green-400 border-green-800" 
     },
     failed: { 
       label: "Failed", 
       icon: "✕", 
-      style: "bg-red-900/30 dark:bg-red-900/30 text-red-400 dark:text-red-400 border border-red-800 dark:border-red-800" 
+      style: "bg-red-900/30 text-red-400 border-red-800" 
     },
     undelivered: { 
       label: "Failed", 
       icon: "✕", 
-      style: "bg-red-900/30 dark:bg-red-900/30 text-red-400 dark:text-red-400 border border-red-800 dark:border-red-800" 
+      style: "bg-red-900/30 text-red-400 border-red-800" 
     },
   };
 

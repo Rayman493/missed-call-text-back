@@ -30,23 +30,23 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
       {items.map((item, index) => (
         <div
           key={index}
-          className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+          className="border border-border rounded-lg overflow-hidden bg-card"
         >
           <button
             onClick={() => toggleItem(index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
-            className={`w-full px-6 py-4 text-left flex items-center justify-between transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
-              openIndex === index ? 'bg-gray-50 dark:bg-gray-700/50' : ''
+            className={`w-full px-6 py-4 text-left flex items-center justify-between transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+              openIndex === index ? 'bg-muted' : ''
             }`}
             aria-expanded={openIndex === index}
             aria-controls={`faq-answer-${index}`}
             id={`faq-question-${index}`}
           >
-            <span className="text-base font-medium text-gray-900 dark:text-gray-100 pr-4">
+            <span className="text-base font-medium text-foreground pr-4">
               {item.question}
             </span>
             <svg
-              className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+              className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${
                 openIndex === index ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -71,7 +71,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
             }`}
           >
             <div className="px-6 pb-4 pt-0">
-              <div className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+              <div className="text-muted-foreground text-sm leading-relaxed">
                 {Array.isArray(item.answer) ? (
                   <ol className="list-decimal list-inside space-y-1">
                     {item.answer.map((line, i) => (

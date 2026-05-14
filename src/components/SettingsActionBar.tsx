@@ -82,14 +82,14 @@ export default function SettingsActionBar({
         <div className="h-16" />
         
         {/* Sticky Action Bar */}
-        <div className="fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 {hasUnsavedChanges && (
                   <>
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                    <span className="text-sm font-medium text-foreground">
                       You have unsaved changes
                     </span>
                   </>
@@ -107,7 +107,7 @@ export default function SettingsActionBar({
                   <button
                     onClick={handleDiscard}
                     disabled={isSaving}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Discard Changes
                   </button>
@@ -152,13 +152,13 @@ export default function SettingsActionBar({
       <div className="h-20" />
       
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             {hasUnsavedChanges && (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                <span className="text-sm font-medium text-foreground">
                   Unsaved changes
                 </span>
               </div>
@@ -176,7 +176,7 @@ export default function SettingsActionBar({
               <button
                 onClick={handleDiscard}
                 disabled={isSaving}
-                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Discard
               </button>

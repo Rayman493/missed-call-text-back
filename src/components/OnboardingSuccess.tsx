@@ -29,10 +29,10 @@ export default function OnboardingSuccess() {
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading your account...</p>
+          <p className="text-muted-foreground">Loading your account...</p>
         </div>
       </div>
     )
@@ -41,8 +41,8 @@ export default function OnboardingSuccess() {
   const hasTwilioNumber = !!business.twilio_phone_number
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="max-w-2xl w-full bg-card rounded-lg shadow-lg p-8 text-center">
         <BackToDashboard />
         
         {/* Success Icon */}
@@ -53,46 +53,46 @@ export default function OnboardingSuccess() {
         </div>
 
         {/* Success Message */}
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-4">
           Your ReplyFlow account is ready
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+        <p className="text-lg text-muted-foreground mb-8">
           ReplyFlow captures missed-call leads and manages your customer conversations.
         </p>
 
         {/* Business Details */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-8 text-left">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="bg-muted rounded-lg p-6 mb-8 text-left">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             Account Details
           </h2>
           
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Business Name</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">{business.name}</p>
+              <p className="text-sm text-muted-foreground">Business Name</p>
+              <p className="text-foreground font-medium">{business.name}</p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Business Phone Number</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">
+              <p className="text-sm text-muted-foreground">Business Phone Number</p>
+              <p className="text-foreground font-medium">
                 {business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Auto-Reply Message</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium text-sm italic">
+              <p className="text-sm text-muted-foreground">Auto-Reply Message</p>
+              <p className="text-foreground font-medium text-sm italic">
                 "{business.auto_reply_message}"
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">ReplyFlow Number</p>
+              <p className="text-sm text-muted-foreground">ReplyFlow Number</p>
               <p className={`font-medium ${hasTwilioNumber ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                 {hasTwilioNumber ? formatForDisplay(business.twilio_phone_number || '') : 'Assigning...'}
               </p>
               {hasTwilioNumber && (
-                <p className="text-xs text-gray-400 mt-1">Forward missed calls to this number</p>
+                <p className="text-xs text-muted-foreground mt-1">Forward missed calls to this number</p>
               )}
             </div>
           </div>
@@ -148,20 +148,20 @@ export default function OnboardingSuccess() {
           </button>
           <button
             onClick={handleTestSetup}
-            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-6 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+            className="flex-1 bg-secondary text-foreground py-3 px-6 rounded-md hover:bg-secondary/80 transition-colors font-medium"
           >
             Optional Real-World Test
           </button>
           <button
             onClick={handleForwardingInstructions}
-            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-6 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+            className="flex-1 bg-secondary text-foreground py-3 px-6 rounded-md hover:bg-secondary/80 transition-colors font-medium"
           >
             Forwarding Instructions
           </button>
         </div>
 
         {/* Additional Info */}
-        <div className="mt-8 text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-8 text-sm text-muted-foreground">
           <p>You can always update these settings in your dashboard.</p>
         </div>
       </div>
@@ -169,8 +169,8 @@ export default function OnboardingSuccess() {
       {/* Test Setup Modal */}
       {showTestInstructions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-card rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-foreground mb-4">
               Test Real Missed Calls
             </h2>
             
@@ -181,7 +181,7 @@ export default function OnboardingSuccess() {
               </p>
             </div>
 
-            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-4 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">1</span>
@@ -219,8 +219,8 @@ export default function OnboardingSuccess() {
             </div>
             
             {/* Fallback option */}
-            <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+            <div className="mt-6 p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 <strong>No pressure:</strong> If you haven't enabled forwarding yet, you can continue using ReplyFlow and configure forwarding later.
               </p>
             </div>
@@ -237,7 +237,7 @@ export default function OnboardingSuccess() {
               </button>
               <button
                 onClick={() => setShowTestInstructions(false)}
-                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="w-full bg-secondary text-foreground py-3 px-4 rounded-md hover:bg-secondary/80 transition-colors"
               >
                 Close
               </button>
@@ -249,8 +249,8 @@ export default function OnboardingSuccess() {
       {/* Forwarding Instructions Modal */}
       {showForwardingInstructions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-card rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-foreground mb-4">
               How to Turn On Missed-Call Forwarding
             </h2>
             
@@ -262,12 +262,12 @@ export default function OnboardingSuccess() {
 
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">General Instructions</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
+                <h3 className="font-semibold text-foreground mb-2">General Instructions</h3>
+                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                   Most phone providers let you set up forwarding that only activates when you don't answer.
                 </p>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <div className="bg-muted rounded-lg p-4">
+                  <p className="text-sm font-medium text-foreground mb-2">
                     Forward to this ReplyFlow number:
                   </p>
                   <p className="text-lg font-mono text-blue-600 dark:text-blue-400 break-all">
@@ -277,31 +277,31 @@ export default function OnboardingSuccess() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Carrier-Specific Instructions</h3>
+                <h3 className="font-semibold text-foreground mb-3">Carrier-Specific Instructions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Verizon</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">Verizon</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">AT&T</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">AT&T</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">T-Mobile</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">T-Mobile</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Google Voice</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">Google Voice</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">OpenPhone</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">OpenPhone</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">RingCentral</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Instructions coming soon...</p>
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="font-medium text-foreground">RingCentral</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
                   </div>
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function OnboardingSuccess() {
               </button>
               <button
                 onClick={() => setShowForwardingInstructions(false)}
-                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="w-full bg-secondary text-foreground py-3 px-4 rounded-md hover:bg-secondary/80 transition-colors"
               >
                 Close
               </button>

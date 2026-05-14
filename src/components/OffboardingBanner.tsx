@@ -155,23 +155,23 @@ export default function OffboardingBanner({ business, subscriptionStatus, onDism
       </div>
 
       {/* Instructions */}
-      <div className="bg-gray-800/50 rounded-lg p-4 mb-4 border border-gray-700">
-        <h4 className="text-sm font-medium text-gray-100 mb-2">
+      <div className="bg-muted/50 rounded-lg p-4 mb-4 border border-border">
+        <h4 className="text-sm font-medium text-foreground mb-2">
           Stop forwarding calls to ReplyFlow
         </h4>
-        <p className="text-sm text-gray-400 mb-3">
+        <p className="text-sm text-muted-foreground mb-3">
           To prevent missed calls from being sent to ReplyFlow, disable call forwarding from your business phone:
         </p>
 
         {/* Carrier Code Display */}
         {carrierInfo.code ? (
           <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 bg-gray-900 rounded-lg p-3 border border-gray-700">
-              <span className="text-xl font-mono font-bold text-white">{carrierInfo.code}</span>
+            <div className="flex-1 bg-card rounded-lg p-3 border border-border">
+              <span className="text-xl font-mono font-bold text-foreground">{carrierInfo.code}</span>
             </div>
             <button
               onClick={handleCopyCode}
-              className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
             >
               {copied ? (
                 <>
@@ -192,12 +192,12 @@ export default function OffboardingBanner({ business, subscriptionStatus, onDism
           </div>
         ) : null}
 
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-muted-foreground">
           {carrierInfo.instructions}
         </p>
 
         {/* Carrier Info */}
-        <p className="text-xs text-gray-500 mt-3">
+        <p className="text-xs text-muted-foreground mt-3">
           Carrier detected: {carrierInfo.name}
           {carrier !== 'other' && carrier !== business.carrier && (
             <button 
@@ -219,7 +219,7 @@ export default function OffboardingBanner({ business, subscriptionStatus, onDism
         >
           {isSubmitting ? 'Saving...' : "I've disabled forwarding"}
         </button>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Click this after you've disabled forwarding from your business phone
         </p>
       </div>

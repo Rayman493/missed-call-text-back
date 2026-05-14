@@ -185,20 +185,20 @@ export default function TestSetupPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
+        <div className="min-h-screen bg-background p-4 sm:p-8">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8">
               <Link 
                 href="/dashboard" 
-                className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
+                className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
               >
                 ← Back to Dashboard
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
                 Verify your ReplyFlow setup
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted-foreground">
                 Confirm your call forwarding is working by running a quick test.
               </p>
             </div>
@@ -246,32 +246,32 @@ export default function TestSetupPage() {
             )}
 
             {/* Setup Confirmation Card */}
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="bg-card rounded-xl p-4 mb-6 max-w-md mx-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Business phone connected</h2>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Your call forwarding is configured</p>
+                  <p className="text-sm font-semibold text-foreground">Business phone connected</p>
+                  <p className="text-xs text-muted-foreground">Your call forwarding is configured</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Your business number</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="bg-card rounded-lg p-3 border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Your business number</p>
+                  <p className="text-sm font-semibold text-foreground">
                     {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Carrier</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="bg-card rounded-lg p-3 border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Carrier</p>
+                  <p className="text-sm font-semibold text-foreground">
                     {business?.business_phone_carrier ? business.business_phone_carrier.charAt(0).toUpperCase() + business.business_phone_carrier.slice(1) : 'Not set'}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Forwarding to</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="bg-card rounded-lg p-3 border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Forwarding to</p>
+                  <p className="text-sm font-semibold text-foreground">
                     {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}
                   </p>
                 </div>
@@ -297,8 +297,8 @@ export default function TestSetupPage() {
             </div>
 
             {/* Step-by-Step Instructions */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+            <div className="bg-card rounded-lg shadow p-6 mb-8">
+              <h2 className="text-xl font-semibold text-foreground mb-6">
                 Testing Steps
               </h2>
               <div className="space-y-4">
@@ -344,12 +344,12 @@ export default function TestSetupPage() {
                           <h3 className={`text-base font-semibold transition-colors duration-300 ${
                             isCompleted ? 'text-green-900 dark:text-green-100' :
                             isActive ? 'text-blue-900 dark:text-blue-100' :
-                            'text-gray-900 dark:text-gray-100'
+                            'text-foreground'
                           }`}>
                             {step.title}
                           </h3>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-sm text-muted-foreground mb-2">
                           {step.description}
                         </p>
                         {isCompleted && (
@@ -366,16 +366,16 @@ export default function TestSetupPage() {
             </div>
 
             {/* Troubleshooting */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+            <div className="bg-card rounded-lg shadow mb-8">
               <button
                 onClick={() => setTroubleshootingOpen(!troubleshootingOpen)}
                 className="w-full p-4 flex items-center justify-between text-left"
               >
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                <h2 className="text-xl font-semibold text-foreground">
                   Need help troubleshooting?
                 </h2>
                 <svg
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                  className={`w-5 h-5 text-muted-foreground transition-transform ${
                     troubleshootingOpen ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -392,13 +392,13 @@ export default function TestSetupPage() {
               </button>
               {troubleshootingOpen && (
                 <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="space-y-4 pt-4 border-t border-border">
                     {troubleshooting.map((item, index) => (
                       <div key={index} className="border-l-4 border-amber-500 pl-4">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                        <h3 className="text-sm font-semibold text-foreground mb-1">
                           {item.issue}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {item.solution}
                         </p>
                       </div>
@@ -421,23 +421,23 @@ export default function TestSetupPage() {
                   <p className="text-green-700 dark:text-green-300 mb-6 text-lg">
                     Missed callers will now automatically receive a text and appear in your inbox.
                   </p>
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 max-w-md mx-auto">
+                  <div className="bg-card rounded-xl p-4 mb-6 max-w-md mx-auto">
                     <div className="grid grid-cols-2 gap-4 text-left">
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Connected number</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <p className="text-xs text-muted-foreground mb-1">Connected number</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Forwarding to</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <p className="text-xs text-muted-foreground mb-1">Forwarding to</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}
                         </p>
                       </div>
                     </div>
                     {business?.forwarding_verified_at && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
                         Verified at {new Date(business.forwarding_verified_at).toLocaleTimeString()}
                       </p>
                     )}
@@ -454,7 +454,7 @@ export default function TestSetupPage() {
                     )}
                     <Link
                       href="/dashboard"
-                      className="flex-1 bg-white dark:bg-slate-800 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 bg-card border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       Go to Dashboard
                     </Link>

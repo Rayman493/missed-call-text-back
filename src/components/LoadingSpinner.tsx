@@ -6,6 +6,6 @@ export default function LoadingSpinner({ size = 'sm', className = '' }: { size?:
   }
 
   return (
-    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]} ${className}`} />
+    <div className={`animate-spin rounded-full border-2 border-muted-foreground/30 border-t-blue-600 ${sizeClasses[size]} ${className}`} />
   )
 }

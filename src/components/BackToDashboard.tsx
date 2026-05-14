@@ -21,7 +21,7 @@ export default function BackToDashboard() {
     <div className="mb-6">
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <svg
           className="w-4 h-4"

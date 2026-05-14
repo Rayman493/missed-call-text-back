@@ -29,13 +29,13 @@ export default function SSRSafeNavbar({ forceDark = false }: SSRSafeNavbarProps)
   if (!isClient || !Navbar) {
     // Return a placeholder during SSR or while loading
     return (
-      <header className="w-full bg-slate-800/90 border-b border-slate-700">
+      <header className="w-full bg-background/90 border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="w-32 h-6 bg-slate-600 rounded animate-pulse"></div>
+          <div className="w-32 h-6 bg-muted rounded animate-pulse"></div>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-4 bg-slate-600 rounded animate-pulse"></div>
-            <div className="w-20 h-4 bg-slate-600 rounded animate-pulse"></div>
-            <div className="w-16 h-4 bg-slate-600 rounded animate-pulse"></div>
+            <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
+            <div className="w-20 h-4 bg-muted rounded animate-pulse"></div>
+            <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
           </div>
         </div>
       </header>
