@@ -2,32 +2,79 @@
 
 import { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CheckCircle, Phone, MessageSquare, Inbox } from 'lucide-react'
+import { CheckCircle, Phone, MessageSquare, Inbox, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 export default function TestSetupPage() {
-  const { business } = useBusiness()
-  const [activeStep, setActiveStep] = useState<number>(1)
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  const { business, refreshBusiness } = useBusiness()
+  const router = useRouter()
+  const supabase = createBrowserClient()
   const [success, setSuccess] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
+  const [latestLead, setLatestLead] = useState<any>(null)
 
-  // Check if setup is already verified
+  // Check if setup is already verified on mount
   useEffect(() => {
     if (business?.forwarding_verified) {
       setSuccess(true)
+      fetchLatestLead()
     }
   }, [business?.forwarding_verified])
 
-  const toggleStep = (step: number) => {
-    const newCompleted = new Set(completedSteps)
-    if (newCompleted.has(step)) {
-      newCompleted.delete(step)
-    } else {
-      newCompleted.add(step)
+  // Poll for forwarding verification
+  useEffect(() => {
+    if (!business || business.forwarding_verified || !business.call_forwarding_enabled) {
+      return
     }
-    setCompletedSteps(newCompleted)
+
+    setIsPolling(true)
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: updatedBusiness } = await supabase
+          .from('businesses')
+          .select('forwarding_verified, forwarding_verified_at, onboarding_status')
+          .eq('id', business.id)
+          .single()
+
+        if (updatedBusiness?.forwarding_verified) {
+          setSuccess(true)
+          setIsPolling(false)
+          clearInterval(pollInterval)
+          await refreshBusiness()
+          await fetchLatestLead()
+        }
+      } catch (error) {
+        console.error('[TestSetup] Polling error:', error)
+      }
+    }, 2000) // Poll every 2 seconds
+
+    return () => {
+      clearInterval(pollInterval)
+      setIsPolling(false)
+    }
+  }, [business?.id, business?.forwarding_verified, business?.call_forwarding_enabled])
+
+  const fetchLatestLead = async () => {
+    if (!business) return
+    try {
+      const { data: leads } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('business_id', business.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (leads) {
+        setLatestLead(leads)
+      }
+    } catch (error) {
+      console.error('[TestSetup] Error fetching latest lead:', error)
+    }
   }
 
   const steps = [
@@ -134,24 +181,14 @@ export default function TestSetupPage() {
               <div className="space-y-6">
                 {steps.map((step) => {
                   const Icon = step.icon
-                  const isCompleted = completedSteps.has(step.number)
                   
                   return (
                     <div 
                       key={step.number}
-                      className="flex items-start gap-4 p-4 rounded-lg border-2 transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      onClick={() => toggleStep(step.number)}
+                      className="flex items-start gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        isCompleted 
-                          ? 'bg-green-600 text-white' 
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5" />
-                        ) : (
-                          <span className="text-sm font-semibold">{step.number}</span>
-                        )}
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-white">
+                        <span className="text-sm font-semibold">{step.number}</span>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -210,38 +247,64 @@ export default function TestSetupPage() {
 
             {/* Action Buttons */}
             <div className="space-y-4">
-              {success && (
-                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <div>
-                      <p className="text-green-100 font-semibold">Setup Verified!</p>
-                      <p className="text-green-300 text-sm">ReplyFlow is now active and ready to capture missed calls.</p>
+              {success ? (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-200 dark:border-green-700 rounded-2xl p-6 text-center">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
+                    ReplyFlow is live 🎉
+                  </h2>
+                  <p className="text-green-700 dark:text-green-300 mb-4">
+                    Your business phone is connected. Missed callers will now receive an automatic text back.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    {latestLead && (
+                      <Link
+                        href={`/dashboard/leads/${latestLead.id}`}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        View your first lead
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
+                    <Link
+                      href="/dashboard"
+                      className="flex-1 bg-white dark:bg-slate-800 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      Back to dashboard
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        <Phone className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                        {isPolling && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-blue-100 font-semibold mb-2">
+                          {isPolling ? 'Listening for your test call...' : 'Waiting for test call...'}
+                        </p>
+                        <p className="text-blue-300 text-sm">
+                          Call your business number from another phone and let it ring. ReplyFlow will automatically verify your setup when the call forwards successfully.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  <Link
+                    href="/dashboard"
+                    className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 text-center"
+                  >
+                    Return to Dashboard
+                  </Link>
+                </>
               )}
-
-              <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-blue-100 font-semibold mb-2">
-                      Waiting for test call...
-                    </p>
-                    <p className="text-blue-300 text-sm">
-                      Call your business number from another phone and let it ring. ReplyFlow will automatically verify your setup when the call forwards successfully.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/dashboard"
-                className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 text-center"
-              >
-                Return to Dashboard
-              </Link>
             </div>
           </div>
         </div>

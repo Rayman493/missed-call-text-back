@@ -782,6 +782,38 @@ export default function DashboardContent() {
               </div>
             )}
 
+            {/* Success Banner - Show when forwarding is verified AND recently completed (within 5 minutes) */}
+            {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && (() => {
+              const verifiedAt = new Date(business.forwarding_verified_at)
+              const now = new Date()
+              const minutesSinceVerification = (now.getTime() - verifiedAt.getTime()) / (1000 * 60)
+              return minutesSinceVerification < 5
+            })() && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50 rounded-lg p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                      <span className="text-xl">✅</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+                        ReplyFlow is active
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-300">
+                        Your missed-call text-back system is working. New leads will appear in your dashboard.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDismissSetupBanner}
+                    className="px-2.5 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (

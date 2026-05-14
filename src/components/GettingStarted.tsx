@@ -375,10 +375,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">
-              Setup Progress
+              {complete ? 'Setup Complete' : 'Setup Progress'}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-              {doneSteps} of {totalSteps} steps completed
+              {complete ? 'All steps completed' : `${doneSteps} of ${totalSteps} steps completed`}
             </p>
           </div>
           <button
@@ -401,7 +401,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         {/* Progress bar */}
         <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 ease-out"
+            className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
             style={{ width: `${progressPct}%` }}
             aria-valuenow={progressPct}
             aria-valuemin={0}
