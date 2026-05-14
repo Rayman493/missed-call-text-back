@@ -15,9 +15,9 @@ export default function ThemeSelector() {
   if (!mounted) {
     return (
       <div className="grid grid-cols-3 gap-1">
-        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-        <div className="w-full h-6 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-slate-700 animate-pulse"></div>
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-slate-700 animate-pulse"></div>
+        <div className="w-full h-6 rounded bg-gray-200 dark:bg-slate-700 animate-pulse"></div>
       </div>
     )
   }
@@ -36,8 +36,8 @@ export default function ThemeSelector() {
           onClick={() => setTheme(value)}
           className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
             theme === value
-              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+              ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700'
           }`}
           title={`Switch to ${label} theme`}
         >
