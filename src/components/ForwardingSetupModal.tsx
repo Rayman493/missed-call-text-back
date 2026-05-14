@@ -29,6 +29,8 @@ export default function ForwardingSetupModal() {
   const [isDismissed, setIsDismissed] = useState(false)
   const [showQuickGuide, setShowQuickGuide] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [ctaHighlighted, setCtaHighlighted] = useState(false)
+  const step2Ref = React.useRef<HTMLDivElement>(null)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -41,6 +43,10 @@ export default function ForwardingSetupModal() {
   useEffect(() => {
     if (selectedCarrier) {
       setIsExpanded(true)
+      // Auto-scroll to Step 2 when carrier is selected
+      setTimeout(() => {
+        step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 100)
     } else {
       setIsExpanded(false)
     }
@@ -90,7 +96,12 @@ export default function ForwardingSetupModal() {
     if (code && code !== 'Contact your business_phone_carrier to enable call forwarding') {
       navigator.clipboard.writeText(code)
       setCopiedCode(true)
-      setTimeout(() => setCopiedCode(false), 2000)
+      // Highlight CTA briefly
+      setCtaHighlighted(true)
+      setTimeout(() => {
+        setCopiedCode(false)
+        setCtaHighlighted(false)
+      }, 2000)
     }
   }
 
@@ -189,7 +200,7 @@ export default function ForwardingSetupModal() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30">
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between">
@@ -213,7 +224,7 @@ export default function ForwardingSetupModal() {
         {/* Content */}
         <div className="p-6 space-y-5">
           {/* ReplyFlow Number - Secondary */}
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm text-slate-500 dark:text-slate-400">Your ReplyFlow forwarding number:</p>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
@@ -225,9 +236,6 @@ export default function ForwardingSetupModal() {
                 {formatPhoneNumber(business.twilio_phone_number)}
               </p>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-              This number is included in the dial code below
-            </p>
           </div>
 
           {/* Carrier Selection */}
@@ -304,7 +312,7 @@ export default function ForwardingSetupModal() {
                   >
                     <code
                       aria-label="Forwarding dial code"
-                      className="block font-mono font-semibold text-slate-900 dark:text-white text-center text-2xl sm:text-3xl lg:text-4xl tracking-wider whitespace-nowrap select-all"
+                      className="block font-mono font-semibold text-slate-900 dark:text-white text-center text-2xl sm:text-3xl lg:text-4xl tracking-widest whitespace-nowrap select-all"
                     >
                       {getForwardingCodeDisplay()}
                     </code>
@@ -341,7 +349,7 @@ export default function ForwardingSetupModal() {
               )}
 
               {/* What happens next */}
-              <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4">
+              <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4" ref={step2Ref}>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/70 dark:text-blue-400/70 mb-2">
                   What happens after you dial
                 </p>
@@ -357,6 +365,10 @@ export default function ForwardingSetupModal() {
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
                     Takes about 30 seconds — nothing else to install
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    Your carrier may confirm the forwarding number out loud
                   </li>
                 </ul>
               </div>
@@ -393,7 +405,7 @@ export default function ForwardingSetupModal() {
               disabled={loading}
               className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-3 sm:py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
-              }`}
+              } ${ctaHighlighted ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' : ''}`}
             >
               {loading ? (
                 <>
@@ -403,8 +415,11 @@ export default function ForwardingSetupModal() {
                   </svg>
                   Checking setup...
                 </>
-              ) : 'I Enabled Forwarding'}
+              ) : 'Continue to Test Setup'}
             </button>
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
+              Usually takes less than 30 seconds.
+            </p>
           </div>
         </div>
       </div>
