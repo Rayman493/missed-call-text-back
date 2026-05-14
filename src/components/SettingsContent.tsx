@@ -23,6 +23,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
+import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 
@@ -491,6 +492,21 @@ export default function SettingsContent() {
                 </div>
               </div>
 
+              {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
+              {!hasActiveSubscription(business) ? (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-2">Messaging & Automation</h2>
+                  <p className="text-sm text-slate-600 dark:text-gray-400 mb-3">
+                    Auto-reply messages, business hours, spam filtering, and ignored contacts unlock
+                    once you start your free trial. Your dedicated ReplyFlow number is provisioned
+                    automatically right after activation.
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                    Use the Billing section below to start your 14-day free trial. No charge today.
+                  </p>
+                </div>
+              ) : (
+              <>
               {/* Messaging Settings */}
               <div id="messaging" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">Messaging Settings</h2>
@@ -855,6 +871,9 @@ export default function SettingsContent() {
                   )}
                 </div>
               </div>
+
+              </>
+              )}
 
               {/* Billing Section */}
               <div id="billing" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 sm:p-6">

@@ -21,7 +21,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
-import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
+import { hasActiveAccess, hasActiveTrial, hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
@@ -34,7 +34,6 @@ import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
-import SetupHealth from '@/components/SetupHealth'
 import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
@@ -881,17 +880,21 @@ export default function DashboardContent() {
               </div>
             )}
                         
-            {/* Live Activity Section - Top Priority */}
-            <div className="mb-6">
-              <LiveActivity 
-                leads={leads}
-                followUpJobs={followUpJobs}
-                missedCalls={missedCalls}
-              />
-            </div>
+            {/* Telecom-active sections: only render once the user has started a trial/subscription.
+                Pre-trial users see a clean onboarding preview instead of empty telemetry. */}
+            {hasActiveSubscription(business) ? (
+              <>
+                {/* Live Activity Section - Top Priority */}
+                <div className="mb-6">
+                  <LiveActivity
+                    leads={leads}
+                    followUpJobs={followUpJobs}
+                    missedCalls={missedCalls}
+                  />
+                </div>
 
-            {/* Hero Metrics Section */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                {/* Hero Metrics Section */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
@@ -924,7 +927,32 @@ export default function DashboardContent() {
                 <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-purple-600 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500">scheduled</p>
               </div>
-            </div>
+                </div>
+              </>
+            ) : (
+              /* Pre-trial onboarding preview (no telecom UI). */
+              <div className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-6 sm:p-8">
+                <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
+                  <span className="text-4xl mb-4">📞</span>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Start capturing missed calls instantly
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                    Your dedicated ReplyFlow number, forwarding instructions, and automation
+                    settings will appear here as soon as you start your free trial.
+                  </p>
+                  <ul className="text-sm text-slate-600 dark:text-slate-300 mb-6 space-y-1 text-left">
+                    <li>• A dedicated local ReplyFlow number, provisioned automatically</li>
+                    <li>• Carrier-specific forwarding instructions</li>
+                    <li>• Automatic text-back when you miss a call</li>
+                    <li>• Lead inbox, follow-ups, and conversation tracking</li>
+                  </ul>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No charge today. Cancel anytime before your trial ends.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (

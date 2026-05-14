@@ -25,6 +25,13 @@ export function hasActiveAccess(business: Business | null | undefined): boolean 
 }
 
 /**
+ * Canonical alias for `hasActiveAccess`. Use this name across UI gating
+ * (dashboard, settings, onboarding, setup components) so the same check is
+ * always applied: subscription_status is 'active' or 'trialing'.
+ */
+export const hasActiveSubscription = hasActiveAccess;
+
+/**
  * Check if business has an active trial specifically
  */
 export function hasActiveTrial(business: Business | null | undefined): boolean {
@@ -34,9 +41,10 @@ export function hasActiveTrial(business: Business | null | undefined): boolean {
 }
 
 /**
- * Check if business has an active subscription specifically
+ * Check if business has an active (paid, post-trial) subscription specifically.
+ * Most UI gating should use `hasActiveSubscription` (active OR trialing) instead.
  */
-export function hasActiveSubscription(business: Business | null | undefined): boolean {
+export function hasActiveSubscriptionOnly(business: Business | null | undefined): boolean {
   if (!business) return false;
   
   return business.subscription_status === 'active';
