@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
+import UserDropdown from '@/components/UserDropdown'
 
 interface NavbarProps {
   forceDark?: boolean
@@ -13,7 +14,6 @@ interface NavbarProps {
 export default function Navbar({ forceDark = false }: NavbarProps) {
   const { user, loading, signOut } = useAuth()
   const { business, loading: businessLoading } = useBusinessSafe()
-  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
   const pathname = usePathname()
 
   const isLoggedIn = user && !loading
@@ -28,7 +28,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
 
   const handleSignOut = async () => {
     await signOut()
-    setIsAccountDropdownOpen(false)
   }
 
   if (loading || businessLoading) {
@@ -108,60 +107,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               )}
               
               {/* Account Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
-                  className={`flex items-center gap-2 text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors px-3 py-2 rounded-lg ${isPublicPage && !forceDark ? 'hover:bg-slate-100 dark:hover:bg-gray-800' : 'hover:bg-gray-800'}`}
-                  aria-expanded={isAccountDropdownOpen}
-                  aria-haspopup="true"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  <span className="hidden sm:block">Account</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isAccountDropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {isAccountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                    <Link
-                      href="/dashboard/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      onClick={() => setIsAccountDropdownOpen(false)}
-                    >
-                      Settings
-                    </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
+              <UserDropdown />
             </>
           ) : (
             // Logged-out navigation
@@ -194,14 +140,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           )}
         </nav>
       </div>
-
-      {/* Close dropdown when clicking outside */}
-      {isAccountDropdownOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsAccountDropdownOpen(false)}
-        />
-      )}
     </header>
   )
 }
