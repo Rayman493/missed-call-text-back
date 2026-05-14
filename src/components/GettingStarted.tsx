@@ -267,13 +267,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       },
       {
         id: 'test',
-        title: 'Run your first live test',
-        description: 'Call your business number once to watch ReplyFlow capture a missed call in real time.',
+        title: 'Test your setup',
+        description: 'Call your business number once to verify ReplyFlow is capturing missed calls correctly.',
         status: testDone ? 'complete' : 'needs-action',
         details: testDone
           ? 'Setup tested successfully'
           : (forwardingDone ? 'Takes about 30 seconds' : 'Available once forwarding is enabled'),
-        buttonText: forwardingDone && !testDone ? 'Start Live Test' : undefined,
+        buttonText: forwardingDone && !testDone ? 'Test My Setup' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
       },
     ]
