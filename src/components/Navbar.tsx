@@ -48,7 +48,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Dark theme only - forceDark parameter kept for API compatibility
   
   return (
-    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700' : 'bg-slate-800/90 border-b border-slate-700'}`}>
+    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700' : 'bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-6 lg:px-8 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link 
@@ -57,7 +57,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         >
           <span className="text-3xl md:text-4xl font-bold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
-            <span className="text-blue-600 dark:text-blue-400">Flow</span>
+            <span className="text-blue-400">Flow</span>
           </span>
         </Link>
 
@@ -71,13 +71,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors`}
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/faq"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                   >
                     FAQ
                   </Link>
@@ -87,13 +87,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/dashboard/leads"
-                    className="text-sm font-medium text-gray-300 hover:text-gray-100 transition-colors"
+                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
                   >
                     Conversations
                   </Link>
