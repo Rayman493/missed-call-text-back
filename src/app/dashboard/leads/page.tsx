@@ -360,10 +360,10 @@ export default function LeadsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-3">
+                <h3 className="text-lg font-semibold text-slate-100 dark:text-white mb-3">
                   Your captured calls will appear here
                 </h3>
-                <div className="text-slate-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                <div className="text-slate-400 dark:text-slate-400 mb-6 max-w-md mx-auto">
                   <p className="mb-2">Once your setup is live, missed calls and conversations will appear automatically.</p>
                   <p className="text-sm">ReplyFlow will automatically send them a text message to capture the lead.</p>
                 </div>
@@ -379,7 +379,7 @@ export default function LeadsPage() {
                   </Link>
                   <Link
                     href="/demo"
-                    className="inline-flex items-center px-4 py-2 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-slate-300 dark:hover:bg-gray-600 transition-colors"
+                    className="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-800 text-slate-300 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-700 dark:hover:bg-slate-700 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -392,8 +392,8 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
-                <div className="divide-y divide-slate-200 dark:divide-gray-700">
+              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-sm border border-slate-700 dark:border-slate-700 overflow-hidden">
+                <div className="divide-y divide-slate-700 dark:divide-slate-700">
                   {sortedLeads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -421,9 +421,9 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-5 sm:p-6 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors relative ${
-                          isUnread ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                        } ${isNewLead ? 'bg-orange-50 dark:bg-orange-900/10' : ''}`}
+                        className={`block p-5 sm:p-6 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors relative ${
+                          isUnread ? 'bg-blue-900/10 dark:bg-blue-900/10' : ''
+                        } ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}
                       >
                         {/* Unread indicator dot */}
                         {isUnread && (
@@ -443,7 +443,7 @@ export default function LeadsPage() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className={`font-semibold text-slate-900 dark:text-gray-100 truncate ${
+                                  <p className={`font-semibold text-slate-100 dark:text-white truncate ${
                                     isUnread ? 'font-bold' : ''
                                   }`}>
                                     {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
@@ -455,15 +455,15 @@ export default function LeadsPage() {
                                     <span className="px-2 py-0.5 bg-red-900/30 text-red-300 text-xs font-medium rounded-full flex-shrink-0">Needs Response</span>
                                   )}
                                 </div>
-                                <p className="text-sm text-slate-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">{formatRelativeTime(lastActivity)}</p>
                               </div>
                             </div>
                             {latestMessage && (
                               <div className="ml-13">
                                 <p className={`text-sm truncate ${
                                   latestMessage.direction === 'inbound'
-                                    ? 'text-slate-700 dark:text-gray-300'
-                                    : 'text-blue-600 dark:text-blue-400'
+                                    ? 'text-slate-400 dark:text-slate-300'
+                                    : 'text-blue-400 dark:text-blue-400'
                                 } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
                                   {latestMessage.direction === 'inbound' && 'Customer: '}
                                   {latestMessage.body}
@@ -476,13 +476,13 @@ export default function LeadsPage() {
                               statusBadge === 'New' ? 'bg-blue-900/30 text-blue-300' :
                               statusBadge === 'Qualified' ? 'bg-purple-900/30 text-purple-300' :
                               statusBadge === 'Replied' ? 'bg-green-900/30 text-green-300' :
-                              statusBadge === 'Closed' ? 'bg-gray-700 text-gray-300' :
+                              statusBadge === 'Closed' ? 'bg-slate-700 text-slate-300' :
                               statusBadge === 'Blocked' ? 'bg-red-900/30 text-red-400' :
-                              'bg-gray-700 text-gray-300'
+                              'bg-slate-700 text-slate-300'
                             }`}>
                               {statusBadge}
                             </span>
-                            <div className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap">
+                            <div className="text-blue-400 dark:text-blue-400 hover:text-blue-300 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap">
                               View →
                             </div>
                           </div>
