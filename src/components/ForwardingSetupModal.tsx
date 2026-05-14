@@ -7,7 +7,7 @@ import { formatPhoneNumber } from '@/lib/utils'
 import { isReadyForForwardingSetup, hasActiveAccess } from '@/lib/subscription-utils'
 import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import { useRouter } from 'next/navigation'
-import { X, CheckCircle2, Copy } from 'lucide-react'
+import { X, CheckCircle2, Copy, Phone, ChevronRight } from 'lucide-react'
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', code: '*71' },
@@ -28,6 +28,7 @@ export default function ForwardingSetupModal() {
   const [saveError, setSaveError] = useState('')
   const [isDismissed, setIsDismissed] = useState(false)
   const [showQuickGuide, setShowQuickGuide] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -35,6 +36,15 @@ export default function ForwardingSetupModal() {
       setSelectedCarrier(business.business_phone_carrier)
     }
   }, [business?.business_phone_carrier, selectedCarrier])
+
+  // Animate expansion when carrier is selected
+  useEffect(() => {
+    if (selectedCarrier) {
+      setIsExpanded(true)
+    } else {
+      setIsExpanded(false)
+    }
+  }, [selectedCarrier])
 
   // Reset dismissal state when business state changes significantly
   useEffect(() => {
@@ -190,8 +200,8 @@ export default function ForwardingSetupModal() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30">
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between">
           <div>
@@ -233,9 +243,14 @@ export default function ForwardingSetupModal() {
 
           {/* Carrier Selection */}
           <div>
-            <p className="font-medium text-slate-900 dark:text-white">Which carrier does your business phone use?</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">
-              Choose the provider for the phone number your customers call.
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                Step 1
+              </span>
+              <p className="font-medium text-slate-900 dark:text-white">Choose your carrier</p>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Select the provider for your business phone number.
             </p>
             <div className="grid grid-cols-2 gap-3">
               {CARRIERS.map(business_phone_carrier => {
@@ -265,15 +280,39 @@ export default function ForwardingSetupModal() {
             </div>
           </div>
 
+          {/* Placeholder when no carrier selected */}
+          {!selectedCarrier && (
+            <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+              <Phone className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Select your carrier to see your forwarding code
+              </p>
+            </div>
+          )}
+
           {/* Forwarding Instructions - dedicated dial code card */}
           {selectedCarrier && (
-            <div className="space-y-5">
+            <div 
+              className={`space-y-5 transition-all duration-300 ease-out ${
+                isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                  Step 2
+                </span>
+                <p className="font-medium text-slate-900 dark:text-white">Dial your forwarding code</p>
+              </div>
               {hasValidCode ? (
                 <div className="bg-white dark:bg-slate-800/40 border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-4 sm:p-5 shadow-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/80 dark:text-blue-400/80 mb-2.5 text-center">
                     Dial this exact code
                   </p>
-                  <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 sm:py-5 mb-3 overflow-x-auto">
+                  <div 
+                    className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 sm:py-5 mb-3 overflow-x-auto cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-colors"
+                    onClick={handleCopyCode}
+                    title="Click to copy code"
+                  >
                     <code
                       aria-label="Forwarding dial code"
                       className="block font-mono font-semibold text-slate-900 dark:text-white text-center text-2xl sm:text-3xl lg:text-4xl tracking-wider whitespace-nowrap select-all"
@@ -361,8 +400,14 @@ export default function ForwardingSetupModal() {
             )}
 
             {showSuccess && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-2.5 transition-all duration-300 ease-in-out">
-                <p className="text-sm text-green-600 dark:text-green-400">Forwarding marked as enabled. Now let's test your setup…</p>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 transition-all duration-300 ease-in-out flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-300">Great — let's test your setup.</p>
+                  <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">Redirecting to test page…</p>
+                </div>
               </div>
             )}
 
