@@ -260,20 +260,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
         description: 'Forward missed calls from your business phone to ReplyFlow.',
         status: forwardingDone ? 'complete' : 'needs-action',
         details: forwardingDone
-          ? 'Call forwarding set up successfully'
+          ? 'Your business phone is now connected to ReplyFlow.'
           : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
         buttonText: numberDone && !forwardingDone ? 'View Setup Instructions' : undefined,
         buttonHref: numberDone && !forwardingDone ? '/onboarding/phone-setup' : undefined,
       },
       {
         id: 'test',
-        title: 'Test your setup',
-        description: 'Verify that your missed-call system is working correctly.',
+        title: 'Run your first live test',
+        description: 'Call your business number once to watch ReplyFlow capture a missed call in real time.',
         status: testDone ? 'complete' : 'needs-action',
         details: testDone
           ? 'Setup tested successfully'
-          : (forwardingDone ? 'Run a quick test call to confirm everything works' : 'Available once forwarding is enabled'),
-        buttonText: forwardingDone && !testDone ? 'View Test Instructions' : undefined,
+          : (forwardingDone ? 'Takes about 30 seconds' : 'Available once forwarding is enabled'),
+        buttonText: forwardingDone && !testDone ? 'Start Live Test' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
       },
     ]
@@ -378,8 +378,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
               {complete ? 'Setup Complete' : 'Setup Progress'}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-              {complete ? 'All steps completed' : `${doneSteps} of ${totalSteps} steps completed`}
+              {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
             </p>
+            {!complete && (
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                {doneSteps} of {totalSteps} steps completed
+              </p>
+            )}
+            {!complete && doneSteps === 3 && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">
+                You're one quick test away from going live.
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -422,7 +432,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
                 key={item.id}
                 className={`flex items-start gap-4 p-4 rounded-xl border transition-colors ${
                   isComplete
-                    ? 'bg-green-50/60 dark:bg-green-900/10 border-green-200 dark:border-green-800/50'
+                    ? 'bg-green-50/40 dark:bg-green-900/5 border-green-200/60 dark:border-green-800/30'
                     : isCurrent
                       ? 'bg-blue-50/60 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50'
                       : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
@@ -430,7 +440,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
-                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                    <div className="w-8 h-8 rounded-full bg-green-600/80 flex items-center justify-center text-white">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -449,13 +459,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3 mb-1">
-                    <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100">
+                    <h3 className={`text-sm sm:text-base font-semibold ${
+                      isComplete
+                        ? 'text-green-800/80 dark:text-green-200/70'
+                        : isCurrent
+                          ? 'text-slate-900 dark:text-slate-100'
+                          : 'text-slate-900 dark:text-slate-100'
+                    }`}>
                       Step {stepNum} — {item.title}
                     </h3>
                     <span
                       className={`text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
                         isComplete
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          ? 'bg-green-100/60 text-green-700/80 dark:bg-green-900/30 dark:text-green-300/70'
                           : isCurrent
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
@@ -464,11 +480,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
                       {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                  <p className={`text-sm mb-2 ${
+                    isComplete
+                      ? 'text-slate-600/70 dark:text-slate-400/60'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}>
                     {item.description}
                   </p>
                   {item.details && (
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-3">
+                    <p className={`text-xs mb-3 ${
+                      isComplete
+                        ? 'text-slate-500/60 dark:text-slate-500/50'
+                        : 'text-slate-500 dark:text-slate-500'
+                    }`}>
                       {item.details}
                     </p>
                   )}
