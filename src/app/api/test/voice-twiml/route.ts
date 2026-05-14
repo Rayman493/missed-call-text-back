@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 // Test endpoint to verify TwiML generation
 export async function GET() {
-  // Simulate the generateVoiceGreeting function
-  const voice = "Polly.Joanna";
+  // Use the same premium voice as production
+  const voice = "Polly.Joanna-Neural";
   const businessName = "Test Business";
-  const greetingText = `Hey, thanks for calling ${businessName}. Sorry we missed your call — we'll send you a quick text message shortly.`;
+  const greetingText = `Hey, thanks for calling ${businessName}. Sorry we missed your call. We'll send you a quick text message shortly.`;
 
   const twiml = `
 <Response>

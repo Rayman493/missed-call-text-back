@@ -23,17 +23,17 @@ function generateVoiceGreeting(businessName?: string): string {
     return `<Play>${defaultGreetingAudioUrl}</Play>`;
   }
   
-  // Force Polly.Joanna voice with conversational script
-  const voice = "Polly.Joanna";
+  // Force Polly.Joanna-Neural voice with conversational script
+  const voice = "Polly.Joanna-Neural";
   
-  // Create conversational script
+  // Create conversational script with improved punctuation and pauses
   const businessNameText = businessName && businessName.trim() !== '' ? businessName : undefined;
   let greetingText: string;
   
   if (businessNameText) {
-    greetingText = `Hey, thanks for calling ${businessNameText}. Sorry we missed your call — we'll send you a quick text message shortly.`;
+    greetingText = `Hey, thanks for calling ${businessNameText}. Sorry we missed your call. We'll send you a quick text message shortly.`;
   } else {
-    greetingText = "Hey, thanks for calling. Sorry we missed your call — we'll send you a quick text message shortly.";
+    greetingText = "Hey, thanks for calling. Sorry we missed your call. We'll send you a quick text message shortly.";
   }
   
   // DEBUG LOGS
@@ -48,7 +48,7 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('ACTIVE TWILIO GREETING:', greetingText);
   console.log('ACTIVE TWILIO VOICE:', voice);
   
-  // Force the correct TwiML response
+  // Force the correct TwiML response with improved pacing
   const forcedTwiML = `<Say voice="${voice}" language="en-US">${greetingText}</Say><Pause length="1"/>`;
   
   console.log('FORCE DEPLOYMENT - TwiML being returned:', forcedTwiML);

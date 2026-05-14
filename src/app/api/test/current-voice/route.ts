@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 // Test endpoint to verify current voice webhook TwiML generation
 export async function GET() {
-  // Import the actual voice generation function
+  // Use the same premium voice as production
   const voiceContent = `
-    <Say voice="Polly.Joanna" language="en-US">Hey, thanks for calling Test Business. Sorry we missed your call — we'll send you a quick text message shortly.</Say>
+    <Say voice="Polly.Joanna-Neural" language="en-US">Hey, thanks for calling Test Business. Sorry we missed your call. We'll send you a quick text message shortly.</Say>
     <Pause length="1"/>
   `;
 
@@ -16,8 +16,8 @@ export async function GET() {
 `.trim();
 
   console.log('[Test Current Voice] Current TwiML generation test');
-  console.log('[Test Current Voice] Voice: Polly.Joanna');
-  console.log('[Test Current Voice] Script: Hey, thanks for calling Test Business. Sorry we missed your call — we will send you a quick text message shortly.');
+  console.log('[Test Current Voice] Voice: Polly.Joanna-Neural');
+  console.log('[Test Current Voice] Script: Hey, thanks for calling Test Business. Sorry we missed your call. We will send you a quick text message shortly.');
   console.log('[Test Current Voice] Final TwiML:', twiml);
 
   return new NextResponse(twiml, {
