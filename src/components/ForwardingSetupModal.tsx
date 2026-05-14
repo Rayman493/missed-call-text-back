@@ -116,7 +116,7 @@ export default function ForwardingSetupModal() {
   const handleCompleteSetup = async () => {
     if (!business) return
     if (!selectedCarrier) {
-      setCarrierError('Please select your business_phone_carrier.')
+      setCarrierError('Please select your carrier.')
       return
     }
 
@@ -227,21 +227,35 @@ export default function ForwardingSetupModal() {
 
           {/* Carrier Selection */}
           <div>
-            <p className="font-medium mb-3 text-slate-900 dark:text-white">What business_phone_carrier does your business phone use?</p>
+            <p className="font-medium text-slate-900 dark:text-white">Which carrier does your business phone use?</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">
+              Choose the provider for the phone number your customers call.
+            </p>
             <div className="grid grid-cols-2 gap-3">
-              {CARRIERS.map(business_phone_carrier => (
-                <button
-                  key={business_phone_carrier.id}
-                  onClick={() => setSelectedCarrier(business_phone_carrier.id)}
-                  className={`p-4 rounded-xl border-2 transition text-left ${
-                    selectedCarrier === business_phone_carrier.id
-                      ? 'border-blue-600 bg-blue-600/20'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-                >
-                  <div className="text-lg font-semibold text-slate-900 dark:text-white">{business_phone_carrier.name}</div>
-                </button>
-              ))}
+              {CARRIERS.map(business_phone_carrier => {
+                const isSelected = selectedCarrier === business_phone_carrier.id
+                return (
+                  <button
+                    key={business_phone_carrier.id}
+                    onClick={() => setSelectedCarrier(business_phone_carrier.id)}
+                    aria-pressed={isSelected}
+                    className={`group relative p-3.5 rounded-xl border text-left transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm ring-1 ring-blue-500/30'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`text-base font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-white'}`}>
+                        {business_phone_carrier.name}
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -293,7 +307,7 @@ export default function ForwardingSetupModal() {
               )}
 
               {/* What happens next */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 mt-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300 mb-3">
                   What happens after you dial
                 </p>
@@ -344,7 +358,7 @@ export default function ForwardingSetupModal() {
 
             {showSuccess && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 transition-all duration-300 ease-in-out">
-                <p className="text-sm text-green-600 dark:text-green-400">Setup completed! Redirecting to test setup...</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Forwarding marked as enabled. Now let’s test your setup…</p>
               </div>
             )}
 
