@@ -124,7 +124,11 @@ function PhoneSetupContent() {
       router.push('/dashboard/test-setup')
     } catch (error) {
       console.error('[Phone Setup] Failed to save forwarding status:', error)
-      setError('Failed to save forwarding status. Please try again.')
+      setError('Unable to continue setup. Please try again.')
+      // Show toast notification for better error feedback
+      if (typeof window !== 'undefined') {
+        alert('Unable to continue setup. Please try again.')
+      }
     } finally {
       setIsSaving(false)
     }
@@ -348,21 +352,14 @@ function PhoneSetupContent() {
         {/* Primary action button */}
         <button
           onClick={handleForwardingEnabled}
-          disabled={isForwardingEnabled || isSaving}
-          className={`w-full px-6 py-4 text-base font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
-            isForwardingEnabled 
-              ? 'bg-green-800 text-green-200 cursor-not-allowed' 
-              : 'bg-green-600 hover:bg-green-700 text-white'
+          disabled={isSaving}
+          className={`w-full px-6 py-4 text-base font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+            isSaving 
+              ? 'bg-green-600 text-white cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700 hover:shadow-lg active:scale-[0.98] text-white cursor-pointer'
           }`}
         >
-          {isForwardingEnabled ? (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              ✓ Forwarding Enabled
-            </>
-          ) : isSaving ? (
+          {isSaving ? (
             <>
               <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
               Preparing test setup...
