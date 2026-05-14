@@ -44,27 +44,37 @@ html.dark body {
   color: #ffffff;
 }
 
-/* System theme support */
+/* System theme support - only apply if no theme class is explicitly set */
 @media (prefers-color-scheme: light) {
-  html:not(.dark):not(.light) {
+  html:not(.dark):not(.light):not([data-theme]) {
     color-scheme: light;
   }
-  
-  html:not(.dark):not(.light) body {
+
+  html:not(.dark):not(.light):not([data-theme]) body {
     background-color: #ffffff;
     color: #0f172a;
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not(.dark):not(.light) {
+  html:not(.dark):not(.light):not([data-theme]) {
     color-scheme: dark;
   }
-  
-  html:not(.dark):not(.light) body {
+
+  html:not(.dark):not(.light):not([data-theme]) body {
     background-color: #020617;
     color: #ffffff;
   }
+}
+
+/* Default to dark mode when no theme class is set */
+html:not(.dark):not(.light):not([data-theme]) {
+  color-scheme: dark;
+}
+
+html:not(.dark):not(.light):not([data-theme]) body {
+  background-color: #020617;
+  color: #ffffff;
 }
 
 #__next,
