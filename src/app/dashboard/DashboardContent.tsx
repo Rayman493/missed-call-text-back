@@ -199,6 +199,9 @@ export default function DashboardContent() {
 
   const supabase = createBrowserClient()
 
+  // Determine if onboarding is fully complete
+  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+
   // Initialize setup banner dismissal state from sessionStorage
   useEffect(() => {
     const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
@@ -718,6 +721,10 @@ export default function DashboardContent() {
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
             <div className="max-w-7xl mx-auto space-y-8">
                         
+            {/* Determine if onboarding is fully complete */}
+            {!isOnboardingComplete && (
+              <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+            )}
             {/* Billing Error */}
             {billingError && (
               <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
@@ -1088,12 +1095,12 @@ export default function DashboardContent() {
                 {/* Lead Cards */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className="p-6 sm:p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg m-4">
+                    <div className={`p-6 sm:p-8 text-center border-2 border-dashed rounded-lg m-4 ${isOnboardingComplete ? 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700' : 'bg-slate-50/30 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-700/50'}`}>
                       <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl">🔍</div>
                       <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                         {searchQuery.trim() ? 'No search results' : 'No leads yet'}
                       </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Missed calls will appear here once ReplyFlow starts capturing leads.'
@@ -1186,8 +1193,8 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Getting Started Section - At Bottom */}
-            <GettingStarted />
+            {/* Getting Started Section - At Bottom when onboarding complete */}
+            {isOnboardingComplete && <GettingStarted isOnboardingComplete={isOnboardingComplete} />}
           </div>
         </div>
       </div>

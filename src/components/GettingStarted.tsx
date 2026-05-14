@@ -37,17 +37,26 @@ interface ChecklistItem {
 interface GettingStartedProps {
   isExpanded?: boolean
   onToggle?: () => void
+  isOnboardingComplete?: boolean
 }
 
 // Local storage key for collapse preference
 const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
 
-export default function GettingStarted({ isExpanded: propExpanded, onToggle }: GettingStartedProps) {
+export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete }: GettingStartedProps) {
   const { business, refreshBusiness } = useBusiness()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
   const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
+
+  // When onboarding is complete, collapse by default
+  useEffect(() => {
+    if (isOnboardingComplete) {
+      setIsExpanded(false)
+      saveCollapsePreference(true)
+    }
+  }, [isOnboardingComplete])
 
   // Fallback provisioning trigger on component mount
   useEffect(() => {
