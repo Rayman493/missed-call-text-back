@@ -203,6 +203,7 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Saving business for user:', user.id)
+      console.log('[Onboarding] IMPORTANT: NOT setting subscription_status to trialing - Stripe webhook should be the source of truth')
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
@@ -217,7 +218,8 @@ export default function OnboardingPage() {
             sms_type: 'local_a2p',
             messaging_status: 'active',
             onboarding_status: 'completed',
-            subscription_status: SUBSCRIPTION_STATES.TRIALING,
+            // subscription_status is NOT set here - Stripe webhook will set it to trialing after successful checkout
+            // This prevents incorrect trial activation before Stripe payment is completed
           }
         })
       })
@@ -240,6 +242,8 @@ export default function OnboardingPage() {
       }
 
       console.log('[Onboarding] Save success: business created/updated:', business.id)
+      console.log('[Onboarding] Verifying subscription_status after save:', business.subscription_status)
+      console.log('[Onboarding] Expected: null (trial should only activate after Stripe webhook)')
 
       // Refresh business context to update state
       await refreshBusiness()

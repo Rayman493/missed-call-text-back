@@ -154,6 +154,10 @@ export async function POST(request: Request) {
             : null
 
           // checkout.session.completed saves basic IDs AND subscription timing fields
+          console.log('[Stripe Webhook] IMPORTANT: Stripe webhook is the ONLY source of truth for subscription_status')
+          console.log('[Stripe Webhook] Setting subscription_status to:', subscription?.status)
+          console.log('[Stripe Webhook] This ensures trial is ONLY activated after Stripe confirms payment')
+          
           updateData = {
             ...updateData,
             subscription_status: subscription?.status,

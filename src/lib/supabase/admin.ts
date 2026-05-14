@@ -1274,7 +1274,7 @@ export const db = {
       twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
       business_phone_number: businessData?.business_phone_number || null,
       auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-      subscription_status: null, // Don't set subscription status during business creation
+      subscription_status: null, // Don't set subscription status during business creation - Stripe webhook should be the source of truth
       stripe_customer_id: businessData?.stripe_customer_id || null,
       sms_type: businessData?.sms_type || 'local_a2p', // Default to local_a2p for dedicated numbers
       messaging_status: businessData?.messaging_status || 'active',
@@ -1286,6 +1286,10 @@ export const db = {
       provisioned_at: null
     }
     
+    // Log critical subscription state for verification
+    console.log('[getOrCreateBusiness] IMPORTANT: Creating business with subscription_status:', newBusinessData.subscription_status)
+    console.log('[getOrCreateBusiness] This ensures trial is NOT activated before Stripe webhook confirms payment')
+    
     // Create new business
     console.log('[getOrCreateBusiness] Creating new business with data:', {
       user_id: userId,
@@ -1293,7 +1297,8 @@ export const db = {
       sms_type: newBusinessData.sms_type,
       a2p_status: newBusinessData.a2p_status,
       twilio_messaging_service_sid: newBusinessData.twilio_messaging_service_sid,
-      onboarding_status: newBusinessData.onboarding_status
+      onboarding_status: newBusinessData.onboarding_status,
+      subscription_status: newBusinessData.subscription_status
     })
     
     let createdBusiness: Business | null = null
@@ -1302,6 +1307,8 @@ export const db = {
       
       if (createdBusiness) {
         console.log('[getOrCreateBusiness] Business created successfully:', createdBusiness.id)
+        console.log('[getOrCreateBusiness] Verifying subscription_status after creation:', createdBusiness.subscription_status)
+        console.log('[getOrCreateBusiness] Expected: null (trial should only activate after Stripe webhook)')
         console.log('[getOrCreateBusiness] Assigned twilio_phone_number:', createdBusiness.twilio_phone_number)
         
         // Provisioning is now handled by Stripe webhook when subscription becomes active (trialing or active)
