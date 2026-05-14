@@ -395,7 +395,7 @@ function PhoneSetupContent() {
       <div className="max-w-2xl w-full">
         {/* Progress indicator */}
         <div className="mb-8">
-          <p className="text-xs text-gray-400 mb-2">Step 3 of 4 — Connect your business phone</p>
+          <p className="text-xs text-gray-400 mb-2">Almost ready — about 1 minute left</p>
           <div className="w-full bg-gray-700 rounded-full h-2">
             <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
           </div>
@@ -460,54 +460,6 @@ function PhoneSetupContent() {
 
           {/* Step 3: Dynamic carrier instructions */}
           {getCarrierInstructions()}
-        </div>
-
-        {/* How it works card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8">
-          <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
-            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            How it works
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-green-900/30 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Your phone rings normally</p>
-                <p className="text-xs text-gray-400">You answer calls just like you do now</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Only when you miss a call</p>
-                <p className="text-xs text-gray-400">ReplyFlow automatically texts them back</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-900/30 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">You get the customer</p>
-                <p className="text-xs text-gray-400">Every missed call becomes a new lead</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
