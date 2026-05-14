@@ -322,7 +322,7 @@ function PhoneSetupContent() {
         )}
         
         <div className="text-sm text-gray-400 space-y-2 mb-6">
-          <p>Some carriers may announce the forwarding number before activation.</p>
+          <p>You may hear your carrier confirm that calls will be forwarded to your ReplyFlow number.</p>
           <p>If activation fails, contact your carrier and ask for conditional call forwarding.</p>
         </div>
 
