@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSms } from '@/lib/twilio'
+import { db } from '@/lib/supabase/admin'
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -44,6 +45,17 @@ export async function POST(req: NextRequest) {
     console.log('[Cron] Authorized cron request to /api/cron/send-followups');
     console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
     console.log('[send-followups] Starting follow-up processing')
+    
+    // Clean up old failed follow-up jobs to prevent UI pollution
+    try {
+      const cleanedCount = await db.cleanupOldFailedFollowUpJobs(7) // Clean up jobs older than 7 days
+      if (cleanedCount > 0) {
+        console.log(`[send-followups] Cleaned up ${cleanedCount} old failed follow-up jobs`)
+      }
+    } catch (cleanupError) {
+      console.error('[send-followups] Error cleaning up old failed follow-up jobs:', cleanupError)
+      // Don't fail the entire process for cleanup errors
+    }
     
     // Query due follow_up_jobs where: status = 'pending', scheduled_for <= now()
     const now = new Date().toISOString()
@@ -251,7 +263,18 @@ export async function POST(req: NextRequest) {
           continue
         }
         
-        // Send SMS using the existing sendSms helper
+        // Send SMS using the same sendSms helper as manual SMS
+        console.log(`[Follow-up SMS] Sending SMS:`, {
+          followUpId: followUp.id,
+          businessId: business.id,
+          businessPhone: business.twilio_phone_number,
+          businessPhoneSid: business.twilio_phone_number_sid,
+          messagingServiceSid: business.twilio_messaging_service_sid,
+          toPhone: lead.caller_phone,
+          conversationId: conversation?.id,
+          messagePreview: followUp.message_body.substring(0, 50) + '...'
+        })
+
         const smsOptions: any = {
           lead_id: lead.id,
         }
@@ -264,12 +287,31 @@ export async function POST(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
+          console.error(`[Follow-up SMS] Error - SMS failed to send: ${followUp.id}`)
+          
+          // Mark job as failed
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'SMS send failed - no Twilio message SID returned'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[Follow-up SMS] Error marking follow-up as failed:', failError)
+          }
+          
           errors++
           continue
         }
 
-        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
+        console.log(`[Follow-up SMS] SMS sent successfully:`, {
+          followUpId: followUp.id,
+          messageSid,
+          leadId: lead.id,
+          conversationId: conversation?.id
+        })
 
         // After successful send - update follow_up_job
         const { error: updateError } = await supabase
@@ -564,7 +606,18 @@ export async function GET(req: NextRequest) {
           continue
         }
         
-        // Send SMS using the existing sendSms helper
+        // Send SMS using the same sendSms helper as manual SMS
+        console.log(`[Follow-up SMS] Sending SMS:`, {
+          followUpId: followUp.id,
+          businessId: business.id,
+          businessPhone: business.twilio_phone_number,
+          businessPhoneSid: business.twilio_phone_number_sid,
+          messagingServiceSid: business.twilio_messaging_service_sid,
+          toPhone: lead.caller_phone,
+          conversationId: conversation?.id,
+          messagePreview: followUp.message_body.substring(0, 50) + '...'
+        })
+
         const smsOptions: any = {
           lead_id: lead.id,
         }
@@ -577,12 +630,31 @@ export async function GET(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.log(`[send-followups] Error - SMS failed to send: ${followUp.id}`)
+          console.error(`[Follow-up SMS] Error - SMS failed to send: ${followUp.id}`)
+          
+          // Mark job as failed
+          const { error: failError } = await supabase
+            .from('follow_up_jobs')
+            .update({ 
+              status: 'failed',
+              last_error_message: 'SMS send failed - no Twilio message SID returned'
+            })
+            .eq('id', followUp.id)
+          
+          if (failError) {
+            console.error('[Follow-up SMS] Error marking follow-up as failed:', failError)
+          }
+          
           errors++
           continue
         }
 
-        console.log(`[send-followups] SMS sent successfully: ${followUp.id}, SID: ${messageSid}`)
+        console.log(`[Follow-up SMS] SMS sent successfully:`, {
+          followUpId: followUp.id,
+          messageSid,
+          leadId: lead.id,
+          conversationId: conversation?.id
+        })
 
         // After successful send - update follow_up_job
         const { error: updateError } = await supabase

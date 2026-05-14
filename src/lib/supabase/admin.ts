@@ -1137,6 +1137,32 @@ export const db = {
     return data
   },
 
+  // Clean up old failed follow-up jobs to prevent UI pollution
+  async cleanupOldFailedFollowUpJobs(daysOld: number = 7): Promise<number> {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld)
+    const cutoffIso = cutoffDate.toISOString()
+    
+    console.log(`[Cleanup] Removing failed follow-up jobs older than ${daysOld} days (before ${cutoffIso})`)
+    
+    const { data, error } = await supabaseAdmin
+      .from('follow_up_jobs')
+      .delete()
+      .eq('status', 'failed')
+      .lt('created_at', cutoffIso)
+      .select('id')
+    
+    if (error) {
+      console.error('Error cleaning up old failed follow-up jobs:', error)
+      return 0
+    }
+    
+    const deletedCount = data?.length || 0
+    console.log(`[Cleanup] Removed ${deletedCount} old failed follow-up jobs`)
+    
+    return deletedCount
+  },
+
   async getOrCreateBusiness(userId: string, businessData?: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
     console.log('[getOrCreateBusiness] Starting for user:', userId)
     
