@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
+import PasswordInput from '@/components/PasswordInput'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -208,16 +209,13 @@ function AuthContent() {
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Password
               </label>
-              <input
-                ref={passwordRef}
+              <PasswordInput
                 id="password"
-                type="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
                 autoComplete={isSignIn ? "current-password" : "new-password"}
-                name="password"
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
