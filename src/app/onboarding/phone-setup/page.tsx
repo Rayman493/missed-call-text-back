@@ -100,12 +100,15 @@ function PhoneSetupContent() {
       const { error } = await supabase
         .from('businesses')
         .update({
+          business_phone_number: phoneNumber,
+          carrier: carrier,
           call_forwarding_enabled: true,
+          call_forwarding_status: 'enabled',
           phone_setup_completed_at: new Date().toISOString(),
-          onboarding_step: 'phone_setup_completed',
+          onboarding_status: 'pending_test',
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', business?.user_id)
+        .eq('id', business?.id)
 
       if (error) throw error
 
@@ -116,6 +119,9 @@ function PhoneSetupContent() {
       await refreshBusiness()
       
       console.log('[Phone Setup] Forwarding enabled and saved successfully')
+      
+      // Navigate to test setup page
+      router.push('/dashboard/test-setup')
     } catch (error) {
       console.error('[Phone Setup] Failed to save forwarding status:', error)
       setError('Failed to save forwarding status. Please try again.')
@@ -343,14 +349,14 @@ function PhoneSetupContent() {
             ) : isSaving ? (
               <>
                 <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                Saving...
+                Preparing test setup...
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                I've enabled forwarding
+                I Enabled Forwarding
               </>
             )}
           </button>
@@ -450,15 +456,6 @@ function PhoneSetupContent() {
 
           {/* Step 3: Dynamic carrier instructions */}
           {getCarrierInstructions()}
-
-          {/* Action button */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !phoneNumber || !carrier}
-            className="w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSaving ? 'Saving...' : 'Complete Phone Setup'}
-          </button>
         </div>
 
         {/* How it works card */}
@@ -506,18 +503,6 @@ function PhoneSetupContent() {
                 <p className="text-xs text-gray-400">Every missed call becomes a new lead</p>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Placeholder screenshot section */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
-          <h2 className="text-xl font-semibold text-gray-100 mb-4">Carrier Setup Guide</h2>
-          <div className="bg-gray-700/50 border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
-            <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-gray-400 text-sm">Carrier setup screenshot coming soon</p>
-            <p className="text-gray-500 text-xs mt-2">Visual guides for each carrier</p>
           </div>
         </div>
       </div>
