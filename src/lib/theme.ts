@@ -7,16 +7,16 @@
 
 // Background tokens
 export const bgTokens = {
-  app: 'bg-white dark:bg-slate-950',
-  card: 'bg-white dark:bg-slate-900',
-  cardHover: 'bg-slate-50 dark:bg-slate-800',
-  muted: 'bg-slate-50 dark:bg-slate-900',
-  input: 'bg-white dark:bg-slate-800',
-  modal: 'bg-white dark:bg-slate-900',
-  banner: 'bg-blue-50 dark:bg-blue-900/20',
-  error: 'bg-red-50 dark:bg-red-900/20',
-  success: 'bg-green-50 dark:bg-green-900/20',
-  warning: 'bg-yellow-50 dark:bg-yellow-900/20',
+  app: 'bg-slate-950 dark:bg-slate-950',
+  card: 'bg-slate-900 dark:bg-slate-900',
+  cardHover: 'bg-slate-800 dark:bg-slate-800',
+  muted: 'bg-slate-950 dark:bg-slate-950',
+  input: 'bg-slate-800 dark:bg-slate-800',
+  modal: 'bg-slate-900 dark:bg-slate-900',
+  banner: 'bg-blue-900/20 dark:bg-blue-900/20',
+  error: 'bg-red-900/20 dark:bg-red-900/20',
+  success: 'bg-green-900/20 dark:bg-green-900/20',
+  warning: 'bg-yellow-900/20 dark:bg-yellow-900/20',
 }
 
 // Text tokens

@@ -127,14 +127,14 @@ export function normalizePhoneNumber(input: string): string | null {
 export function getLeadStatusColor(status: string): string {
   switch (status) {
     case 'new':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-blue-900/30 text-blue-400'
     case 'contacted':
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-900/30 text-green-400'
     case 'qualified':
-      return 'bg-purple-100 text-purple-800'
+      return 'bg-purple-900/30 text-purple-400'
     case 'closed':
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-slate-800 text-slate-400'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-slate-800 text-slate-400'
   }
 }
