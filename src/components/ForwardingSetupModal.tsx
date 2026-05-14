@@ -267,10 +267,10 @@ export default function ForwardingSetupModal() {
 
           {/* Forwarding Instructions - dedicated dial code card */}
           {selectedCarrier && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {hasValidCode ? (
-                <div className="bg-white dark:bg-slate-800/40 border-2 border-blue-200 dark:border-blue-700/50 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2.5 text-center">
+                <div className="bg-white dark:bg-slate-800/40 border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-4 sm:p-5 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/80 dark:text-blue-400/80 mb-2.5 text-center">
                     Dial this exact code
                   </p>
                   <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 sm:py-5 mb-3 overflow-x-auto">
@@ -283,10 +283,10 @@ export default function ForwardingSetupModal() {
                   </div>
                   <button
                     onClick={handleCopyCode}
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all ${
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
                       copiedCode
                         ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60'
+                        : 'bg-transparent dark:bg-transparent border-slate-200/70 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/30 hover:border-slate-300 dark:hover:border-slate-500'
                     }`}
                   >
                     {copiedCode ? (
@@ -313,11 +313,11 @@ export default function ForwardingSetupModal() {
               )}
 
               {/* What happens next */}
-              <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/80 dark:border-blue-800/60 rounded-xl p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300 mb-2.5">
+              <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/70 dark:text-blue-400/70 mb-2">
                   What happens after you dial
                 </p>
-                <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
+                <ul className="space-y-1 text-sm text-slate-600/80 dark:text-slate-300/80">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
                     Your phone still rings normally
