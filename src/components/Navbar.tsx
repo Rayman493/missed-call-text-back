@@ -49,7 +49,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700' : 'bg-slate-800/90 border-b border-slate-700'}`}>
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link 
           href={isLoggedIn ? '/dashboard' : '/'} 
@@ -62,7 +62,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         </Link>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-4 sm:gap-6">
+        <nav className="flex items-center gap-2 sm:gap-4">
           {isLoggedIn ? (
             // Logged-in navigation
             <>
@@ -120,13 +120,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               </Link>
               <Link
                 href="/auth?mode=signin"
-                className={`px-4 py-2 text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 border border-gray-600 hover:bg-gray-800 hover:text-gray-100'} rounded-lg transition-colors`}
+                className={`px-3 py-1.5 text-xs font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} rounded-lg transition-colors`}
               >
                 Sign In
               </Link>
               <Link
                 href="/auth?mode=signup"
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow"
+                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
               >
                 Start Free Trial
               </Link>
