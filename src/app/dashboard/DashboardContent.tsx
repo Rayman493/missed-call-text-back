@@ -44,6 +44,9 @@ import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
+const DEBUG = process.env.NODE_ENV === 'development'
+const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
+
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
   if (lead.last_message_at) return lead.last_message_at
@@ -307,9 +310,6 @@ export default function DashboardContent() {
   // Only calculate isActive after business loading is complete
   const isActive = !businessLoading && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
 
-  console.log('[Dashboard] Business loading:', businessLoading)
-  console.log('[Dashboard] Business subscription status:', business?.subscription_status)
-  console.log('[Dashboard] Is subscription active:', isActive)
 
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
@@ -430,24 +430,20 @@ export default function DashboardContent() {
   }
 
   useEffect(() => {
-    console.log('[DashboardContent] Business loading:', businessLoading, 'Business ID:', business?.id, 'Business Name:', business?.name, 'Supabase:', !!supabase)
-    
     // If business is still loading, don't fetch leads yet
     if (businessLoading) {
-      console.log('[DashboardContent] Business still loading, waiting...')
       return
     }
     
     // If no business or no supabase, don't fetch leads - guards will handle redirect
     if (!business || !supabase) {
-      console.log('[DashboardContent] No business or supabase, setting loading to false')
       setLoading(false)
       return
     }
 
     // If business changed, clear old data
     if (currentBusinessId && currentBusinessId !== business.id) {
-      console.log('[DashboardContent] Business changed, clearing old data')
+      dlog('[DashboardContent] Business changed, clearing old data')
       setLeads([])
       setFollowUpJobs([])
       setCurrentBusinessId(business.id)
@@ -455,7 +451,7 @@ export default function DashboardContent() {
     setCurrentBusinessId(business.id)
 
     const fetchLeads = async () => {
-      console.log('[DashboardContent] Fetching leads for business:', business.id)
+      dlog('[DashboardContent] Fetching leads for business:', business.id)
       setLoading(true)
       try {
         const { data } = await supabase
@@ -491,7 +487,7 @@ export default function DashboardContent() {
 
         const leadsData = data as any[]
 
-        console.log('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
+        dlog('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
         setLeads(leadsData || [])
       } catch (error) {
         console.error('[DashboardContent] Error fetching leads:', error)
@@ -506,7 +502,7 @@ export default function DashboardContent() {
           .eq('business_id', business.id)
           .order('created_at', { ascending: false })
 
-        console.log('[DashboardContent] Fetched', jobsData?.length || 0, 'follow-up jobs')
+        dlog('[DashboardContent] Fetched', jobsData?.length || 0, 'follow-up jobs')
         setFollowUpJobs(jobsData || [])
       } catch (error) {
         console.error('[DashboardContent] Error fetching follow-up jobs:', error)
@@ -520,13 +516,12 @@ export default function DashboardContent() {
           .eq('business_id', business.id)
           .order('created_at', { ascending: false })
 
-        console.log('[DashboardContent] Fetched', callEventsData?.length || 0, 'call events')
+        dlog('[DashboardContent] Fetched', callEventsData?.length || 0, 'call events')
         setCallEvents(callEventsData || [])
         setMissedCalls(callEventsData?.length || 0)
       } catch (error) {
         console.error('[DashboardContent] Error fetching call events:', error)
       } finally {
-        console.log('[DashboardContent] Setting loading to false')
         setLoading(false)
       }
     }

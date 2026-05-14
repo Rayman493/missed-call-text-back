@@ -61,16 +61,15 @@ export function hasValidSubscription(subscriptionStatus: string | null | undefin
   const hasCustomerId = !!stripeCustomerId
   const hasSubscriptionId = !!stripeSubscriptionId
   
-  console.log('[Subscription] hasValidSubscription check:', {
-    subscriptionStatus,
-    stripeCustomerId,
-    stripeSubscriptionId,
-    statusValid,
-    hasCustomerId,
-    hasSubscriptionId,
-    result: statusValid && hasCustomerId && hasSubscriptionId
-  })
-  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Subscription] hasValidSubscription check:', {
+      subscriptionStatus,
+      hasCustomerId,
+      hasSubscriptionId,
+      result: statusValid && hasCustomerId && hasSubscriptionId
+    })
+  }
+
   return statusValid && hasCustomerId && hasSubscriptionId
 }
 
