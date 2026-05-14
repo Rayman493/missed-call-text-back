@@ -439,26 +439,26 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             return (
               <li
                 key={item.id}
-                className={`flex items-start gap-4 p-4 rounded-xl border transition-colors ${
+                className={`flex items-start gap-4 p-3 sm:p-4 rounded-xl border transition-colors ${
                   isComplete
-                    ? 'bg-green-50/40 dark:bg-green-900/5 border-green-200/60 dark:border-green-800/30'
+                    ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isCurrent
-                      ? 'bg-blue-50/60 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50'
-                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
+                      ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm'
+                      : 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/30'
                 }`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
-                    <div className="w-8 h-8 rounded-full bg-green-600/80 flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="w-7 h-7 rounded-full bg-green-600/70 flex items-center justify-center text-white">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                   ) : (
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold ${
                         isCurrent
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-white shadow-sm'
                           : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                       }`}
                     >
@@ -470,7 +470,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   <div className="flex items-center justify-between gap-3 mb-1">
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
-                        ? 'text-green-800/80 dark:text-green-200/70'
+                        ? 'text-green-800/60 dark:text-green-200/50'
                         : isCurrent
                           ? 'text-slate-900 dark:text-slate-100'
                           : 'text-slate-900 dark:text-slate-100'
@@ -478,9 +478,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       Step {stepNum} — {item.title}
                     </h3>
                     <span
-                      className={`text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                      className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
                         isComplete
-                          ? 'bg-green-100/60 text-green-700/80 dark:bg-green-900/30 dark:text-green-300/70'
+                          ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
                           : isCurrent
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
@@ -489,17 +489,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
                     </span>
                   </div>
-                  <p className={`text-sm mb-2 ${
+                  <p className={`text-xs sm:text-sm mb-1.5 ${
                     isComplete
-                      ? 'text-slate-600/70 dark:text-slate-400/60'
+                      ? 'text-slate-600/60 dark:text-slate-400/50'
                       : 'text-slate-600 dark:text-slate-400'
                   }`}>
                     {item.description}
                   </p>
                   {item.details && (
-                    <p className={`text-xs mb-3 ${
+                    <p className={`text-[11px] mb-2 ${
                       isComplete
-                        ? 'text-slate-500/60 dark:text-slate-500/50'
+                        ? 'text-slate-500/50 dark:text-slate-500/40'
                         : 'text-slate-500 dark:text-slate-500'
                     }`}>
                       {item.details}
@@ -509,14 +509,22 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     item.buttonOnClick ? (
                       <button
                         onClick={item.buttonOnClick}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          isCurrent
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                            : 'bg-slate-600 hover:bg-slate-700 text-white'
+                        }`}
                       >
                         {item.buttonText}
                       </button>
                     ) : (
                       <Link
                         href={item.buttonHref!}
-                        className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className={`inline-block px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          isCurrent
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                            : 'bg-slate-600 hover:bg-slate-700 text-white'
+                        }`}
                       >
                         {item.buttonText}
                       </Link>

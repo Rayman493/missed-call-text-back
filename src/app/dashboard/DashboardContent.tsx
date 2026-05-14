@@ -723,7 +723,33 @@ export default function DashboardContent() {
                         
             {/* Determine if onboarding is fully complete */}
             {!isOnboardingComplete && (
-              <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+              <>
+                {/* Activation Banner - Small motivational banner */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🚀</span>
+                      <div>
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                          Your missed-call assistant is almost live
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                          Run one quick test call to finish setup.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => router.push('/dashboard/test-setup')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
+                    >
+                      Test My Setup
+                    </button>
+                  </div>
+                </div>
+
+                {/* Setup Progress - Primary focus when onboarding incomplete */}
+                <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+              </>
             )}
             {/* Billing Error */}
             {billingError && (
@@ -1095,15 +1121,15 @@ export default function DashboardContent() {
                 {/* Lead Cards */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className={`p-6 sm:p-8 text-center border-2 border-dashed rounded-lg m-4 ${isOnboardingComplete ? 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700' : 'bg-slate-50/30 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-700/50'}`}>
-                      <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl">🔍</div>
-                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                        {searchQuery.trim() ? 'No search results' : 'No leads yet'}
+                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700' : 'bg-slate-50/30 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-700/50'}`}>
+                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl">🔍</div>
+                      <h3 className="text-base font-medium text-slate-900 dark:text-white mb-2">
+                        {searchQuery.trim() ? 'No search results' : 'Your captured calls will appear here'}
                       </h3>
                       <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
-                          : 'Missed calls will appear here once ReplyFlow starts capturing leads.'
+                          : 'Once your setup is live, missed calls and conversations will appear automatically.'
                         }
                       </p>
                     </div>
