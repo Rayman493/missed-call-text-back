@@ -97,15 +97,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   >
                     Conversations
                   </Link>
-                  
-                  {/* Website link - lower visual emphasis, utility/action */}
-                  <div className="w-px h-6 bg-slate-600/50 mx-2"></div>
-                  <Link
-                    href="/"
-                    className="text-sm font-medium text-slate-400 hover:text-gray-300 transition-colors"
-                  >
-                    Website
-                  </Link>
                 </>
               )}
               
