@@ -747,8 +747,8 @@ export default function DashboardContent() {
                   </div>
                 </div>
 
-                {/* Setup Progress - Primary focus when onboarding incomplete, sticky */}
-                <div className="sticky top-4 z-10">
+                {/* Setup Progress - Primary focus when onboarding incomplete */}
+                <div>
                   <GettingStarted isOnboardingComplete={isOnboardingComplete} />
                 </div>
               </>
