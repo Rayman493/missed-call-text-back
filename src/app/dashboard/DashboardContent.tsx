@@ -657,8 +657,8 @@ export default function DashboardContent() {
   // Show loading state while business is loading or webhook is confirming
   if (businessLoading || webhookConfirming) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-400">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-slate-400">
           {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
         </div>
       </div>
@@ -678,7 +678,7 @@ export default function DashboardContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col`}>
+        <div className={`min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col`}>
           {/* App Header */}
           <header className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-md border-b border-slate-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
@@ -962,37 +962,37 @@ export default function DashboardContent() {
 
                 {/* Hero Metrics Section */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Missed Calls</h3>
+                  <span className="w-10 h-10 bg-slate-800 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-1">{missedCalls}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Waiting for first call</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-100 dark:text-white mb-1">{missedCalls}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">Waiting for first call</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">New Leads</h3>
+                  <span className="w-10 h-10 bg-blue-900/30 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100 mb-1">{leadsRecovered}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Ready to capture leads</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-400 dark:text-blue-100 mb-1">{leadsRecovered}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">Ready to capture leads</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Conversations</h3>
+                  <span className="w-10 h-10 bg-green-900/30 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100 mb-1">{textsSent}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Customer replies appear here</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-400 dark:text-green-100 mb-1">{textsSent}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">Customer replies appear here</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+              <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Follow-ups</h3>
+                  <span className="w-10 h-10 bg-purple-900/30 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-400 dark:text-slate-400">Follow-ups</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Automation ready</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-400 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">Automation ready</p>
               </div>
                 </div>
               </>
@@ -1049,20 +1049,20 @@ export default function DashboardContent() {
 
             {/* Billing card - only show when action needed */}
             {!isActive && !business?.stripe_subscription_id && (
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-4 hover:border-gray-600 transition">
+              <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4 hover:border-slate-600 transition">
                 {webhookConfirming ? (
                   <>
-                    <h2 className="text-lg font-semibold text-gray-100 mb-2">Activating your account</h2>
-                    <p className="text-sm text-gray-400 mb-4">Please wait while we confirm your payment...</p>
+                    <h2 className="text-lg font-semibold text-slate-100 mb-2">Activating your account</h2>
+                    <p className="text-sm text-slate-400 mb-4">Please wait while we confirm your payment...</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold text-gray-100 mb-2">Start Capturing Missed Calls</h2>
-                    <p className="text-sm text-gray-400 mb-4">Start capturing missed calls instantly.</p>
+                    <h2 className="text-lg font-semibold text-slate-100 mb-2">Start Capturing Missed Calls</h2>
+                    <p className="text-sm text-slate-400 mb-4">Start capturing missed calls instantly.</p>
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading}
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium rounded-lg transition-colors"
                     >
                       {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
                     </button>
@@ -1121,14 +1121,14 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                <div className="bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700' : 'bg-slate-50/30 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-700/50'}`}>
-                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
-                      <h3 className="text-base font-medium text-slate-900 dark:text-white mb-2">
+                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-slate-900/50 dark:bg-slate-900/50 border-slate-700 dark:border-slate-700' : 'bg-slate-900/30 dark:bg-slate-900/30 border-slate-700/50 dark:border-slate-700/50'}`}>
+                      <div className="w-12 h-12 mx-auto mb-3 bg-slate-800 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
+                      <h3 className="text-base font-medium text-slate-100 dark:text-white mb-2">
                         {searchQuery.trim() ? 'No search results' : 'Your missed-call assistant is ready'}
                       </h3>
-                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
+                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-slate-400 dark:text-slate-400' : 'text-slate-500/70 dark:text-slate-400/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Your first missed call and customer conversation will appear here automatically.'
@@ -1150,53 +1150,53 @@ export default function DashboardContent() {
 
                         const getStatusColor = (color: string) => {
                           switch (color) {
-                            case 'blue': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                            case 'green': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                            case 'amber': return 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
-                            case 'purple': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
-                            case 'gray': return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                            default: return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                            case 'blue': return 'bg-blue-900/30 dark:bg-blue-900/30 text-blue-300 dark:text-blue-300'
+                            case 'green': return 'bg-green-900/30 dark:bg-green-900/30 text-green-300 dark:text-green-300'
+                            case 'amber': return 'bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300'
+                            case 'purple': return 'bg-purple-900/30 dark:bg-purple-900/30 text-purple-300 dark:text-purple-300'
+                            case 'gray': return 'bg-slate-800 dark:bg-slate-800 text-slate-300 dark:text-slate-300'
+                            default: return 'bg-blue-900/30 dark:bg-blue-900/30 text-blue-300 dark:text-blue-300'
                           }
                         }
 
                         return (
-                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                  messageStatus.color === 'green' ? 'bg-green-100 dark:bg-green-900/30' :
-                                  messageStatus.color === 'red' ? 'bg-red-100 dark:bg-red-900/30' :
-                                  messageStatus.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/30' :
-                                  'bg-blue-100 dark:bg-blue-900/30'
+                                  messageStatus.color === 'green' ? 'bg-green-900/30 dark:bg-green-900/30' :
+                                  messageStatus.color === 'red' ? 'bg-red-900/30 dark:bg-red-900/30' :
+                                  messageStatus.color === 'orange' ? 'bg-orange-900/30 dark:bg-orange-900/30' :
+                                  'bg-blue-900/30 dark:bg-blue-900/30'
                                 }`}>
                                   <span className="text-lg">{messageStatus.icon}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <p className="font-bold text-lg text-slate-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                    <p className="font-bold text-lg text-slate-100 dark:text-white truncate">{formatLeadPhone(lead.caller_phone)}</p>
                                     {hasUnreadReply && (
-                                      <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-full flex-shrink-0 animate-pulse">
+                                      <span className="px-2.5 py-1 bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300 text-xs font-semibold rounded-full flex-shrink-0 animate-pulse">
                                         Needs response
                                       </span>
                                     )}
                                     {isNewLead && (
-                                      <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-semibold rounded-full flex-shrink-0">
+                                      <span className="px-2.5 py-1 bg-orange-900/30 dark:bg-orange-900/30 text-orange-300 dark:text-orange-300 text-xs font-semibold rounded-full flex-shrink-0">
                                         New
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(lastActivity)}</p>
+                                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{formatRelativeTime(lastActivity)}</p>
                                 </div>
                               </div>
                               {latestMessage && (
                                 <div className="ml-13">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="text-xs text-slate-500 dark:text-slate-400">
                                       {latestMessage.direction === 'inbound' ? 'Customer:' : 'You:'}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{latestMessage.body}</p>
+                                  <p className="text-sm text-slate-400 dark:text-slate-300 truncate">{latestMessage.body}</p>
                                 </div>
                               )}
                             </div>
