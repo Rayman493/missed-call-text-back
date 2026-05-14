@@ -6,6 +6,27 @@ import { sanitizeMessageContent } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
+// Simple in-memory rate limiter for SMS sending (for production, use Redis)
+const smsAttempts = new Map<string, number[]>()
+const SMS_RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const MAX_SMS_ATTEMPTS = 10 // Max 10 SMS per minute per user
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now()
+  const userIds = Array.from(smsAttempts.keys())
+  for (let i = 0; i < userIds.length; i++) {
+    const userId = userIds[i]
+    const timestamps = smsAttempts.get(userId) || []
+    const validTimestamps = timestamps.filter(ts => now - ts < SMS_RATE_LIMIT_WINDOW)
+    if (validTimestamps.length === 0) {
+      smsAttempts.delete(userId)
+    } else {
+      smsAttempts.set(userId, validTimestamps)
+    }
+  }
+}, 5 * 60 * 1000) // Clean up every 5 minutes
+
 export async function POST(request: Request) {
   try {
     // Get auth header
@@ -29,12 +50,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Rate limiting check
+    const now = Date.now()
+    const attempts = smsAttempts.get(user.id) || []
+    const recentAttempts = attempts.filter(ts => now - ts < SMS_RATE_LIMIT_WINDOW)
+    
+    if (recentAttempts.length >= MAX_SMS_ATTEMPTS) {
+      console.error('[Security] Rate limit exceeded for SMS sending:', user.id)
+      return NextResponse.json({ 
+        error: 'Too many SMS attempts',
+        retryAfter: Math.ceil((SMS_RATE_LIMIT_WINDOW - (now - recentAttempts[0])) / 1000)
+      }, { status: 429 })
+    }
+    
+    // Add this attempt to tracking
+    recentAttempts.push(now)
+    smsAttempts.set(user.id, recentAttempts)
+
     // Parse request body
     const { leadId, message, clientTempId } = await request.json()
 
     if (!leadId || !message) {
       console.error('[Manual SMS] Missing required fields:', { leadId, message: !!message })
       return NextResponse.json({ error: 'Missing required fields: leadId and message' }, { status: 400 })
+    }
+
+    // Validate message length
+    if (message.length > 1600) {
+      console.error('[Manual SMS] Message too long:', message.length)
+      return NextResponse.json({ error: 'Message too long (max 1600 characters)' }, { status: 400 })
     }
 
     // Sanitize message content

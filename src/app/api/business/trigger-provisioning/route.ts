@@ -1,8 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { provisionTwilioNumber } from '@/lib/twilio'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
+
+// Simple in-memory rate limiter for provisioning (for production, use Redis)
+const provisioningAttempts = new Map<string, number[]>()
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
+const MAX_PROVISIONING_ATTEMPTS = 3 // Max 3 provisioning attempts per business per hour
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now()
+  const businessIds = Array.from(provisioningAttempts.keys())
+  for (let i = 0; i < businessIds.length; i++) {
+    const businessId = businessIds[i]
+    const timestamps = provisioningAttempts.get(businessId) || []
+    const validTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW)
+    if (validTimestamps.length === 0) {
+      provisioningAttempts.delete(businessId)
+    } else {
+      provisioningAttempts.set(businessId, validTimestamps)
+    }
+  }
+}, 5 * 60 * 1000) // Clean up every 5 minutes
 
 export async function POST(request: Request) {
   let business_id: string = ''
@@ -11,6 +33,23 @@ export async function POST(request: Request) {
     const body = await request.json()
     business_id = body.business_id
     const businessId = business_id // Store in variable for catch block access
+
+    // Rate limiting check
+    const now = Date.now()
+    const attempts = provisioningAttempts.get(business_id) || []
+    const recentAttempts = attempts.filter(ts => now - ts < RATE_LIMIT_WINDOW)
+    
+    if (recentAttempts.length >= MAX_PROVISIONING_ATTEMPTS) {
+      console.error('[ProvisioningTrigger] Rate limit exceeded for business:', business_id)
+      return NextResponse.json({ 
+        error: 'Too many provisioning attempts',
+        retryAfter: Math.ceil((RATE_LIMIT_WINDOW - (now - recentAttempts[0])) / 1000)
+      }, { status: 429 })
+    }
+    
+    // Add this attempt to tracking
+    recentAttempts.push(now)
+    provisioningAttempts.set(business_id, recentAttempts)
 
     console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING START ==========')
     console.log('[ProvisioningTrigger] business_id:', business_id)

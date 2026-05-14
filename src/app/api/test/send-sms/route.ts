@@ -18,8 +18,26 @@ const supabase = createClient(
   getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 );
 
-// TODO: Implement rate limiting (max 3 test SMS per user per hour)
-// Consider using Redis/Upstash or in-memory store for rate limiting
+// Simple in-memory rate limiter for test SMS (for production, use Redis)
+const testSmsAttempts = new Map<string, number[]>()
+const TEST_SMS_RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
+const MAX_TEST_SMS_ATTEMPTS = 3 // Max 3 test SMS per user per hour
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now()
+  const userIds = Array.from(testSmsAttempts.keys())
+  for (let i = 0; i < userIds.length; i++) {
+    const userId = userIds[i]
+    const timestamps = testSmsAttempts.get(userId) || []
+    const validTimestamps = timestamps.filter(ts => now - ts < TEST_SMS_RATE_LIMIT_WINDOW)
+    if (validTimestamps.length === 0) {
+      testSmsAttempts.delete(userId)
+    } else {
+      testSmsAttempts.set(userId, validTimestamps)
+    }
+  }
+}, 5 * 60 * 1000) // Clean up every 5 minutes
 
 export async function GET(request: Request) {
   try {
@@ -38,6 +56,23 @@ export async function GET(request: Request) {
       console.error('[Security] Unauthorized request to /api/test/send-sms - invalid token')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Rate limiting check
+    const now = Date.now()
+    const attempts = testSmsAttempts.get(user.id) || []
+    const recentAttempts = attempts.filter(ts => now - ts < TEST_SMS_RATE_LIMIT_WINDOW)
+    
+    if (recentAttempts.length >= MAX_TEST_SMS_ATTEMPTS) {
+      console.error('[Security] Rate limit exceeded for test SMS:', user.id)
+      return NextResponse.json({ 
+        error: 'Too many test SMS attempts',
+        retryAfter: Math.ceil((TEST_SMS_RATE_LIMIT_WINDOW - (now - recentAttempts[0])) / 1000)
+      }, { status: 429 })
+    }
+    
+    // Add this attempt to tracking
+    recentAttempts.push(now)
+    testSmsAttempts.set(user.id, recentAttempts)
 
     // Get user's business
     const { data: business, error: businessError } = await supabase

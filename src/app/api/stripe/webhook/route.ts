@@ -8,6 +8,23 @@ import getStripe from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
+// Simple in-memory idempotency cache (for production, use Redis or database)
+const processedEvents = new Map<string, number>()
+const IDEMPOTENCY_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now()
+  const eventIds = Array.from(processedEvents.keys())
+  for (let i = 0; i < eventIds.length; i++) {
+    const eventId = eventIds[i]
+    const timestamp = processedEvents.get(eventId) || 0
+    if (now - timestamp > IDEMPOTENCY_TTL) {
+      processedEvents.delete(eventId)
+    }
+  }
+}, 60 * 60 * 1000) // Clean up every hour
+
 export async function POST(request: Request) {
   try {
     console.log('[SYSTEM] [STRIPE] Webhook received');
@@ -35,6 +52,16 @@ export async function POST(request: Request) {
 
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     console.log('[SYSTEM] [STRIPE] Event type:', event.type);
+
+    // Idempotency check - prevent duplicate processing
+    if (processedEvents.has(event.id)) {
+      console.log('[STRIPE WEBHOOK] Event already processed, skipping:', event.id)
+      return NextResponse.json({ received: true, idempotent: true })
+    }
+    
+    // Mark event as processed
+    processedEvents.set(event.id, Date.now())
+    console.log('[STRIPE WEBHOOK] Processing new event:', event.id)
 
     // Use service role key for webhook to bypass RLS
     const supabase = createClient(
