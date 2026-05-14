@@ -37,9 +37,6 @@ export default function SettingsContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
-  const [resetConfirmText, setResetConfirmText] = useState('')
-  const [showResetModal, setShowResetModal] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
@@ -340,27 +337,6 @@ export default function SettingsContent() {
       setIsDeleting(false)
       setShowDeleteModal(false)
       setDeleteConfirmText('')
-    }
-  }
-
-  // Reset demo data handler
-  const handleResetDemoData = async () => {
-    if (resetConfirmText !== 'RESET') return
-
-    setIsResetting(true)
-    try {
-      const { error } = await supabase.rpc('reset_demo_data')
-      if (error) throw error
-
-      await refreshBusiness()
-      showToast('Demo data reset successfully', 'success')
-    } catch (error) {
-      console.error('Reset demo data error:', error)
-      showToast('Failed to reset demo data. Please try again.', 'error')
-    } finally {
-      setIsResetting(false)
-      setShowResetModal(false)
-      setResetConfirmText('')
     }
   }
 
@@ -901,18 +877,6 @@ export default function SettingsContent() {
                 <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Reset Demo Data</h3>
-                    <p className="text-sm text-slate-600 dark:text-gray-400 mb-2">
-                      Delete all leads, conversations, and messages for this business.
-                    </p>
-                    <button
-                      onClick={() => setShowResetModal(true)}
-                      className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors"
-                    >
-                      Reset Demo Data
-                    </button>
-                  </div>
-                  <div>
                     <h3 className="text-sm font-medium text-slate-900 dark:text-gray-100">Delete Account</h3>
                     <p className="text-sm text-slate-600 dark:text-gray-400 mb-2">
                       Permanently delete your account and all data.
@@ -980,51 +944,6 @@ export default function SettingsContent() {
                     className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isDeleting ? 'Deleting...' : 'Permanently Delete Account'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Reset Demo Data Modal */}
-          {showResetModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
-                  Reset Demo Data
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
-                  This will delete all leads, conversations, messages, and follow-up jobs for this business. Business settings and subscription will remain intact. This action cannot be undone.
-                </p>
-                <div className="mb-4">
-                  <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
-                    Type <span className="font-mono font-bold">RESET</span> to confirm
-                  </label>
-                  <input
-                    type="text"
-                    value={resetConfirmText}
-                    onChange={(e) => setResetConfirmText(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400"
-                    placeholder="RESET"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowResetModal(false)
-                      setResetConfirmText('')
-                    }}
-                    disabled={isResetting}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleResetDemoData}
-                    disabled={resetConfirmText !== 'RESET' || isResetting}
-                    className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isResetting ? 'Resetting...' : 'Reset Demo Data'}
                   </button>
                 </div>
               </div>
