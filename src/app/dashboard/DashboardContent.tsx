@@ -755,7 +755,7 @@ export default function DashboardContent() {
             )}
             {/* Billing Error */}
             {billingError && (
-              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -786,7 +786,7 @@ export default function DashboardContent() {
 
             {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
-              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3">
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">⚠️</span>
@@ -824,7 +824,7 @@ export default function DashboardContent() {
               const minutesSinceVerification = (now.getTime() - verifiedAt.getTime()) / (1000 * 60)
               return minutesSinceVerification < 5
             })() && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
@@ -852,7 +852,7 @@ export default function DashboardContent() {
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
+              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⚠️</span>
@@ -878,7 +878,7 @@ export default function DashboardContent() {
 
             {/* Trial Banner - Lower Priority - Reduced height */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className={`${themeClasses.banner} rounded-xl px-3 py-2`}>
+              <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🎉</span>
@@ -961,7 +961,7 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Hero Metrics Section */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
@@ -1076,7 +1076,7 @@ export default function DashboardContent() {
               null
             ) : (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Your Leads</h2>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">People who called but did not reach you.</p>
@@ -1089,7 +1089,7 @@ export default function DashboardContent() {
                 </div>
                 
                 {/* Search and Filters */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
                   <div className="flex-1">
                     <div className="relative">
                       <input
