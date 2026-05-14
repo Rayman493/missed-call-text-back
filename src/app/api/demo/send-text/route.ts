@@ -252,7 +252,7 @@ export async function POST(request: Request) {
       messageId: messageRecord.id,
       smsSuccess,
       smsError,
-      warning: !smsSuccess ? 'Demo conversation created, but SMS delivery may be limited until verification is approved.' : null,
+      warning: !smsSuccess ? 'Demo conversation created. If SMS does not arrive, wait a minute and try again.' : null,
     })
   } catch (error: any) {
     console.error('[demo-send-text] Unexpected error:', error)

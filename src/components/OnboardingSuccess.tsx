@@ -98,15 +98,15 @@ export default function OnboardingSuccess() {
           </div>
         </div>
 
-        {/* Verification Warning */}
+        {/* SMS Status */}
         {!hasTwilioNumber && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-8">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8">
             <div className="flex items-center justify-center">
-              <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+              <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                SMS delivery may be limited until carrier verification is approved.
+              <p className="text-sm text-green-800 dark:text-green-200">
+                Your ReplyFlow texting is ready. Most messages arrive within 5–15 seconds.
               </p>
             </div>
           </div>

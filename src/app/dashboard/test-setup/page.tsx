@@ -174,7 +174,7 @@ export default function TestSetupPage() {
     },
     {
       issue: 'If you did not receive a text message',
-      solution: 'SMS delivery may be limited while carrier verification is pending. This typically takes 1-2 business days.'
+      solution: 'Wait a minute and try again. Some carriers may take a few extra minutes to activate new numbers.'
     },
     {
       issue: 'If the lead does not appear',
@@ -308,19 +308,19 @@ export default function TestSetupPage() {
               </div>
             </div>
 
-            {/* SMS Verification Note */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-8">
+            {/* SMS Verification Status */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-8">
               <div className="flex items-start gap-3">
-                <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <MessageSquare className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                    SMS Verification Pending
+                  <h3 className="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">
+                    SMS Active
                   </h3>
-                  <p className="text-xs text-blue-800 dark:text-blue-300">
-                    SMS delivery may be limited while carrier verification is pending. This typically takes 1-2 business days.
+                  <p className="text-xs text-green-800 dark:text-green-300">
+                    Your ReplyFlow texting is ready. Most test messages arrive within 5–15 seconds.
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                    Most test messages arrive within 5–15 seconds.
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+                    If your test text does not arrive immediately, wait a minute and try again.
                   </p>
                 </div>
               </div>
