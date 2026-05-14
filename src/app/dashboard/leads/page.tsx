@@ -251,12 +251,12 @@ export default function LeadsPage() {
             )}
 
             {/* Leads Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-gray-100">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-gray-100">
                   Customer Leads
                 </h2>
-                <p className="text-slate-600 dark:text-gray-400">
+                <p className="text-slate-600 dark:text-gray-400 mt-1">
                   {leads.length} {leads.length === 1 ? 'lead' : 'leads'} total
                 </p>
               </div>
@@ -273,7 +273,7 @@ export default function LeadsPage() {
 
             {/* Filters */}
             {showFilters && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 p-4 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-4 mb-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
@@ -392,7 +392,7 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
                 <div className="divide-y divide-slate-200 dark:divide-gray-700">
                   {sortedLeads.map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
@@ -419,7 +419,7 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors relative ${
+                        className={`block p-5 sm:p-6 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors relative ${
                           isUnread ? 'bg-blue-50 dark:bg-blue-900/10' : ''
                         } ${isNewLead ? 'bg-orange-50 dark:bg-orange-900/10' : ''}`}
                       >
