@@ -217,6 +217,9 @@ export default function TestSetupPage() {
                     <p className="text-blue-100 mb-4">
                       ReplyFlow will automatically detect your test call and verify everything is working.
                     </p>
+                    <p className="text-sm text-blue-200 mb-4 italic">
+                      Your business number still works exactly like normal.
+                    </p>
                     <div className="flex items-center gap-6 mb-4">
                       <div className="bg-white/10 rounded-lg px-4 py-2">
                         <p className="text-xs text-blue-200 mb-1">Your business number</p>
@@ -242,66 +245,33 @@ export default function TestSetupPage() {
               </div>
             )}
 
-            {/* Live Status Section */}
-            {!success && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8 border-2 border-blue-200 dark:border-blue-800 animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    liveStatus === 'waiting' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                    liveStatus === 'call_detected' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
-                    liveStatus === 'sms_sent' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                    'bg-green-100 dark:bg-green-900/30'
-                  }`}>
-                    {liveStatus === 'waiting' && <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                    {liveStatus === 'call_detected' && <Phone className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />}
-                    {liveStatus === 'sms_sent' && <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
-                    {liveStatus === 'lead_captured' && <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-semibold ${
-                      liveStatus === 'waiting' ? 'text-blue-900 dark:text-blue-100' :
-                      liveStatus === 'call_detected' ? 'text-yellow-900 dark:text-yellow-100' :
-                      liveStatus === 'sms_sent' ? 'text-purple-900 dark:text-purple-100' :
-                      'text-green-900 dark:text-green-100'
-                    }`}>
-                      {liveStatus === 'waiting' && 'Waiting for test call...'}
-                      {liveStatus === 'call_detected' && 'Call detected'}
-                      {liveStatus === 'sms_sent' && 'Automated text sent'}
-                      {liveStatus === 'lead_captured' && 'Lead captured in dashboard'}
-                    </p>
-                  </div>
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                </div>
-              </div>
-            )}
-
             {/* Setup Confirmation Card */}
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Business phone connected</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Your call forwarding is configured</p>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Business phone connected</h2>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Your call forwarding is configured</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Your business number</p>
-                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Your business number</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Carrier</p>
-                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Carrier</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {business?.business_phone_carrier ? business.business_phone_carrier.charAt(0).toUpperCase() + business.business_phone_carrier.slice(1) : 'Not set'}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Forwarding to</p>
-                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">Forwarding to</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}
                   </p>
                 </div>
@@ -309,7 +279,7 @@ export default function TestSetupPage() {
             </div>
 
             {/* SMS Verification Status */}
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-8">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-6">
               <div className="flex items-start gap-3">
                 <MessageSquare className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                 <div>
@@ -347,7 +317,7 @@ export default function TestSetupPage() {
                         isCompleted 
                           ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' 
                           : isActive
-                          ? 'border-2 border-blue-500 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/10'
+                          ? 'border-2 border-blue-500 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/10 animate-pulse'
                           : 'border-gray-200 dark:border-gray-700'
                       }`}
                     >
@@ -355,7 +325,7 @@ export default function TestSetupPage() {
                         isCompleted 
                           ? 'bg-green-600 text-white' 
                           : isActive
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 animate-pulse'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
                         {isCompleted ? (
@@ -446,10 +416,10 @@ export default function TestSetupPage() {
                     <Sparkles className="w-10 h-10 text-green-600 dark:text-green-400" />
                   </div>
                   <h2 className="text-3xl font-bold text-green-900 dark:text-green-100 mb-3">
-                    🎉 ReplyFlow is Live
+                    ReplyFlow is now protecting your missed calls
                   </h2>
                   <p className="text-green-700 dark:text-green-300 mb-6 text-lg">
-                    Your missed calls are now turning into leads automatically.
+                    Missed callers will now automatically receive a text and appear in your inbox.
                   </p>
                   <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 max-w-md mx-auto">
                     <div className="grid grid-cols-2 gap-4 text-left">
@@ -478,7 +448,7 @@ export default function TestSetupPage() {
                         href={`/dashboard/leads/${latestLead.id}`}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-all hover:shadow-lg flex items-center justify-center gap-2"
                       >
-                        View your first lead
+                        View Inbox
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                     )}
@@ -494,7 +464,7 @@ export default function TestSetupPage() {
                 <>
                   <Link
                     href="/dashboard"
-                    className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 text-center"
+                    className="block w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm text-center py-2 transition-colors"
                   >
                     Finish later
                   </Link>
