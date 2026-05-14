@@ -372,39 +372,39 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-5 sm:p-6 ${!complete ? 'border-blue-300 dark:border-blue-600/50 bg-white dark:bg-slate-900/40 shadow-md' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40'}`}>
-      {/* Header with progress */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">
-              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-              {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
+    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}>
+      {/* Horizontal layout: left text, right CTA */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {complete ? 'Setup Complete ✓' : 'Setup Progress'}
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+            {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
+          </p>
+          {!complete && (
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+              {doneSteps} of {totalSteps} steps completed
             </p>
-            {!complete && (
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                {doneSteps} of {totalSteps} steps completed
-              </p>
-            )}
-            {!complete && doneSteps === 3 && (
-              <Link
-                href="/dashboard/test-setup"
-                className="inline-block mt-3 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all hover:-translate-y-[1px] shadow-sm hover:shadow-md animate-pulse"
-              >
-                Complete Final Test
-              </Link>
-            )}
-          </div>
+          )}
+        </div>
+        {!complete && doneSteps === 3 && (
+          <Link
+            href="/dashboard/test-setup"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
+          >
+            Complete Final Test
+          </Link>
+        )}
+        {complete && (
           <button
             onClick={handleToggle}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >
             <svg
-              className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -412,19 +412,39 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-        </div>
-        {/* Progress bar */}
-        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
-            style={{ width: `${progressPct}%` }}
-            aria-valuenow={progressPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            role="progressbar"
-          />
-        </div>
+        )}
       </div>
+
+      {/* Slim progress bar */}
+      <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
+        <div
+          className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80' : 'bg-gradient-to-r from-blue-500/80 to-indigo-500/80'}`}
+          style={{ width: `${progressPct}%` }}
+          aria-valuenow={progressPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          role="progressbar"
+        />
+      </div>
+
+      {!complete && (
+        <button
+          onClick={handleToggle}
+          className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-400 transition-colors flex items-center gap-1"
+          aria-expanded={isExpanded}
+          aria-label="Toggle setup checklist"
+        >
+          <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
+          <svg
+            className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      )}
 
       {isExpanded && (
         <ol className="space-y-3">
