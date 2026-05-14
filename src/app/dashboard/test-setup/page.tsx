@@ -22,17 +22,31 @@ export default function TestSetupPage() {
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isMounted, setIsMounted] = useState(false)
+  const hasScrolledToTopRef = useRef(false)
 
-  // Force scroll to top on mount
+  // Disable browser scroll restoration for this route
   useEffect(() => {
-    window.scrollTo(0, 0)
-    setIsMounted(true)
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual"
+    }
+  }, [])
+
+  // Force scroll to top on mount with requestAnimationFrame
+  useEffect(() => {
+    console.log('[TestSetup] mounted - forcing scroll top')
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior })
+      hasScrolledToTopRef.current = true
+      setIsMounted(true)
+    })
   }, [])
 
   // Auto-scroll to active step when it changes (but NOT on initial mount)
   useEffect(() => {
     if (!isMounted) return // Skip on initial mount
+    if (!hasScrolledToTopRef.current) return // Skip if we haven't scrolled to top yet
     if (stepRefs.current[currentStep - 1]) {
+      console.log('[TestSetup] active step changed to', currentStep, '- scrolling into view')
       stepRefs.current[currentStep - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [currentStep, isMounted])
