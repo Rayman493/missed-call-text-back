@@ -747,8 +747,10 @@ export default function DashboardContent() {
                   </div>
                 </div>
 
-                {/* Setup Progress - Primary focus when onboarding incomplete */}
-                <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                {/* Setup Progress - Primary focus when onboarding incomplete, sticky */}
+                <div className="sticky top-4 z-10">
+                  <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                </div>
               </>
             )}
             {/* Billing Error */}
@@ -1224,7 +1226,8 @@ export default function DashboardContent() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* Only show footer when onboarding is complete */}
+      {isOnboardingComplete && <Footer />}
       </BusinessGuard>
     </AuthGuard>
   )

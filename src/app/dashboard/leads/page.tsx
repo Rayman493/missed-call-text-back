@@ -361,22 +361,21 @@ export default function LeadsPage() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-3">
-                  No leads yet
+                  Your captured calls will appear here
                 </h3>
                 <div className="text-slate-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                  <p className="mb-2">When customers call your business and miss the call, they'll appear here.</p>
+                  <p className="mb-2">Once your setup is live, missed calls and conversations will appear automatically.</p>
                   <p className="text-sm">ReplyFlow will automatically send them a text message to capture the lead.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/test-setup"
                     className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    Configure Settings
+                    Test My Setup
                   </Link>
                   <Link
                     href="/demo"
