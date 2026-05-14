@@ -216,14 +216,14 @@ export default function LeadsPage() {
       <BusinessGuard>
         <div className="min-h-screen bg-background flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
+          <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center gap-4">
-                  <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                     ← Dashboard
                   </Link>
-                  <h1 className="text-lg font-semibold text-foreground">Leads</h1>
+                  <h1 className="text-lg font-semibold text-white">Leads</h1>
                 </div>
                 <div className="flex items-center gap-4">
                   <UserDropdown />
@@ -368,15 +368,17 @@ export default function LeadsPage() {
                   <p className="text-sm">ReplyFlow will automatically send them a text message to capture the lead.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link
-                    href="/dashboard/test-setup"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Test My Setup
-                  </Link>
+                  {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
+                    <Link
+                      href="/dashboard/test-setup"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      Test My Setup
+                    </Link>
+                  )}
                   <Link
                     href="/demo"
                     className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg hover:bg-secondary/80 transition-colors"

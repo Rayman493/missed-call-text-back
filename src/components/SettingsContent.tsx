@@ -400,14 +400,14 @@ export default function SettingsContent() {
       <BusinessGuard>
           <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
+            <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                   <div className="flex items-center gap-4">
-                    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                       ← Dashboard
                     </Link>
-                    <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+                    <h1 className="text-lg font-semibold text-white">Settings</h1>
                   </div>
                   <div className="flex items-center gap-4">
                     <UserDropdown />

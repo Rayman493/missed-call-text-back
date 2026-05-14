@@ -891,23 +891,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
+      <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700 shadow-sm">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2">
           {/* Primary Row - Compact */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               {/* Back Button */}
-              <Link 
-                href="/dashboard" 
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              <Link
+                href="/dashboard"
+                className="flex-shrink-0 text-gray-300 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
-              
+
               {/* Phone Number */}
-              <h2 className="text-base sm:text-lg font-semibold text-foreground leading-tight truncate">
+              <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
               

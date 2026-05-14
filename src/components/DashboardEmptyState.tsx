@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { hasValidSubscription } from '@/lib/subscription'
 import CallForwardingInstructions from './CallForwardingInstructions'
 
 export default function DashboardEmptyState() {
@@ -12,6 +13,9 @@ export default function DashboardEmptyState() {
   const { business } = useBusiness()
   const [showTestModal, setShowTestModal] = useState(false)
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
+
+  // Only show test setup if user has valid subscription and provisioned number
+  const canShowTestSetup = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number
 
   const handleTestSetup = () => {
     setShowTestModal(true)
@@ -60,12 +64,14 @@ export default function DashboardEmptyState() {
 
       {/* CTA Buttons */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <button
-          onClick={handleTestSetup}
-          className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Optional Real-World Test
-        </button>
+        {canShowTestSetup && (
+          <button
+            onClick={handleTestSetup}
+            className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Optional Real-World Test
+          </button>
+        )}
         <button
           onClick={handleViewInstructions}
           className="bg-secondary text-foreground py-3 px-6 rounded-lg hover:bg-secondary/80 transition-colors font-medium"

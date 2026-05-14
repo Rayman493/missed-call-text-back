@@ -28,15 +28,15 @@ export default function Navigation() {
     return null
   }
 
-  // Navigation uses theme-aware classes for consistent appearance in light and dark modes
+  // Navigation uses fixed colors for dark header (works in both light and dark modes)
   return (
     <nav className="flex items-center gap-1">
       <Link
         href="/dashboard"
         className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
           pathname === '/dashboard'
-            ? 'text-foreground bg-muted'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            ? 'text-white bg-white/10'
+            : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
         Dashboard
@@ -45,8 +45,8 @@ export default function Navigation() {
         href="/dashboard/leads"
         className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
           isActive('/dashboard/leads')
-            ? 'text-foreground bg-muted'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            ? 'text-white bg-white/10'
+            : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
         Conversations

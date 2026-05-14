@@ -680,7 +680,7 @@ export default function DashboardContent() {
       <BusinessGuard>
         <div className={`min-h-screen bg-background flex flex-col`}>
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border flex-shrink-0">
+          <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Left side - Mobile menu and logo */}
@@ -691,7 +691,7 @@ export default function DashboardContent() {
                   </div>
                   <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
                     <span className="text-xl md:text-2xl font-semibold tracking-tight">
-                      <span className="text-foreground">Reply</span>
+                      <span className="text-white">Reply</span>
                       <span className="text-blue-400">Flow</span>
                     </span>
                   </Link>
@@ -722,7 +722,8 @@ export default function DashboardContent() {
             <div className="max-w-7xl mx-auto space-y-8">
                         
             {/* Determine if onboarding is fully complete */}
-            {!isOnboardingComplete && (
+            {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
+            {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
               <>
                 {/* Activation Banner - Small motivational banner */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 mb-6">
