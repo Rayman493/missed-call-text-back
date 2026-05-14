@@ -134,9 +134,6 @@ export default function ForwardingSetupModal() {
     setCarrierError('')
     setSaveError('')
     setLoading(true)
-    
-    // Optimistic UI update - show success immediately
-    setShowSuccess(true)
 
     try {
       console.log('[ForwardingSetup] Starting setup completion...')
@@ -147,7 +144,7 @@ export default function ForwardingSetupModal() {
         phone_setup_completed_at: new Date().toISOString(),
         onboarding_status: 'pending_test'
       })
-      
+
       // Update Supabase with forwarding enabled and business_phone_carrier
       const { error } = await supabase
         .from('businesses')
@@ -176,24 +173,16 @@ export default function ForwardingSetupModal() {
           }
         })
         setSaveError(`Failed to save. ${error.message || 'Unknown error'} (Code: ${error.code || 'N/A'})`)
-        // Revert optimistic UI update on error
-        setShowSuccess(false)
       } else {
         console.log('[ForwardingSetup] Setup completed successfully')
-        
-        // Update local business state immediately to prevent modal from reopening
-        await refreshBusiness()
-        
-        // Close modal after successful update
-        setTimeout(() => {
-          router.push('/dashboard/test-setup')
-        }, 1500)
+
+        // Redirect immediately to test setup without showing success state
+        // This prevents dashboard flash and provides smooth transition
+        router.push('/dashboard/test-setup')
       }
     } catch (error) {
       console.error('[ForwardingSetup] Failed to complete setup:', error)
       setSaveError('Failed to save. Please try again.')
-      // Revert optimistic UI update on error
-      setShowSuccess(false)
     } finally {
       setLoading(false)
     }
@@ -399,34 +388,22 @@ export default function ForwardingSetupModal() {
               </div>
             )}
 
-            {showSuccess && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 transition-all duration-300 ease-in-out flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300">Great — let's test your setup.</p>
-                  <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">Redirecting to test page…</p>
-                </div>
-              </div>
-            )}
-
             <button
               onClick={handleCompleteSetup}
-              disabled={loading || !selectedCarrier}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white w-full py-2.5 font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={loading}
+              className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-3 sm:py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Saving...
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Checking setup...
                 </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  I Enabled Forwarding
-                </>
-              )}
+              ) : 'I Enabled Forwarding'}
             </button>
           </div>
         </div>
