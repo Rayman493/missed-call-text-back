@@ -80,52 +80,52 @@ export default function UserDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-20 mt-2 w-64 min-w-64 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1">
-            <div className="px-4 py-2 border-b border-gray-200 dark:border-slate-700">
-              <p className="text-sm text-gray-600 dark:text-slate-400 truncate">
+        <div className="absolute right-0 z-20 mt-2 w-64 min-w-64 bg-slate-900 dark:bg-slate-900 rounded-lg shadow-lg border border-slate-700 dark:border-slate-700 py-1">
+            <div className="px-4 py-2 border-b border-slate-700 dark:border-slate-700">
+              <p className="text-sm text-slate-400 dark:text-slate-400 truncate">
                 {user?.email || 'No email'}
               </p>
             </div>
             
             {/* Theme Selector */}
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700">
-              <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Theme</p>
+            <div className="px-4 py-3 border-b border-slate-700 dark:border-slate-700">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-500 mb-2">Theme</p>
               <ThemeSelector />
             </div>
             
             <button
               onClick={() => navigateToSettings('account')}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="w-full px-4 py-2 text-left text-sm text-slate-300 dark:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors"
             >
               Account Settings
             </button>
             <button
               onClick={handleManageBilling}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="w-full px-4 py-2 text-left text-sm text-slate-300 dark:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors"
             >
               Manage Subscription
             </button>
             <Link
               href="/"
               onClick={() => setIsOpen(false)}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors block flex items-center justify-between"
+              className="w-full px-4 py-2 text-left text-sm text-slate-300 dark:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors block flex items-center justify-between"
             >
               <span>View Website</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </Link>
-            <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+            <div className="border-t border-slate-700 dark:border-slate-700 my-1"></div>
             <Link
               href="/faq"
               onClick={() => setIsOpen(false)}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors block"
+              className="w-full px-4 py-2 text-left text-sm text-slate-300 dark:text-slate-300 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors block"
             >
               FAQ / Help
             </Link>
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="w-full px-4 py-2 text-left text-sm text-red-400 dark:text-red-400 hover:bg-slate-800 dark:hover:bg-slate-800 transition-colors"
             >
               Logout
             </button>
