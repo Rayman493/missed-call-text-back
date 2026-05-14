@@ -149,19 +149,21 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     try {
       console.log('[GettingStarted] Starting trial activation')
       const result = await handleBillingAction()
-      
+
       if (result.success && result.url) {
         console.log('[GettingStarted] Redirecting to:', result.action)
         window.location.href = result.url
       } else {
         console.error('[GettingStarted] Billing action failed:', result.error)
-        // If billing action fails, redirect to signup as fallback
-        window.location.href = '/auth/signup'
+        // If billing action fails, stay on dashboard and show error
+        setIsHandlingBilling(false)
+        alert(result.error || 'Failed to start trial. Please try again.')
       }
     } catch (error) {
       console.error('[GettingStarted] Trial activation error:', error)
-      // Fallback to signup
-      window.location.href = '/auth/signup'
+      // Stay on dashboard and show error
+      setIsHandlingBilling(false)
+      alert('Failed to start trial. Please try again.')
     } finally {
       setIsHandlingBilling(false)
     }
