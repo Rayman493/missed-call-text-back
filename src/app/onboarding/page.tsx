@@ -130,11 +130,11 @@ export default function OnboardingPage() {
   // Show loading screen while checking if user needs onboarding
   if (checkingBusiness) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-200 text-lg">Setting up your account...</p>
-          <p className="text-gray-400 text-sm mt-2">Please wait while we prepare your workspace</p>
+          <p className="text-slate-200 text-lg">Setting up your account...</p>
+          <p className="text-slate-400 text-sm mt-2">Please wait while we prepare your workspace</p>
         </div>
       </div>
     )
@@ -143,11 +143,11 @@ export default function OnboardingPage() {
   // Show loading transition when provisioning is complete
   if (provisioningComplete) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-200 text-lg">Setting up your dedicated ReplyFlow number...</p>
-          <p className="text-gray-400 text-sm mt-2">Almost there!</p>
+          <p className="text-slate-200 text-lg">Setting up your dedicated ReplyFlow number...</p>
+          <p className="text-slate-400 text-sm mt-2">Almost there!</p>
         </div>
       </div>
     )
@@ -271,20 +271,20 @@ export default function OnboardingPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 sm:p-8">
-        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-6 sm:p-8">
-          <p className="text-xs text-gray-400 mb-2">Step 1 of 2</p>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-sm text-gray-400 mb-4">Never miss a customer again - we'll text back when you can't answer</p>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
+        <div className="max-w-md w-full bg-slate-800 rounded-lg shadow-lg p-6 sm:p-8">
+          <p className="text-xs text-slate-400 mb-2">Step 1 of 2</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">Welcome to ReplyFlow</h1>
+          <p className="text-sm text-slate-400 mb-4">Never miss a customer again - we'll text back when you can't answer</p>
           
           {/* Pricing Information */}
-          <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 mb-6">
+          <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6">
             <div className="flex items-center justify-center gap-4 text-sm">
               <span className="text-green-400 font-medium">✓ {getTrialDisplay()}</span>
-              <span className="text-gray-300">•</span>
-              <span className="text-gray-300">{getPricingDisplay()} after trial</span>
-              <span className="text-gray-300">•</span>
-              <span className="text-gray-400">No contracts</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-slate-300">{getPricingDisplay()} after trial</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-slate-400">No contracts</span>
             </div>
           </div>
           

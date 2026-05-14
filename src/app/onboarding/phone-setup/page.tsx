@@ -287,15 +287,15 @@ function PhoneSetupContent() {
           Setup Instructions
         </h3>
         
-        <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-400 mb-2">Dial this from your business phone:</p>
+        <div className="bg-slate-900 rounded-lg p-4 mb-4">
+          <p className="text-sm text-slate-400 mb-2">Dial this from your business phone:</p>
           <div className="flex items-center gap-2">
-            <code className="text-2xl font-mono text-green-400 flex-1 p-4 bg-gray-800 rounded border border-gray-700 text-center">
+            <code className="text-2xl font-mono text-green-400 flex-1 p-4 bg-slate-800 rounded border border-slate-700 text-center">
               {dialCode}
             </code>
             <button
               onClick={() => handleCopyCode(dialCode)}
-              className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors"
               title="Copy forwarding code"
             >
               {copiedCode ? (
@@ -312,7 +312,7 @@ function PhoneSetupContent() {
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-3 text-center">
+          <p className="text-xs text-slate-500 mt-3 text-center">
             Forwarding to: {formattedTwilioNumber}
           </p>
         </div>
@@ -321,7 +321,7 @@ function PhoneSetupContent() {
           <p className="text-sm text-blue-200 mb-4">{instructions.notes}</p>
         )}
         
-        <div className="text-sm text-gray-400 space-y-2 mb-6">
+        <div className="text-sm text-slate-400 space-y-2 mb-6">
           <p>You may hear your carrier confirm that calls will be forwarded to your ReplyFlow number.</p>
           <p>Your carrier may read the forwarding number aloud.</p>
           <p>If activation fails, contact your carrier and ask for conditional call forwarding.</p>
@@ -331,7 +331,7 @@ function PhoneSetupContent() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => handleCopyCode(dialCode)}
-            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -340,7 +340,7 @@ function PhoneSetupContent() {
           </button>
           <button
             onClick={() => router.push('/demo')}
-            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -385,31 +385,31 @@ function PhoneSetupContent() {
 
   if (businessLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="text-slate-400">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 sm:p-8">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
       <div className="max-w-2xl w-full">
         {/* Progress indicator */}
         <div className="mb-8">
-          <p className="text-xs text-gray-400 mb-2">Almost ready — about 1 minute left</p>
-          <div className="w-full bg-gray-700 rounded-full h-2">
+          <p className="text-xs text-slate-400 mb-2">Almost ready — about 1 minute left</p>
+          <div className="w-full bg-slate-700 rounded-full h-2">
             <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
           </div>
         </div>
 
         {/* Main card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8">
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8">
           {/* Page title and subtitle */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-3">
               Connect your business phone
             </h1>
-            <p className="text-sm sm:text-base text-gray-400">
+            <p className="text-sm sm:text-base text-slate-400">
               Now that your trial is active, let's connect your business phone so ReplyFlow can start capturing missed calls.
             </p>
           </div>
@@ -423,7 +423,7 @@ function PhoneSetupContent() {
 
           {/* Step 1: Business phone number */}
           <div className="mb-8">
-            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-300 mb-2">
               Your Business Phone Number
             </label>
             <input
@@ -432,23 +432,23 @@ function PhoneSetupContent() {
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="+1 (555) 123-4567"
-              className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+              className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-slate-100"
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-slate-500 mt-2">
               The phone number your customers already call
             </p>
           </div>
 
           {/* Step 2: Carrier dropdown */}
           <div className="mb-8">
-            <label htmlFor="carrier" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="carrier" className="block text-sm font-medium text-slate-300 mb-2">
               Phone Carrier
             </label>
             <select
               id="carrier"
               value={carrier}
               onChange={(e) => setCarrier(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-gray-100"
+              className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-slate-100"
             >
               <option value="">Select your carrier</option>
               {CARRIER_OPTIONS.map((option) => (
