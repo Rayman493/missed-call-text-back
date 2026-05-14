@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import getStripe from '@/lib/stripe'
+
+const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +18,10 @@ export async function POST(request: NextRequest) {
 
     // Authenticate user using server-side client with RLS
     const supabase = createServerSupabaseClient()
-    
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       console.error('[delete-account] Authentication failed:', authError)
       return NextResponse.json(
@@ -30,11 +32,11 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Authenticated user:', user.id)
 
-    // Step 1: Find all businesses for this user
+    // Step 1: Find all businesses for this user (include Stripe + Twilio fields)
     console.log('[delete-account] Step 1: find businesses')
-    const { data: businesses, error: businessesError } = await supabase
+    const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -45,7 +47,75 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const businessIds = businesses?.map(b => b.id) || []
+    const businessIds = businesses?.map((b: any) => b.id) || []
+
+    // Step 1.5: Cancel any active Stripe subscriptions BEFORE deleting data.
+    // If cancellation fails, abort the deletion so the user is never soft-locked.
+    if (businesses && businesses.length > 0) {
+      const stripe = getStripe()
+      const subsToCancel = (businesses as any[]).filter(
+        (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
+      )
+
+      if (subsToCancel.length > 0) {
+        if (!stripe) {
+          console.error('[delete-account] Stripe client unavailable, cannot cancel subscription')
+          return NextResponse.json(
+            { ok: false, step: 'stripe_init', error: 'Billing service unavailable. Please try again later.' },
+            { status: 503 }
+          )
+        }
+
+        for (const b of subsToCancel) {
+          console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
+          try {
+            const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
+            console.log('[delete-account] Stripe cancellation result:', {
+              id: cancelled.id,
+              status: cancelled.status,
+            })
+            if (cancelled.status !== 'canceled') {
+              throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
+            }
+            // Reflect cancellation in DB before continuing
+            await supabaseAdmin
+              .from('businesses')
+              .update({ subscription_status: 'canceled' })
+              .eq('id', b.id)
+          } catch (cancelErr: any) {
+            // Already-cancelled subscriptions sometimes return a 404 / resource_missing
+            const code = cancelErr?.code || cancelErr?.raw?.code
+            if (code === 'resource_missing') {
+              console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
+            } else {
+              console.error('[delete-account] Stripe cancellation failed:', cancelErr)
+              return NextResponse.json(
+                {
+                  ok: false,
+                  step: 'stripe_cancel',
+                  error: 'Failed to cancel your subscription. Your account was not deleted. Please try again or contact support.',
+                  details: cancelErr?.message || String(cancelErr),
+                },
+                { status: 502 }
+              )
+            }
+          }
+        }
+      } else {
+        console.log('[delete-account] No active Stripe subscriptions to cancel')
+      }
+
+      // Step 1.6: Twilio number release - log only for now (full release not implemented yet)
+      for (const b of businesses as any[]) {
+        if (b.twilio_phone_number_sid) {
+          console.log('[delete-account] TODO: release Twilio number', {
+            businessId: b.id,
+            phoneNumber: b.twilio_phone_number,
+            sid: b.twilio_phone_number_sid,
+          })
+        }
+      }
+    }
     console.log('[delete-account] businesses:', businesses)
     console.log('[delete-account] businessIds:', businessIds)
 

@@ -325,13 +325,29 @@ export default function SettingsContent() {
 
     setIsDeleting(true)
     try {
-      const { error } = await supabase.rpc('delete_user_account')
-      if (error) throw error
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || !result?.ok) {
+        console.error('[Delete Account] Server error:', result)
+        const friendly =
+          result?.step === 'stripe_cancel'
+            ? (result?.error || 'We could not cancel your subscription. Your account was not deleted. Please try again or contact support.')
+            : result?.step === 'stripe_init'
+              ? 'Billing service is temporarily unavailable. Please try again in a moment.'
+              : (result?.error || 'Failed to delete account. Please try again.')
+        showToast(friendly, 'error')
+        return
+      }
 
       await signOut()
       router.push('/')
     } catch (error) {
-      console.error('Delete account error:', error)
+      console.error('[Delete Account] Network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
     } finally {
       setIsDeleting(false)
@@ -910,10 +926,18 @@ export default function SettingsContent() {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-4">
-                  Delete Account
+                  Delete your account?
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
-                  This permanently deletes your account, business, leads, messages, conversations, and follow-ups. This cannot be undone.
+                <p className="text-sm text-slate-600 dark:text-gray-400 mb-3">
+                  This will:
+                </p>
+                <ul className="text-sm text-slate-600 dark:text-gray-400 mb-4 list-disc pl-5 space-y-1">
+                  <li>Cancel your active subscription in Stripe immediately</li>
+                  <li>Permanently delete your business, leads, messages, conversations, and follow-ups</li>
+                  <li>Sign you out and delete your login</li>
+                </ul>
+                <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-4">
+                  This action cannot be undone.
                 </p>
                 <div className="mb-4">
                   <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">
@@ -943,7 +967,7 @@ export default function SettingsContent() {
                     disabled={deleteConfirmText !== 'DELETE' || isDeleting}
                     className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isDeleting ? 'Deleting...' : 'Permanently Delete Account'}
+                    {isDeleting ? 'Cancelling subscription and deleting account...' : 'Permanently Delete Account'}
                   </button>
                 </div>
               </div>
