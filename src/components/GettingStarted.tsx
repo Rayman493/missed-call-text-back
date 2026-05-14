@@ -110,16 +110,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     return null
   }
 
-  // UI state logging for debugging
-  console.log('[UI State] Frontend state:', {
-    twilio_phone_number: business?.twilio_phone_number,
-    provisioning_status: business?.provisioning_status,
-    hasTrial: business?.subscription_status === 'trialing' || business?.subscription_status === 'active',
-    hasNumber: Boolean(business?.twilio_phone_number),
-    number: business?.twilio_phone_number ?? null,
-    provisioningStatus: business?.provisioning_status ?? 'pending'
-  })
-
   // Simple onboarding state logic using direct business values
   const hasTrial = hasActiveTrial(business)
   const hasNumber = Boolean(business?.twilio_phone_number)
@@ -226,78 +216,67 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     }
   }, [])
 
+  // Always emit all 4 onboarding steps with a per-step status. This gives users a
+  // consistent, intentional progression instead of a checklist that grows
+  // step-by-step as state changes.
   const getChecklistItems = (): ChecklistItem[] => {
     if (!business) return []
 
-    const items: ChecklistItem[] = []
     const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
     const isAuthenticated = !!business
 
-    // 1. Start your free trial
-    if (currentOnboardingState === 'no_subscription') {
-      items.push({
+    const trialDone = subscriptionActive
+    const numberDone = trialDone && twilioReady
+    const forwardingDone = Boolean(forwardingComplete)
+    const testDone = Boolean(testComplete)
+
+    return [
+      {
         id: 'trial',
         title: 'Start your free trial',
         description: 'Activate ReplyFlow so your missed-call system can run.',
-        status: 'needs-action',
-        details: 'Start your 14-day free trial to begin',
-        buttonText: isHandlingBilling ? 'Processing...' : 'Start 14-Day Free Trial',
+        status: trialDone ? 'complete' : 'needs-action',
+        details: trialDone
+          ? (isTrialing ? '14-day free trial active' : 'Subscription active')
+          : 'No charge today. Cancel anytime.',
+        buttonText: trialDone
+          ? 'Manage Billing'
+          : (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial'),
         buttonOnClick: isAuthenticated ? handleStartTrial : undefined,
-        buttonHref: isAuthenticated ? undefined : '/auth/signup'
-      })
-    } else {
-      // Trial active
-      items.push({
-        id: 'trial',
-        title: 'Trial active',
-        description: 'Your ReplyFlow system is ready to capture missed calls.',
-        status: 'complete',
-        details: isTrialing ? '14-day free trial active' : 'Subscription active',
-        buttonText: 'Manage Billing',
-        buttonOnClick: handleStartTrial
-      })
-    }
-
-    // 2. ReplyFlow number ready (only show after subscription is active)
-    if (currentOnboardingState === 'provisioning_number' || currentOnboardingState === 'forwarding_needed' || currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
-      items.push({
+        buttonHref: isAuthenticated ? undefined : '/auth/signup',
+      },
+      {
         id: 'number',
-        title: 'ReplyFlow number ready',
-        description: 'Your dedicated ReplyFlow number is ready.',
-        status: 'complete',
-        details: `Your ReplyFlow number is: ${business.twilio_phone_number}`,
-        buttonText: 'Manage Billing',
-        buttonOnClick: handleStartTrial
-      })
-    }
-
-    // 3. Set up call forwarding (only show after number is ready)
-    if (currentOnboardingState === 'forwarding_needed' || currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
-      items.push({
+        title: 'Get your ReplyFlow number',
+        description: 'A dedicated local number is provisioned for your business.',
+        status: numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action'),
+        details: numberDone
+          ? `Your ReplyFlow number: ${formatPhoneNumber(business.twilio_phone_number || '')}`
+          : (trialDone ? 'Provisioning your dedicated number…' : 'Available after trial activation'),
+      },
+      {
         id: 'forwarding',
-        title: 'Set up call forwarding',
+        title: 'Forward your calls',
         description: 'Forward missed calls from your business phone to ReplyFlow.',
-        status: forwardingComplete ? 'complete' : 'needs-action',
-        details: forwardingComplete ? 'Call forwarding set up successfully' : 'Forward your business calls to activate missed-call texting',
-        buttonText: forwardingComplete ? undefined : 'View Setup Instructions',
-        buttonHref: '/onboarding/phone-setup'
-      })
-    }
-
-    // 4. Test your setup (only show after forwarding is set up)
-    if (currentOnboardingState === 'testing_needed' || currentOnboardingState === 'active_ready') {
-      items.push({
+        status: forwardingDone ? 'complete' : 'needs-action',
+        details: forwardingDone
+          ? 'Call forwarding set up successfully'
+          : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
+        buttonText: numberDone && !forwardingDone ? 'View Setup Instructions' : undefined,
+        buttonHref: numberDone && !forwardingDone ? '/onboarding/phone-setup' : undefined,
+      },
+      {
         id: 'test',
         title: 'Test your setup',
         description: 'Verify that your missed-call system is working correctly.',
-        status: testComplete ? 'complete' : 'needs-action',
-        details: testComplete ? 'Setup tested successfully' : 'Not tested yet',
-        buttonText: testComplete ? undefined : 'View Test Instructions',
-        buttonHref: '/dashboard/test-setup'
-      })
-    }
-
-    return items
+        status: testDone ? 'complete' : 'needs-action',
+        details: testDone
+          ? 'Setup tested successfully'
+          : (forwardingDone ? 'Run a quick test call to confirm everything works' : 'Available once forwarding is enabled'),
+        buttonText: forwardingDone && !testDone ? 'View Test Instructions' : undefined,
+        buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
+      },
+    ]
   }
 
   const checklistItems = getChecklistItems()
@@ -384,25 +363,30 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
     )
   }
 
-  // Full expanded state - Simple normal-flow layout
+  // Numbered onboarding checklist with progress bar.
+  const totalSteps = checklistItems.length
+  const doneSteps = checklistItems.filter(i => i.status === 'complete').length
+  const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
+
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-transparent dark:bg-slate-900/20 p-4 sm:p-6 mb-4 sm:mb-6">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-5 sm:p-6">
+      {/* Header with progress */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Getting Started
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">
+              Setup Progress
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Finish these steps to start capturing missed calls.
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+              {doneSteps} of {totalSteps} steps completed
             </p>
           </div>
           <button
             type="button"
             onClick={handleToggle}
-            className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors flex-shrink-0"
             aria-expanded={isExpanded}
-            aria-label="Toggle getting started checklist"
+            aria-label="Toggle setup checklist"
           >
             <svg
               className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -414,138 +398,102 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
             </svg>
           </button>
         </div>
-      </div>
-      {isExpanded && (
-        <div className="space-y-2">
-          {/* Show incomplete items first */}
-          {incompleteItems.map((item: ChecklistItem) => (
-            <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg">
-              <div className="flex-shrink-0 mt-0.5">
-                {item.status === 'needs-action' ? (
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Circle className="w-4 h-4 text-white" />
-                  </div>
-                ) : (
-                  <div className="w-6 h-6 bg-yellow-600 rounded-full flex items-center justify-center">
-                    <Circle className="w-4 h-4 text-white" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                    {item.title}
-                  </h3>
-                  <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                    item.status === 'needs-action' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                  }`}>
-                    {item.status === 'needs-action' ? 'Action needed' : 'Not tested yet'}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 break-words">
-                  {item.description}
-                </p>
-                {item.details && (
-                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 break-words">
-                    {item.details}
-                  </p>
-                )}
-                {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                  item.buttonOnClick ? (
-                    <button
-                      onClick={item.buttonOnClick}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      {item.buttonText}
-                    </button>
-                  ) : (
-                    <Link
-                      href={item.buttonHref!}
-                      className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      {item.buttonText}
-                    </Link>
-                  )
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {/* Show completed items - collapsed if auto-collapse is enabled */}
-          {completedItems.length > 0 && (
-            <div className="space-y-2">
-              {shouldAutoCollapseCompleted ? (
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
-                        {completedItems.length} completed step{completedItems.length > 1 ? 's' : ''}
-                      </h3>
-                      <p className="text-xs text-green-600 dark:text-green-400">
-                        Setup is nearly complete
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                completedItems.map((item: ChecklistItem) => (
-                  <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg opacity-75">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                          {item.title}
-                        </h3>
-                        <span className="text-xs px-2 py-1 rounded-full flex-shrink-0 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          Complete
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 break-words">
-                        {item.description}
-                      </p>
-                      {item.details && (
-                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 break-words">
-                          {item.details}
-                        </p>
-                      )}
-                      {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                        item.buttonOnClick ? (
-                          <button
-                            onClick={item.buttonOnClick}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            {item.buttonText}
-                          </button>
-                        ) : (
-                          <Link
-                            href={item.buttonHref!}
-                            className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            {item.buttonText}
-                          </Link>
-                        )
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+        {/* Progress bar */}
+        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 ease-out"
+            style={{ width: `${progressPct}%` }}
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            role="progressbar"
+          />
         </div>
+      </div>
+
+      {isExpanded && (
+        <ol className="space-y-3">
+          {checklistItems.map((item, idx) => {
+            const stepNum = idx + 1
+            const isComplete = item.status === 'complete'
+            const isCurrent = !isComplete && checklistItems.findIndex(i => i.status !== 'complete') === idx
+            return (
+              <li
+                key={item.id}
+                className={`flex items-start gap-4 p-4 rounded-xl border transition-colors ${
+                  isComplete
+                    ? 'bg-green-50/60 dark:bg-green-900/10 border-green-200 dark:border-green-800/50'
+                    : isCurrent
+                      ? 'bg-blue-50/60 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50'
+                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
+                }`}
+              >
+                <div className="flex-shrink-0 mt-0.5">
+                  {isComplete ? (
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                        isCurrent
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      {stepNum}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100">
+                      Step {stepNum} — {item.title}
+                    </h3>
+                    <span
+                      className={`text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                        isComplete
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          : isCurrent
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      }`}
+                    >
+                      {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    {item.description}
+                  </p>
+                  {item.details && (
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-3">
+                      {item.details}
+                    </p>
+                  )}
+                  {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
+                    item.buttonOnClick ? (
+                      <button
+                        onClick={item.buttonOnClick}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        {item.buttonText}
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.buttonHref!}
+                        className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        {item.buttonText}
+                      </Link>
+                    )
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
       )}
     </div>
   )

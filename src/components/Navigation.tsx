@@ -29,23 +29,33 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="flex items-center gap-6">
+    <nav className="flex items-center gap-1 sm:gap-2">
       <Link
         href="/dashboard"
-        className={`text-sm font-medium transition-colors ${
-          isActive('/dashboard') && pathname === '/dashboard'
-            ? 'text-blue-400'
-            : 'text-gray-400 hover:text-gray-100'
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          pathname === '/dashboard'
+            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
         }`}
       >
         Dashboard
       </Link>
       <Link
-        href="/"
-        className="text-xs text-gray-500 hover:text-gray-300 transition-colors opacity-75 hover:opacity-100"
+        href="/dashboard/leads"
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          isActive('/dashboard/leads')
+            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+        }`}
       >
-        Homepage
+        Conversations
       </Link>
-          </nav>
+      <Link
+        href="/"
+        className="ml-1 sm:ml-2 px-3 py-1.5 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+      >
+        View Homepage
+      </Link>
+    </nav>
   )
 }

@@ -716,7 +716,7 @@ export default function DashboardContent() {
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-            <div className="max-w-6xl mx-auto space-y-8">
+            <div className="max-w-7xl mx-auto space-y-8">
                         
             {/* Billing Error */}
             {billingError && (
@@ -835,53 +835,53 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Inactive Subscription - Primary CTA for New Users */}
+            {/* Pre-trial premium onboarding hero: single, focused activation card */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <div className={`${bgTokens.muted} ${borderTokens.focus} rounded-xl p-4`}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🚀</span>
-                    <div>
-                      {hasActiveTrial(business) && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) ? (
-                        <>
-                          <p className={`text-sm font-semibold ${textTokens.primary}`}>
-                            Free trial active
-                          </p>
-                          <p className={`text-xs ${textTokens.secondary}`}>
-                            {getTrialDisplay()}
-                          </p>
-                          <p className={`text-xs ${textTokens.link} mt-1`}>
-                            Upgrade anytime during or after trial.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className={`text-sm font-semibold ${textTokens.primary}`}>
-                            Start your 14-day free trial
-                          </p>
-                          <p className={`text-xs ${textTokens.secondary}`}>
-                            Activate ReplyFlow to capture missed calls and grow your business
-                          </p>
-                          <p className={`text-xs ${textTokens.muted} mt-1`}>
-                            No charge today. Cancel anytime before your trial ends.
-                          </p>
-                        </>
-                      )}
+              <section className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 shadow-sm">
+                <div className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-30 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.18),_transparent_55%)]" />
+                <div className="relative p-6 sm:p-10">
+                  <div className="max-w-2xl mx-auto text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-medium mb-5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                      Ready to activate
                     </div>
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
+                      Start capturing missed calls
+                    </h1>
+                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-6">
+                      Activate ReplyFlow to provision your dedicated number and turn every missed
+                      call into a conversation.
+                    </p>
+                    <ul className="text-sm text-slate-700 dark:text-slate-200 mb-8 space-y-2 text-left max-w-md mx-auto">
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                        Get your dedicated ReplyFlow number
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                        Forward your business calls in minutes
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                        Automatically text back missed callers
+                      </li>
+                    </ul>
+                    <button
+                      onClick={handleStartSubscription}
+                      disabled={checkoutLoading}
+                      className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                      {checkoutLoading ? 'Starting…' : 'Start Your 14-Day Free Trial'}
+                    </button>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">
+                      No charge today. Cancel anytime before your trial ends.
+                    </p>
                   </div>
-                  <button
-                    onClick={handleStartSubscription}
-                    disabled={checkoutLoading}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-all hover:shadow-md hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-                  >
-                    {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
-                  </button>
                 </div>
-              </div>
+              </section>
             )}
-                        
-            {/* Telecom-active sections: only render once the user has started a trial/subscription.
-                Pre-trial users see a clean onboarding preview instead of empty telemetry. */}
+
+            {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
             {hasActiveSubscription(business) ? (
               <>
                 {/* Live Activity Section - Top Priority */}
@@ -929,30 +929,7 @@ export default function DashboardContent() {
               </div>
                 </div>
               </>
-            ) : (
-              /* Pre-trial onboarding preview (no telecom UI). */
-              <div className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-6 sm:p-8">
-                <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
-                  <span className="text-4xl mb-4">📞</span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                    Start capturing missed calls instantly
-                  </h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-                    Your dedicated ReplyFlow number, forwarding instructions, and automation
-                    settings will appear here as soon as you start your free trial.
-                  </p>
-                  <ul className="text-sm text-slate-600 dark:text-slate-300 mb-6 space-y-1 text-left">
-                    <li>• A dedicated local ReplyFlow number, provisioned automatically</li>
-                    <li>• Carrier-specific forwarding instructions</li>
-                    <li>• Automatic text-back when you miss a call</li>
-                    <li>• Lead inbox, follow-ups, and conversation tracking</li>
-                  </ul>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No charge today. Cancel anytime before your trial ends.
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : null}
 
             {/* Checkout success confirming message */}
             {webhookConfirming && (
