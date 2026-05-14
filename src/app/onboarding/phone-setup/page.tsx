@@ -295,9 +295,12 @@ function PhoneSetupContent() {
               title="Copy forwarding code"
             >
               {copiedCode ? (
-                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <>
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="sr-only">Copied!</span>
+                </>
               ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -306,7 +309,7 @@ function PhoneSetupContent() {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-3 text-center">
-            ReplyFlow Number: {formattedTwilioNumber}
+            Forwarding to: {formattedTwilioNumber}
           </p>
         </div>
         
@@ -319,61 +322,65 @@ function PhoneSetupContent() {
           <p>If activation fails, contact your carrier and ask for conditional call forwarding.</p>
         </div>
 
-        {/* Clear action buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Utility buttons */}
+        <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => handleCopyCode(dialCode)}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
             </svg>
-            Copy forwarding code
-          </button>
-          <button
-            onClick={handleForwardingEnabled}
-            disabled={isForwardingEnabled || isSaving}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              isForwardingEnabled 
-                ? 'bg-green-800 text-green-200 cursor-not-allowed' 
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-          >
-            {isForwardingEnabled ? (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                ✓ Forwarding Enabled
-              </>
-            ) : isSaving ? (
-              <>
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                Preparing test setup...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                I Enabled Forwarding
-              </>
-            )}
+            Copy code
           </button>
           <button
             onClick={() => router.push('/demo')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              isForwardingEnabled 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-800' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {isForwardingEnabled ? 'View Demo' : 'View Demo'}
+            Watch setup demo
           </button>
         </div>
+
+        {/* Primary action button */}
+        <button
+          onClick={handleForwardingEnabled}
+          disabled={isForwardingEnabled || isSaving}
+          className={`w-full px-6 py-4 text-base font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+            isForwardingEnabled 
+              ? 'bg-green-800 text-green-200 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
+        >
+          {isForwardingEnabled ? (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              ✓ Forwarding Enabled
+            </>
+          ) : isSaving ? (
+            <>
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Preparing test setup...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Continue to Test Setup
+            </>
+          )}
+        </button>
+
+        {/* Reassurance text */}
+        <p className="text-xs text-gray-500 text-center mt-3">
+          You can disable forwarding anytime from your phone carrier settings.
+        </p>
       </div>
     )
   }
@@ -391,18 +398,18 @@ function PhoneSetupContent() {
       <div className="max-w-2xl w-full">
         {/* Progress indicator */}
         <div className="mb-8">
-          <p className="text-xs text-gray-400 mb-2">Post-Trial Setup</p>
+          <p className="text-xs text-gray-400 mb-2">Step 3 of 4 — Connect your business phone</p>
           <div className="w-full bg-gray-700 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
           </div>
         </div>
 
         {/* Main card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-6">
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8">
           {/* Page title and subtitle */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-3">
-              Set up call forwarding
+              Connect your business phone
             </h1>
             <p className="text-sm sm:text-base text-gray-400">
               Now that your trial is active, let's connect your business phone so ReplyFlow can start capturing missed calls.
@@ -417,7 +424,7 @@ function PhoneSetupContent() {
           )}
 
           {/* Step 1: Business phone number */}
-          <div className="mb-6">
+          <div className="mb-8">
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300 mb-2">
               Your Business Phone Number
             </label>
@@ -435,7 +442,7 @@ function PhoneSetupContent() {
           </div>
 
           {/* Step 2: Carrier dropdown */}
-          <div className="mb-6">
+          <div className="mb-8">
             <label htmlFor="carrier" className="block text-sm font-medium text-gray-300 mb-2">
               Phone Carrier
             </label>
@@ -459,7 +466,7 @@ function PhoneSetupContent() {
         </div>
 
         {/* How it works card */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-6">
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8">
           <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
             <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
