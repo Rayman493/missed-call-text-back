@@ -102,7 +102,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
 
   if (leads.length === 0 && missedCalls === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 dark:border-slate-700 p-6">
         <div className="text-center py-8">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -121,35 +121,35 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 dark:border-slate-700">
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               Live Activity
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
               Recent missed calls and customer conversations
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('recent')}
-              className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
                 activeTab === 'recent'
-                  ? 'bg-blue-900/30 text-blue-300'
-                  : 'text-gray-400 hover:text-gray-100'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
               }`}
             >
               Recent
             </button>
             <button
               onClick={() => setActiveTab('responses')}
-              className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors relative ${
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all relative ${
                 activeTab === 'responses'
-                  ? 'bg-blue-900/30 text-blue-300'
-                  : 'text-gray-400 hover:text-gray-100'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
               }`}
             >
               Needs Response
@@ -177,7 +177,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
               recentActivity.map((item, index) => (
                 <div
                   key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
@@ -192,10 +192,10 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-100 truncate">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {getActivityText(item)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {getActivityTime(item)}
                       </p>
                     </div>
@@ -226,7 +226,7 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
               leadsNeedingResponse.map((lead, index) => (
                 <div
                   key={lead.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-red-900/20 border border-red-800 rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
@@ -235,10 +235,10 @@ export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveA
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-100 truncate">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         Reply from {formatLeadPhone(lead.caller_phone)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {formatRelativeTime(lead.last_message_at || lead.first_contact_at)}
                       </p>
                     </div>

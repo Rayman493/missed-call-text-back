@@ -302,6 +302,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
 
   const checklistItems = getChecklistItems()
 
+  // Check if we should auto-collapse completed items
+  const shouldAutoCollapseCompleted = useMemo(() => {
+    if (!business) return false
+    
+    const hasTrial = hasActiveTrial(business)
+    const hasNumber = business.twilio_phone_number && business.twilio_phone_number !== null
+    
+    return hasTrial && hasNumber
+  }, [business])
+
+  // Separate completed and incomplete items
+  const completedItems = checklistItems.filter(item => item.status === 'complete')
+  const incompleteItems = checklistItems.filter(item => item.status !== 'complete')
+
   const handleToggle = () => {
     setIsAnimating(true)
     const newExpanded = !isExpanded
@@ -403,69 +417,134 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle }: G
       </div>
       {isExpanded && (
         <div className="space-y-2">
-        {checklistItems.map((item: ChecklistItem) => (
-          <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg">
-            <div className="flex-shrink-0 mt-0.5">
-              {item.status === 'complete' ? (
-                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+          {/* Show incomplete items first */}
+          {incompleteItems.map((item: ChecklistItem) => (
+            <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg">
+              <div className="flex-shrink-0 mt-0.5">
+                {item.status === 'needs-action' ? (
+                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                    <Circle className="w-4 h-4 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 bg-yellow-600 rounded-full flex items-center justify-center">
+                    <Circle className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    {item.title}
+                  </h3>
+                  <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                    item.status === 'needs-action' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  }`}>
+                    {item.status === 'needs-action' ? 'Action needed' : 'Not tested yet'}
+                  </span>
                 </div>
-              ) : item.status === 'needs-action' ? (
-                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Circle className="w-4 h-4 text-white" />
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 break-words">
+                  {item.description}
+                </p>
+                {item.details && (
+                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 break-words">
+                    {item.details}
+                  </p>
+                )}
+                {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
+                  item.buttonOnClick ? (
+                    <button
+                      onClick={item.buttonOnClick}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      {item.buttonText}
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.buttonHref!}
+                      className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      {item.buttonText}
+                    </Link>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
+          
+          {/* Show completed items - collapsed if auto-collapse is enabled */}
+          {completedItems.length > 0 && (
+            <div className="space-y-2">
+              {shouldAutoCollapseCompleted ? (
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
+                        {completedItems.length} completed step{completedItems.length > 1 ? 's' : ''}
+                      </h3>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Setup is nearly complete
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="w-6 h-6 bg-yellow-600 rounded-full flex items-center justify-center">
-                  <Circle className="w-4 h-4 text-white" />
-                </div>
+                completedItems.map((item: ChecklistItem) => (
+                  <div key={item.id} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg opacity-75">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {item.title}
+                        </h3>
+                        <span className="text-xs px-2 py-1 rounded-full flex-shrink-0 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Complete
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 break-words">
+                        {item.description}
+                      </p>
+                      {item.details && (
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 break-words">
+                          {item.details}
+                        </p>
+                      )}
+                      {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
+                        item.buttonOnClick ? (
+                          <button
+                            onClick={item.buttonOnClick}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            {item.buttonText}
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.buttonHref!}
+                            className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            {item.buttonText}
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {item.title}
-                </h3>
-                <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                  item.status === 'complete' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                  item.status === 'needs-action' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                }`}>
-                  {item.status === 'complete' ? 'Complete' :
-                   item.status === 'needs-action' ? 'Action needed' :
-                   'Not tested yet'}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 break-words">
-                {item.description}
-              </p>
-              {item.details && (
-                <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 break-words">
-                  {item.details}
-                </p>
-              )}
-              {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                item.buttonOnClick ? (
-                  <button
-                    onClick={item.buttonOnClick}
-                    disabled={isHandlingBilling}
-                    className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
-                  >
-                    {item.buttonText}
-                  </button>
-                ) : (
-                  <Link
-                    href={item.buttonHref!}
-                    className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
-                  >
-                    {item.buttonText}
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
-        ))}
+          )}
         </div>
       )}
     </div>

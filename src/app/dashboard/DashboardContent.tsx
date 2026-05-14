@@ -757,15 +757,15 @@ export default function DashboardContent() {
 
             {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
-              <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl p-2">
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">⚠️</span>
+                    <span className="text-lg">⚠️</span>
                     <div>
-                      <p className="text-sm font-semibold text-yellow-100">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                         Finish testing your setup
                       </p>
-                      <p className="text-xs text-yellow-300">
+                      <p className="text-xs text-amber-600 dark:text-amber-300">
                         Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
                       </p>
                     </div>
@@ -773,15 +773,15 @@ export default function DashboardContent() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => router.push('/dashboard/test-setup')}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
                     >
                       Test Setup
                     </button>
                     <button
                       onClick={handleDismissSetupBanner}
-                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      className="px-2.5 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-colors"
                     >
-                      Dismiss for now
+                      Dismiss
                     </button>
                   </div>
                 </div>
@@ -897,33 +897,37 @@ export default function DashboardContent() {
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-lg sm:text-xl">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Missed Calls</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white">{missedCalls}</p>
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white mb-1">{missedCalls}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">total missed</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">New Leads</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-100">{leadsRecovered}</p>
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-blue-600 dark:text-blue-100 mb-1">{leadsRecovered}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">captured leads</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Conversations</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-600 dark:text-green-100">{textsSent}</p>
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-green-600 dark:text-green-100 mb-1">{textsSent}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">messages sent</p>
               </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-lg sm:text-xl">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Follow-ups</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Follow-ups</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 dark:text-purple-100">{followUpsScheduled}</p>
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-purple-600 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">scheduled</p>
               </div>
             </div>
 
@@ -1005,13 +1009,13 @@ export default function DashboardContent() {
               null
             ) : (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-semibold text-gray-100">Your Leads</h2>
-                    <p className="text-sm text-gray-400">People who called but did not reach you.</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Your Leads</h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">People who called but did not reach you.</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
                       {processedLeads.length} of {leads.length} leads
                     </span>
                   </div>
@@ -1026,9 +1030,9 @@ export default function DashboardContent() {
                         placeholder="Search by phone, message, or status..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-2.5 sm:py-3 ${borderTokens.default} rounded-lg sm:rounded-xl ${bgTokens.input} ${textTokens.primary} placeholder:${textTokens.muted} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        className={`w-full pl-10 pr-4 py-3 ${borderTokens.default} rounded-xl ${bgTokens.input} ${textTokens.primary} placeholder:${textTokens.muted} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm transition-all`}
                       />
-                      <svg className="absolute left-3 top-2.5 sm:top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
@@ -1037,7 +1041,7 @@ export default function DashboardContent() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className={`px-3 py-2.5 sm:px-4 sm:py-3 ${borderTokens.default} rounded-lg sm:rounded-xl ${bgTokens.input} ${textTokens.primary} text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`px-4 py-3 ${borderTokens.default} rounded-xl ${bgTokens.input} ${textTokens.primary} text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all`}
                     >
                       <option value="all">All</option>
                       <option value="new">New</option>
@@ -1050,7 +1054,7 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
                     <div className="p-6 sm:p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg m-4">
                       <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl">🔍</div>
@@ -1089,7 +1093,7 @@ export default function DashboardContent() {
                         }
 
                         return (
-                        <div key={lead.id} className={`p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
@@ -1103,14 +1107,14 @@ export default function DashboardContent() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
+                                    <p className="font-bold text-lg text-slate-900 dark:text-gray-100 truncate">{formatLeadPhone(lead.caller_phone)}</p>
                                     {hasUnreadReply && (
-                                      <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full flex-shrink-0 animate-pulse">
+                                      <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-full flex-shrink-0 animate-pulse">
                                         Needs response
                                       </span>
                                     )}
                                     {isNewLead && (
-                                      <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-medium rounded-full flex-shrink-0">
+                                      <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-semibold rounded-full flex-shrink-0">
                                         New
                                       </span>
                                     )}
@@ -1135,7 +1139,7 @@ export default function DashboardContent() {
                               </span>
                               <Link
                                 href={`/dashboard/leads/${lead.id}`}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all hover:scale-105 shadow-sm"
                               >
                                 View
                               </Link>
