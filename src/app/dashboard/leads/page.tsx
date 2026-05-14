@@ -298,9 +298,9 @@ export default function LeadsPage() {
                     >
                       <option value="all">All Status</option>
                       <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="converted">Converted</option>
-                      <option value="blocked">Blocked</option>
+                      <option value="qualified">Qualified</option>
+                      <option value="replied">Replied</option>
+                      <option value="closed">Closed</option>
                     </select>
                   </div>
                 </div>
@@ -410,8 +410,10 @@ export default function LeadsPage() {
                     const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
                     let statusBadge = 'New'
-                    if (hasReplied) statusBadge = 'Replied'
-                    else if (hasTexted) statusBadge = 'Texted'
+                    if (lead.lead_status === 'qualified') statusBadge = 'Qualified'
+                    else if (lead.lead_status === 'closed') statusBadge = 'Closed'
+                    else if (lead.lead_status === 'replied') statusBadge = 'Replied'
+                    else if (hasReplied) statusBadge = 'Replied'
                     else if (lead.status === 'blocked') statusBadge = 'Blocked'
 
                     return (
@@ -472,10 +474,11 @@ export default function LeadsPage() {
                           <div className="flex items-center gap-3 flex-shrink-0">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                               statusBadge === 'New' ? 'bg-blue-900/30 text-blue-300' :
-                              statusBadge === 'Texted' ? 'bg-yellow-900/30 text-yellow-300' :      
+                              statusBadge === 'Qualified' ? 'bg-purple-900/30 text-purple-300' :
                               statusBadge === 'Replied' ? 'bg-green-900/30 text-green-300' :
-                              statusBadge === 'Sent' ? 'bg-gray-700 text-gray-300' :
-                              'bg-red-900/30 text-red-400'
+                              statusBadge === 'Closed' ? 'bg-gray-700 text-gray-300' :
+                              statusBadge === 'Blocked' ? 'bg-red-900/30 text-red-400' :
+                              'bg-gray-700 text-gray-300'
                             }`}>
                               {statusBadge}
                             </span>
