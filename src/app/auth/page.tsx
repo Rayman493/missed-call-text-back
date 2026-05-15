@@ -185,6 +185,9 @@ function AuthContent() {
       console.log('[Auth] User created:', !!data.user)
       console.log('[Auth] User ID:', data.user?.id)
       console.log('[Auth] User email:', data.user?.email)
+      console.log('[Auth] User email_confirmed_at:', data.user?.email_confirmed_at)
+      console.log('[Auth] User confirmation_sent_at:', data.user?.confirmation_sent_at)
+      console.log('[Auth] User identities length:', data.user?.identities?.length)
       console.log('[Auth] Session created:', !!data.session)
       console.log('[Auth] Session user ID:', data.session?.user?.id)
       console.log('[Auth] Session access token exists:', !!data.session?.access_token)
@@ -235,12 +238,28 @@ function AuthContent() {
         })
 
         if (signInError || !signInData.session) {
-          console.error('[Auth] Auto sign-in failed, email confirmation likely required')
-          setError('Account created! Please check your email to confirm, then sign in.')
+          console.error('[Auth] Auto sign-in failed')
+          const signInErrorMessage = signInError?.message || 'Unknown error'
+          console.error('[Auth] Auto sign-in error:', signInErrorMessage)
+          
+          // Only redirect to sign-in if error clearly indicates email confirmation is required
+          if (signInErrorMessage.toLowerCase().includes('email not confirmed') ||
+              signInErrorMessage.toLowerCase().includes('confirm your email') ||
+              signInErrorMessage.toLowerCase().includes('email confirmation')) {
+            console.log('[Auth] Email confirmation required, redirecting to sign-in')
+            setError('Account created! Please check your email to confirm, then sign in.')
+            setIsSignIn(true)
+            setLoading(false)
+            isSubmittingRef.current = false
+            router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
+            return
+          }
+          
+          // For any other error, show the error but don't redirect
+          setError(`Account created but could not establish session: ${signInErrorMessage}. Please try signing in.`)
           setIsSignIn(true)
           setLoading(false)
           isSubmittingRef.current = false
-          router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
           return
         }
 
@@ -248,16 +267,18 @@ function AuthContent() {
         // Continue with the signInData.session
       }
 
-      // Success path 3: Use the session (either from signUp or auto signIn)
-      const finalSession = data.session || (await supabase.auth.getSession()).data.session
+      // Success path 3: Verify session exists before proceeding
+      console.log('[Auth] Verifying session exists before redirect...')
+      const { data: { session: verifiedSession } } = await supabase.auth.getSession()
+      console.log('[Auth] Verified session exists:', !!verifiedSession)
+      console.log('[Auth] Verified session user ID:', verifiedSession?.user?.id)
       
-      if (!finalSession) {
+      if (!verifiedSession) {
         console.error('[Auth] No session after signup and auto sign-in attempt')
         setError('Account created but session could not be established. Please sign in.')
         setIsSignIn(true)
         setLoading(false)
         isSubmittingRef.current = false
-        router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
         return
       }
 
