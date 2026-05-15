@@ -77,6 +77,7 @@ function AuthContent() {
     setError('')
 
     try {
+      console.log('[Auth] Starting sign in process')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -87,11 +88,26 @@ function AuthContent() {
       console.log('[Auth] Sign in successful, session exists:', !!data.session)
       console.log('[Auth] User ID:', data.user?.id)
       
-      // Wait for session to be persisted (mobile localStorage delay)
-      setTimeout(() => {
-        console.log('[Auth] Redirecting to:', redirectParam)
-        router.push(redirectParam)
-      }, 300)
+      // Wait for session to be persisted to localStorage (mobile delay)
+      console.log('[Auth] Waiting for session persistence...')
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Verify session is actually persisted
+      const { data: { session: persistedSession }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[Auth] Session persistence check:', {
+        sessionExists: !!persistedSession,
+        userId: persistedSession?.user?.id,
+        sessionError: sessionError?.message
+      })
+
+      if (!persistedSession) {
+        console.error('[Auth] Session not persisted after sign in')
+        setError('Sign in successful but session not saved. Please try again.')
+        return
+      }
+      
+      console.log('[Auth] Session persisted successfully, redirecting to:', redirectParam)
+      router.push(redirectParam)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
     } finally {
@@ -106,6 +122,7 @@ function AuthContent() {
     setExistingAccount(false)
 
     try {
+      console.log('[Auth] Starting sign up process')
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -115,6 +132,10 @@ function AuthContent() {
       })
 
       if (error) throw error
+
+      console.log('[Auth] Sign up API call completed')
+      console.log('[Auth] User created:', !!data.user)
+      console.log('[Auth] Session created:', !!data.session)
 
       // Check if user exists but has empty identities (indicates existing account)
       if (data.user && data.user.identities && data.user.identities.length === 0) {
@@ -132,8 +153,28 @@ function AuthContent() {
         return
       }
 
-      // Redirect to onboarding after successful signup with session
-      console.log('[Auth] Sign up successful with session, redirecting to onboarding')
+      // Wait for session to be persisted to localStorage (mobile delay)
+      console.log('[Auth] Session created, waiting for persistence...')
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Verify session is actually persisted
+      const { data: { session: persistedSession }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[Auth] Session persistence check:', {
+        sessionExists: !!persistedSession,
+        userId: persistedSession?.user?.id,
+        sessionError: sessionError?.message
+      })
+
+      if (!persistedSession) {
+        console.error('[Auth] Session not persisted after signup')
+        setError('Account created but session not saved. Please sign in.')
+        setIsSignIn(true)
+        router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+        return
+      }
+
+      // Redirect to onboarding after successful signup with persisted session
+      console.log('[Auth] Sign up successful with persisted session, redirecting to onboarding')
       router.push('/onboarding')
     } catch (err: any) {
       // Check for existing user error

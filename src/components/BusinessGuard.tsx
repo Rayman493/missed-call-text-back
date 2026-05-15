@@ -19,6 +19,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     console.log('[Routing] BusinessGuard evaluating')
+    console.log('[Routing] User authenticated:', !!user)
+    console.log('[Routing] User ID:', user?.id)
     console.log('[Routing] Loading state:', loading)
     console.log('[Routing] Business state:', {
       exists: !!business,
@@ -56,6 +58,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     
     // Only redirect if loading is complete and initialized
     if (!loading && initialized) {
+      // Redirect if user is not authenticated
+      if (!user) {
+        console.log('[Routing] No user authenticated, redirecting to sign in')
+        router.push('/auth/signin?redirect=/dashboard')
+        return
+      }
+      
       // Redirect if no business exists
       if (!business) {
         console.log('[Routing] No business found, redirecting to onboarding')
@@ -85,7 +94,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     } else {
       console.log('[Routing] Business still loading or not initialized, waiting...')
     }
-  }, [business, loading, router, pathname, checkoutStatus, initialized])
+  }, [business, loading, router, pathname, checkoutStatus, initialized, user])
 
   // Show loading state while business is loading or not yet initialized
   if (loading || !initialized) {

@@ -44,8 +44,8 @@ export async function POST(request: Request) {
     console.log('[stripe-checkout] User authentication result:', { user: !!user, userId: user?.id, email: user?.email });
     
     if (!user) {
-      console.error('[stripe-checkout] No authenticated user found');
-      return NextResponse.json({ error: 'Unauthorized - no user found' }, { status: 401 })
+      console.error('[stripe-checkout] No authenticated user found - blocking checkout');
+      return NextResponse.json({ error: 'Authentication required before starting checkout. Please sign in first.' }, { status: 401 })
     }
 
     // Get or create user's business using centralized function
