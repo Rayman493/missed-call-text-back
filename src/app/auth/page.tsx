@@ -157,6 +157,11 @@ function AuthContent() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // IMPORTANT: For MVP/testing mode, email confirmation should be disabled in Supabase
+    // Supabase Dashboard → Authentication → Providers → Email → Confirm email = OFF
+    // This allows signup to immediately create a session without requiring email confirmation
+    // If email confirmation is enabled, users will see: "Please check your email to confirm your account before continuing."
+
     // Hard submit lock - prevent double-submit
     if (isSubmittingRef.current) {
       console.log('[Auth] Submit already in progress, blocking duplicate submit')
@@ -181,6 +186,11 @@ function AuthContent() {
       })
 
       console.log('[Auth] Sign up API call completed')
+      console.log('[SIGNUP RESULT]', {
+        hasUser: !!data.user,
+        hasSession: !!data.session,
+        emailConfirmed: !!data.user?.email_confirmed_at,
+      })
       console.log('[Auth] Full response:', JSON.stringify(data, null, 2))
       console.log('[Auth] User created:', !!data.user)
       console.log('[Auth] User ID:', data.user?.id)
@@ -222,6 +232,18 @@ function AuthContent() {
       // Success path 2: Email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
         console.log('[Auth] Email confirmation required - user created but no session')
+        console.log('[Auth] User email_confirmed_at:', data.user?.email_confirmed_at)
+        
+        // Explicit handling for unconfirmed users - do NOT continue without session
+        if (!data.user?.email_confirmed_at) {
+          console.log('[Auth] Email not confirmed, showing confirmation message')
+          setError('Please check your email to confirm your account before continuing.')
+          setIsSignIn(true)
+          setLoading(false)
+          isSubmittingRef.current = false
+          return
+        }
+        
         console.log('[Auth] This indicates email confirmation is enabled in Supabase')
         console.log('[Auth] Attempting auto sign-in to bypass email confirmation for MVP')
         
