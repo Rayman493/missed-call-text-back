@@ -72,21 +72,35 @@ export function isValidPhone(phone: string): boolean {
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return 'Unknown caller'
   
-  const normalized = phone.replace(/\D/g, '')
+  let normalized = phone.replace(/\D/g, '')
 
   // Handle E.164 format (+1XXXXXXXXXX) - strip leading 1
   if (normalized.length === 11 && normalized.startsWith('1')) {
-    const digits = normalized.slice(1)
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+    normalized = normalized.substring(1)
   }
 
-  // Format as (XXX) XXX-XXXX for 10-digit US numbers
+  // Format as (XXX) XXX-XXXX
   if (normalized.length === 10) {
     return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`
   }
 
-  // Return as is for other formats
+  // Fallback to original if not 10 digits
   return phone
+}
+
+export function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return ''
+  }
 }
 
 export function getReplyFlowPhoneNumber(business: any): string {

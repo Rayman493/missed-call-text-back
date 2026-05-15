@@ -8,7 +8,8 @@ import {
   formatPhoneNumber, 
   formatRelativeTime, 
   truncateText, 
-  getLeadStatusColor
+  getLeadStatusColor,
+  formatDate
 } from '@/lib/utils'
 import { 
   getSubscriptionStatusText,
@@ -816,30 +817,84 @@ export default function DashboardContent() {
               </div>
             )}
 
-            {/* Trial Banner - Lower Priority - Reduced height */}
-            {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && isInTrialPeriod(business?.subscription_status) && (
-              <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🎉</span>
-                    <div>
-                      <p className={`text-xs font-semibold ${textTokens.primary}`}>
-                        Free trial active
-                      </p>
-                      <p className={`text-[10px] ${textTokens.secondary}`}>
-                        Billing starts at $49/month after trial unless you cancel.
-                      </p>
+            {/* Consolidated Subscription/Trial Status Banner */}
+            {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+              (() => {
+                const isScheduledToCancelValue = isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end)
+                const isInTrial = isInTrialPeriod(business?.subscription_status)
+                
+                // If scheduled to cancel, show cancellation banner (supersedes trial banner)
+                if (isScheduledToCancelValue) {
+                  const endDate = isInTrial ? business?.trial_ends_at : business?.current_period_end
+                  const formattedDate = formatDate(endDate)
+                  
+                  return (
+                    <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">⏰</span>
+                          <div>
+                            <p className="text-sm font-semibold text-amber-100">
+                              {isInTrial ? 'Trial cancelled' : 'Subscription cancelled'}
+                            </p>
+                            <p className="text-xs text-amber-300">
+                              {isInTrial 
+                                ? (formattedDate 
+                                  ? `You can continue using ReplyFlow until ${formattedDate}. You will not be charged.`
+                                  : 'You can continue using ReplyFlow until your trial ends. You will not be charged.')
+                                : (formattedDate
+                                  ? `Access remains active until ${formattedDate}.`
+                                  : 'Access remains active until your subscription ends.')
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleManageSubscription}
+                          disabled={isOpeningBilling}
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isOpeningBilling ? 'Opening…' : (isInTrial ? 'Reactivate Trial' : 'Resume Plan')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={isOpeningBilling}
-                    className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
-                  </button>
-                </div>
-              </div>
+                  )
+                }
+                
+                // If in trial and not cancelled, show trial banner
+                if (isInTrial) {
+                  const trialEndDate = formatDate(business?.trial_ends_at)
+                  return (
+                    <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">🎉</span>
+                          <div>
+                            <p className={`text-xs font-semibold ${textTokens.primary}`}>
+                              Free trial active
+                            </p>
+                            <p className={`text-[10px] ${textTokens.secondary}`}>
+                              {trialEndDate 
+                                ? `Billing starts at $49/month on ${trialEndDate} unless you cancel.`
+                                : 'Billing starts at $49/month after trial unless you cancel.'}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleManageSubscription}
+                          disabled={isOpeningBilling}
+                          className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                }
+                
+                // Active subscription (not trial, not cancelled) - no banner needed
+                return null
+              })()
             )}
 
             {/* Pre-trial premium onboarding hero: single, focused activation card */}
@@ -949,32 +1004,6 @@ export default function DashboardContent() {
             {checkoutStatus === 'cancelled' && (
               <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-xl px-4 py-3">
                 <p className="text-yellow-300 text-sm">Checkout cancelled. You can activate anytime.</p>
-              </div>
-            )}
-
-            {/* Canceling Banner - when scheduled to cancel */}
-            {isActive && isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end) && (
-              <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">⏰</span>
-                    <div>
-                      <p className="text-sm font-semibold text-amber-100">
-                        Your subscription will end on {business?.cancel_at ? new Date(business.cancel_at).toLocaleDateString() : business?.current_period_end ? new Date(business.current_period_end).toLocaleDateString() : 'soon'}
-                      </p>
-                      <p className="text-xs text-amber-300">
-                        ReplyFlow remains active until then. You can resume your subscription anytime.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={isOpeningBilling}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isOpeningBilling ? 'Opening…' : 'Resume Subscription'}
-                  </button>
-                </div>
               </div>
             )}
 
