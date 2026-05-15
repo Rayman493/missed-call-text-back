@@ -28,6 +28,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       subscription_status: business?.subscription_status
     })
     console.log('[Routing] Pathname:', pathname)
+    console.log('[Routing] Checkout status:', checkoutStatus)
     
     // Mark as initialized once loading is complete
     if (!loading) {

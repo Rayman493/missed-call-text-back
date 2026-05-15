@@ -664,10 +664,12 @@ export default function DashboardContent() {
       stripe_customer_id: business?.stripe_customer_id,
       stripe_subscription_id: business?.stripe_subscription_id,
       onboarding_status: business?.onboarding_status,
-      loadingTimeout
+      loadingTimeout,
+      checkoutStatus
     })
-  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status])
+  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
   
+  // Hard no-blank fallback: always render something
   if (shouldShowLoading && !loadingTimeout) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -679,6 +681,25 @@ export default function DashboardContent() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
             Please wait while we prepare your workspace
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  // If loading timeout reached, show dashboard anyway (don't render blank)
+  if (loadingTimeout) {
+    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
+  }
+
+  // Ensure we always have a valid business object for rendering
+  if (!business) {
+    console.log('[Dashboard] No business object, showing loading state')
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading your account...</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Please wait</p>
         </div>
       </div>
     )
