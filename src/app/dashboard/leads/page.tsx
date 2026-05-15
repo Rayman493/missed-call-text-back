@@ -7,6 +7,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import SmsVerificationBanner from '@/components/SmsVerificationBanner'
+import OffboardingBanner from '@/components/OffboardingBanner'
+import GettingStarted from '@/components/GettingStarted'
+import AppHeader from '@/components/AppHeader'
 import Link from 'next/link'
 import { 
   formatPhoneNumber, 
@@ -26,15 +30,9 @@ import {
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import StatusBadge from '@/components/StatusBadge'
-import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
-import DashboardEmptyState from '@/components/DashboardEmptyState'
-import SetupHealth from '@/components/SetupHealth'
-import LiveActivity from '@/components/LiveActivity'
-import GettingStarted from '@/components/GettingStarted'
-import OffboardingBanner from '@/components/OffboardingBanner'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
@@ -216,24 +214,7 @@ export default function LeadsPage() {
       <BusinessGuard>
         <div className="min-h-screen bg-background flex flex-col">
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16">
-                <div className="flex items-center gap-4">
-                  <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                    ← Dashboard
-                  </Link>
-                  <h1 className="text-lg font-semibold text-white">Leads</h1>
-                </div>
-                <div className="flex items-center gap-4">
-                  <UserDropdown />
-                </div>
-              </div>
-            </div>
-          </header>
-
-          {/* Mobile Navigation */}
-          <MobileMenu />
+          <AppHeader title="Leads" showBackLink={true} showNavigation={false} />
 
           {/* Main Content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">

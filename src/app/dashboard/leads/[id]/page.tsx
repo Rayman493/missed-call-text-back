@@ -5,6 +5,7 @@ import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
 import MobileFollowUpSummary from '@/components/MobileFollowUpSummary'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
+import MobileMenu from '@/components/MobileMenu'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import Link from 'next/link'
@@ -896,21 +897,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Primary Row - Compact */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              {/* Back Button */}
-              <Link
-                href="/dashboard"
-                className="flex-shrink-0 text-gray-300 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+              {/* Mobile menu - only visible on mobile/tablet */}
+              <div className="md:hidden">
+                <MobileMenu />
+              </div>
+              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0">
+                <span className="text-lg md:text-xl font-semibold tracking-tight">
+                  <span className="text-white">Reply</span>
+                  <span className="text-blue-400">Flow</span>
+                </span>
               </Link>
-
+              {/* Desktop navigation - only visible on desktop */}
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className="flex-shrink-0 text-gray-300 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+              </div>
               {/* Phone Number */}
               <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
-              
+
               {/* Status Pills */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
@@ -918,8 +930,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </span>
                 {conversation && (
                   <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                    conversation.status === 'open' 
-                      ? 'bg-green-900/50 dark:bg-green-900/50 text-green-300 dark:text-green-300' 
+                    conversation.status === 'open'
+                      ? 'bg-green-900/50 dark:bg-green-900/50 text-green-300 dark:text-green-300'
                       : 'bg-muted text-muted-foreground'
                   }`}>
                     {conversation.status}

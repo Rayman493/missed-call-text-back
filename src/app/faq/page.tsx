@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-background">
-      <SSRSafeNavbar />
+      <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
       <div className="bg-card border-b border-border">

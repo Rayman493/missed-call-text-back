@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { 
@@ -26,14 +26,14 @@ import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
-import BusinessGuard from '@/components/BusinessGuard'
 import AuthGuard from '@/components/AuthGuard'
+import BusinessGuard from '@/components/BusinessGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
+import AppHeader from '@/components/AppHeader'
 import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
@@ -680,42 +680,7 @@ export default function DashboardContent() {
       <BusinessGuard>
         <div className={`min-h-screen bg-background flex flex-col`}>
           {/* App Header */}
-          <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-              <div className="flex items-center justify-between">
-                {/* Left side - Mobile menu and logo */}
-                <div className="flex items-center gap-3 md:gap-8">
-                  {/* Mobile menu - only visible on mobile/tablet */}
-                  <div className="md:hidden">
-                    <MobileMenu />
-                  </div>
-                  <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
-                    <span className="text-xl md:text-2xl font-semibold tracking-tight">
-                      <span className="text-white">Reply</span>
-                      <span className="text-blue-400">Flow</span>
-                    </span>
-                  </Link>
-                  {/* Desktop navigation - only visible on desktop */}
-                  <div className="hidden md:block">
-                    <Navigation />
-                  </div>
-                </div>
-                
-                {/* Right side - Theme toggle, user dropdown, etc. */}
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="hidden sm:block">
-                    {/* Theme toggle removed */}
-                  </div>
-                  <div className="sm:hidden">
-                    {/* Mobile menu placeholder */}
-                  </div>
-                  <UserDropdown />
-                  {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
-                  <div className="hidden md:block w-10"></div>
-                </div>
-              </div>
-            </div>
-          </header>
+          <AppHeader showNavigation={true} />
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
