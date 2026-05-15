@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
 export default function SessionDebugPage() {
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [clearedKeys, setClearedKeys] = useState<string[]>([])
+
+  const handleClearState = () => {
+    const result = clearAnonymousAppState()
+    setClearedKeys(result.clearedKeys)
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+  }
 
   useEffect(() => {
     const gatherDebugInfo = async () => {
@@ -74,6 +84,20 @@ export default function SessionDebugPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Session Debug</h1>
+        
+        <div className="mb-6">
+          <button
+            onClick={handleClearState}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Clear ReplyFlow Local State
+          </button>
+          {clearedKeys.length > 0 && (
+            <div className="mt-2 text-sm text-gray-600">
+              Cleared {clearedKeys.length} keys: {clearedKeys.join(', ')}
+            </div>
+          )}
+        </div>
         
         <div className="space-y-6">
           <div className="bg-card border rounded-lg p-6">

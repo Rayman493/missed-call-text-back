@@ -12,6 +12,7 @@ import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
 const supabase = createBrowserClient()
 
@@ -36,6 +37,26 @@ export default function OnboardingPage() {
       console.error('[Onboarding] Auth failed, showing error message')
     }
   }, [searchParams])
+
+  // Hard auth gate: Clear anonymous state and redirect to homepage if no session
+  useEffect(() => {
+    const checkAuthGate = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        console.error('[Onboarding] No session found, clearing anonymous state and redirecting to homepage')
+        const { clearedKeys } = clearAnonymousAppState()
+        console.log('[Onboarding] Anonymous State Cleanup]', {
+          hasSession: false,
+          pathname: window.location.pathname,
+          clearedKeys,
+        })
+        router.replace('/')
+        return
+      }
+      console.log('[Onboarding] Session verified, allowing access to onboarding')
+    }
+    checkAuthGate()
+  }, [router])
 
   // Show setup error if env vars are missing
   if (!supabase) {

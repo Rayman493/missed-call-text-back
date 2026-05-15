@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@/lib/supabase/browser'
+import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
 // Footer with theme support for homepage
 function HomepageFooter() {
@@ -113,10 +115,24 @@ export default function Home() {
   const { business } = useBusiness()
   const router = useRouter()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const supabase = createBrowserClient()
   
   // Check if user is authenticated and has active trial/subscription
   const isAuthenticated = !!user
   const hasActiveAccount = isAuthenticated && !!business
+  
+  // Clear anonymous app state for logged-out users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('[Anonymous State Cleanup] User not authenticated, clearing ReplyFlow local state')
+      const { clearedKeys } = clearAnonymousAppState()
+      console.log('[Anonymous State Cleanup]', {
+        hasSession: false,
+        pathname: window.location.pathname,
+        clearedKeys,
+      })
+    }
+  }, [isAuthenticated])
   
   // Redirect authenticated users to dashboard with retry logic for session race conditions
   useEffect(() => {
