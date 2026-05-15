@@ -6,6 +6,8 @@ import Footer from '@/components/Footer'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 // Footer with theme support for homepage
 function HomepageFooter() {
@@ -109,10 +111,64 @@ function HomepageFooter() {
 export default function Home() {
   const { user } = useAuth()
   const { business } = useBusiness()
+  const router = useRouter()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   
   // Check if user is authenticated and has active trial/subscription
   const isAuthenticated = !!user
   const hasActiveAccount = isAuthenticated && !!business
+  
+  // Redirect authenticated users to dashboard with retry logic for session race conditions
+  useEffect(() => {
+    console.log('[Homepage] Checking auth status for redirect decision')
+    console.log('[Homepage] isAuthenticated:', isAuthenticated)
+    console.log('[Homepage] hasActiveAccount:', hasActiveAccount)
+    console.log('[Homepage] user:', user?.id)
+    console.log('[Homepage] business:', business?.id)
+    console.log('[Homepage] business subscription_status:', business?.subscription_status)
+    
+    let retryCount = 0
+    const maxRetries = 5
+    const retryDelay = 500 // 500ms
+    
+    const checkAndRedirect = async () => {
+      if (isAuthenticated && hasActiveAccount) {
+        console.log('[Homepage] Authenticated user with active account, redirecting to /dashboard')
+        setIsCheckingAuth(false)
+        router.replace('/dashboard')
+        return
+      }
+      
+      if (isAuthenticated && !hasActiveAccount) {
+        // User is authenticated but business data might be loading
+        if (retryCount < maxRetries) {
+          console.log(`[Homepage] Authenticated but no business data yet, retrying (${retryCount + 1}/${maxRetries})`)
+          retryCount++
+          setTimeout(checkAndRedirect, retryDelay)
+          return
+        }
+        console.log('[Homepage] Authenticated but no business data after retries, allowing homepage access')
+        setIsCheckingAuth(false)
+        return
+      }
+      
+      // User is not authenticated
+      console.log('[Homepage] User not authenticated, showing homepage')
+      setIsCheckingAuth(false)
+    }
+    
+    // Start the check
+    checkAndRedirect()
+  }, [isAuthenticated, hasActiveAccount, user, business, router])
+  
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
   
   return (
     <main className="min-h-screen bg-background">
