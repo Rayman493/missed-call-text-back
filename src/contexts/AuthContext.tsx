@@ -55,6 +55,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('[Auth] Session restored:', session.user.id)
           setSession(session)
           setUser(session.user)
+          
+          // Defensive check: verify the user still exists in Supabase Auth
+          // This handles the case where the user was deleted but the session was still cached
+          try {
+            const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+            if (userError || !currentUser) {
+              console.log('[Auth] User no longer exists in Supabase, clearing session')
+              await supabase.auth.signOut()
+              setSession(null)
+              setUser(null)
+            }
+          } catch (verifyError) {
+            console.error('[Auth] User verification error:', verifyError)
+            // If verification fails, clear the session to be safe
+            await supabase.auth.signOut()
+            setSession(null)
+            setUser(null)
+          }
         } else {
           console.log('[Auth] No session found')
         }

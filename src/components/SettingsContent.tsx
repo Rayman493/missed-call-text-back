@@ -335,6 +335,16 @@ export default function SettingsContent() {
 
     setIsDeleting(true)
     try {
+      console.log('[Delete Account] Starting account deletion process')
+      
+      // Clear local storage and session storage BEFORE deletion to prevent stale state
+      if (typeof window !== 'undefined') {
+        console.log('[Delete Account] Clearing local storage')
+        localStorage.clear()
+        console.log('[Delete Account] Clearing session storage')
+        sessionStorage.clear()
+      }
+
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -354,8 +364,10 @@ export default function SettingsContent() {
         return
       }
 
-      await signOut()
-      router.push('/')
+      console.log('[Delete Account] Account deleted successfully, redirecting to homepage')
+      // Force redirect to homepage immediately without waiting for signOut
+      // since the user is already deleted from Supabase Auth
+      window.location.href = '/'
     } catch (error) {
       console.error('[Delete Account] Network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
