@@ -125,6 +125,40 @@ export default function Home() {
   useEffect(() => {
     if (!isAuthenticated) {
       console.log('[Anonymous State Cleanup] User not authenticated, clearing ReplyFlow local state')
+      
+      // Log all storage keys before clearing for diagnostics
+      const storageKeysToCheck = ['onboarding', 'business', 'setup', 'dashboard', 'checkout', 'signup', 'trial', 'redirect', 'replyflow', 'supabase']
+      
+      console.log('[Storage Diagnostics] === LOCAL STORAGE BEFORE CLEAR ===')
+      if (typeof window !== 'undefined' && window.localStorage) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key) {
+            const keyLower = key.toLowerCase()
+            const isRelevant = storageKeysToCheck.some(keyword => keyLower.includes(keyword.toLowerCase()))
+            if (isRelevant) {
+              const value = localStorage.getItem(key)
+              console.log(`[Storage Diagnostics] localStorage: ${key} = ${value}`)
+            }
+          }
+        }
+      }
+      
+      console.log('[Storage Diagnostics] === SESSION STORAGE BEFORE CLEAR ===')
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key) {
+            const keyLower = key.toLowerCase()
+            const isRelevant = storageKeysToCheck.some(keyword => keyLower.includes(keyword.toLowerCase()))
+            if (isRelevant) {
+              const value = sessionStorage.getItem(key)
+              console.log(`[Storage Diagnostics] sessionStorage: ${key} = ${value}`)
+            }
+          }
+        }
+      }
+      
       const { clearedKeys } = clearAnonymousAppState()
       console.log('[Anonymous State Cleanup]', {
         hasSession: false,
@@ -142,6 +176,14 @@ export default function Home() {
     console.log('[Homepage] user:', user?.id)
     console.log('[Homepage] business:', business?.id)
     console.log('[Homepage] business subscription_status:', business?.subscription_status)
+    console.log('[Homepage] Current pathname:', window.location.pathname)
+    
+    // HARD SAFETY RULE: If pathname is "/" and no session exists, do not redirect anywhere
+    if (window.location.pathname === '/' && !isAuthenticated) {
+      console.log('[Homepage] HARD SAFETY RULE: pathname=/ and no session, staying on homepage, ignoring all stored flags')
+      setIsCheckingAuth(false)
+      return
+    }
     
     // Check for checkout success params - redirect to dashboard immediately
     const searchParams = new URLSearchParams(window.location.search)
