@@ -107,12 +107,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             // Logged-out navigation
             <>
               <Link
-                href="/#features"
-                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
-              >
-                Features
-              </Link>
-              <Link
                 href="/faq"
                 className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
               >
