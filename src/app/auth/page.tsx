@@ -54,6 +54,7 @@ function AuthContent() {
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
   const passwordRef = React.useRef<HTMLInputElement>(null)
+  const isSubmittingRef = React.useRef(false)
 
   // Update mode when URL changes
   useEffect(() => {
@@ -155,6 +156,13 @@ function AuthContent() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Hard submit lock - prevent double-submit
+    if (isSubmittingRef.current) {
+      console.log('[Auth] Submit already in progress, blocking duplicate submit')
+      return
+    }
+    isSubmittingRef.current = true
     setLoading(true)
     setError('')
     setExistingAccount(false)
@@ -163,6 +171,7 @@ function AuthContent() {
       console.log('[Auth] Starting sign up process')
       console.log('[Auth] Email:', email)
       
+      // Step 1: Attempt sign up
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -181,17 +190,33 @@ function AuthContent() {
       console.log('[Auth] Session access token exists:', !!data.session?.access_token)
       console.log('[Auth] Error:', error)
 
-      if (error) throw error
+      // Error path: Stop immediately if sign up API returns an error
+      if (error) {
+        console.error('[Auth] Sign up API returned error:', error.message)
+        const errorMessage = error.message || 'Failed to sign up'
+        if (errorMessage.toLowerCase().includes('user already registered') || 
+            errorMessage.toLowerCase().includes('already exists')) {
+          setExistingAccount(true)
+          setError('Account already exists. Please sign in.')
+        } else {
+          setError(errorMessage)
+        }
+        setLoading(false)
+        isSubmittingRef.current = false
+        return
+      }
 
-      // Check if user exists but has empty identities (indicates existing account)
+      // Success path 1: Check if user exists but has empty identities (indicates existing account)
       if (data.user && data.user.identities && data.user.identities.length === 0) {
         console.log('[Auth] User has no identities - likely existing account')
         setExistingAccount(true)
         setError('Looks like you already have an account. Try signing in.')
+        setLoading(false)
+        isSubmittingRef.current = false
         return
       }
 
-      // Check if email confirmation is required (user exists but no session)
+      // Success path 2: Email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
         console.log('[Auth] Email confirmation required - user created but no session')
         console.log('[Auth] This indicates email confirmation is enabled in Supabase')
@@ -213,7 +238,9 @@ function AuthContent() {
           console.error('[Auth] Auto sign-in failed, email confirmation likely required')
           setError('Account created! Please check your email to confirm, then sign in.')
           setIsSignIn(true)
-          router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+          setLoading(false)
+          isSubmittingRef.current = false
+          router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
           return
         }
 
@@ -221,20 +248,22 @@ function AuthContent() {
         // Continue with the signInData.session
       }
 
-      // Use the session (either from signUp or auto signIn)
+      // Success path 3: Use the session (either from signUp or auto signIn)
       const finalSession = data.session || (await supabase.auth.getSession()).data.session
       
       if (!finalSession) {
         console.error('[Auth] No session after signup and auto sign-in attempt')
         setError('Account created but session could not be established. Please sign in.')
         setIsSignIn(true)
-        router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+        setLoading(false)
+        isSubmittingRef.current = false
+        router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
         return
       }
 
       console.log('[Auth] Session established, waiting for SIGNED_IN event and persistence...')
 
-      // Wait for SIGNED_IN event
+      // Success path 4: Wait for SIGNED_IN event and verify persistence
       return new Promise<void>((resolve, reject) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
           console.log('[Auth] Auth state change:', event)
@@ -257,7 +286,9 @@ function AuthContent() {
                 console.error('[Auth] Session not persisted after SIGNED_IN')
                 setError('Account created but session not saved. Please sign in.')
                 setIsSignIn(true)
-                router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+                setLoading(false)
+                isSubmittingRef.current = false
+                router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
                 resolve()
                 return
               }
@@ -275,6 +306,8 @@ function AuthContent() {
               console.log('[Auth] Auth-related localStorage keys:', localStorageKeys)
 
               console.log('[Auth] Sign up successful with persisted session, redirecting to onboarding')
+              setLoading(false)
+              isSubmittingRef.current = false
               router.push('/onboarding')
               resolve()
             }, 500)
@@ -290,30 +323,30 @@ function AuthContent() {
           supabase.auth.getSession().then(({ data: { session } }: any) => {
             if (session) {
               console.log('[Auth] Session exists despite timeout, redirecting to onboarding')
+              setLoading(false)
+              isSubmittingRef.current = false
               router.push('/onboarding')
             } else {
               console.error('[Auth] No session after timeout')
               setError('Account created but session not established. Please sign in.')
               setIsSignIn(true)
-              router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+              setLoading(false)
+              isSubmittingRef.current = false
+              router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
             }
             resolve()
           })
         }, 10000)
       })
     } catch (err: any) {
-      console.error('[Auth] Sign up error:', err)
-      // Check for existing user error
-      const errorMessage = err.message || 'Failed to sign up'
-      if (errorMessage.toLowerCase().includes('user already registered') || 
-          errorMessage.toLowerCase().includes('already exists')) {
-        setExistingAccount(true)
-        setError('Account already exists. Please sign in.')
-      } else {
-        setError(errorMessage)
-      }
+      console.error('[Auth] Unexpected sign up error:', err)
+      setError(err.message || 'Failed to sign up')
     } finally {
-      setLoading(false)
+      // Only set loading false if not already set in success/error paths
+      if (loading) {
+        setLoading(false)
+      }
+      isSubmittingRef.current = false
     }
   }
 
