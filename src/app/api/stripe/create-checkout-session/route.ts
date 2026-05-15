@@ -115,8 +115,8 @@ export async function POST(request: Request) {
       action: 'checkout'
     });
     
-    // Always redirect to dashboard after checkout success
-    const successUrl = `${siteUrl}/dashboard?checkout=success`
+    // Always redirect to dashboard after checkout success with session_id for recovery
+    const successUrl = `${siteUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[stripe-checkout] Final URLs configured:', { 

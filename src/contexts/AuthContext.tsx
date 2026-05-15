@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isClient
     })
 
-    // If user is NOT authenticated and on dashboard or onboarding, redirect to homepage
+    // If user is NOT authenticated and on dashboard or onboarding, redirect to login (not homepage)
     // BUT allow checkout success through even if auth is still loading
     const searchParams = new URLSearchParams(window.location.search)
     const checkoutStatus = searchParams.get('checkout')
@@ -137,8 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, isCheckoutSuccess })
     
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess) {
-      console.log('[Auth] Redirecting to homepage (unauthenticated user on protected route)')
-      router.push('/')
+      console.log('[Auth] Redirecting to login (unauthenticated user on protected route)')
+      router.push('/auth/signin')
     }
   }, [user, loading, pathname, router, isClient])
 
@@ -149,17 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
-        // Clear any form data that might contain sensitive information
-        const keysToRemove = []
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i)
-          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key') || key.includes('auth') || key.includes('email') || key.includes('password'))) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach(key => sessionStorage.removeItem(key))
-        
-        // Clear any credential-related form data from localStorage
+        sessionStorage.removeItem('carrier_form_data')
         const localKeysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
@@ -179,8 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null)
       setUser(null)
       
-      // Redirect to home
-      router.push('/')
+      // Redirect to login (not homepage)
+      router.push('/auth/signin')
     } catch (error) {
       console.error('[Auth] Sign out error:', error)
     }

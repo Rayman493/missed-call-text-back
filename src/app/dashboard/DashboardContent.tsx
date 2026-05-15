@@ -246,10 +246,12 @@ export default function DashboardContent() {
     setProcessedLeads(processed)
   }, [leads, searchQuery, statusFilter])
 
-  // Force refresh business after checkout success with retry logic
+  // Force refresh business after checkout success with server-side recovery
   useEffect(() => {
-    if (checkoutStatus === 'success') {
-      console.log('[Dashboard] Checkout success redirect reached')
+    const sessionId = searchParams?.get('session_id')
+    
+    if (checkoutStatus === 'success' && sessionId) {
+      console.log('[Dashboard] Checkout success with session_id:', sessionId)
       console.log('[Dashboard] Business ID:', business?.id)
       console.log('[Dashboard] Business user_id:', business?.user_id)
       console.log('[Dashboard] Current onboarding_status:', business?.onboarding_status)
@@ -257,12 +259,56 @@ export default function DashboardContent() {
       setWebhookConfirming(true)
 
       const checkSubscription = async (attempt: number) => {
+        console.log('[Dashboard] Checkout status check attempt:', attempt)
+        
+        try {
+          // Use server-side checkout status API for reliable recovery
+          const response = await fetch(`/api/stripe/checkout-status?session_id=${sessionId}`)
+          const data = await response.json()
+          
+          console.log('[Dashboard] Checkout status API response:', data)
+          
+          if (data.ready || data.subscriptionStatus === 'trialing' || data.subscriptionStatus === 'active') {
+            console.log('[Dashboard] Checkout confirmed ready, refreshing business data')
+            await refreshBusiness()
+            setWebhookConfirming(false)
+            router.replace('/dashboard')
+            return
+          }
+          
+          if (attempt < 10) {
+            console.log('[Dashboard] Checkout not ready yet, retrying in 1 second...')
+            setTimeout(() => checkSubscription(attempt + 1), 1000)
+          } else {
+            console.log('[Dashboard] Checkout not ready after max retries, showing dashboard anyway')
+            setWebhookConfirming(false)
+            // Even if not ready, show dashboard instead of redirecting to homepage
+            router.replace('/dashboard')
+          }
+        } catch (error) {
+          console.error('[Dashboard] Error checking checkout status:', error)
+          if (attempt < 10) {
+            setTimeout(() => checkSubscription(attempt + 1), 1000)
+          } else {
+            console.log('[Dashboard] Checkout status check failed after max retries, showing dashboard anyway')
+            setWebhookConfirming(false)
+            router.replace('/dashboard')
+          }
+        }
+      }
+
+      // Start checking
+      checkSubscription(1)
+    } else if (checkoutStatus === 'success' && !sessionId) {
+      console.log('[Dashboard] Checkout success without session_id, using fallback')
+      // Fallback to client-side refresh if no session_id
+      setWebhookConfirming(true)
+
+      const checkSubscription = async (attempt: number) => {
         console.log('[Dashboard] Business row refetch attempt:', attempt)
         
-        // Refresh business data via context
         await refreshBusiness()
         
-        // Check if subscription is now active using the refreshed business data
         const isActive = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
         
         console.log('[Dashboard] Subscription active check:', isActive)
@@ -273,24 +319,20 @@ export default function DashboardContent() {
         if (isActive) {
           console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
           setWebhookConfirming(false)
-          // Remove checkout=success from URL
           router.replace('/dashboard')
         } else if (attempt < 10) {
-          // Retry after 1 second
           console.log('[Dashboard] Subscription not active yet, retrying in 1 second...')
           setTimeout(() => checkSubscription(attempt + 1), 1000)
         } else {
           console.log('[Dashboard] Subscription not active after max retries, showing dashboard anyway')
           setWebhookConfirming(false)
-          // Even if subscription not active, show dashboard instead of redirecting to homepage
           router.replace('/dashboard')
         }
       }
 
-      // Start checking
       checkSubscription(1)
     }
-  }, [checkoutStatus, refreshBusiness, supabase, router, business])
+  }, [checkoutStatus, searchParams, refreshBusiness, supabase, router, business])
 
   // Only calculate isActive after business loading is complete
   const isActive = !businessLoading && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
@@ -692,8 +734,10 @@ export default function DashboardContent() {
   }
 
   // Ensure we always have a valid business object for rendering
-  if (!business) {
-    console.log('[Dashboard] No business object, showing loading state')
+  // Null subscription_status is a valid state (not activated yet), not loading
+  if (!business && !businessLoading) {
+    console.log('[Dashboard] No business object after loading complete, showing activation')
+    // This is a resolved state - show activation panel instead of blank
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
