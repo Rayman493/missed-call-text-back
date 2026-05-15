@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import SSRSafeNavbar from '@/components/SSRSafeNavbar'
+import AppHeader from '@/components/AppHeader'
 import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-background">
-      <SSRSafeNavbar forceDark={true} />
+      <AppHeader />
       
       {/* Hero Section */}
       <div className="bg-card border-b border-border">

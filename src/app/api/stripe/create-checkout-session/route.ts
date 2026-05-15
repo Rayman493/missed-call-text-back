@@ -119,7 +119,12 @@ export async function POST(request: Request) {
     const successUrl = `${siteUrl}/dashboard?checkout=success`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
-    console.log('[stripe-checkout] Using URLs:', { successUrl, cancelUrl });
+    console.log('[stripe-checkout] Final URLs configured:', { 
+      successUrl, 
+      cancelUrl,
+      siteUrl,
+      origin: request.headers.get('origin')
+    });
     
     // Create checkout session
     const session = await stripe.checkout.sessions.create({

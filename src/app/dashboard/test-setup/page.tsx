@@ -193,19 +193,20 @@ export default function TestSetupPage() {
                 href="/dashboard" 
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
               >
-                ← Back to Dashboard
+                <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
+                Back to Dashboard
               </Link>
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Verify your ReplyFlow setup
               </h1>
               <p className="text-muted-foreground">
-                Confirm your call forwarding is working by running a quick test.
+                Call your business number once to test that ReplyFlow is capturing missed calls correctly.
               </p>
             </div>
 
-            {/* Hero Card */}
-            {!success && (
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-900 dark:to-blue-800 rounded-2xl p-8 mb-8 shadow-lg">
+              {/* Hero Card */}
+              {!success && (
+                <div className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-900 dark:to-blue-800 rounded-2xl p-8 mb-8 shadow-lg">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <Phone className="w-6 h-6 text-white" />

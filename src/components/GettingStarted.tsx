@@ -276,7 +276,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
         // Don't show button if user is on dashboard (they clicked "Finish later" on Step 4)
         buttonText: numberDone && !forwardingDone && !isOnDashboard ? 'View Setup Instructions' : undefined,
-        buttonHref: numberDone && !forwardingDone && !isOnDashboard ? '/setup/forwarding' : undefined,
+        buttonHref: numberDone && !forwardingDone && !isOnDashboard ? '/setup/phone-forwarding' : undefined,
       },
       {
         id: 'test',

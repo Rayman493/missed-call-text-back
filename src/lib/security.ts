@@ -5,20 +5,17 @@
 /**
  * Sanitizes message content to prevent XSS attacks
  * @param content - The message content to sanitize
- * @returns Sanitized content
+ * @returns Sanitized content (plain text, HTML tags removed)
  */
 export function sanitizeMessageContent(content: string): string {
   if (!content || typeof content !== 'string') {
     return ''
   }
   
-  // Remove HTML tags and encode special characters
+  // Remove HTML tags but keep the text content
+  // React's default JSX escaping will handle XSS protection when rendering
   return content
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
     .trim()
     .substring(0, 1600) // Limit message length
 }
