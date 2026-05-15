@@ -84,9 +84,14 @@ function AuthContent() {
 
       if (error) throw error
 
-      console.log('[Auth] Sign in successful, redirecting to:', redirectParam)
-      // Redirect to the specified redirect parameter or dashboard
-      router.push(redirectParam)
+      console.log('[Auth] Sign in successful, session exists:', !!data.session)
+      console.log('[Auth] User ID:', data.user?.id)
+      
+      // Wait for session to be persisted (mobile localStorage delay)
+      setTimeout(() => {
+        console.log('[Auth] Redirecting to:', redirectParam)
+        router.push(redirectParam)
+      }, 300)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
     } finally {
@@ -104,6 +109,9 @@ function AuthContent() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        }
       })
 
       if (error) throw error
@@ -115,8 +123,17 @@ function AuthContent() {
         return
       }
 
-      // Redirect to onboarding after successful signup
-      console.log('[Auth] Sign up successful, redirecting to onboarding')
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        console.log('[Auth] Email confirmation required, showing sign in prompt')
+        setError('Account created! Please sign in to continue.')
+        setIsSignIn(true)
+        router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+        return
+      }
+
+      // Redirect to onboarding after successful signup with session
+      console.log('[Auth] Sign up successful with session, redirecting to onboarding')
       router.push('/onboarding')
     } catch (err: any) {
       // Check for existing user error

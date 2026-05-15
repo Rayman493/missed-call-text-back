@@ -340,7 +340,40 @@ export default function DashboardContent() {
 
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
-    console.log("Creating Stripe checkout session...")
+    console.log('[checkout] Starting subscription flow')
+    
+    // Pre-checkout diagnostics
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    console.log('[checkout] Pre-checkout session check:', {
+      sessionExists: !!session,
+      userId: session?.user?.id,
+      sessionError: sessionError?.message,
+      domain: window.location.hostname,
+      userAgent: navigator.userAgent
+    })
+    
+    // Check for auth-related localStorage keys
+    const localStorageKeys: string[] = []
+    if (typeof window !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
+          localStorageKeys.push(key)
+        }
+      }
+    }
+    console.log('[checkout] Auth-related localStorage keys:', localStorageKeys)
+    
+    // Do not redirect to Stripe if session is missing
+    if (!session) {
+      console.error('[checkout] No session found, cannot start checkout')
+      alert('Please sign in to start your trial.')
+      setCheckoutLoading(false)
+      return
+    }
+    
+    console.log('[checkout] Session confirmed, proceeding with checkout')
+    
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
@@ -355,7 +388,10 @@ export default function DashboardContent() {
       
       if (data.url) {
         console.log('[checkout] Redirecting to Stripe checkout:', data.url)
-        window.location.href = data.url
+        // Add delay for mobile localStorage persistence
+        setTimeout(() => {
+          window.location.href = data.url
+        }, 500)
       } else {
         console.error('[checkout] No URL returned:', data)
         alert(`No checkout URL returned: ${JSON.stringify(data)}`)
