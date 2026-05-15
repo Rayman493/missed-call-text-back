@@ -262,46 +262,28 @@ export default function DashboardContent() {
         // Refresh business data via context
         await refreshBusiness()
         
-        // Directly fetch business from Supabase to get fresh data
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          console.log('[Dashboard] Fetching fresh business data for user:', user.id)
-          const { data: freshBusiness } = await supabase
-            .from('businesses')
-            .select('*')
-            .eq('user_id', user.id)
-            .limit(1)
-            .single()
-          
-          console.log('[Dashboard] Fresh business data:', {
-            businessId: freshBusiness?.id,
-            onboardingStatus: freshBusiness?.onboarding_status,
-            subscriptionStatus: freshBusiness?.subscription_status,
-            stripeCustomerId: freshBusiness?.stripe_customer_id,
-            stripeSubscriptionId: freshBusiness?.stripe_subscription_id
-          })
-          
-          // Check if subscription is now active
-          const isActive = hasValidSubscription(freshBusiness?.subscription_status, freshBusiness?.stripe_customer_id, freshBusiness?.stripe_subscription_id)
-          
-          console.log('[Dashboard] Subscription active confirmed:', isActive)
-          console.log('[Dashboard] Subscription status:', freshBusiness?.subscription_status)
-          console.log('[Dashboard] Stripe customer ID exists:', !!freshBusiness?.stripe_customer_id)
-          console.log('[Dashboard] Stripe subscription ID exists:', !!freshBusiness?.stripe_subscription_id)
+        // Check if subscription is now active using the refreshed business data
+        const isActive = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
+        
+        console.log('[Dashboard] Subscription active check:', isActive)
+        console.log('[Dashboard] Subscription status:', business?.subscription_status)
+        console.log('[Dashboard] Stripe customer ID exists:', !!business?.stripe_customer_id)
+        console.log('[Dashboard] Stripe subscription ID exists:', !!business?.stripe_subscription_id)
 
-          if (isActive) {
-            console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
-            setWebhookConfirming(false)
-            // Remove checkout=success from URL
-            router.replace('/dashboard')
-          } else if (attempt < 10) {
-            // Retry after 1 second
-            console.log('[Dashboard] Subscription not active yet, retrying in 1 second...')
-            setTimeout(() => checkSubscription(attempt + 1), 1000)
-          } else {
-            console.error('[Dashboard] Subscription not active after 10 seconds, showing error')
-            setWebhookConfirming(false)
-          }
+        if (isActive) {
+          console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
+          setWebhookConfirming(false)
+          // Remove checkout=success from URL
+          router.replace('/dashboard')
+        } else if (attempt < 10) {
+          // Retry after 1 second
+          console.log('[Dashboard] Subscription not active yet, retrying in 1 second...')
+          setTimeout(() => checkSubscription(attempt + 1), 1000)
+        } else {
+          console.log('[Dashboard] Subscription not active after max retries, showing dashboard anyway')
+          setWebhookConfirming(false)
+          // Even if subscription not active, show dashboard instead of redirecting to homepage
+          router.replace('/dashboard')
         }
       }
 

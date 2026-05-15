@@ -127,6 +127,20 @@ export default function Home() {
     console.log('[Homepage] business:', business?.id)
     console.log('[Homepage] business subscription_status:', business?.subscription_status)
     
+    // Check for checkout success params - redirect to dashboard immediately
+    const searchParams = new URLSearchParams(window.location.search)
+    const checkoutStatus = searchParams.get('checkout')
+    const sessionId = searchParams.get('session_id')
+    
+    console.log('[Homepage] Checkout params check:', { checkoutStatus, sessionId })
+    
+    if (checkoutStatus === 'success' || sessionId?.startsWith('cs_')) {
+      console.log('[Homepage] Detected checkout success, redirecting to /dashboard')
+      setIsCheckingAuth(false)
+      router.replace('/dashboard')
+      return
+    }
+    
     let retryCount = 0
     const maxRetries = 5
     const retryDelay = 500 // 500ms

@@ -119,7 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (loading || !isClient) return
 
     // If user is NOT authenticated and on dashboard or onboarding, redirect to homepage
-    if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding'))) {
+    // BUT allow checkout success through even if auth is still loading
+    const searchParams = new URLSearchParams(window.location.search)
+    const checkoutStatus = searchParams.get('checkout')
+    const sessionId = searchParams.get('session_id')
+    
+    const isCheckoutSuccess = checkoutStatus === 'success' || sessionId?.startsWith('cs_')
+    
+    if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess) {
       console.log('[Auth] Redirecting to homepage (unauthenticated user on protected route)')
       router.push('/')
     }
