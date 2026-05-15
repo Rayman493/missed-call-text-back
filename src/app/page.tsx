@@ -11,6 +11,35 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
+// Temporary debug banner component
+function DebugBanner() {
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+  
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    const gatherDebugInfo = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setDebugInfo({
+        pathname: window.location.pathname,
+        hasSession: !!session,
+        sessionUserId: session?.user?.id,
+      })
+    }
+    gatherDebugInfo()
+  }, [])
+  
+  if (!debugInfo) return null
+  
+  return (
+    <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-xs p-2 z-50 font-mono">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <span>DEBUG: pathname={debugInfo.pathname} | session={debugInfo.hasSession ? 'YES' : 'NO'} | userId={debugInfo.sessionUserId || 'none'}</span>
+        <button onClick={() => window.location.reload()} className="underline">Reload</button>
+      </div>
+    </div>
+  )
+}
+
 // Footer with theme support for homepage
 function HomepageFooter() {
   const currentYear = new Date().getFullYear()
@@ -193,6 +222,13 @@ export default function Home() {
     console.log('[Homepage] Checkout params check:', { checkoutStatus, sessionId })
     
     if (checkoutStatus === 'success' || sessionId?.startsWith('cs_')) {
+      console.log('[REDIRECT]', {
+        from: window.location.pathname,
+        to: '/dashboard',
+        reason: 'Checkout success detected',
+        hasSession: isAuthenticated,
+        component: 'Homepage',
+      })
       console.log('[Homepage] Detected checkout success, redirecting to /dashboard')
       setIsCheckingAuth(false)
       router.replace('/dashboard')
@@ -213,6 +249,13 @@ export default function Home() {
     
     const checkAndRedirect = async () => {
       if (isAuthenticated && hasActiveAccount) {
+        console.log('[REDIRECT]', {
+          from: window.location.pathname,
+          to: '/dashboard',
+          reason: 'Authenticated user with active account',
+          hasSession: isAuthenticated,
+          component: 'Homepage',
+        })
         console.log('[Homepage] Authenticated user with active account, redirecting to /dashboard')
         setIsCheckingAuth(false)
         router.replace('/dashboard')
@@ -228,6 +271,13 @@ export default function Home() {
           return
         }
         console.log('[Homepage] Authenticated but no business data after retries, redirecting to onboarding')
+        console.log('[REDIRECT]', {
+          from: window.location.pathname,
+          to: '/onboarding',
+          reason: 'Authenticated user with no business data after retries',
+          hasSession: isAuthenticated,
+          component: 'Homepage',
+        })
         setIsCheckingAuth(false)
         router.replace('/onboarding')
         return
@@ -252,8 +302,10 @@ export default function Home() {
   }
   
   return (
-    <main className="min-h-screen bg-background">
-      <SSRSafeNavbar forceDark={true} />
+    <>
+      <DebugBanner />
+      <main className="min-h-screen bg-background">
+        <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-b from-background via-muted to-background">
@@ -460,5 +512,6 @@ export default function Home() {
       </section>
       <HomepageFooter />
     </main>
+    </>
   )
 }

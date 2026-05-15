@@ -60,6 +60,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     if (!loading && initialized) {
       // Redirect if user is not authenticated
       if (!user) {
+        console.log('[REDIRECT]', {
+          from: pathname,
+          to: '/auth/signin?redirect=/dashboard',
+          reason: 'No user authenticated',
+          hasSession: !!session,
+          component: 'BusinessGuard',
+        })
         console.log('[Routing] No user authenticated, redirecting to sign in')
         router.push('/auth/signin?redirect=/dashboard')
         return
@@ -73,10 +80,25 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         
         // Verify session exists before redirecting to onboarding
         if (!session) {
+          console.log('[REDIRECT]', {
+            from: pathname,
+            to: '/auth/signin?redirect=/dashboard',
+            reason: 'No session exists, redirecting to sign in instead of onboarding',
+            hasSession: !!session,
+            component: 'BusinessGuard',
+          })
           console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
           router.push('/auth/signin?redirect=/dashboard')
           return
         }
+        
+        console.log('[REDIRECT]', {
+          from: pathname,
+          to: '/onboarding',
+          reason: 'No business found',
+          hasSession: !!session,
+          component: 'BusinessGuard',
+        })
         router.push('/onboarding')
         return
       }
@@ -98,10 +120,25 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         
         // Verify session exists before redirecting to onboarding
         if (!session) {
+          console.log('[REDIRECT]', {
+            from: pathname,
+            to: '/auth/signin?redirect=/dashboard',
+            reason: 'No session exists, redirecting to sign in instead of onboarding',
+            hasSession: !!session,
+            component: 'BusinessGuard',
+          })
           console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
           router.push('/auth/signin?redirect=/dashboard')
           return
         }
+        
+        console.log('[REDIRECT]', {
+          from: pathname,
+          to: '/onboarding',
+          reason: 'Onboarding incomplete',
+          hasSession: !!session,
+          component: 'BusinessGuard',
+        })
         router.push('/onboarding')
         return
       }

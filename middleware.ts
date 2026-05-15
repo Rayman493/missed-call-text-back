@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+  const pathname = req.nextUrl.pathname
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +23,61 @@ export async function middleware(req: NextRequest) {
   )
 
   // Refresh session if expired
-  await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  console.log('[Middleware] Request:', {
+    pathname,
+    hasSession: !!session,
+    method: req.method,
+  })
+
+  // Public routes - no authentication required
+  const publicRoutes = [
+    '/',
+    '/signup',
+    '/login',
+    '/auth',
+    '/auth/signin',
+    '/auth/signup',
+    '/debug',
+    '/privacy',
+    '/terms',
+    '/faq',
+    '/compliance',
+    '/api',
+  ]
+
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+
+  if (isPublicRoute) {
+    console.log('[Middleware] Public route, allowing access')
+    return res
+  }
+
+  // Protected routes - require authentication
+  const protectedRoutes = [
+    '/dashboard',
+    '/onboarding',
+    '/settings',
+    '/leads',
+    '/conversations',
+  ]
+
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+
+  if (isProtectedRoute && !session) {
+    console.log('[Middleware] Protected route without session, redirecting to sign-in')
+    console.log('[Middleware REDIRECT]', {
+      from: pathname,
+      to: '/auth/signin',
+      reason: 'Protected route without session',
+      hasSession: false,
+      component: 'Middleware',
+    })
+    return NextResponse.redirect(new URL('/auth/signin', req.url))
+  }
+
+  console.log('[Middleware] Protected route with session, allowing access')
 
   // Security headers
   res.headers.set('X-Frame-Options', 'DENY')
