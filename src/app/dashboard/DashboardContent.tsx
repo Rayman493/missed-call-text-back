@@ -944,8 +944,7 @@ export default function DashboardContent() {
                       Start capturing missed calls
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground mb-6">
-                      Activate ReplyFlow to provision your dedicated number and turn every missed
-                      call into a conversation.
+                      Start your free trial to activate your dedicated ReplyFlow number and begin texting missed callers automatically.
                     </p>
                     <ul className="text-sm text-foreground mb-8 space-y-2 text-left max-w-md mx-auto">
                       <li className="flex items-start gap-3">
@@ -954,7 +953,7 @@ export default function DashboardContent() {
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
-                        Forward your business calls in minutes
+                        Set up call forwarding in minutes
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
@@ -966,7 +965,7 @@ export default function DashboardContent() {
                       disabled={checkoutLoading}
                       className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                      {checkoutLoading ? 'Starting…' : 'Start Your 14-Day Free Trial'}
+                      {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
                     </button>
                     <p className="text-xs text-muted-foreground mt-4">
                       No charge today. Cancel anytime before your trial ends.
@@ -1049,31 +1048,7 @@ export default function DashboardContent() {
               />
             )}
 
-            {/* Billing card - only show when action needed */}
-            {!isActive && !business?.stripe_subscription_id && (
-              <div className="bg-card rounded-lg border border-border p-4 hover:border-border transition">
-                {webhookConfirming ? (
-                  <>
-                    <h2 className="text-lg font-semibold text-foreground mb-2">Activating your account</h2>
-                    <p className="text-sm text-muted-foreground mb-4">Please wait while we confirm your payment...</p>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-lg font-semibold text-foreground mb-2">Start Capturing Missed Calls</h2>
-                    <p className="text-sm text-muted-foreground mb-4">Start capturing missed calls instantly.</p>
-                    <button
-                      onClick={handleStartSubscription}
-                      disabled={checkoutLoading}
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-medium rounded-lg transition-colors"
-                    >
-                      {checkoutLoading ? 'Processing...' : 'Start capturing missed calls instantly'}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Missed Call Leads Section - LIVE ACTIVITY */}
+            {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
             {leads.length === 0 ? (
               null
             ) : (
