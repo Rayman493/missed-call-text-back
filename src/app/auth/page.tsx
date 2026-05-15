@@ -78,16 +78,38 @@ function AuthContent() {
 
     try {
       console.log('[Auth] Starting sign in process')
+      console.log('[Auth] Email:', email)
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
+
+      console.log('[Auth] Sign in API call completed')
+      console.log('[Auth] Full response:', JSON.stringify(data, null, 2))
+      console.log('[Auth] User exists:', !!data.user)
+      console.log('[Auth] User ID:', data.user?.id)
+      console.log('[Auth] Session exists:', !!data.session)
+      console.log('[Auth] Session user ID:', data.session?.user?.id)
+      console.log('[Auth] Session access token exists:', !!data.session?.access_token)
+      console.log('[Auth] Error:', error)
 
       if (error) throw error
 
       console.log('[Auth] Sign in successful, session exists:', !!data.session)
       console.log('[Auth] User ID:', data.user?.id)
       
+      // Listen for SIGNED_IN event
+      console.log('[Auth] Setting up SIGNED_IN event listener')
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+        console.log('[Auth] Auth state change:', event)
+        console.log('[Auth] Session after event:', !!session)
+        if (event === 'SIGNED_IN' && session) {
+          console.log('[Auth] SIGNED_IN event received with session')
+          console.log('[Auth] User ID:', session.user?.id)
+        }
+      })
+
       // Wait for session to be persisted to localStorage (mobile delay)
       console.log('[Auth] Waiting for session persistence...')
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -97,14 +119,30 @@ function AuthContent() {
       console.log('[Auth] Session persistence check:', {
         sessionExists: !!persistedSession,
         userId: persistedSession?.user?.id,
+        accessTokenExists: !!persistedSession?.access_token,
         sessionError: sessionError?.message
       })
 
       if (!persistedSession) {
         console.error('[Auth] Session not persisted after sign in')
         setError('Sign in successful but session not saved. Please try again.')
+        subscription.unsubscribe()
         return
       }
+
+      // Check for auth-related localStorage keys
+      const localStorageKeys: string[] = []
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
+            localStorageKeys.push(key)
+          }
+        }
+      }
+      console.log('[Auth] Auth-related localStorage keys:', localStorageKeys)
+
+      subscription.unsubscribe()
       
       console.log('[Auth] Session persisted successfully, redirecting to:', redirectParam)
       router.push(redirectParam)
@@ -123,6 +161,8 @@ function AuthContent() {
 
     try {
       console.log('[Auth] Starting sign up process')
+      console.log('[Auth] Email:', email)
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -131,52 +171,138 @@ function AuthContent() {
         }
       })
 
-      if (error) throw error
-
       console.log('[Auth] Sign up API call completed')
+      console.log('[Auth] Full response:', JSON.stringify(data, null, 2))
       console.log('[Auth] User created:', !!data.user)
+      console.log('[Auth] User ID:', data.user?.id)
+      console.log('[Auth] User email:', data.user?.email)
       console.log('[Auth] Session created:', !!data.session)
+      console.log('[Auth] Session user ID:', data.session?.user?.id)
+      console.log('[Auth] Session access token exists:', !!data.session?.access_token)
+      console.log('[Auth] Error:', error)
+
+      if (error) throw error
 
       // Check if user exists but has empty identities (indicates existing account)
       if (data.user && data.user.identities && data.user.identities.length === 0) {
+        console.log('[Auth] User has no identities - likely existing account')
         setExistingAccount(true)
         setError('Looks like you already have an account. Try signing in.')
         return
       }
 
-      // Check if email confirmation is required
+      // Check if email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
-        console.log('[Auth] Email confirmation required, showing sign in prompt')
-        setError('Account created! Please sign in to continue.')
+        console.log('[Auth] Email confirmation required - user created but no session')
+        console.log('[Auth] This indicates email confirmation is enabled in Supabase')
+        console.log('[Auth] Attempting auto sign-in to bypass email confirmation for MVP')
+        
+        // Auto sign-in to bypass email confirmation for MVP
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        console.log('[Auth] Auto sign-in result:', {
+          success: !signInError,
+          sessionExists: !!signInData.session,
+          userId: signInData.session?.user?.id,
+          error: signInError?.message
+        })
+
+        if (signInError || !signInData.session) {
+          console.error('[Auth] Auto sign-in failed, email confirmation likely required')
+          setError('Account created! Please check your email to confirm, then sign in.')
+          setIsSignIn(true)
+          router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+          return
+        }
+
+        console.log('[Auth] Auto sign-in succeeded, using this session')
+        // Continue with the signInData.session
+      }
+
+      // Use the session (either from signUp or auto signIn)
+      const finalSession = data.session || (await supabase.auth.getSession()).data.session
+      
+      if (!finalSession) {
+        console.error('[Auth] No session after signup and auto sign-in attempt')
+        setError('Account created but session could not be established. Please sign in.')
         setIsSignIn(true)
         router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
         return
       }
 
-      // Wait for session to be persisted to localStorage (mobile delay)
-      console.log('[Auth] Session created, waiting for persistence...')
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('[Auth] Session established, waiting for SIGNED_IN event and persistence...')
 
-      // Verify session is actually persisted
-      const { data: { session: persistedSession }, error: sessionError } = await supabase.auth.getSession()
-      console.log('[Auth] Session persistence check:', {
-        sessionExists: !!persistedSession,
-        userId: persistedSession?.user?.id,
-        sessionError: sessionError?.message
+      // Wait for SIGNED_IN event
+      return new Promise<void>((resolve, reject) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+          console.log('[Auth] Auth state change:', event)
+          console.log('[Auth] Session after event:', !!session)
+          if (event === 'SIGNED_IN' && session) {
+            console.log('[Auth] SIGNED_IN event received with session')
+            console.log('[Auth] User ID:', session.user?.id)
+            subscription.unsubscribe()
+            
+            // Wait for session to be persisted to localStorage (mobile delay)
+            setTimeout(async () => {
+              const { data: { session: persistedSession } } = await supabase.auth.getSession()
+              console.log('[Auth] Session persistence check after SIGNED_IN:', {
+                sessionExists: !!persistedSession,
+                userId: persistedSession?.user?.id,
+                accessTokenExists: !!persistedSession?.access_token
+              })
+
+              if (!persistedSession) {
+                console.error('[Auth] Session not persisted after SIGNED_IN')
+                setError('Account created but session not saved. Please sign in.')
+                setIsSignIn(true)
+                router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+                resolve()
+                return
+              }
+
+              // Check for auth-related localStorage keys
+              const localStorageKeys: string[] = []
+              if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i)
+                  if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
+                    localStorageKeys.push(key)
+                  }
+                }
+              }
+              console.log('[Auth] Auth-related localStorage keys:', localStorageKeys)
+
+              console.log('[Auth] Sign up successful with persisted session, redirecting to onboarding')
+              router.push('/onboarding')
+              resolve()
+            }, 500)
+          }
+        })
+
+        // Timeout after 10 seconds if SIGNED_IN doesn't fire
+        setTimeout(() => {
+          subscription.unsubscribe()
+          console.warn('[Auth] SIGNED_IN event timeout, proceeding anyway')
+          
+          // Verify session exists anyway
+          supabase.auth.getSession().then(({ data: { session } }: any) => {
+            if (session) {
+              console.log('[Auth] Session exists despite timeout, redirecting to onboarding')
+              router.push('/onboarding')
+            } else {
+              console.error('[Auth] No session after timeout')
+              setError('Account created but session not established. Please sign in.')
+              setIsSignIn(true)
+              router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+            }
+            resolve()
+          })
+        }, 10000)
       })
-
-      if (!persistedSession) {
-        console.error('[Auth] Session not persisted after signup')
-        setError('Account created but session not saved. Please sign in.')
-        setIsSignIn(true)
-        router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
-        return
-      }
-
-      // Redirect to onboarding after successful signup with persisted session
-      console.log('[Auth] Sign up successful with persisted session, redirecting to onboarding')
-      router.push('/onboarding')
     } catch (err: any) {
+      console.error('[Auth] Sign up error:', err)
       // Check for existing user error
       const errorMessage = err.message || 'Failed to sign up'
       if (errorMessage.toLowerCase().includes('user already registered') || 

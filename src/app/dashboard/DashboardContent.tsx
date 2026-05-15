@@ -364,11 +364,12 @@ export default function DashboardContent() {
     }
     console.log('[checkout] Auth-related localStorage keys:', localStorageKeys)
     
-    // Do not redirect to Stripe if session is missing
+    // Do not redirect to Stripe if session is missing - block checkout
     if (!session) {
-      console.error('[checkout] No session found, cannot start checkout')
-      alert('Please sign in to start your trial.')
+      console.error('[checkout] No session found, blocking checkout')
+      alert('Please sign in to start your trial. Your session may have expired.')
       setCheckoutLoading(false)
+      router.push('/auth/signin?redirect=/dashboard')
       return
     }
     

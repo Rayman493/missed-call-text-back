@@ -28,11 +28,18 @@ export default function SessionDebugPage() {
       // Get cookie names
       const cookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0])
 
+      // Check auth provider
+      const provider = sessionData?.session?.user?.app_metadata?.provider || 'email'
+      const emailConfirmed = sessionData?.session?.user?.email_confirmed_at || false
+
       setDebugInfo({
         currentUrl: window.location.href,
         userAgent: navigator.userAgent,
+        authProvider: provider,
+        emailConfirmed: emailConfirmed,
         sessionExists: !!sessionData?.session,
-        userId: sessionData?.session?.user?.id || userData?.user?.id,
+        userId: sessionData?.session?.user?.id,
+        userEmail: sessionData?.session?.user?.email,
         sessionError: sessionError?.message,
         userError: userError?.message,
         localStorageKeys,
@@ -46,6 +53,8 @@ export default function SessionDebugPage() {
         userData: {
           id: userData?.user?.id,
           email: userData?.user?.email,
+          email_confirmed_at: userData?.user?.email_confirmed_at,
+          created_at: userData?.user?.created_at,
         },
       })
     }
@@ -76,10 +85,20 @@ export default function SessionDebugPage() {
           </div>
 
           <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Auth Provider & Email Confirmation</h2>
+            <div className="space-y-2 font-mono text-sm">
+              <p><strong>Auth Provider:</strong> {debugInfo.authProvider}</p>
+              <p><strong>Email Confirmed:</strong> {debugInfo.emailConfirmed ? '✅ YES' : '❌ NO'}</p>
+              <p><strong>Email Confirmed At:</strong> {debugInfo.userData?.email_confirmed_at || 'N/A'}</p>
+            </div>
+          </div>
+
+          <div className="bg-card border rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Session Status</h2>
             <div className="space-y-2 font-mono text-sm">
               <p><strong>Session Exists:</strong> {debugInfo.sessionExists ? '✅ YES' : '❌ NO'}</p>
               <p><strong>User ID:</strong> {debugInfo.userId || 'N/A'}</p>
+              <p><strong>User Email:</strong> {debugInfo.userEmail || 'N/A'}</p>
               {debugInfo.sessionError && <p className="text-red-500"><strong>Session Error:</strong> {debugInfo.sessionError}</p>}
               {debugInfo.userError && <p className="text-red-500"><strong>User Error:</strong> {debugInfo.userError}</p>}
             </div>
@@ -100,6 +119,8 @@ export default function SessionDebugPage() {
             <div className="space-y-2 font-mono text-sm">
               <p><strong>ID:</strong> {debugInfo.userData.id || 'N/A'}</p>
               <p><strong>Email:</strong> {debugInfo.userData.email || 'N/A'}</p>
+              <p><strong>Email Confirmed At:</strong> {debugInfo.userData.email_confirmed_at || 'N/A'}</p>
+              <p><strong>Created At:</strong> {debugInfo.userData.created_at || 'N/A'}</p>
             </div>
           </div>
 
