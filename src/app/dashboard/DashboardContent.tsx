@@ -193,6 +193,7 @@ export default function DashboardContent() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [billingError, setBillingError] = useState('')
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams?.get('checkout')
   const router = useRouter()
@@ -654,34 +655,38 @@ export default function DashboardContent() {
     }
   }, [business?.id])
 
-  // Show loading state while business is loading or webhook is confirming
-  // Also show loading if subscription status is not yet resolved
-  const isSubscriptionResolved = business?.subscription_status && 
-    (business?.stripe_customer_id !== undefined) && 
-    (business?.stripe_subscription_id !== undefined)
-  
-  // Log render decisions for debugging
+  // Add timeout fallback for loading state
   useEffect(() => {
-    console.log('[Dashboard] Render state:', {
+    const timeout = setTimeout(() => {
+      if (businessLoading) {
+        console.log('[Dashboard] Loading timeout reached, forcing render')
+        setLoadingTimeout(true)
+      }
+    }, 5000) // 5 seconds
+
+    return () => clearTimeout(timeout)
+  }, [businessLoading])
+
+  // Show loading state while business is loading or webhook is confirming
+  // Only require business fetch to complete, not subscription resolution
+  // Null subscription_status is valid (means not activated yet)
+  const shouldShowLoading = businessLoading || webhookConfirming
+  
+  // Throttled logging to avoid spamming console
+  useEffect(() => {
+    console.log('[Dashboard] Loading state check:', {
       businessLoading,
       webhookConfirming,
-      isSubscriptionResolved,
-      isOnboardingComplete,
-      hasValidSubscription: hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id),
-      twilio_phone_number: business?.twilio_phone_number
+      shouldShowLoading,
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id,
+      onboarding_status: business?.onboarding_status,
+      loadingTimeout
     })
-  }, [businessLoading, webhookConfirming, isSubscriptionResolved, isOnboardingComplete, business])
-
-  console.log('[Dashboard] Loading state check:', {
-    businessLoading,
-    webhookConfirming,
-    isSubscriptionResolved,
-    subscription_status: business?.subscription_status,
-    stripe_customer_id: business?.stripe_customer_id,
-    stripe_subscription_id: business?.stripe_subscription_id
-  })
+  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status])
   
-  if (businessLoading || webhookConfirming || !isSubscriptionResolved) {
+  if (shouldShowLoading && !loadingTimeout) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

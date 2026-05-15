@@ -25,9 +25,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       id: business?.id,
       onboarding_status: business?.onboarding_status,
       forwarding_verified: business?.forwarding_verified,
-      subscription_status: business?.subscription_status,
-      stripe_customer_id: business?.stripe_customer_id,
-      stripe_subscription_id: business?.stripe_subscription_id
+      subscription_status: business?.subscription_status
     })
     console.log('[Routing] Pathname:', pathname)
     
