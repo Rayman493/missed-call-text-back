@@ -51,10 +51,10 @@ export default function OnboardingPage() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session) {
         console.error('[Onboarding] Session validation failed:', sessionError)
-        // Don't clear session - it might be a temporary mobile issue
+        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
-          router.push('/auth?mode=signin&redirect=/onboarding')
+          router.push('/auth/signin?redirect=/onboarding')
         }, 2000)
         return
       }
@@ -63,10 +63,10 @@ export default function OnboardingPage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) {
         console.error('[Onboarding] User validation failed:', userError)
-        // Don't clear session - it might be a temporary mobile issue
+        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
-          router.push('/auth?mode=signin&redirect=/onboarding')
+          router.push('/auth/signin?redirect=/onboarding')
         }, 2000)
         return
       }
@@ -176,10 +176,11 @@ export default function OnboardingPage() {
       
       if (sessionError || !session || userError || !user) {
         console.error('[Onboarding] Invalid session/user during save:', { sessionError, userError })
+        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         // Don't clear session - it might be a temporary mobile issue
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
-          router.push('/auth?mode=signin&redirect=/onboarding')
+          router.push('/auth/signin?redirect=/onboarding')
         }, 2000)
         return
       }

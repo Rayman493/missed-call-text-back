@@ -141,6 +141,14 @@ export default function Home() {
       return
     }
     
+    // IMPORTANT: Never redirect unauthenticated users to onboarding
+    if (!isAuthenticated) {
+      console.log('[Homepage] User not authenticated, showing public homepage')
+      setIsCheckingAuth(false)
+      return
+    }
+    
+    // Authenticated user logic
     let retryCount = 0
     const maxRetries = 5
     const retryDelay = 500 // 500ms
@@ -161,14 +169,11 @@ export default function Home() {
           setTimeout(checkAndRedirect, retryDelay)
           return
         }
-        console.log('[Homepage] Authenticated but no business data after retries, allowing homepage access')
+        console.log('[Homepage] Authenticated but no business data after retries, redirecting to onboarding')
         setIsCheckingAuth(false)
+        router.replace('/onboarding')
         return
       }
-      
-      // User is not authenticated
-      console.log('[Homepage] User not authenticated, showing homepage')
-      setIsCheckingAuth(false)
     }
     
     // Start the check
@@ -217,10 +222,10 @@ export default function Home() {
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href={hasActiveAccount ? "/dashboard" : "/signup"}
+                href={isAuthenticated ? (hasActiveAccount ? "/dashboard" : "/onboarding") : "/signup"}
                 className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:bg-blue-700 transition-colors flex items-center justify-center"
               >
-                {hasActiveAccount ? "Go to Dashboard" : "Start Your Free Trial"}
+                {isAuthenticated ? (hasActiveAccount ? "Go to Dashboard" : "Complete Setup") : "Start Your Free Trial"}
               </Link>
               <Link
                 href="/demo"
