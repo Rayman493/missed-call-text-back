@@ -186,6 +186,9 @@ function AuthContent() {
       })
 
       console.log('[Auth] Sign up API call completed')
+      console.log('[SIGNUP LOG] signUp error:', error?.message || 'none')
+      console.log('[SIGNUP LOG] signUp user exists:', !!data.user)
+      console.log('[SIGNUP LOG] signUp session exists:', !!data.session)
       console.log('[SIGNUP RESULT]', {
         hasUser: !!data.user,
         hasSession: !!data.session,
@@ -252,6 +255,7 @@ function AuthContent() {
           email,
           password,
         })
+        console.log('[SIGNUP LOG] signInWithPassword error:', signInError?.message || 'none')
         console.log('[Auth] Auto sign-in result:', {
           success: !signInError,
           sessionExists: !!signInData.session,
@@ -292,6 +296,7 @@ function AuthContent() {
       // Success path 3: Verify session exists before proceeding
       console.log('[Auth] Verifying session exists before redirect...')
       const { data: { session: verifiedSession } } = await supabase.auth.getSession()
+      console.log('[SIGNUP LOG] final getSession session exists:', !!verifiedSession)
       console.log('[Auth] Verified session exists:', !!verifiedSession)
       console.log('[Auth] Verified session user ID:', verifiedSession?.user?.id)
       
@@ -304,83 +309,18 @@ function AuthContent() {
         return
       }
 
-      console.log('[Auth] Session established, waiting for SIGNED_IN event and persistence...')
-
-      // Success path 4: Wait for SIGNED_IN event and verify persistence
-      return new Promise<void>((resolve, reject) => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-          console.log('[Auth] Auth state change:', event)
-          console.log('[Auth] Session after event:', !!session)
-          if (event === 'SIGNED_IN' && session) {
-            console.log('[Auth] SIGNED_IN event received with session')
-            console.log('[Auth] User ID:', session.user?.id)
-            subscription.unsubscribe()
-            
-            // Wait for session to be persisted to localStorage (mobile delay)
-            setTimeout(async () => {
-              const { data: { session: persistedSession } } = await supabase.auth.getSession()
-              console.log('[Auth] Session persistence check after SIGNED_IN:', {
-                sessionExists: !!persistedSession,
-                userId: persistedSession?.user?.id,
-                accessTokenExists: !!persistedSession?.access_token
-              })
-
-              if (!persistedSession) {
-                console.error('[Auth] Session not persisted after SIGNED_IN')
-                setError('Account created but session not saved. Please sign in.')
-                setIsSignIn(true)
-                setLoading(false)
-                isSubmittingRef.current = false
-                router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
-                resolve()
-                return
-              }
-
-              // Check for auth-related localStorage keys
-              const localStorageKeys: string[] = []
-              if (typeof window !== 'undefined') {
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i)
-                  if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
-                    localStorageKeys.push(key)
-                  }
-                }
-              }
-              console.log('[Auth] Auth-related localStorage keys:', localStorageKeys)
-
-              console.log('[Auth] Sign up successful with persisted session, redirecting to onboarding')
-              setLoading(false)
-              isSubmittingRef.current = false
-              router.push('/onboarding')
-              resolve()
-            }, 500)
-          }
-        })
-
-        // Timeout after 10 seconds if SIGNED_IN doesn't fire
-        setTimeout(() => {
-          subscription.unsubscribe()
-          console.warn('[Auth] SIGNED_IN event timeout, proceeding anyway')
-          
-          // Verify session exists anyway
-          supabase.auth.getSession().then(({ data: { session } }: any) => {
-            if (session) {
-              console.log('[Auth] Session exists despite timeout, redirecting to onboarding')
-              setLoading(false)
-              isSubmittingRef.current = false
-              router.push('/onboarding')
-            } else {
-              console.error('[Auth] No session after timeout')
-              setError('Account created but session not established. Please sign in.')
-              setIsSignIn(true)
-              setLoading(false)
-              isSubmittingRef.current = false
-              router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
-            }
-            resolve()
-          })
-        }, 10000)
+      console.log('[Auth] Session established, redirecting to dashboard')
+      console.log('[SIGNUP LOG] final redirect target: /dashboard')
+      console.log('[REDIRECT]', {
+        from: window.location.pathname,
+        to: '/dashboard',
+        reason: 'Signup successful with verified session',
+        hasSession: true,
+        component: 'Auth',
       })
+      setLoading(false)
+      isSubmittingRef.current = false
+      router.replace('/dashboard')
     } catch (err: any) {
       console.error('[Auth] Unexpected sign up error:', err)
       setError(err.message || 'Failed to sign up')
