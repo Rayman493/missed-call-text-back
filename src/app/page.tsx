@@ -197,96 +197,13 @@ export default function Home() {
     }
   }, [isAuthenticated])
   
-  // Redirect authenticated users to dashboard with retry logic for session race conditions
+  // Homepage always shows public marketing page
+  // Do NOT auto-redirect authenticated users to onboarding from homepage
+  // Users can access onboarding via: Start Free Trial button, Dashboard link, or direct URL
   useEffect(() => {
-    console.log('[Homepage] Checking auth status for redirect decision')
-    console.log('[Homepage] isAuthenticated:', isAuthenticated)
-    console.log('[Homepage] hasActiveAccount:', hasActiveAccount)
-    console.log('[Homepage] user:', user?.id)
-    console.log('[Homepage] business:', business?.id)
-    console.log('[Homepage] business subscription_status:', business?.subscription_status)
-    console.log('[Homepage] Current pathname:', window.location.pathname)
-    
-    // HARD SAFETY RULE: If pathname is "/" and no session exists, do not redirect anywhere
-    if (window.location.pathname === '/' && !isAuthenticated) {
-      console.log('[Homepage] HARD SAFETY RULE: pathname=/ and no session, staying on homepage, ignoring all stored flags')
-      setIsCheckingAuth(false)
-      return
-    }
-    
-    // Check for checkout success params - redirect to dashboard immediately
-    const searchParams = new URLSearchParams(window.location.search)
-    const checkoutStatus = searchParams.get('checkout')
-    const sessionId = searchParams.get('session_id')
-    
-    console.log('[Homepage] Checkout params check:', { checkoutStatus, sessionId })
-    
-    if (checkoutStatus === 'success' || sessionId?.startsWith('cs_')) {
-      console.log('[REDIRECT]', {
-        from: window.location.pathname,
-        to: '/dashboard',
-        reason: 'Checkout success detected',
-        hasSession: isAuthenticated,
-        component: 'Homepage',
-      })
-      console.log('[Homepage] Detected checkout success, redirecting to /dashboard')
-      setIsCheckingAuth(false)
-      router.replace('/dashboard')
-      return
-    }
-    
-    // IMPORTANT: Never redirect unauthenticated users to onboarding
-    if (!isAuthenticated) {
-      console.log('[Homepage] User not authenticated, showing public homepage')
-      setIsCheckingAuth(false)
-      return
-    }
-    
-    // Authenticated user logic
-    let retryCount = 0
-    const maxRetries = 5
-    const retryDelay = 500 // 500ms
-    
-    const checkAndRedirect = async () => {
-      if (isAuthenticated && hasActiveAccount) {
-        console.log('[REDIRECT]', {
-          from: window.location.pathname,
-          to: '/dashboard',
-          reason: 'Authenticated user with active account',
-          hasSession: isAuthenticated,
-          component: 'Homepage',
-        })
-        console.log('[Homepage] Authenticated user with active account, redirecting to /dashboard')
-        setIsCheckingAuth(false)
-        router.replace('/dashboard')
-        return
-      }
-      
-      if (isAuthenticated && !hasActiveAccount) {
-        // User is authenticated but business data might be loading
-        if (retryCount < maxRetries) {
-          console.log(`[Homepage] Authenticated but no business data yet, retrying (${retryCount + 1}/${maxRetries})`)
-          retryCount++
-          setTimeout(checkAndRedirect, retryDelay)
-          return
-        }
-        console.log('[Homepage] Authenticated but no business data after retries, redirecting to onboarding')
-        console.log('[REDIRECT]', {
-          from: window.location.pathname,
-          to: '/onboarding',
-          reason: 'Authenticated user with no business data after retries',
-          hasSession: isAuthenticated,
-          component: 'Homepage',
-        })
-        setIsCheckingAuth(false)
-        router.replace('/onboarding')
-        return
-      }
-    }
-    
-    // Start the check
-    checkAndRedirect()
-  }, [isAuthenticated, hasActiveAccount, user, business, router])
+    console.log('[Homepage] Rendering public homepage (no automatic redirects)')
+    setIsCheckingAuth(false)
+  }, [])
   
   // Show loading state while checking auth
   if (isCheckingAuth) {
