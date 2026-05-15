@@ -45,6 +45,7 @@ function AuthContent() {
   const searchParams = useSearchParams()
   const mode = searchParams?.get('mode') || 'signup'
   const emailParam = searchParams?.get('email')
+  const redirectParam = searchParams?.get('redirect') || '/dashboard'
   
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState('')
@@ -83,8 +84,9 @@ function AuthContent() {
 
       if (error) throw error
 
-      // Redirect to dashboard after successful sign in
-      router.push('/dashboard')
+      console.log('[Auth] Sign in successful, redirecting to:', redirectParam)
+      // Redirect to the specified redirect parameter or dashboard
+      router.push(redirectParam)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
     } finally {
@@ -114,6 +116,7 @@ function AuthContent() {
       }
 
       // Redirect to onboarding after successful signup
+      console.log('[Auth] Sign up successful, redirecting to onboarding')
       router.push('/onboarding')
     } catch (err: any) {
       // Check for existing user error
