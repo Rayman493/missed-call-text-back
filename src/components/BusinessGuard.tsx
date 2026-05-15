@@ -8,7 +8,7 @@ import { isActiveSubscription } from '@/lib/subscription'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading } = useBusiness()
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -68,6 +68,15 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       // Redirect if no business exists
       if (!business) {
         console.log('[Routing] No business found, redirecting to onboarding')
+        console.log('[Routing] User authenticated:', !!user)
+        console.log('[Routing] User ID:', user?.id)
+        
+        // Verify session exists before redirecting to onboarding
+        if (!session) {
+          console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+          router.push('/auth/signin?redirect=/dashboard')
+          return
+        }
         router.push('/onboarding')
         return
       }
@@ -86,6 +95,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           isOnboardingComplete,
           hasActiveSubscription
         })
+        
+        // Verify session exists before redirecting to onboarding
+        if (!session) {
+          console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+          router.push('/auth/signin?redirect=/dashboard')
+          return
+        }
         router.push('/onboarding')
         return
       }

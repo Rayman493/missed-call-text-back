@@ -94,7 +94,16 @@ export default function NewOnboardingPage() {
     // If business doesn't have a Twilio number yet, go back to old onboarding
     if (!business.twilio_phone_number) {
       console.log('[Routing] No Twilio number, redirecting to old onboarding')
-      router.push('/onboarding')
+      
+      // Verify session exists before redirecting
+      supabase.auth.getSession().then(({ data: { session } }: any) => {
+        if (!session) {
+          console.error('[Routing] No session exists, redirecting to sign in')
+          router.push('/auth/signin?redirect=/onboarding')
+          return
+        }
+        router.push('/onboarding')
+      })
       return
     }
   }, [business, router])
