@@ -22,8 +22,15 @@ export function createBrowserClient() {
     return null
   }
 
-  browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
-  console.log('[browser-client] Created singleton Supabase client')
+  browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+    }
+  })
+  console.log('[browser-client] Created singleton Supabase client with persistent session options')
   isCreating = false
   return browserClient
 }

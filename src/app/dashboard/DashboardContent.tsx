@@ -679,17 +679,18 @@ export default function DashboardContent() {
     }
   }, [business?.id])
 
-  // Add timeout fallback for loading state
+  // Add timeout fallback for loading state - 8 seconds max
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (businessLoading) {
-        console.log('[Dashboard] Loading timeout reached, forcing render')
+      if (businessLoading || webhookConfirming) {
+        console.log('[Dashboard] Loading timeout reached after 8 seconds, forcing render')
         setLoadingTimeout(true)
+        setWebhookConfirming(false)
       }
-    }, 5000) // 5 seconds
+    }, 8000) // 8 seconds
 
     return () => clearTimeout(timeout)
-  }, [businessLoading])
+  }, [businessLoading, webhookConfirming])
 
   // Show loading state while business is loading or webhook is confirming
   // Only require business fetch to complete, not subscription resolution
