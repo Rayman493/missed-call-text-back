@@ -655,11 +655,43 @@ export default function DashboardContent() {
   }, [business?.id])
 
   // Show loading state while business is loading or webhook is confirming
-  if (businessLoading || webhookConfirming) {
+  // Also show loading if subscription status is not yet resolved
+  const isSubscriptionResolved = business?.subscription_status && 
+    (business?.stripe_customer_id !== undefined) && 
+    (business?.stripe_subscription_id !== undefined)
+  
+  // Log render decisions for debugging
+  useEffect(() => {
+    console.log('[Dashboard] Render state:', {
+      businessLoading,
+      webhookConfirming,
+      isSubscriptionResolved,
+      isOnboardingComplete,
+      hasValidSubscription: hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id),
+      twilio_phone_number: business?.twilio_phone_number
+    })
+  }, [businessLoading, webhookConfirming, isSubscriptionResolved, isOnboardingComplete, business])
+
+  console.log('[Dashboard] Loading state check:', {
+    businessLoading,
+    webhookConfirming,
+    isSubscriptionResolved,
+    subscription_status: business?.subscription_status,
+    stripe_customer_id: business?.stripe_customer_id,
+    stripe_subscription_id: business?.stripe_subscription_id
+  })
+  
+  if (businessLoading || webhookConfirming || !isSubscriptionResolved) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">
-          {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">
+            {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+            Please wait while we prepare your workspace
+          </p>
         </div>
       </div>
     )

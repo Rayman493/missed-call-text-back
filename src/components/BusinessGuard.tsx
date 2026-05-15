@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,6 +14,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const searchParams = useSearchParams()
   const checkoutStatus = searchParams?.get('checkout')
 
+  // Add explicit state tracking
+  const [initialized, setInitialized] = useState(false)
+
   useEffect(() => {
     console.log('[Routing] BusinessGuard evaluating')
     console.log('[Routing] Loading state:', loading)
@@ -22,9 +25,17 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       id: business?.id,
       onboarding_status: business?.onboarding_status,
       forwarding_verified: business?.forwarding_verified,
-      subscription_status: business?.subscription_status
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id
     })
     console.log('[Routing] Pathname:', pathname)
+    
+    // Mark as initialized once loading is complete
+    if (!loading) {
+      setInitialized(true)
+      console.log('[Routing] BusinessGuard initialized')
+    }
     
     // Don't redirect if already on onboarding page
     if (pathname?.startsWith('/onboarding')) {
@@ -44,8 +55,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       return
     }
     
-    // Only redirect if loading is complete
-    if (!loading) {
+    // Only redirect if loading is complete and initialized
+    if (!loading && initialized) {
       // Redirect if no business exists
       if (!business) {
         console.log('[Routing] No business found, redirecting to onboarding')
@@ -73,11 +84,12 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       console.log('[Routing] Onboarding complete or has active subscription, allowing access')
     } else {
-      console.log('[Routing] Business still loading, waiting...')
+      console.log('[Routing] Business still loading or not initialized, waiting...')
     }
-  }, [business, loading, router, pathname, checkoutStatus])
+  }, [business, loading, router, pathname, checkoutStatus, initialized])
 
-  if (loading) {
+  // Show loading state while business is loading or not yet initialized
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
