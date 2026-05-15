@@ -221,7 +221,7 @@ export default function SetupHealth() {
     // Only allow phone setup if subscription is active
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     if (subscriptionValid) {
-      router.push('/onboarding/phone-setup')
+      router.push('/setup/forwarding')
     } else {
       // Redirect to subscription activation
       router.push('/dashboard')

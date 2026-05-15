@@ -684,40 +684,14 @@ export default function DashboardContent() {
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div className="max-w-6xl mx-auto space-y-6">
                         
             {/* Determine if onboarding is fully complete */}
             {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
             {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
-              <>
-                {/* Activation Banner - Small motivational banner */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🚀</span>
-                      <div>
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                          Your missed-call assistant is almost live
-                        </p>
-                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                          Run one quick test call to finish setup.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => router.push('/dashboard/test-setup')}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
-                    >
-                      Test My Setup
-                    </button>
-                  </div>
-                </div>
-
-                {/* Setup Progress - Primary focus when onboarding incomplete */}
-                <div>
-                  <GettingStarted isOnboardingComplete={isOnboardingComplete} />
-                </div>
-              </>
+              <div>
+                <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+              </div>
             )}
             {/* Billing Error */}
             {billingError && (
@@ -927,38 +901,38 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Hero Metrics Section */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">📞</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Missed Calls</h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
+                  <h3 className="text-xs font-medium text-muted-foreground">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-1">{missedCalls}</p>
-                <p className="text-xs text-muted-foreground">Waiting for first call</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">{missedCalls}</p>
+                <p className="text-[11px] text-muted-foreground">Waiting for first call</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-blue-900/30 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">👥</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">New Leads</h3>
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">👥</span>
+                  <h3 className="text-xs font-medium text-muted-foreground">New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-400 dark:text-blue-100 mb-1">{leadsRecovered}</p>
-                <p className="text-xs text-muted-foreground">Ready to capture leads</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-500 dark:text-blue-100 mb-0.5">{leadsRecovered}</p>
+                <p className="text-[11px] text-muted-foreground">Ready to capture leads</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-green-900/30 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">💬</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Conversations</h3>
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">💬</span>
+                  <h3 className="text-xs font-medium text-muted-foreground">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-400 dark:text-green-100 mb-1">{replies}</p>
-                <p className="text-xs text-muted-foreground">Customer replies appear here</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-500 dark:text-green-100 mb-0.5">{replies}</p>
+                <p className="text-[11px] text-muted-foreground">Customer replies appear here</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 p-4 sm:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 bg-purple-900/30 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏰</span>
-                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Follow-ups</h3>
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">⏰</span>
+                  <h3 className="text-xs font-medium text-muted-foreground">Follow-ups</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-400 dark:text-purple-100 mb-1">{followUpsScheduled}</p>
-                <p className="text-xs text-muted-foreground">Automation ready</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-500 dark:text-purple-100 mb-0.5">{followUpsScheduled}</p>
+                <p className="text-[11px] text-muted-foreground">Automation ready</p>
               </div>
                 </div>
               </>
@@ -1089,12 +1063,12 @@ export default function DashboardContent() {
                 {/* Lead Cards */}
               <div className="bg-card border border-border rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   {processedLeads.length === 0 ? (
-                    <div className={`p-4 sm:p-6 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-muted border-border' : 'bg-muted/50 border-border/50'}`}>
-                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center text-xl animate-pulse">🔍</div>
-                      <h3 className="text-base font-medium text-foreground mb-2">
+                    <div className={`p-6 sm:p-8 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-muted border-border' : 'bg-muted/50 border-border/50'}`}>
+                      <div className="w-10 h-10 mx-auto mb-2 bg-muted rounded-full flex items-center justify-center text-lg animate-pulse">🔍</div>
+                      <h3 className="text-sm font-medium text-foreground mb-1">
                         {searchQuery.trim() ? 'No search results' : 'Your missed-call assistant is ready'}
                       </h3>
-                      <p className={`text-sm max-w-md mx-auto ${isOnboardingComplete ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
+                      <p className={`text-xs max-w-md mx-auto ${isOnboardingComplete ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
                         {searchQuery.trim() 
                           ? 'No leads match your search criteria.'
                           : 'Your first missed call and customer conversation will appear here automatically.'
@@ -1192,8 +1166,7 @@ export default function DashboardContent() {
           </div>
         </div>
       </div>
-      {/* Only show footer when onboarding is complete */}
-      {isOnboardingComplete && <Footer />}
+      <Footer />
       </BusinessGuard>
     </AuthGuard>
   )

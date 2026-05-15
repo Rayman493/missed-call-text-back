@@ -199,7 +199,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     if (forwardingNotConfigured) {
       return {
         text: 'Complete Phone Setup',
-        href: '/onboarding/phone-setup',
+        href: '/setup/forwarding',
         type: 'primary' as const
       }
     }

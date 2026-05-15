@@ -162,7 +162,7 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                href="/onboarding/phone-setup"
+                href="/setup/forwarding"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 View Forwarding Instructions

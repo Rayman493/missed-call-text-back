@@ -156,7 +156,15 @@ export default function SettingsContent() {
   // Helper to get form value for blocked numbers
   const getBlockedNumbersText = () => {
     const settings = getAutomationSettings()
-    return settings.blockedNumbers.join('\n')
+    // If numbers are stored space-separated (legacy format), split them first
+    const numbers = settings.blockedNumbers.flatMap((n: string) => {
+      // Check if this is a space-separated string (legacy format)
+      if (n.includes(' ')) {
+        return n.split(' ').filter((x: string) => x.trim())
+      }
+      return [n]
+    })
+    return numbers.join('\n')
   }
 
   // Helper to update blocked numbers
@@ -691,7 +699,9 @@ export default function SettingsContent() {
                             className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground text-sm font-mono"
                           />
                           <div className="text-xs text-muted-foreground mt-2">
-                            Enter one phone number per line in format: +14125551234
+                            Enter one phone number per line. Example:
+                            <br />
+                            <span className="font-mono">+14125551234</span>
                           </div>
                         </div>
                       </div>

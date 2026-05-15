@@ -13,6 +13,7 @@ import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { Circle } from 'lucide-react'
 import Link from 'next/link'
 import { handleBillingAction } from '@/lib/billing'
+import { usePathname } from 'next/navigation'
 
 type OnboardingState = 
   | 'loading'
@@ -45,6 +46,7 @@ const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
 
 export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete }: GettingStartedProps) {
   const { business, refreshBusiness } = useBusiness()
+  const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
@@ -129,14 +131,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
   const testComplete = business?.forwarding_verified
 
+  // If user is on dashboard, don't force them back to phone-setup even if forwarding is not complete
+  // This allows users to click "Finish later" on Step 4 and stay on dashboard
+  const isOnDashboard = pathname === '/dashboard'
+
   const currentOnboardingState = useMemo(() => {
     if (!business) return 'loading'
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
+    // If user is on dashboard, treat as testing_needed to avoid showing phone-setup button
+    if (isOnDashboard) return 'testing_needed'
     if (!forwardingSetupComplete) return 'forwarding_needed'
     if (!testComplete) return 'testing_needed'
     return 'active_ready'
-  }, [business, subscriptionActive, twilioReady, forwardingSetupComplete, testComplete])
+  }, [business, subscriptionActive, twilioReady, forwardingSetupComplete, testComplete, isOnDashboard])
 
   const handleStartTrial = async () => {
     if (isHandlingBilling) return
@@ -266,8 +274,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         details: forwardingDone
           ? 'Your business phone is now connected to ReplyFlow.'
           : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
-        buttonText: numberDone && !forwardingDone ? 'View Setup Instructions' : undefined,
-        buttonHref: numberDone && !forwardingDone ? '/onboarding/phone-setup' : undefined,
+        // Don't show button if user is on dashboard (they clicked "Finish later" on Step 4)
+        buttonText: numberDone && !forwardingDone && !isOnDashboard ? 'View Setup Instructions' : undefined,
+        buttonHref: numberDone && !forwardingDone && !isOnDashboard ? '/setup/forwarding' : undefined,
       },
       {
         id: 'test',
@@ -277,7 +286,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         details: testDone
           ? 'Setup tested successfully'
           : (forwardingDone ? 'Takes about 30 seconds' : 'Available once forwarding is enabled'),
-        buttonText: forwardingDone && !testDone ? 'Test My Setup' : undefined,
+        buttonText: forwardingDone && !testDone ? 'Complete Final Test' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
       },
     ]
@@ -374,7 +383,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-border bg-card'}`}>
+    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
         <div className="min-w-0">
@@ -415,12 +424,30 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             </svg>
           </button>
         )}
+        {!complete && (
+          <button
+            onClick={handleToggle}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            aria-expanded={isExpanded}
+            aria-label="Toggle setup checklist"
+          >
+            <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
+            <svg
+              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Slim progress bar */}
-      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-2">
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-2">
         <div
-          className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80' : 'bg-gradient-to-r from-blue-500/80 to-indigo-500/80'}`}
+          className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
           style={{ width: `${progressPct}%` }}
           aria-valuenow={progressPct}
           aria-valuemin={0}
@@ -428,25 +455,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           role="progressbar"
         />
       </div>
-
-      {!complete && (
-        <button
-          onClick={handleToggle}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          aria-expanded={isExpanded}
-          aria-label="Toggle setup checklist"
-        >
-          <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
-          <svg
-            className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      )}
 
       {isExpanded && (
         <ol className="space-y-3">
