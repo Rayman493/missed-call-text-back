@@ -63,34 +63,9 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          // No business found - use centralized getOrCreateBusiness API
-          log('[BusinessContext] No business found, using getOrCreateBusiness API...')
-
-          const response = await fetch('/api/business/get-or-create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              businessData: {
-                name: user.email || 'My Business',
-              }
-            })
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            if (data.business) {
-              log('[BusinessContext] Business resolved via API:', data.business.id)
-              setBusiness(data.business as Business)
-            } else {
-              console.error('[BusinessContext] No business returned from API')
-              setBusiness(null)
-            }
-          } else {
-            console.error('[BusinessContext] API call failed:', response.status)
-            setBusiness(null)
-          }
+          // No business found - do NOT auto-create, just set business to null
+          log('[BusinessContext] No business found, not auto-creating. User must explicitly create business.')
+          setBusiness(null)
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)
           throw fetchError

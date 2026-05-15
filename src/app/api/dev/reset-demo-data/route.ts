@@ -207,6 +207,28 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 5. Delete business
+      console.log('[DEV] Deleting business:', businessId)
+      const { error: deleteBusinessError } = await supabaseAdmin
+        .from('businesses')
+        .delete()
+        .eq('id', businessId)
+      
+      if (deleteBusinessError) {
+        console.error('[DEV] Error deleting business:', deleteBusinessError)
+      } else {
+        console.log('[DEV] Deleted business')
+      }
+
+      // 6. Delete Supabase Auth user
+      console.log('[DEV] Deleting Supabase Auth user:', user.id)
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+      if (deleteUserError) {
+        console.error('[DEV] Error deleting auth user:', deleteUserError)
+      } else {
+        console.log('[DEV] Deleted Supabase Auth user')
+      }
+
     } catch (error) {
       console.error('[DEV] Error during demo data reset:', error)
       return NextResponse.json(
@@ -219,7 +241,9 @@ export async function POST(req: NextRequest) {
       messages: deletedMessages,
       follow_up_jobs: deletedFollowUps,
       conversations: deletedConversations,
-      leads: deletedLeads
+      leads: deletedLeads,
+      business_deleted: true,
+      auth_user_deleted: true
     })
 
     return NextResponse.json({
@@ -228,7 +252,9 @@ export async function POST(req: NextRequest) {
         messages: deletedMessages,
         follow_up_jobs: deletedFollowUps,
         conversations: deletedConversations,
-        leads: deletedLeads
+        leads: deletedLeads,
+        business: true,
+        auth_user: true
       }
     })
 

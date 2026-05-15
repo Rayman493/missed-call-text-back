@@ -78,6 +78,11 @@ function AuthContent() {
     setError('')
 
     try {
+      console.log('[AUTH CREATE CALLED]', {
+        source: 'handleSignIn',
+        trigger: 'submit',
+        email,
+      })
       console.log('[Auth] Starting sign in process')
       console.log('[Auth] Email:', email)
       
@@ -173,6 +178,11 @@ function AuthContent() {
     setExistingAccount(false)
 
     try {
+      console.log('[AUTH CREATE CALLED]', {
+        source: 'handleSignUp',
+        trigger: 'submit',
+        email,
+      })
       console.log('[Auth] Starting sign up process')
       console.log('[Auth] Email:', email)
       
