@@ -694,7 +694,8 @@ export default function DashboardContent() {
   // Step 9: LiveActivity ✓
   // Step 10: StatsCards ✓
   // Step 11: RecentLeadsSection ✓
-  // Step 12: ConversationsSection
+  // Step 12: ConversationsSection ✓
+  // Step 13: GettingStartedBottom
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -1070,6 +1071,17 @@ export default function DashboardContent() {
                     </SectionErrorBoundary>
                   </>
                 ) : null}
+
+                {/* Getting Started Section - At Bottom when onboarding complete */}
+                {isOnboardingComplete && (
+                  <SectionErrorBoundary sectionName="GettingStartedBottom">
+                    {(() => {
+                      console.log('[Render Child] GettingStartedBottom')
+                      return null
+                    })()}
+                    <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                  </SectionErrorBoundary>
+                )}
               </div>
             </div>
           </div>
