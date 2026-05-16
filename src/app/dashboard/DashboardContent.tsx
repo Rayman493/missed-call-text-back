@@ -687,7 +687,8 @@ export default function DashboardContent() {
   // Step 2: Setup progress section ✓
   // Step 3: ProvisioningSuccessBanner ✓
   // Step 4: SetupHealthBanner ✓
-  // Step 5: SuccessBanner
+  // Step 5: SuccessBanner ✓
+  // Step 6: PaymentIssueBanner
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -792,6 +793,39 @@ export default function DashboardContent() {
                           className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
                         >
                           Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
+
+                {/* Subscription Alerts - Only show when action needed */}
+                {/* Payment Issue Warning - High Priority */}
+                {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
+                  <SectionErrorBoundary sectionName="PaymentIssueBanner">
+                    {(() => {
+                      console.log('[Render Child] PaymentIssueBanner')
+                      return null
+                    })()}
+                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">⚠️</span>
+                          <div>
+                            <p className="text-sm font-semibold text-red-100">
+                              Payment issue — update billing to keep ReplyFlow active
+                            </p>
+                            <p className="text-xs text-red-300">
+                              {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleManageSubscription}
+                          disabled={isOpeningBilling}
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isOpeningBilling ? 'Opening…' : 'Update Billing'}
                         </button>
                       </div>
                     </div>
