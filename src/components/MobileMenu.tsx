@@ -23,7 +23,12 @@ export default function MobileMenu() {
   }, [isOpen])
 
   const isActive = (path: string) => {
-    return pathname === path || pathname?.startsWith(path + '/')
+    // Exact match for dashboard
+    if (path === '/dashboard') {
+      return pathname === '/dashboard'
+    }
+    // Exact match for other routes
+    return pathname === path
   }
 
   // Show loading skeleton while auth is loading
@@ -83,16 +88,16 @@ export default function MobileMenu() {
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-3 right-3 top-16 z-50 bg-card rounded-xl shadow-2xl border border-border py-2 transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-4 duration-200">
+          <div className="absolute left-3 right-3 top-14 z-50 bg-card rounded-lg shadow-xl border border-border py-1 transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-2 duration-200">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 text-sm transition-colors ${
+                className={`block px-4 py-2 text-sm transition-colors ${
                   isActive(item.href)
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                    : 'text-foreground hover:bg-muted'
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-medium'
+                    : 'text-foreground hover:bg-muted/50'
                 }`}
               >
                 {item.label}
