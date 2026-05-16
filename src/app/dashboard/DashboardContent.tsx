@@ -693,7 +693,8 @@ export default function DashboardContent() {
   // Step 8: ActivationHero ✓
   // Step 9: LiveActivity ✓
   // Step 10: StatsCards ✓
-  // Step 11: RecentLeadsSection
+  // Step 11: RecentLeadsSection ✓
+  // Step 12: ConversationsSection
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -1041,6 +1042,31 @@ export default function DashboardContent() {
                         return null
                       })()}
                       {business?.id && <RecentLeadsSection businessId={business.id} />}
+                    </SectionErrorBoundary>
+
+                    {/* Conversations Section */}
+                    <SectionErrorBoundary sectionName="ConversationsSection">
+                      {(() => {
+                        console.log('[Render Child] ConversationsSection')
+                        return null
+                      })()}
+                      {(() => {
+                        console.log('[Dashboard Render] ConversationsSection')
+                        return null
+                      })()}
+                      <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-semibold text-foreground">No conversations yet</h2>
+                            <p className="text-sm text-muted-foreground">Customer text conversations will appear here once someone replies.</p>
+                          </div>
+                        </div>
+                      </div>
                     </SectionErrorBoundary>
                   </>
                 ) : null}
