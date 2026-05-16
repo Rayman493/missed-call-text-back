@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { 
   hasValidSubscription,
@@ -10,7 +10,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
-import { Circle } from 'lucide-react'
+import { Circle, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { handleBillingAction } from '@/lib/billing'
 import { usePathname } from 'next/navigation'
@@ -51,6 +51,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const [isAnimating, setIsAnimating] = useState(false)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
   const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
+  const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
 
   // When onboarding is complete, collapse by default
   useEffect(() => {
@@ -274,9 +276,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         details: forwardingDone
           ? 'Your business phone is now connected to ReplyFlow.'
           : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
-        // Don't show button if user is on dashboard (they clicked "Finish later" on Step 4)
-        buttonText: numberDone && !forwardingDone && !isOnDashboard ? 'View Setup Instructions' : undefined,
-        buttonHref: numberDone && !forwardingDone && !isOnDashboard ? '/setup/phone-forwarding' : undefined,
+        // Always show button when number is ready and forwarding is not complete
+        buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
+        buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
       },
       {
         id: 'test',
@@ -317,6 +319,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     
     // Reset animation state after transition completes
     setTimeout(() => setIsAnimating(false), 300)
+  }
+
+  const handleCardToggle = (cardId: string) => {
+    setExpandedCardId(expandedCardId === cardId ? null : cardId)
+    
+    // Scroll into view when expanded
+    setTimeout(() => {
+      const cardElement = cardRefs.current[cardId]
+      if (cardElement && expandedCardId !== cardId) {
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
   }
 
   const complete = isFullyComplete
@@ -462,16 +476,21 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             const stepNum = idx + 1
             const isComplete = item.status === 'complete'
             const isCurrent = !isComplete && checklistItems.findIndex(i => i.status !== 'complete') === idx
+            const isExpanded = expandedCardId === item.id
+            const isForwardingCard = item.id === 'forwarding'
+            
             return (
               <li
                 key={item.id}
-                className={`flex items-start gap-4 p-3 sm:p-4 rounded-xl border transition-colors ${
+                ref={(el) => { cardRefs.current[item.id] = el }}
+                onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}
+                className={`flex items-start gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-300 ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isCurrent
-                      ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm'
+                      ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md'
                       : 'bg-muted/50 border-border'
-                }`}
+                } ${isForwardingCard && !isComplete ? 'cursor-pointer hover:bg-blue-100/80 dark:hover:bg-blue-900/25' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -501,17 +520,28 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     }`}>
                       Step {stepNum} — {item.title}
                     </h3>
-                    <span
-                      className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
-                        isComplete
-                          ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
-                          : isCurrent
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                          isComplete
+                            ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
+                            : isCurrent
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
+                      </span>
+                      {isForwardingCard && !isComplete && (
+                        <div className="flex-shrink-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <p className={`text-xs sm:text-sm mb-1.5 ${
                     isComplete
@@ -530,29 +560,35 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </p>
                   )}
                   {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                    item.buttonOnClick ? (
-                      <button
-                        onClick={item.buttonOnClick}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          isCurrent
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                            : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-                        }`}
-                      >
-                        {item.buttonText}
-                      </button>
-                    ) : (
-                      <Link
-                        href={item.buttonHref!}
-                        className={`inline-block px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          isCurrent
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                            : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-                        }`}
-                      >
-                        {item.buttonText}
-                      </Link>
-                    )
+                    <div className="mt-3">
+                      {item.buttonOnClick ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            item.buttonOnClick!()
+                          }}
+                          className={`w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                            isCurrent
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                              : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                          }`}
+                        >
+                          {item.buttonText}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.buttonHref!}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`inline-block w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                            isCurrent
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                              : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                          }`}
+                        >
+                          {item.buttonText}
+                        </Link>
+                      )}
+                    </div>
                   )}
                 </div>
               </li>
