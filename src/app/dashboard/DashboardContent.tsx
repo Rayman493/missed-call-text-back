@@ -543,21 +543,6 @@ export default function DashboardContent() {
   // Null subscription_status is valid (means not activated yet)
   const shouldShowLoading = businessLoading || webhookConfirming
   
-  // Throttled logging to avoid spamming console
-  useEffect(() => {
-    console.log('[Dashboard] Loading state check:', {
-      businessLoading,
-      webhookConfirming,
-      shouldShowLoading,
-      subscription_status: business?.subscription_status,
-      stripe_customer_id: business?.stripe_customer_id,
-      stripe_subscription_id: business?.stripe_subscription_id,
-      onboarding_status: business?.onboarding_status,
-      loadingTimeout,
-      checkoutStatus
-    })
-  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
-  
   // Hard no-blank fallback: always render something
   if (shouldShowLoading && !loadingTimeout) {
     return (
@@ -594,22 +579,6 @@ export default function DashboardContent() {
     finalRenderBranch: 'determining...'
   })
   
-  // Throttled logging to avoid spamming console
-  useEffect(() => {
-    console.log('[Dashboard] Loading state check:', {
-      businessLoading,
-      businessFetchComplete,
-      webhookConfirming,
-      shouldShowLoading,
-      subscription_status: business?.subscription_status,
-      stripe_customer_id: business?.stripe_customer_id,
-      stripe_subscription_id: business?.stripe_subscription_id,
-      onboarding_status: business?.onboarding_status,
-      loadingTimeout,
-      checkoutStatus
-    })
-  }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
-
   // Determine if we should show loading state
   const shouldShowLoadingState = shouldShowLoading && !loadingTimeout
   const shouldShowNoBusinessLoading = !business && !businessLoading && !businessFetchComplete
@@ -696,7 +665,7 @@ export default function DashboardContent() {
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
-                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
+                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
                       console.log('[SECTION RENDER]', {
@@ -714,8 +683,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Provisioning Success Banner - Show after checkout success */}
-                {!(typeof window !== 'undefined' && window.innerWidth < 768) && (
-                  <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+                <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
                     {(() => {
                       console.log('[SECTION RENDER]', {
                         section: 'ProvisioningSuccessBanner',
@@ -730,10 +698,9 @@ export default function DashboardContent() {
                     })()}
                     <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
                   </SectionErrorBoundary>
-                )}
 
                 {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
-                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
+                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
                   <SectionErrorBoundary sectionName="SetupHealthBanner">
                     {(() => {
                       console.log('[SECTION RENDER]', {
@@ -780,7 +747,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Success Banner - Show when forwarding is verified AND recently completed (within 5 minutes) */}
-                {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && !(typeof window !== 'undefined' && window.innerWidth < 768) && (() => {
+                {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && (() => {
                   const verifiedAt = new Date(business.forwarding_verified_at)
                   const now = new Date()
                   const minutesSinceVerification = (now.getTime() - verifiedAt.getTime()) / (1000 * 60)
@@ -945,7 +912,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Pre-trial premium onboarding hero: single, focused activation card */}
-                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
+                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
                   <SectionErrorBoundary sectionName="ActivationHero">
                     {(() => {
                       console.log('[SECTION RENDER]', {

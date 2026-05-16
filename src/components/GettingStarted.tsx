@@ -117,28 +117,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     }
   }, [business])
 
-  // Defensive fallback for missing business data
-  if (!business) {
-    console.log('[GettingStarted] Business not loaded, using default onboarding state')
-    return null
-  }
-
-  // Simple onboarding state logic using direct business values
-  const hasTrial = hasActiveTrial(business)
-  const hasNumber = Boolean(business?.twilio_phone_number)
-  const number = business?.twilio_phone_number ?? null
-  const provisioningStatus = business?.provisioning_status ?? 'pending'
-  const subscriptionActive = hasActiveAccess(business)
-  const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
-  const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-  const testComplete = business?.forwarding_verified
-
   // If user is on dashboard, don't force them back to phone-setup even if forwarding is not complete
   // This allows users to click "Finish later" on Step 4 and stay on dashboard
   const isOnDashboard = pathname === '/dashboard'
 
   const currentOnboardingState = useMemo(() => {
     if (!business) return 'loading'
+    const subscriptionActive = hasActiveAccess(business)
+    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+    const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
+    const testComplete = business?.forwarding_verified
+    
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
     // If user is on dashboard, treat as testing_needed to avoid showing phone-setup button
@@ -146,38 +135,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     if (!forwardingSetupComplete) return 'forwarding_needed'
     if (!testComplete) return 'testing_needed'
     return 'active_ready'
-  }, [business, subscriptionActive, twilioReady, forwardingSetupComplete, testComplete, isOnDashboard])
-
-  const handleStartTrial = async () => {
-    if (isHandlingBilling) return
-    
-    setIsHandlingBilling(true)
-    console.log('[GettingStarted] Starting trial...')
-    
-    // Refresh business data to get latest provisioning state
-    await refreshBusiness()
-    try {
-      console.log('[GettingStarted] Starting trial activation')
-      const result = await handleBillingAction()
-
-      if (result.success && result.url) {
-        console.log('[GettingStarted] Redirecting to:', result.action)
-        window.location.href = result.url
-      } else {
-        console.error('[GettingStarted] Billing action failed:', result.error)
-        // If billing action fails, stay on dashboard and show error
-        setIsHandlingBilling(false)
-        alert(result.error || 'Failed to start trial. Please try again.')
-      }
-    } catch (error) {
-      console.error('[GettingStarted] Trial activation error:', error)
-      // Stay on dashboard and show error
-      setIsHandlingBilling(false)
-      alert('Failed to start trial. Please try again.')
-    } finally {
-      setIsHandlingBilling(false)
-    }
-  }
+  }, [business, isOnDashboard])
 
   // Calculate if all steps are complete based on computed state
   const isFullyComplete = useMemo(() => {
@@ -213,7 +171,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         saveCollapsePreference(true) // Save collapsed preference
       }
     }
-  }, [business])
+  }, [business, isFullyComplete])
 
   // Listen for expandGettingStarted event from ProvisioningSuccessBanner
   useEffect(() => {
@@ -229,6 +187,63 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       window.removeEventListener('expandGettingStarted', handleExpandGettingStarted)
     }
   }, [])
+
+  // Check if we should auto-collapse completed items
+  const shouldAutoCollapseCompleted = useMemo(() => {
+    if (!business) return false
+    
+    const hasTrial = hasActiveTrial(business)
+    const hasNumber = business.twilio_phone_number && business.twilio_phone_number !== null
+    
+    return hasTrial && hasNumber
+  }, [business])
+
+  // Defensive fallback for missing business data
+  if (!business) {
+    console.log('[GettingStarted] Business not loaded, using default onboarding state')
+    return null
+  }
+
+  // Simple onboarding state logic using direct business values
+  const hasTrial = hasActiveTrial(business)
+  const hasNumber = Boolean(business?.twilio_phone_number)
+  const number = business?.twilio_phone_number ?? null
+  const provisioningStatus = business?.provisioning_status ?? 'pending'
+  const subscriptionActive = hasActiveAccess(business)
+  const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+  const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
+  const testComplete = business?.forwarding_verified
+
+  const handleStartTrial = async () => {
+    if (isHandlingBilling) return
+    
+    setIsHandlingBilling(true)
+    console.log('[GettingStarted] Starting trial...')
+    
+    // Refresh business data to get latest provisioning state
+    await refreshBusiness()
+    try {
+      console.log('[GettingStarted] Starting trial activation')
+      const result = await handleBillingAction()
+
+      if (result.success && result.url) {
+        console.log('[GettingStarted] Redirecting to:', result.action)
+        window.location.href = result.url
+      } else {
+        console.error('[GettingStarted] Billing action failed:', result.error)
+        // If billing action fails, stay on dashboard and show error
+        setIsHandlingBilling(false)
+        alert(result.error || 'Failed to start trial. Please try again.')
+      }
+    } catch (error) {
+      console.error('[GettingStarted] Trial activation error:', error)
+      // Stay on dashboard and show error
+      setIsHandlingBilling(false)
+      alert('Failed to start trial. Please try again.')
+    } finally {
+      setIsHandlingBilling(false)
+    }
+  }
 
   // Always emit all 4 onboarding steps with a per-step status. This gives users a
   // consistent, intentional progression instead of a checklist that grows
@@ -295,16 +310,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   }
 
   const checklistItems = getChecklistItems()
-
-  // Check if we should auto-collapse completed items
-  const shouldAutoCollapseCompleted = useMemo(() => {
-    if (!business) return false
-    
-    const hasTrial = hasActiveTrial(business)
-    const hasNumber = business.twilio_phone_number && business.twilio_phone_number !== null
-    
-    return hasTrial && hasNumber
-  }, [business])
 
   // Separate completed and incomplete items
   const completedItems = checklistItems.filter(item => item.status === 'complete')

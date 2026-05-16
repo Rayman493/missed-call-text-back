@@ -58,11 +58,7 @@ export default function OnboardingPage() {
     checkAuthGate()
   }, [router])
 
-  // Show setup error if env vars are missing
-  if (!supabase) {
-    return <SetupError />
-  }
-
+  // Get current user and validate session
   useEffect(() => {
     // Get current user and validate session
     const getUser = async () => {
@@ -154,6 +150,11 @@ export default function OnboardingPage() {
 
     getUser()
   }, [router])
+
+  // Show setup error if env vars are missing
+  if (!supabase) {
+    return <SetupError />
+  }
 
   // Show loading screen while checking if user needs onboarding
   if (checkingBusiness) {
