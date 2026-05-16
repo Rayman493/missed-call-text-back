@@ -689,7 +689,8 @@ export default function DashboardContent() {
   // Step 4: SetupHealthBanner ✓
   // Step 5: SuccessBanner ✓
   // Step 6: PaymentIssueBanner ✓
-  // Step 7: SubscriptionBanner
+  // Step 7: SubscriptionBanner ✓
+  // Step 8: ActivationHero
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -916,6 +917,57 @@ export default function DashboardContent() {
                       // Active subscription (not trial, not cancelled) - no banner needed
                       return null
                     })()}
+                  </SectionErrorBoundary>
+                )}
+
+                {/* Pre-trial premium onboarding hero: single, focused activation card */}
+                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                  <SectionErrorBoundary sectionName="ActivationHero">
+                    {(() => {
+                      console.log('[Render Child] ActivationHero')
+                      return null
+                    })()}
+                    <section className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 shadow-sm">
+                      <div className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-30 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.18),_transparent_55%)]" />
+                      <div className="relative p-6 sm:p-10">
+                        <div className="max-w-2xl mx-auto text-center">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-medium mb-5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                            Ready to activate
+                          </div>
+                          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-3">
+                            Start capturing missed calls
+                          </h1>
+                          <p className="text-sm sm:text-base text-muted-foreground mb-6">
+                            Start your free trial to activate your dedicated ReplyFlow number and begin texting missed callers automatically.
+                          </p>
+                          <ul className="text-sm text-foreground mb-8 space-y-2 text-left max-w-md mx-auto">
+                            <li className="flex items-start gap-3">
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                              Get your dedicated ReplyFlow number
+                            </li>
+                            <li className="flex items-start gap-3">
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                              Set up call forwarding in minutes
+                            </li>
+                            <li className="flex items-start gap-3">
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                              Automatically text back missed callers
+                            </li>
+                          </ul>
+                          <button
+                            onClick={handleStartSubscription}
+                            disabled={checkoutLoading}
+                            className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                          >
+                            {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
+                          </button>
+                          <p className="text-xs text-muted-foreground mt-4">
+                            No charge today. Cancel anytime before your trial ends.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
                   </SectionErrorBoundary>
                 )}
               </div>
