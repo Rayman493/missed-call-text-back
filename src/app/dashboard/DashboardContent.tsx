@@ -692,7 +692,8 @@ export default function DashboardContent() {
   // Step 7: SubscriptionBanner ✓
   // Step 8: ActivationHero ✓
   // Step 9: LiveActivity ✓
-  // Step 10: StatsCards
+  // Step 10: StatsCards ✓
+  // Step 11: RecentLeadsSection
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -1031,6 +1032,15 @@ export default function DashboardContent() {
                           <p className="text-[11px] text-muted-foreground">Scheduled</p>
                         </div>
                       </div>
+                    </SectionErrorBoundary>
+
+                    {/* Recent Leads Section */}
+                    <SectionErrorBoundary sectionName="RecentLeadsSection">
+                      {(() => {
+                        console.log('[Render Child] RecentLeadsSection')
+                        return null
+                      })()}
+                      {business?.id && <RecentLeadsSection businessId={business.id} />}
                     </SectionErrorBoundary>
                   </>
                 ) : null}
