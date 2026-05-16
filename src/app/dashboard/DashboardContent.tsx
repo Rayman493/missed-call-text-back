@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -42,6 +42,55 @@ import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
+
+// ErrorBoundary component to catch dashboard render errors
+class DashboardErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('[DASHBOARD ERROR BOUNDARY] Caught error:', error)
+    console.error('[DASHBOARD ERROR BOUNDARY] Error stack:', error.stack)
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[DASHBOARD ERROR BOUNDARY] Component stack:', errorInfo.componentStack)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      console.error('[DASHBOARD ERROR BOUNDARY] Rendering fallback for error:', this.state.error)
+      return this.props.fallback || (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-red-900/20 border border-red-900/40 rounded-xl p-6">
+            <h2 className="text-xl font-bold text-red-100 mb-4">Dashboard Error</h2>
+            <p className="text-red-300 text-sm mb-4">
+              A component failed to render. This has been logged for debugging.
+            </p>
+            <details className="text-xs text-red-400">
+              <summary>Error details</summary>
+              <pre className="mt-2 whitespace-pre-wrap">{this.state.error?.message}</pre>
+            </details>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -850,6 +899,11 @@ export default function DashboardContent() {
   }
 
   // missedCalls is now tracked in state
+  console.log('[DASHBOARD] rendering main content')
+  console.log('[DASHBOARD] business:', business)
+  console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
+  console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
+  console.log('[DASHBOARD] leads count:', leads.length)
   const textsSent = leads.reduce((count, lead) => {
     return count + (lead.messages?.length > 0 ? 1 : 0)
   }, 0)
@@ -859,12 +913,14 @@ export default function DashboardContent() {
   const followUpsScheduled = followUpJobs.filter((job: any) => job.status === 'pending').length
   const leadsRecovered = leads.length // Now represents unique callers captured
 
+  console.log('[DASHBOARD] rendering AuthGuard and BusinessGuard')
   return (
-    <AuthGuard>
-      <BusinessGuard>
-        <div className={`min-h-screen bg-background flex flex-col`}>
-          {/* App Header */}
-          <AppHeader showNavigation={true} />
+    <DashboardErrorBoundary>
+      <AuthGuard>
+        <BusinessGuard>
+          <div className={`min-h-screen bg-background flex flex-col`}>
+            {/* App Header */}
+            <AppHeader showNavigation={true} />
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
@@ -1353,5 +1409,6 @@ export default function DashboardContent() {
       <Footer />
       </BusinessGuard>
     </AuthGuard>
+    </DashboardErrorBoundary>
   )
 }
