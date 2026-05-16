@@ -1261,16 +1261,44 @@ export default function DashboardContent() {
             )}
 
             {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
-            {/* TEMPORARY: Disabled real leads UI to test if fetch is the issue */}
-            {/* Real leads UI disabled - using static placeholders */}
+            {/* Recent Leads */}
             <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Recent Leads</h2>
-              <p className="text-sm text-muted-foreground">Leads section temporarily disabled for testing</p>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">No leads yet</h2>
+                  <p className="text-sm text-muted-foreground">Recovered leads from missed calls will appear here automatically.</p>
+                </div>
+              </div>
+              {business?.twilio_phone_number && (
+                <Link
+                  href="/dashboard/test-setup"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                  </svg>
+                  Make a test call
+                </Link>
+              )}
             </div>
-            {/* Real leads UI disabled - using static placeholder */}
+            {/* Conversations */}
             <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Conversations</h2>
-              <p className="text-sm text-muted-foreground">Conversations section temporarily disabled for testing</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">No conversations yet</h2>
+                  <p className="text-sm text-muted-foreground">Customer text conversations will appear here once someone replies.</p>
+                </div>
+              </div>
             </div>
 
             {/* Getting Started Section - At Bottom when onboarding complete */}
