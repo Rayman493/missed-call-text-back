@@ -52,7 +52,44 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
   const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Auto-expand current step on mobile (must be before early return)
+  useEffect(() => {
+    if (!isMobile || !business) return
+    
+    // Calculate current incomplete step from business data
+    const subscriptionActive = hasActiveAccess(business)
+    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+    const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
+    const testComplete = business?.forwarding_verified
+    
+    // Determine which step should be expanded
+    if (!subscriptionActive) {
+      // Step 1: Trial - don't auto-expand
+      return
+    } else if (!twilioReady) {
+      // Step 2: Number - auto-expand on mobile
+      setExpandedCardId('number')
+    } else if (!forwardingSetupComplete) {
+      // Step 3: Forwarding - auto-expand on mobile
+      setExpandedCardId('forwarding')
+    } else if (!testComplete) {
+      // Step 4: Test - auto-expand on mobile
+      setExpandedCardId('test')
+    }
+  }, [isMobile, business])
 
   // When onboarding is complete, collapse by default
   useEffect(() => {
@@ -421,7 +458,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         {!complete && doneSteps === 3 && (
           <Link
             href="/dashboard/test-setup"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
+            className="inline-flex items-center px-4 py-2.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
           >
             Complete Final Test
           </Link>
@@ -446,13 +483,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         {!complete && (
           <button
             onClick={handleToggle}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >
             <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
             <svg
-              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -572,7 +609,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             e.stopPropagation()
                             item.buttonOnClick!()
                           }}
-                          className={`w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                          className={`w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
@@ -584,7 +621,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         <Link
                           href={item.buttonHref!}
                           onClick={(e) => e.stopPropagation()}
-                          className={`inline-block w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                          className={`inline-block w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'

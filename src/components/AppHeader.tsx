@@ -20,12 +20,12 @@ export default function AppHeader({
 }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-700 flex-shrink-0">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="max-w-7xl mx-auto pl-4 pr-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between">
           {/* Left side - Mobile menu, logo, and navigation */}
           <div className="flex items-center gap-3 md:gap-8">
             {/* Mobile menu - only visible on mobile/tablet */}
-            <div className="md:hidden">
+            <div className="md:hidden pl-2">
               <MobileMenu />
             </div>
             
@@ -53,7 +53,7 @@ export default function AppHeader({
           </div>
           
           {/* Right side - User dropdown */}
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-3 md:gap-4 pr-2">
             <UserDropdown />
             {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
             <div className="hidden md:block w-10"></div>

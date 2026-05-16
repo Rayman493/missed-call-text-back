@@ -34,6 +34,17 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [showTestModal, setShowTestModal] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Calculate health status
   const isFullyHealthy = () => {
@@ -187,6 +198,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     // Check forwarding status - only if subscription is active
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const forwardingNotConfigured = subscriptionValid && (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled)
+    const forwardingActive = subscriptionValid && business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled && business.forwarding_verified
     
     // Check subscription status
     const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
@@ -196,6 +208,10 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const smsNotConfigured = !business.twilio_phone_number
     
     // Return most critical action first
+    if (forwardingActive) {
+      return null // No action needed when forwarding is active
+    }
+    
     if (forwardingNotConfigured) {
       return {
         text: 'Complete Phone Setup',
@@ -239,6 +255,53 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const healthy = isFullyHealthy()
   const hasIssues = onboardingItems.some((item: HealthItem) => item.status === 'error')
   const hasWarnings = onboardingItems.some((item: HealthItem) => item.status === 'warning')
+  
+  // Check if forwarding is active for success banner
+  const forwardingActive = business && 
+    hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id) &&
+    business.business_phone_number && 
+    business.phone_setup_completed_at && 
+    business.call_forwarding_enabled &&
+    business.forwarding_verified
+
+  // Forwarding success banner
+  if (forwardingActive && !isExpanded) {
+    return (
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="font-medium text-green-900 dark:text-green-100 text-sm mb-1">
+              Call forwarding active
+            </h3>
+            <p className="text-xs text-green-700 dark:text-green-300">
+              ReplyFlow is ready to respond to missed callers automatically.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-expanded={false}
+            aria-label="Expand getting started details"
+            className="flex-shrink-0 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
+          >
+            <svg
+              className="w-4 h-4 transition-transform duration-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // Compact healthy collapsed state
   if (healthy && !isExpanded) {
@@ -285,10 +348,10 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   // Full expanded state (for issues/warnings or when manually expanded)
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 mb-8 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
-      <div className={`${healthy ? 'p-3' : 'p-4'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+      <div className={`${healthy ? 'p-3' : isMobile ? 'p-4 sm:p-4' : 'p-4'}`}>
+        <div className={`flex items-center ${isMobile ? 'flex-col sm:flex-row sm:items-center gap-4' : 'justify-between'}`}>
+          <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-3'}`}>
+            <div className={`flex items-center ${isMobile ? 'gap-3' : 'gap-2'}`}>
               {hasIssues ? (
                 <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -342,16 +405,16 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
       </div>
       
       <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className={`border-t border-gray-200 dark:border-gray-700 ${healthy ? 'p-3' : 'p-4'}`}>
-          <div className="space-y-3">
+        <div className={`border-t border-gray-200 dark:border-gray-700 ${healthy ? 'p-3' : isMobile ? 'p-4 sm:p-4' : 'p-4'}`}>
+          <div className={`space-y-${isMobile ? '4' : '3'}`}>
             {onboardingItems.map((item: HealthItem, index: number) => (
-              <div key={index} className="flex items-start gap-3">
+              <div key={index} className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}>
                 <div className="flex-shrink-0 mt-0.5">
                   {getStatusIcon(item.status)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={`font-medium ${healthy ? 'text-sm text-gray-900 dark:text-gray-100' : 'text-sm text-gray-900 dark:text-gray-100'} break-words`}>{item.title}</h3>
+                    <h3 className={`font-medium ${healthy ? 'text-sm text-gray-900 dark:text-gray-100' : isMobile ? 'text-base text-gray-900 dark:text-gray-100' : 'text-sm text-gray-900 dark:text-gray-100'} break-words`}>{item.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
                       item.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                       item.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
@@ -363,7 +426,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                        item.status === 'error' ? 'Action needed' : 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</p>
+                  <p className={`text-gray-600 dark:text-gray-400 mt-1 break-words overflow-wrap-anywhere ${isMobile ? 'text-sm' : 'text-xs'}`}>{item.description}</p>
                   {item.details && (
                     <p className={`text-xs mt-1 break-words overflow-wrap-anywhere ${
                       item.status === 'healthy' ? 'text-green-700 dark:text-green-400' :
@@ -379,22 +442,24 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
           
           {/* Primary Action Button */}
           {primaryAction && (
-            <div className="pt-4 pb-2">
-              {primaryAction.href ? (
-                <a
-                  href={primaryAction.href}
-                  className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  {primaryAction.text}
-                </a>
-              ) : (
-                <button
-                  onClick={primaryAction.onClick}
-                  className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  {primaryAction.text}
-                </button>
-              )}
+            <div className={`pt-${isMobile ? '6' : '4'} pb-2`}>
+              <div className={`${isMobile ? 'space-y-3' : ''}`}>
+                {primaryAction.href ? (
+                  <a
+                    href={primaryAction.href}
+                    className={`block text-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${isMobile ? 'w-full text-base' : 'w-full text-sm'}`}
+                  >
+                    {primaryAction.text}
+                  </a>
+                ) : (
+                  <button
+                    onClick={primaryAction.onClick}
+                    className={`block text-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${isMobile ? 'w-full text-base' : 'w-full text-sm'}`}
+                  >
+                    {primaryAction.text}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

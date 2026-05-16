@@ -888,8 +888,11 @@ export default function DashboardContent() {
                                   </p>
                                   <p className={`text-[10px] ${textTokens.secondary}`}>
                                     {trialEndDate 
-                                      ? `Billing starts at $49/month on ${trialEndDate} unless you cancel.`
-                                      : 'Billing starts at $49/month after trial unless you cancel.'}
+                                      ? `Your 14-day free trial ends ${trialEndDate}`
+                                      : 'Your 14-day free trial is active'}
+                                  </p>
+                                  <p className={`text-[10px] ${textTokens.secondary}`}>
+                                    Then $49/month unless canceled.
                                   </p>
                                 </div>
                               </div>
@@ -985,7 +988,7 @@ export default function DashboardContent() {
                         console.log('[Render Child] LiveActivity')
                         return null
                       })()}
-                      <div className="mb-6">
+                      <div className={`mb-6 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
                         <LiveActivity />
                       </div>
                     </SectionErrorBoundary>
@@ -1007,7 +1010,7 @@ export default function DashboardContent() {
                         console.log('[Dashboard Render] StatsCards')
                         return null
                       })()}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                      <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
                         <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
@@ -1056,7 +1059,9 @@ export default function DashboardContent() {
                         console.log('[Render Child] RecentLeadsSection')
                         return null
                       })()}
-                      {business?.id && <RecentLeadsSection businessId={business.id} />}
+                      <div className={`transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                        {business?.id && <RecentLeadsSection businessId={business.id} />}
+                      </div>
                     </SectionErrorBoundary>
 
                     {/* Conversations Section */}
