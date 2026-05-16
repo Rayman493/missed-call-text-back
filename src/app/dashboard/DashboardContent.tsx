@@ -683,7 +683,8 @@ export default function DashboardContent() {
   console.log('[DASHBOARD RENDER BRANCH] final: main dashboard content')
 
   // TEMPORARY: Binary search - reintroducing sections one by one
-  // Step 1: Header section
+  // Step 1: Header section ✓
+  // Step 2: Setup progress section
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -691,6 +692,24 @@ export default function DashboardContent() {
           <div className="min-h-screen bg-background flex flex-col">
             {/* App Header */}
             <AppHeader showNavigation={true} />
+
+            {/* Main Content */}
+            <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
+              <div className="max-w-6xl mx-auto space-y-6">
+                        
+                {/* Determine if onboarding is fully complete */}
+                {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
+                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
+                  <SectionErrorBoundary sectionName="SetupProgress">
+                    {(() => {
+                      console.log('[Render Child] SetupProgress')
+                      return null
+                    })()}
+                    <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                  </SectionErrorBoundary>
+                )}
+              </div>
+            </div>
           </div>
         </BusinessGuard>
       </AuthGuard>
