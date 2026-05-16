@@ -342,69 +342,41 @@ export default function LeadsPage() {
 
             {/* Empty State */}
             {!loading && !error && leads.length === 0 && (
-              <>
-                {/* Onboarding Helper Card - only when no leads */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                        Next step
-                      </h3>
-                      <p className="text-xs text-blue-800 dark:text-blue-300 mb-3">
-                        Enable call forwarding to begin capturing missed-call leads.
-                      </p>
-                      <Link
-                        href="/setup/phone-forwarding"
-                        className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                      >
-                        Open Setup
-                      </Link>
-                    </div>
-                  </div>
+              <div className="text-center py-8 sm:py-12 px-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-900/30 mb-4 sm:mb-6">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
                 </div>
-
-                {/* Empty State */}
-                <div className="text-center py-8 sm:py-12 px-4">
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-900/30 mb-4 sm:mb-6">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                    No leads yet
-                  </h3>
-                  <div className="text-muted-foreground mb-6 max-w-md mx-auto text-sm sm:text-base">
-                    <p>Missed calls and conversations will appear here automatically once your forwarding is active.</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
-                      <Link
-                        href="/dashboard/test-setup"
-                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        Test My Setup
-                      </Link>
-                    )}
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
+                  No leads yet
+                </h3>
+                <div className="text-muted-foreground mb-6 max-w-md mx-auto text-sm sm:text-base">
+                  <p>Missed calls and conversations will appear here automatically once your forwarding is active.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
                     <Link
-                      href="/demo"
-                      className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-transparent border border-border text-secondary-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+                      href="/dashboard/test-setup"
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      View Demo
+                      Test My Setup
                     </Link>
-                  </div>
+                  )}
+                  <Link
+                    href="/demo"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-transparent border border-border text-secondary-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    View Demo
+                  </Link>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Leads List */}

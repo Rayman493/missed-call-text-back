@@ -500,35 +500,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         )}
       </div>
 
-      {/* Compact Next Step section - only on mobile, only when not complete */}
-      {!complete && !isExpanded && (
-        <div className="md:hidden bg-muted/50 rounded-lg p-3 mb-2">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-0.5">
-              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground mb-1">
-                Next step:
-              </p>
-              <p className="text-xs text-muted-foreground mb-2">
-                {doneSteps === 3 ? 'Test your setup by calling your business number from another phone.' : 'Complete the current step to continue.'}
-              </p>
-              {doneSteps === 3 && (
-                <Link
-                  href="/dashboard/test-setup"
-                  className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                >
-                  Test Setup
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Slim progress bar */}
       <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-2">
         <div
