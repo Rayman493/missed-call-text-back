@@ -241,24 +241,45 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
     <DashboardErrorBoundary>
       {/* Recent Leads */}
       <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Recent Leads</h2>
+              <p className="text-sm text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">No leads yet</h2>
+        </div>
+
+        {leads.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No leads yet</p>
             <p className="text-sm text-muted-foreground">Recovered leads from missed calls will appear here automatically.</p>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            {leads.slice(0, 5).map((lead) => (
+              <div key={lead.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{lead.customer_phone || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {lead.last_message_at
+                      ? new Date(lead.last_message_at).toLocaleDateString()
+                      : new Date(lead.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {lead.messages?.length || 0} message{lead.messages?.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      {/* DEBUG: Simple leads fetch test */}
-      {leads.length > 0 && (
-        <div className="bg-blue-900/20 border border-blue-900/40 rounded-xl p-4 mt-4">
-          <p className="text-blue-300 text-sm">Leads loaded successfully: {leads.length} leads</p>
-        </div>
-      )}
     </DashboardErrorBoundary>
   )
 }

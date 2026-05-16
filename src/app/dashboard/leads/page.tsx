@@ -89,6 +89,7 @@ export default function LeadsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -97,7 +98,9 @@ export default function LeadsPage() {
     if (!business?.id) return
 
     try {
-      setLoading(true)
+      if (!loading) {
+        setRefreshing(true)
+      }
       setError(null)
 
       const { data, error } = await supabase
@@ -121,8 +124,9 @@ export default function LeadsPage() {
       setError('Failed to load leads. Please try again.')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
-  }, [business?.id, supabase])
+  }, [business?.id, supabase, loading])
 
   // Realtime updates
   useRealtimeLeads(
@@ -249,12 +253,28 @@ export default function LeadsPage() {
               
               <div className="flex items-center gap-3">
                 {leads.length > 0 && (
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors"
-                  >
-                    Filters
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setShowFilters(!showFilters)}
+                      className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors"
+                    >
+                      Filters
+                    </button>
+                    <button
+                      onClick={fetchLeads}
+                      disabled={loading || refreshing}
+                      className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {refreshing ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      )}
+                      Refresh
+                    </button>
+                  </>
                 )}
               </div>
             </div>
