@@ -47,12 +47,13 @@ function AuthContent() {
   const emailParam = searchParams?.get('email')
   const redirectParam = searchParams?.get('redirect') || '/dashboard'
   
-  const [isSignIn, setIsSignIn] = useState(mode === 'signin')
+  const [isSignIn, setIsSignIn] = useState(mode === 'signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
+  const [debugError, setDebugError] = useState<any>(null)
   const passwordRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
 
@@ -63,6 +64,7 @@ function AuthContent() {
     if (mode === 'signin') {
       setError('')
       setExistingAccount(false)
+      setDebugError(null)
     }
   }, [mode])
 
@@ -219,30 +221,44 @@ function AuthContent() {
       // Error path: Stop immediately if sign up API returns an error
       if (error) {
         console.error('[Auth] Sign up API returned error:', error.message)
+        console.error('[Auth] Error status:', error.status)
+        console.error('[Auth] Error code/name:', error.name || error.code || 'unknown')
+        
         const errorMessage = error.message || 'Failed to sign up'
-        if (errorMessage.toLowerCase().includes('user already registered') || 
-            errorMessage.toLowerCase().includes('already exists')) {
+        const errorCode = error.name || error.code || ''
+        
+        // Only show "account already exists" for specific duplicate auth errors
+        const isDuplicateError = 
+          errorCode === 'UserAlreadyExists' ||
+          errorCode === 'DuplicateUser' ||
+          errorMessage.toLowerCase().includes('user already registered') ||
+          errorMessage.toLowerCase().includes('already exists') ||
+          errorMessage.toLowerCase().includes('duplicate email')
+        
+        if (isDuplicateError) {
+          console.log('[Auth] Duplicate auth error detected')
           setExistingAccount(true)
           setError('Account already exists. Please sign in.')
         } else {
+          console.log('[Auth] Non-duplicate auth error, showing real message')
           setError(errorMessage)
         }
+        
+        // Store debug info for display
+        setDebugError({
+          message: errorMessage,
+          status: error.status,
+          code: errorCode,
+          hasUser: !!data.user,
+          hasSession: !!data.session,
+        })
+        
         setLoading(false)
         isSubmittingRef.current = false
         return
       }
 
-      // Success path 1: Check if user exists but has empty identities (indicates existing account)
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        console.log('[Auth] User has no identities - likely existing account')
-        setExistingAccount(true)
-        setError('Looks like you already have an account. Try signing in.')
-        setLoading(false)
-        isSubmittingRef.current = false
-        return
-      }
-
-      // Success path 2: Email confirmation is required (user exists but no session)
+      // Success path 1: Email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
         console.log('[Auth] Email confirmation required - user created but no session')
         console.log('[Auth] User email_confirmed_at:', data.user?.email_confirmed_at)
@@ -252,6 +268,13 @@ function AuthContent() {
           console.log('[Auth] Email not confirmed, showing confirmation message')
           setError('Please check your email to confirm your account before continuing.')
           setIsSignIn(true)
+          setDebugError({
+            message: 'Email confirmation required',
+            status: '200',
+            code: 'EmailNotConfirmed',
+            hasUser: true,
+            hasSession: false,
+          })
           setLoading(false)
           isSubmittingRef.current = false
           return
@@ -285,6 +308,13 @@ function AuthContent() {
             console.log('[Auth] Email confirmation required, redirecting to sign-in')
             setError('Account created! Please check your email to confirm, then sign in.')
             setIsSignIn(true)
+            setDebugError({
+              message: signInErrorMessage,
+              status: signInError?.status,
+              code: signInError?.name || signInError?.code || 'EmailConfirmationRequired',
+              hasUser: true,
+              hasSession: false,
+            })
             setLoading(false)
             isSubmittingRef.current = false
             router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
@@ -294,6 +324,13 @@ function AuthContent() {
           // For any other error, show the error but don't redirect
           setError(`Account created but could not establish session: ${signInErrorMessage}. Please try signing in.`)
           setIsSignIn(true)
+          setDebugError({
+            message: signInErrorMessage,
+            status: signInError?.status,
+            code: signInError?.name || signInError?.code || 'SessionCreationFailed',
+            hasUser: true,
+            hasSession: false,
+          })
           setLoading(false)
           isSubmittingRef.current = false
           return
@@ -374,7 +411,16 @@ function AuthContent() {
           
           {error && (
             <div className="bg-red-900/20 dark:bg-red-900/20 border border-red-800 dark:border-red-800 rounded-2xl p-4 mb-6">
-              <p className="text-sm text-red-300 dark:text-red-300 mb-4">{error}</p>
+              <p className="text-sm text-red-300 dark:text-red-300 mb-2">{error}</p>
+              {debugError && (
+                <div className="text-xs text-red-400/70 dark:text-red-400/70 font-mono bg-red-950/30 dark:bg-red-950/30 rounded p-2">
+                  <div>Debug: {debugError.message}</div>
+                  <div>Status: {debugError.status}</div>
+                  <div>Code: {debugError.code}</div>
+                  <div>HasUser: {debugError.hasUser ? 'YES' : 'NO'}</div>
+                  <div>HasSession: {debugError.hasSession ? 'YES' : 'NO'}</div>
+                </div>
+              )}
               {existingAccount && !isSignIn && (
                 <div className="space-y-3">
                   <button
