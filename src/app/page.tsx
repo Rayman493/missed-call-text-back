@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
-// Temporary debug banner component
+// Temporary debug banner component (only in development)
 function DebugBanner() {
   const [debugInfo, setDebugInfo] = useState<any>(null)
   
@@ -29,6 +29,11 @@ function DebugBanner() {
   }, [])
   
   if (!debugInfo) return null
+  
+  // Only show in development or if ?debug=true
+  if (process.env.NODE_ENV !== 'development' && !window.location.search.includes('debug=true')) {
+    return null
+  }
   
   return (
     <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-xs p-2 z-50 font-mono">
