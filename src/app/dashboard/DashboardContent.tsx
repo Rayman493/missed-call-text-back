@@ -685,7 +685,8 @@ export default function DashboardContent() {
   // TEMPORARY: Binary search - reintroducing sections one by one
   // Step 1: Header section ✓
   // Step 2: Setup progress section ✓
-  // Step 3: ProvisioningSuccessBanner
+  // Step 3: ProvisioningSuccessBanner ✓
+  // Step 4: SetupHealthBanner
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -718,6 +719,45 @@ export default function DashboardContent() {
                   })()}
                   <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
                 </SectionErrorBoundary>
+
+                {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
+                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
+                  <SectionErrorBoundary sectionName="SetupHealthBanner">
+                    {(() => {
+                      console.log('[Render Child] SetupHealthBanner')
+                      return null
+                    })()}
+                    <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">⚠️</span>
+                          <div>
+                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                              Finish testing your setup
+                            </p>
+                            <p className="text-xs text-amber-600 dark:text-amber-300">
+                              Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => router.push('/dashboard/test-setup')}
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                          >
+                            Test Setup
+                          </button>
+                          <button
+                            onClick={handleDismissSetupBanner}
+                            className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
               </div>
             </div>
           </div>
