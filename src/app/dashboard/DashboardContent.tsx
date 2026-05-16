@@ -225,6 +225,25 @@ function formatMessageTimestamp(message: any): string {
 
 export default function DashboardContent() {
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
+  
+  // EMERGENCY BYPASS: Return immediately if subscription is active/trialing
+  // This must happen BEFORE any hooks or state calculations to isolate the crash
+  if (business) {
+    const hasValidSub = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
+    if (hasValidSub) {
+      console.log('[DASHBOARD EMERGENCY BYPASS] Valid subscription detected, returning simple success')
+      return (
+        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">Dashboard loaded successfully</h1>
+            <p className="text-slate-400 mt-2">Your trial is active.</p>
+            <p className="text-slate-500 text-xs mt-4">subscription_status: {business?.subscription_status}</p>
+          </div>
+        </div>
+      )
+    }
+  }
+  
   const [leads, setLeads] = useState<any[]>([])
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
@@ -904,39 +923,6 @@ export default function DashboardContent() {
   console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
   console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
   console.log('[DASHBOARD] leads count:', leads.length)
-  
-  // TEMPORARY BYPASS: Render simple success message if subscription is active/trialing
-  // This will help identify if the crash is in the dashboard UI components
-  const hasValidSub = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
-  if (hasValidSub) {
-    console.log('[DASHBOARD] TEMPORARY BYPASS: Valid subscription detected, rendering simple success message')
-    return (
-      <DashboardErrorBoundary>
-        <AuthGuard>
-          <BusinessGuard>
-            <div className="min-h-screen bg-background flex items-center justify-center p-4">
-              <div className="max-w-md w-full bg-green-900/20 border border-green-900/40 rounded-xl p-6 text-center">
-                <h1 className="text-2xl font-bold text-green-100 mb-4">Dashboard loaded successfully</h1>
-                <p className="text-green-300 text-sm mb-4">
-                  Your subscription is active. Full dashboard UI is temporarily disabled for debugging.
-                </p>
-                <details className="text-xs text-green-400 text-left">
-                  <summary>Debug info</summary>
-                  <pre className="mt-2 whitespace-pre-wrap">
-                    subscription_status: {business?.subscription_status}
-                    stripe_customer_id: {business?.stripe_customer_id ? 'exists' : 'missing'}
-                    stripe_subscription_id: {business?.stripe_subscription_id ? 'exists' : 'missing'}
-                    business_id: {business?.id}
-                  </pre>
-                </details>
-              </div>
-            </div>
-          </BusinessGuard>
-        </AuthGuard>
-      </DashboardErrorBoundary>
-    )
-  }
-  
   const textsSent = leads.reduce((count, lead) => {
     return count + (lead.messages?.length > 0 ? 1 : 0)
   }, 0)
