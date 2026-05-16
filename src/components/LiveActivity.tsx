@@ -26,12 +26,12 @@ interface FollowUpJob {
 }
 
 interface LiveActivityProps {
-  leads: Lead[]
-  followUpJobs: FollowUpJob[]
-  missedCalls: number
+  leads?: Lead[]
+  followUpJobs?: FollowUpJob[]
+  missedCalls?: number
 }
 
-export default function LiveActivity({ leads, followUpJobs, missedCalls }: LiveActivityProps) {
+export default function LiveActivity({ leads = [], followUpJobs = [], missedCalls = 0 }: LiveActivityProps) {
   const [activeTab, setActiveTab] = useState<'recent' | 'responses'>('recent')
 
   // Get recent activity (missed calls and new leads)

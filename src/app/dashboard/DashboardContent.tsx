@@ -42,6 +42,7 @@ import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import RecentLeadsSection from '@/components/RecentLeadsSection'
 
 // ErrorBoundary component to catch dashboard render errors
 class DashboardErrorBoundary extends React.Component<
@@ -224,21 +225,17 @@ function formatMessageTimestamp(message: any): string {
 }
 
 export default function DashboardContent() {
+  console.log('[HOOK ORDER CHECK] dashboard render start')
+
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   
   // ALL hooks must be called before any conditional returns to prevent React #310
-  const [leads, setLeads] = useState<any[]>([])
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
-  const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
-  const [missedCalls, setMissedCalls] = useState(0)
-  const [callEvents, setCallEvents] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [testSmsMessage, setTestSmsMessage] = useState('')
-  const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [billingError, setBillingError] = useState('')
@@ -257,46 +254,6 @@ export default function DashboardContent() {
     const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
     setIsSetupBannerDismissed(dismissed)
   }, [])
-
-  // EMERGENCY BYPASS REMOVED - Restoring full dashboard with selective feature enablement
-  // All hooks are called before any conditional returns to prevent React #310
-
-  const handleDismissSetupBanner = () => {
-    setIsSetupBannerDismissed(true)
-    sessionStorage.setItem('replyflow_setup_banner_dismissed', 'true')
-  }
-  
-  const handleManageSubscription = async () => {
-    console.log('[Dashboard] Manage Subscription clicked')
-    setIsOpeningBilling(true)
-    setBillingError('')
-
-    try {
-      const result = await handleBillingAction()
-      
-      if (result.success && result.url) {
-        console.log('[Dashboard] Redirecting to:', result.url, result.action)
-        window.location.href = result.url
-      } else {
-        console.error('[Dashboard] Billing action failed:', result.error)
-        setBillingError(result.error || 'Failed to open billing portal')
-        setIsOpeningBilling(false)
-      }
-    } catch (error) {
-      console.error('[Dashboard] Unexpected error:', error)
-      setBillingError('Failed to open billing portal. Please try again.')
-      setIsOpeningBilling(false)
-    }
-  }
-  
-  // Realtime subscription management
-  const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
-
-  // Process leads whenever raw leads, search, or filter changes
-  useEffect(() => {
-    const processed = processLeads(leads, searchQuery, statusFilter)
-    setProcessedLeads(processed)
-  }, [leads, searchQuery, statusFilter])
 
   // Force refresh business after checkout success with server-side recovery
   useEffect(() => {
@@ -386,9 +343,82 @@ export default function DashboardContent() {
     }
   }, [checkoutStatus, searchParams, refreshBusiness, supabase, router, business])
 
-  // Only calculate isActive after business loading is complete
-  const isActive = !businessLoading && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
+  // Add timeout fallback for loading state - 8 seconds max
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (businessLoading || webhookConfirming) {
+        console.log('[Dashboard] Loading timeout reached after 8 seconds, forcing render')
+        setLoadingTimeout(true)
+        setWebhookConfirming(false)
+      }
+    }, 8000) // 8 seconds
 
+    return () => clearTimeout(timeout)
+  }, [businessLoading, webhookConfirming])
+
+  // Throttled logging to avoid spamming console
+  useEffect(() => {
+    console.log('[Dashboard] Loading state check:', {
+      businessLoading,
+      webhookConfirming,
+      shouldShowLoading: businessLoading || webhookConfirming,
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id,
+      onboarding_status: business?.onboarding_status,
+      loadingTimeout,
+      checkoutStatus
+    })
+  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
+
+  // Duplicate logging - remove
+  // useEffect(() => {
+  //   console.log('[Dashboard] Loading state check:', {
+  //     businessLoading,
+  //     businessFetchComplete,
+  //     webhookConfirming,
+  //     shouldShowLoading,
+  //     subscription_status: business?.subscription_status,
+  //     stripe_customer_id: business?.stripe_customer_id,
+  //     stripe_subscription_id: business?.stripe_subscription_id,
+  //     onboarding_status: business?.onboarding_status,
+  //     loadingTimeout,
+  //     checkoutStatus
+  //   })
+  // }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
+
+  console.log('[HOOK ORDER CHECK] all hooks completed')
+
+  // EMERGENCY BYPASS REMOVED - Restoring full dashboard with selective feature enablement
+  // All hooks are called before any conditional returns to prevent React #310
+
+  const handleDismissSetupBanner = () => {
+    setIsSetupBannerDismissed(true)
+    sessionStorage.setItem('replyflow_setup_banner_dismissed', 'true')
+  }
+  
+  const handleManageSubscription = async () => {
+    console.log('[Dashboard] Manage Subscription clicked')
+    setIsOpeningBilling(true)
+    setBillingError('')
+
+    try {
+      const result = await handleBillingAction()
+      
+      if (result.success && result.url) {
+        console.log('[Dashboard] Redirecting to:', result.url, result.action)
+        window.location.href = result.url
+      } else {
+        console.error('[Dashboard] Billing action failed:', result.error)
+        setBillingError(result.error || 'Failed to open billing portal')
+        setIsOpeningBilling(false)
+      }
+    } catch (error) {
+      console.error('[Dashboard] Unexpected error:', error)
+      setBillingError('Failed to open billing portal. Please try again.')
+      setIsOpeningBilling(false)
+    }
+  }
 
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
@@ -459,12 +489,7 @@ export default function DashboardContent() {
 
   const handleSignOut = async () => {
     try {
-      // Clear local dashboard state
-      setLeads([])
-      setFollowUpJobs([])
-      setCurrentBusinessId(null)
       setTestSmsMessage('')
-      
       await supabase.auth.signOut()
       console.log('[Auth] User signed out')
       router.push('/')
@@ -545,233 +570,6 @@ export default function DashboardContent() {
     }
   }
 
-  useEffect(() => {
-    // If business is still loading, don't fetch leads yet
-    if (businessLoading) {
-      return
-    }
-    
-    // If no business or no supabase, don't fetch leads - guards will handle redirect
-    if (!business || !supabase) {
-      setLoading(false)
-      return
-    }
-
-    // If business changed, clear old data
-    if (currentBusinessId && currentBusinessId !== business.id) {
-      dlog('[DashboardContent] Business changed, clearing old data')
-      setLeads([])
-      setFollowUpJobs([])
-      setCurrentBusinessId(business.id)
-    }
-    setCurrentBusinessId(business.id)
-
-    const fetchLeads = async () => {
-      console.log('[Leads Fetch] Starting leads fetch', { businessId: business.id, loading })
-      dlog('[DashboardContent] Fetching leads for business:', business.id)
-      setLoading(true)
-      try {
-        const { data } = await supabase
-          .from('leads')
-          .select(`
-            *,
-            messages (
-              id,
-              body,
-              direction,
-              from_phone,
-              to_phone,
-              status,
-              error_code,
-              error_message,
-              status_updated_at,
-              created_at,
-              conversation_id
-            ),
-            conversations (
-              id,
-              status,
-              source,
-              started_at,
-              last_activity_at
-            )
-          `)
-          .eq('business_id', business.id)
-          .eq('is_demo', false) // Exclude demo leads from dashboard
-          .order('last_message_at', { ascending: false, nullsFirst: false })
-          .order('first_contact_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-
-        const leadsData = data as any[]
-
-        dlog('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
-        console.log('[Leads Fetch] Success', { count: leadsData?.length || 0, loading: false })
-        setLeads(leadsData || [])
-      } catch (error) {
-        console.error('[DashboardContent] Error fetching leads:', error)
-        console.log('[Leads Fetch] Error', { error, loading: false })
-        setLeads([]) // Safe default on error
-      }
-
-      // Fetch follow-up jobs
-      try {
-        const supabaseAny = supabase as any
-        const { data: jobsData } = await supabaseAny
-          .from('follow_up_jobs')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false })
-
-        dlog('[DashboardContent] Fetched', jobsData?.length || 0, 'follow-up jobs')
-        setFollowUpJobs(jobsData || [])
-      } catch (error) {
-        console.error('[DashboardContent] Error fetching follow-up jobs:', error)
-      }
-
-      // Fetch call events for missed calls count
-      try {
-        const { data: callEventsData } = await supabase
-          .from('call_events')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false })
-
-        dlog('[DashboardContent] Fetched', callEventsData?.length || 0, 'call events')
-        setCallEvents(callEventsData || [])
-        setMissedCalls(callEventsData?.length || 0)
-      } catch (error) {
-        console.error('[DashboardContent] Error fetching call events:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchLeads()
-  }, [business, businessLoading, supabase, currentBusinessId])
-
-  // Realtime subscription for dashboard updates
-  useEffect(() => {
-    if (!business?.id || !supabase) return
-
-    // Quiet setup - only log errors
-
-    // Clean up existing subscription
-    if (realtimeChannelRef.current) {
-      supabase.removeChannel(realtimeChannelRef.current)
-    }
-
-    // Set up new subscription for messages and leads
-    const channel = supabase
-      .channel(`dashboard:${business.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `business_id=eq.${business.id}`
-        },
-        (payload: any) => {
-          // Quiet message handling
-          
-          if (payload.eventType === 'INSERT') {
-            // New message - update the lead with new message
-            const newMessage = payload.new
-            setLeads(prev => {
-              if (!prev) return prev
-              
-              return prev.map(lead => {
-                if (lead.id === newMessage.lead_id) {
-                  const updatedMessages = [...(lead.messages || []), newMessage]
-                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  
-                  return {
-                    ...lead,
-                    messages: updatedMessages,
-                    last_message_at: newMessage.created_at
-                  }
-                }
-                return lead
-              })
-            })
-          } else if (payload.eventType === 'UPDATE') {
-            // Message status updated - update the specific message
-            const updatedMessage = payload.new
-            setLeads(prev => {
-              if (!prev) return prev
-              
-              return prev.map(lead => {
-                if (lead.id === updatedMessage.lead_id) {
-                  const updatedMessages = lead.messages?.map((msg: any) => 
-                    msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
-                  )
-                  
-                  return {
-                    ...lead,
-                    messages: updatedMessages
-                  }
-                }
-                return lead
-              })
-            })
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `business_id=eq.${business.id}`
-        },
-        (payload: any) => {
-          // Quiet lead handling
-          
-          if (payload.eventType === 'INSERT') {
-            // New lead - add to the list
-            const newLead = payload.new
-            setLeads(prev => {
-              if (!prev) return [newLead]
-              
-              // Check if lead already exists
-              const existingLead = prev.find(lead => lead.id === newLead.id)
-              if (existingLead) return prev
-              
-              return [newLead, ...prev]
-            })
-          } else if (payload.eventType === 'UPDATE') {
-            // Lead updated - update the specific lead
-            const updatedLead = payload.new
-            setLeads(prev => {
-              if (!prev) return prev
-              
-              return prev.map(lead => 
-                lead.id === updatedLead.id ? { ...lead, ...updatedLead } : lead
-              )
-            })
-          }
-        }
-      )
-      .subscribe((status: any) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[Dashboard Realtime] Channel error for business:', business.id)
-        }
-        // Quiet SUBSCRIBED status - no need to log
-      })
-
-    realtimeChannelRef.current = channel
-
-    // Cleanup on unmount
-    return () => {
-      if (realtimeChannelRef.current) {
-        console.log('[Dashboard Realtime] Cleaning up dashboard subscription')
-        supabase.removeChannel(realtimeChannelRef.current)
-        realtimeChannelRef.current = null
-      }
-    }
-  }, [business?.id])
-
   // Add timeout fallback for loading state - 8 seconds max
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -829,7 +627,6 @@ export default function DashboardContent() {
 
   // Real branch logging for loading state
   console.log('[DASHBOARD RENDER BRANCH]', {
-    authLoading: loading,
     sessionExists: !!business, // business exists only if session exists
     businessLoading,
     businessFetchComplete,
@@ -857,11 +654,39 @@ export default function DashboardContent() {
       checkoutStatus
     })
   }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
-  
-  // Hard no-blank fallback: always render something
-  if (shouldShowLoading && !loadingTimeout) {
+
+  // Handle redirect to onboarding if no business after fetch complete
+  useEffect(() => {
+    if (!business && !businessLoading && businessFetchComplete) {
+      console.log('[DASHBOARD] No business object after loading complete, redirecting to onboarding')
+      router.push('/onboarding')
+    }
+  }, [business, businessLoading, businessFetchComplete, router])
+
+  // Determine if we should show loading state
+  const shouldShowLoadingState = shouldShowLoading && !loadingTimeout
+  const shouldShowNoBusinessLoading = !business && !businessLoading && !businessFetchComplete
+
+  // If loading timeout reached, show dashboard anyway (don't render blank)
+  if (loadingTimeout) {
+    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
+  }
+
+  // missedCalls is now tracked in state
+  console.log('[DASHBOARD] rendering main content')
+  console.log('[DASHBOARD] business:', business)
+  console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
+  console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
+
+  console.log('[DASHBOARD] rendering AuthGuard and BusinessGuard')
+  console.log('[DASHBOARD RENDER BRANCH] final: main dashboard content')
+
+  // Determine what to render
+  let content = null
+
+  if (shouldShowLoadingState) {
     console.log('[DASHBOARD RENDER BRANCH] final: loading spinner')
-    return (
+    content = (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
@@ -874,28 +699,10 @@ export default function DashboardContent() {
         </div>
       </div>
     )
-  }
-
-  // If loading timeout reached, show dashboard anyway (don't render blank)
-  if (loadingTimeout) {
-    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
-  }
-
-  // Ensure we always have a valid business object for rendering
-  // Null subscription_status is a valid state (not activated yet), not loading
-  if (!business && !businessLoading && businessFetchComplete) {
-    console.log('[DASHBOARD RENDER BRANCH] final: no business after fetch complete - should redirect to onboarding')
-    console.log('[Dashboard] No business object after loading complete, redirecting to onboarding')
-    // BusinessGuard should handle this redirect, but as a fallback, redirect here
-    router.push('/onboarding')
-    return null
-  }
-
-  if (!business && !businessLoading) {
+  } else if (shouldShowNoBusinessLoading) {
     console.log('[DASHBOARD RENDER BRANCH] final: no business, loading not complete - showing loading')
     console.log('[Dashboard] No business object after loading complete, showing activation')
-    // This is a resolved state - show activation panel instead of blank
-    return (
+    content = (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
@@ -904,32 +711,13 @@ export default function DashboardContent() {
         </div>
       </div>
     )
-  }
-
-  // missedCalls is now tracked in state
-  console.log('[DASHBOARD] rendering main content')
-  console.log('[DASHBOARD] business:', business)
-  console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
-  console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
-  console.log('[DASHBOARD] leads count:', leads.length)
-  console.log('[Dashboard Render] Leads')
-  const textsSent = leads.reduce((count, lead) => {
-    return count + (lead.messages?.length > 0 ? 1 : 0)
-  }, 0)
-  const replies = leads.reduce((count, lead) => {
-    return count + (lead.messages?.filter((m: any) => m.direction === 'inbound').length || 0)
-  }, 0)
-  const followUpsScheduled = followUpJobs.filter((job: any) => job.status === 'pending').length
-  const leadsRecovered = leads.length // Now represents unique callers captured
-
-  console.log('[DASHBOARD] rendering AuthGuard and BusinessGuard')
-  return (
-    <DashboardErrorBoundary>
-      <AuthGuard>
-        <BusinessGuard>
-          <div className={`min-h-screen bg-background flex flex-col`}>
-            {/* App Header */}
-            <AppHeader showNavigation={true} />
+  } else {
+    // Main dashboard content
+    content = (
+      <>
+        <div className={`min-h-screen bg-background flex flex-col`}>
+          {/* App Header */}
+          <AppHeader showNavigation={true} />
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
@@ -1192,11 +980,7 @@ export default function DashboardContent() {
               <>
                 {/* Live Activity Section - Top Priority */}
                 <div className="mb-6">
-                  <LiveActivity
-                    leads={leads}
-                    followUpJobs={followUpJobs}
-                    missedCalls={missedCalls}
-                  />
+                  <LiveActivity />
                 </div>
 
                 {/* Hero Metrics Section */}
@@ -1210,7 +994,7 @@ export default function DashboardContent() {
                   <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
                   <h3 className="text-xs font-medium text-muted-foreground">Missed Calls</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">{missedCalls}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">0</p>
                 <p className="text-[11px] text-muted-foreground">Waiting for first call</p>
               </div>
               <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
@@ -1218,7 +1002,7 @@ export default function DashboardContent() {
                   <span className="w-8 h-8 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">👥</span>
                   <h3 className="text-xs font-medium text-muted-foreground">New Leads</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-500 dark:text-blue-100 mb-0.5">{leadsRecovered}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-500 dark:text-blue-100 mb-0.5">0</p>
                 <p className="text-[11px] text-muted-foreground">Ready to capture leads</p>
               </div>
               <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
@@ -1226,18 +1010,21 @@ export default function DashboardContent() {
                   <span className="w-8 h-8 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">💬</span>
                   <h3 className="text-xs font-medium text-muted-foreground">Conversations</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-green-500 dark:text-green-100 mb-0.5">{replies}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-500 dark:text-green-100 mb-0.5">0</p>
                 <p className="text-[11px] text-muted-foreground">Customer replies appear here</p>
               </div>
               <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-8 h-8 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">⏰</span>
+                  <span className="w-8 h-8 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">📅</span>
                   <h3 className="text-xs font-medium text-muted-foreground">Follow-ups</h3>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-500 dark:text-purple-100 mb-0.5">{followUpsScheduled}</p>
-                <p className="text-[11px] text-muted-foreground">Automation ready</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-500 dark:text-purple-100 mb-0.5">0</p>
+                <p className="text-[11px] text-muted-foreground">Scheduled</p>
               </div>
                 </div>
+
+                {/* Recent Leads Section */}
+                {business?.id && <RecentLeadsSection businessId={business.id} />}
               </>
             ) : null}
 
@@ -1269,40 +1056,10 @@ export default function DashboardContent() {
             {/* Recent Leads */}
             {(() => {
               console.log('[Dashboard Render] RecentLeadsSection')
-              console.log('[RecentLeadsSection] raw leads data:', leads)
-              console.log('[RecentLeadsSection] Array.isArray(leads):', Array.isArray(leads))
-              console.log('[RecentLeadsSection] leads.length:', leads.length)
-              if (leads.length > 0) {
-                console.log('[RecentLeadsSection] first lead keys:', Object.keys(leads[0]))
-              }
               return null
             })()}
-            <DashboardErrorBoundary>
-              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">No leads yet</h2>
-                  <p className="text-sm text-muted-foreground">Recovered leads from missed calls will appear here automatically.</p>
-                </div>
-              </div>
-              {business?.twilio_phone_number && (
-                <Link
-                  href="/dashboard/test-setup"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                  </svg>
-                  Make a test call
-                </Link>
-              )}
-            </div>
-            </DashboardErrorBoundary>
+            {/* Recent Leads Section */}
+            {business?.id && <RecentLeadsSection businessId={business.id} />}
             {/* Conversations */}
             {(() => {
               console.log('[Dashboard Render] ConversationsSection')
@@ -1321,12 +1078,6 @@ export default function DashboardContent() {
                 </div>
               </div>
             </div>
-            {/* DEBUG: Simple leads fetch test */}
-            {leads.length > 0 && (
-              <div className="bg-blue-900/20 border border-blue-900/40 rounded-xl p-4">
-                <p className="text-blue-300 text-sm">Leads loaded successfully: {leads.length} leads</p>
-              </div>
-            )}
 
             {/* Getting Started Section - At Bottom when onboarding complete */}
             {isOnboardingComplete && <GettingStarted isOnboardingComplete={isOnboardingComplete} />}
@@ -1334,8 +1085,17 @@ export default function DashboardContent() {
         </div>
       </div>
       <Footer />
-      </BusinessGuard>
-    </AuthGuard>
+      </>
+    )
+  }
+
+  return (
+    <DashboardErrorBoundary>
+      <AuthGuard>
+        <BusinessGuard>
+          {content}
+        </BusinessGuard>
+      </AuthGuard>
     </DashboardErrorBoundary>
   )
 }
