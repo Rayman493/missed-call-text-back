@@ -226,8 +226,40 @@ function formatMessageTimestamp(message: any): string {
 export default function DashboardContent() {
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   
+  // ALL hooks must be called before any conditional returns to prevent React #310
+  const [leads, setLeads] = useState<any[]>([])
+  const [processedLeads, setProcessedLeads] = useState<any[]>([])
+  const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
+  const [missedCalls, setMissedCalls] = useState(0)
+  const [callEvents, setCallEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
+  const [webhookConfirming, setWebhookConfirming] = useState(false)
+  const [testSmsLoading, setTestSmsLoading] = useState(false)
+  const [testSmsMessage, setTestSmsMessage] = useState('')
+  const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [billingError, setBillingError] = useState('')
+  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
+  const searchParams = useSearchParams()
+  const checkoutStatus = searchParams?.get('checkout')
+  const router = useRouter()
+  const supabase = createBrowserClient()
+
+  // Determine if onboarding is fully complete
+  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+
+  // Initialize setup banner dismissal state from sessionStorage
+  useEffect(() => {
+    const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
+    setIsSetupBannerDismissed(dismissed)
+  }, [])
+
   // EMERGENCY BYPASS: Return immediately if subscription is active/trialing
-  // This must happen BEFORE any hooks or state calculations to isolate the crash
+  // This must happen AFTER all hooks to prevent React #310
   if (business) {
     const hasValidSub = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
     if (hasValidSub) {
@@ -284,38 +316,6 @@ export default function DashboardContent() {
       )
     }
   }
-  
-  const [leads, setLeads] = useState<any[]>([])
-  const [processedLeads, setProcessedLeads] = useState<any[]>([])
-  const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
-  const [missedCalls, setMissedCalls] = useState(0)
-  const [callEvents, setCallEvents] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
-  const [webhookConfirming, setWebhookConfirming] = useState(false)
-  const [testSmsLoading, setTestSmsLoading] = useState(false)
-  const [testSmsMessage, setTestSmsMessage] = useState('')
-  const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [billingError, setBillingError] = useState('')
-  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
-  const [loadingTimeout, setLoadingTimeout] = useState(false)
-  const searchParams = useSearchParams()
-  const checkoutStatus = searchParams?.get('checkout')
-  const router = useRouter()
-
-  const supabase = createBrowserClient()
-
-  // Determine if onboarding is fully complete
-  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
-
-  // Initialize setup banner dismissal state from sessionStorage
-  useEffect(() => {
-    const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
-    setIsSetupBannerDismissed(dismissed)
-  }, [])
 
   const handleDismissSetupBanner = () => {
     setIsSetupBannerDismissed(true)
