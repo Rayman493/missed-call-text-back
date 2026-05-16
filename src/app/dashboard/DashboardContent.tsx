@@ -268,6 +268,7 @@ export default function DashboardContent() {
       console.log('[Dashboard Render] Layout shell')
       console.log('[Dashboard Render] StaticCards')
       console.log('[Dashboard Render] PlaceholderSections')
+      console.log('[Dashboard Render] SetupProgress')
       return (
         <DashboardErrorBoundary>
           <AuthGuard>
@@ -278,6 +279,12 @@ export default function DashboardContent() {
                 {/* Main Content - Static cards only */}
                 <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
                   <div className="max-w-6xl mx-auto space-y-6">
+                    {/* Setup Progress Section - with guards */}
+                    {business && (
+                      <div>
+                        <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                      </div>
+                    )}
                     {/* Static Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
