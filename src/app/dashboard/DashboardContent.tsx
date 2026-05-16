@@ -234,6 +234,8 @@ export default function DashboardContent() {
       console.log('[DASHBOARD EMERGENCY BYPASS] Valid subscription detected, restoring dashboard layout shell')
       console.log('[Dashboard Render] Header')
       console.log('[Dashboard Render] Layout shell')
+      console.log('[Dashboard Render] StaticCards')
+      console.log('[Dashboard Render] PlaceholderSections')
       return (
         <DashboardErrorBoundary>
           <AuthGuard>
@@ -241,12 +243,36 @@ export default function DashboardContent() {
               <div className={`min-h-screen bg-background flex flex-col`}>
                 {/* App Header */}
                 <AppHeader showNavigation={true} />
-                {/* Main Content - Empty for now */}
+                {/* Main Content - Static cards only */}
                 <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-                  <div className="max-w-6xl mx-auto">
-                    <div className="text-center py-12">
-                      <h1 className="text-2xl font-bold text-slate-100 mb-2">Dashboard Layout Shell</h1>
-                      <p className="text-slate-400">Header and navigation restored. Testing for React #300 crash.</p>
+                  <div className="max-w-6xl mx-auto space-y-6">
+                    {/* Static Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
+                        <p className="text-slate-400 text-sm">Leads Recovered</p>
+                        <p className="text-2xl font-bold text-slate-100">0</p>
+                      </div>
+                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
+                        <p className="text-slate-400 text-sm">Texts Sent</p>
+                        <p className="text-2xl font-bold text-slate-100">0</p>
+                      </div>
+                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
+                        <p className="text-slate-400 text-sm">Replies</p>
+                        <p className="text-2xl font-bold text-slate-100">0</p>
+                      </div>
+                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
+                        <p className="text-slate-400 text-sm">Follow-ups</p>
+                        <p className="text-2xl font-bold text-slate-100">0</p>
+                      </div>
+                    </div>
+                    {/* Static Placeholder Sections */}
+                    <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-6 border border-slate-700 dark:border-slate-700">
+                      <h2 className="text-lg font-semibold text-slate-100 mb-4">Recent Leads</h2>
+                      <p className="text-slate-400 text-sm">No leads yet - static placeholder</p>
+                    </div>
+                    <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-6 border border-slate-700 dark:border-slate-700">
+                      <h2 className="text-lg font-semibold text-slate-100 mb-4">Conversations</h2>
+                      <p className="text-slate-400 text-sm">No conversations yet - static placeholder</p>
                     </div>
                   </div>
                 </div>
