@@ -231,15 +231,30 @@ export default function DashboardContent() {
   if (business) {
     const hasValidSub = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
     if (hasValidSub) {
-      console.log('[DASHBOARD EMERGENCY BYPASS] Valid subscription detected, returning simple success')
+      console.log('[DASHBOARD EMERGENCY BYPASS] Valid subscription detected, restoring dashboard layout shell')
+      console.log('[Dashboard Render] Header')
+      console.log('[Dashboard Render] Layout shell')
       return (
-        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold">Dashboard loaded successfully</h1>
-            <p className="text-slate-400 mt-2">Your trial is active.</p>
-            <p className="text-slate-500 text-xs mt-4">subscription_status: {business?.subscription_status}</p>
-          </div>
-        </div>
+        <DashboardErrorBoundary>
+          <AuthGuard>
+            <BusinessGuard>
+              <div className={`min-h-screen bg-background flex flex-col`}>
+                {/* App Header */}
+                <AppHeader showNavigation={true} />
+                {/* Main Content - Empty for now */}
+                <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="text-center py-12">
+                      <h1 className="text-2xl font-bold text-slate-100 mb-2">Dashboard Layout Shell</h1>
+                      <p className="text-slate-400">Header and navigation restored. Testing for React #300 crash.</p>
+                    </div>
+                  </div>
+                </div>
+                <Footer />
+              </div>
+            </BusinessGuard>
+          </AuthGuard>
+        </DashboardErrorBoundary>
       )
     }
   }
