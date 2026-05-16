@@ -684,7 +684,8 @@ export default function DashboardContent() {
 
   // TEMPORARY: Binary search - reintroducing sections one by one
   // Step 1: Header section ✓
-  // Step 2: Setup progress section
+  // Step 2: Setup progress section ✓
+  // Step 3: ProvisioningSuccessBanner
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -708,6 +709,15 @@ export default function DashboardContent() {
                     <GettingStarted isOnboardingComplete={isOnboardingComplete} />
                   </SectionErrorBoundary>
                 )}
+
+                {/* Provisioning Success Banner - Show after checkout success */}
+                <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+                  {(() => {
+                    console.log('[Render Child] ProvisioningSuccessBanner')
+                    return null
+                  })()}
+                  <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+                </SectionErrorBoundary>
               </div>
             </div>
           </div>
