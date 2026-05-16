@@ -1261,154 +1261,17 @@ export default function DashboardContent() {
             )}
 
             {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
-            {leads.length === 0 ? (
-              null
-            ) : (
-              <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Your Leads</h2>
-                    <p className="text-sm text-muted-foreground mt-1">People who called but did not reach you.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {processedLeads.length} of {leads.length} leads
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Search and Filters */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search by phone, message, or status..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-3 ${borderTokens.default} rounded-xl ${bgTokens.input} ${textTokens.primary} placeholder:${textTokens.muted} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm transition-all`}
-                      />
-                      <svg className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className={`px-4 py-3 ${borderTokens.default} rounded-xl ${bgTokens.input} ${textTokens.primary} text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all`}
-                    >
-                      <option value="all">All</option>
-                      <option value="new">New</option>
-                      <option value="needs_response">Needs response</option>
-                      <option value="replied">Replied</option>
-                      <option value="qualified">Qualified</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Lead Cards */}
-              <div className="bg-card border border-border rounded-2xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-                  {processedLeads.length === 0 ? (
-                    <div className={`p-6 sm:p-8 text-center border-2 border-dashed rounded-lg m-3 ${isOnboardingComplete ? 'bg-muted border-border' : 'bg-muted/50 border-border/50'}`}>
-                      <div className="w-10 h-10 mx-auto mb-2 bg-muted rounded-full flex items-center justify-center text-lg animate-pulse">🔍</div>
-                      <h3 className="text-sm font-medium text-foreground mb-1">
-                        {searchQuery.trim() ? 'No search results' : 'Your missed-call assistant is ready'}
-                      </h3>
-                      <p className={`text-xs max-w-md mx-auto ${isOnboardingComplete ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
-                        {searchQuery.trim() 
-                          ? 'No leads match your search criteria.'
-                          : 'Your first missed call and customer conversation will appear here automatically.'
-                        }
-                      </p>
-                    </div>
-                  ) : (
-                    <div className={`divide-y ${borderTokens.light}`}>
-                      {processedLeads.map((lead) => {
-                        const latestMessage = lead.messages && lead.messages.length > 0
-                          ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                          : null
-
-                        const messageStatus = getLeadMessageStatus(latestMessage)
-                        const lastActivity = getLatestActivity(lead)
-                        const statusDisplay = getLeadStatusDisplay(lead)
-                        const hasUnreadReply = needsResponse(lead)
-                        const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
-
-                        const getStatusColor = (color: string) => {
-                          switch (color) {
-                            case 'blue': return 'bg-blue-900/30 dark:bg-blue-900/30 text-blue-300 dark:text-blue-300'
-                            case 'green': return 'bg-green-900/30 dark:bg-green-900/30 text-green-300 dark:text-green-300'
-                            case 'amber': return 'bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300'
-                            case 'purple': return 'bg-purple-900/30 dark:bg-purple-900/30 text-purple-300 dark:text-purple-300'
-                            case 'gray': return 'bg-muted text-muted-foreground'
-                            default: return 'bg-blue-900/30 dark:bg-blue-900/30 text-blue-300 dark:text-blue-300'
-                          }
-                        }
-
-                        return (
-                        <div key={lead.id} className={`p-4 sm:p-6 hover:bg-muted transition-colors ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}>
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                  messageStatus.color === 'green' ? 'bg-green-900/30 dark:bg-green-900/30' :
-                                  messageStatus.color === 'red' ? 'bg-red-900/30 dark:bg-red-900/30' :
-                                  messageStatus.color === 'orange' ? 'bg-orange-900/30 dark:bg-orange-900/30' :
-                                  'bg-blue-900/30 dark:bg-blue-900/30'
-                                }`}>
-                                  <span className="text-lg">{messageStatus.icon}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <p className="font-bold text-lg text-foreground truncate">{formatLeadPhone(lead.caller_phone)}</p>
-                                    {hasUnreadReply && (
-                                      <span className="px-2.5 py-1 bg-amber-900/30 dark:bg-amber-900/30 text-amber-300 dark:text-amber-300 text-xs font-semibold rounded-full flex-shrink-0 animate-pulse">
-                                        Needs response
-                                      </span>
-                                    )}
-                                    {isNewLead && (
-                                      <span className="px-2.5 py-1 bg-orange-900/30 dark:bg-orange-900/30 text-orange-300 dark:text-orange-300 text-xs font-semibold rounded-full flex-shrink-0">
-                                        New
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs sm:text-sm text-muted-foreground">{formatRelativeTime(lastActivity)}</p>
-                                </div>
-                              </div>
-                              {latestMessage && (
-                                <div className="ml-13">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs text-muted-foreground">
-                                      {latestMessage.direction === 'inbound' ? 'Customer:' : 'You:'}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground truncate">{latestMessage.body}</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(statusDisplay.color)}`}>
-                                {statusDisplay.text}
-                              </span>
-                              <Link
-                                href={`/dashboard/leads/${lead.id}`}
-                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all hover:scale-105 shadow-sm"
-                              >
-                                View
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* TEMPORARY: Disabled real leads UI to test if fetch is the issue */}
+            {/* Real leads UI disabled - using static placeholders */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Recent Leads</h2>
+              <p className="text-sm text-muted-foreground">Leads section temporarily disabled for testing</p>
+            </div>
+            {/* Real leads UI disabled - using static placeholder */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Conversations</h2>
+              <p className="text-sm text-muted-foreground">Conversations section temporarily disabled for testing</p>
+            </div>
 
             {/* Getting Started Section - At Bottom when onboarding complete */}
             {isOnboardingComplete && <GettingStarted isOnboardingComplete={isOnboardingComplete} />}
