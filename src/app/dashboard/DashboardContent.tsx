@@ -44,6 +44,7 @@ import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import RecentLeadsSection from '@/components/RecentLeadsSection'
 import SectionErrorBoundary from '@/components/SectionErrorBoundary'
+import NoBusinessSetup from '@/components/NoBusinessSetup'
 
 // ErrorBoundary component to catch dashboard render errors
 class DashboardErrorBoundary extends React.Component<
@@ -656,14 +657,6 @@ export default function DashboardContent() {
     })
   }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
 
-  // Handle redirect to onboarding if no business after fetch complete
-  useEffect(() => {
-    if (!business && !businessLoading && businessFetchComplete) {
-      console.log('[DASHBOARD] No business object after loading complete, redirecting to onboarding')
-      router.push('/onboarding')
-    }
-  }, [business, businessLoading, businessFetchComplete, router])
-
   // Determine if we should show loading state
   const shouldShowLoadingState = shouldShowLoading && !loadingTimeout
   const shouldShowNoBusinessLoading = !business && !businessLoading && !businessFetchComplete
@@ -671,6 +664,34 @@ export default function DashboardContent() {
   // If loading timeout reached, show dashboard anyway (don't render blank)
   if (loadingTimeout) {
     console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
+  }
+
+  // Early branch for new users with no business - render NoBusinessSetup instead of redirect
+  // This prevents mobile crash by avoiding /onboarding redirect
+  if (businessFetchComplete && !business && !businessLoading) {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    console.log('[Mobile New User Branch]', {
+      isMobile,
+      hasSession: true,
+      businessFetchComplete,
+      hasBusiness: !!business,
+      renderTarget: 'NoBusinessSetup',
+      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'server',
+      viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'server'
+    })
+    console.log('[DASHBOARD] Rendering NoBusinessSetup for new user (no business)')
+    return <NoBusinessSetup />
+  }
+
+  // Log when rendering active dashboard
+  if (business) {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    console.log('[rendering active dashboard]', {
+      isMobile,
+      hasBusiness: !!business,
+      subscription_status: business?.subscription_status,
+      onboarding_status: business?.onboarding_status
+    })
   }
 
   // missedCalls is now tracked in state
