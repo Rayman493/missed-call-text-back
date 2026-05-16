@@ -175,8 +175,7 @@ function formatMessageTimestamp(message: any): string {
 }
 
 export default function DashboardContent() {
-  const { business, loading: businessLoading, refreshBusiness } = useBusiness()
-  const { setBusiness } = useBusiness()
+  const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const [leads, setLeads] = useState<any[]>([])
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
@@ -771,9 +770,72 @@ export default function DashboardContent() {
     console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
   }
 
+  // Real branch logging for loading state
+  console.log('[DASHBOARD RENDER BRANCH]', {
+    authLoading: loading,
+    sessionExists: !!business, // business exists only if session exists
+    businessLoading,
+    businessFetchComplete,
+    businessExists: !!business,
+    businessError: business ? 'none' : 'no business',
+    subscription_status: business?.subscription_status,
+    loadingTimeout,
+    webhookConfirming,
+    shouldShowLoading,
+    finalRenderBranch: 'determining...'
+  })
+  
+  // Throttled logging to avoid spamming console
+  useEffect(() => {
+    console.log('[Dashboard] Loading state check:', {
+      businessLoading,
+      businessFetchComplete,
+      webhookConfirming,
+      shouldShowLoading,
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id,
+      onboarding_status: business?.onboarding_status,
+      loadingTimeout,
+      checkoutStatus
+    })
+  }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
+  
+  // Hard no-blank fallback: always render something
+  if (shouldShowLoading && !loadingTimeout) {
+    console.log('[DASHBOARD RENDER BRANCH] final: loading spinner')
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">
+            {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+            Please wait while we prepare your workspace
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // If loading timeout reached, show dashboard anyway (don't render blank)
+  if (loadingTimeout) {
+    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
+  }
+
   // Ensure we always have a valid business object for rendering
   // Null subscription_status is a valid state (not activated yet), not loading
+  if (!business && !businessLoading && businessFetchComplete) {
+    console.log('[DASHBOARD RENDER BRANCH] final: no business after fetch complete - should redirect to onboarding')
+    console.log('[Dashboard] No business object after loading complete, redirecting to onboarding')
+    // BusinessGuard should handle this redirect, but as a fallback, redirect here
+    router.push('/onboarding')
+    return null
+  }
+
   if (!business && !businessLoading) {
+    console.log('[DASHBOARD RENDER BRANCH] final: no business, loading not complete - showing loading')
     console.log('[Dashboard] No business object after loading complete, showing activation')
     // This is a resolved state - show activation panel instead of blank
     return (
