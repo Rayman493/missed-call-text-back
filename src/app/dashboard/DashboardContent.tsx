@@ -45,55 +45,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import RecentLeadsSection from '@/components/RecentLeadsSection'
 import SectionErrorBoundary from '@/components/SectionErrorBoundary'
 import NoBusinessSetup from '@/components/NoBusinessSetup'
-
-// ErrorBoundary component to catch dashboard render errors
-class DashboardErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
-    super(props)
-    this.state = { hasError: false, error: null }
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    console.error('[DASHBOARD ERROR BOUNDARY] Caught error:', error)
-    console.error('[DASHBOARD ERROR BOUNDARY] Error stack:', error.stack)
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[DASHBOARD ERROR BOUNDARY] Component stack:', errorInfo.componentStack)
-  }
-
-  render() {
-    if (this.state.hasError) {
-      console.error('[DASHBOARD ERROR BOUNDARY] Rendering fallback for error:', this.state.error)
-      return this.props.fallback || (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-red-900/20 border border-red-900/40 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-red-100 mb-4">Dashboard Error</h2>
-            <p className="text-red-300 text-sm mb-4">
-              A component failed to render. This has been logged for debugging.
-            </p>
-            <details className="text-xs text-red-400">
-              <summary>Error details</summary>
-              <pre className="mt-2 whitespace-pre-wrap">{this.state.error?.message}</pre>
-            </details>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-            >
-              Reload Page
-            </button>
-          </div>
-        </div>
-      )
-    }
-
-    return this.props.children
-  }
-}
+import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -230,6 +182,8 @@ export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
 
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   
   // ALL hooks must be called before any conditional returns to prevent React #310
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
@@ -243,9 +197,8 @@ export default function DashboardContent() {
   const [billingError, setBillingError] = useState('')
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
-  const searchParams = useSearchParams()
+  const [lastRenderedSection, setLastRenderedSection] = useState('')
   const checkoutStatus = searchParams?.get('checkout')
-  const router = useRouter()
   const supabase = createBrowserClient()
 
   // Determine if onboarding is fully complete
@@ -694,6 +647,17 @@ export default function DashboardContent() {
     })
   }
 
+  // Prepare debug info for error boundary
+  const debugInfo = {
+    pathname: typeof window !== 'undefined' ? window.location.pathname : '/dashboard',
+    hasSession: true, // Dashboard is protected by AuthGuard
+    businessFetchComplete,
+    hasBusiness: !!business,
+    subscription_status: business?.subscription_status,
+    renderBranch: business ? 'active_dashboard' : 'no_business',
+    lastRenderedSection
+  }
+
   // missedCalls is now tracked in state
   console.log('[DASHBOARD] rendering main content')
   console.log('[DASHBOARD] business:', business)
@@ -719,7 +683,7 @@ export default function DashboardContent() {
   // Step 13: GettingStartedBottom ✓
   // Step 14: Footer (final section)
   return (
-    <DashboardErrorBoundary>
+    <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
           <div className="min-h-screen bg-background flex flex-col">
