@@ -690,7 +690,8 @@ export default function DashboardContent() {
   // Step 5: SuccessBanner ✓
   // Step 6: PaymentIssueBanner ✓
   // Step 7: SubscriptionBanner ✓
-  // Step 8: ActivationHero
+  // Step 8: ActivationHero ✓
+  // Step 9: LiveActivity
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -970,6 +971,22 @@ export default function DashboardContent() {
                     </section>
                   </SectionErrorBoundary>
                 )}
+
+                {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
+                {hasActiveSubscription(business) ? (
+                  <>
+                    {/* Live Activity Section - Top Priority */}
+                    <SectionErrorBoundary sectionName="LiveActivity">
+                      {(() => {
+                        console.log('[Render Child] LiveActivity')
+                        return null
+                      })()}
+                      <div className="mb-6">
+                        <LiveActivity />
+                      </div>
+                    </SectionErrorBoundary>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
