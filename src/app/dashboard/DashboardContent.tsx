@@ -688,7 +688,8 @@ export default function DashboardContent() {
   // Step 3: ProvisioningSuccessBanner ✓
   // Step 4: SetupHealthBanner ✓
   // Step 5: SuccessBanner ✓
-  // Step 6: PaymentIssueBanner
+  // Step 6: PaymentIssueBanner ✓
+  // Step 7: SubscriptionBanner
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -829,6 +830,92 @@ export default function DashboardContent() {
                         </button>
                       </div>
                     </div>
+                  </SectionErrorBoundary>
+                )}
+
+                {/* Consolidated Subscription/Trial Status Banner */}
+                {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                  <SectionErrorBoundary sectionName="SubscriptionBanner">
+                    {(() => {
+                      console.log('[Render Child] SubscriptionBanner')
+                      return null
+                    })()}
+                    {(() => {
+                      const isScheduledToCancelValue = isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end)
+                      const isInTrial = isInTrialPeriod(business?.subscription_status)
+                      
+                      // If scheduled to cancel, show cancellation banner (supersedes trial banner)
+                      if (isScheduledToCancelValue) {
+                        const endDate = isInTrial ? business?.trial_ends_at : business?.current_period_end
+                        const formattedDate = formatDate(endDate)
+                        
+                        return (
+                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">⏰</span>
+                                <div>
+                                  <p className="text-sm font-semibold text-amber-100">
+                                    {isInTrial ? 'Trial cancelled' : 'Subscription cancelled'}
+                                  </p>
+                                  <p className="text-xs text-amber-300">
+                                    {isInTrial 
+                                      ? (formattedDate 
+                                        ? `You can continue using ReplyFlow until ${formattedDate}. You will not be charged.`
+                                        : 'You can continue using ReplyFlow until your trial ends. You will not be charged.')
+                                      : (formattedDate
+                                        ? `Access remains active until ${formattedDate}.`
+                                        : 'Access remains active until your subscription ends.')
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleManageSubscription}
+                                disabled={isOpeningBilling}
+                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isOpeningBilling ? 'Opening…' : (isInTrial ? 'Reactivate Trial' : 'Resume Plan')}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      }
+                      
+                      // If in trial and not cancelled, show trial banner
+                      if (isInTrial) {
+                        const trialEndDate = formatDate(business?.trial_ends_at)
+                        return (
+                          <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">🎉</span>
+                                <div>
+                                  <p className={`text-xs font-semibold ${textTokens.primary}`}>
+                                    Free trial active
+                                  </p>
+                                  <p className={`text-[10px] ${textTokens.secondary}`}>
+                                    {trialEndDate 
+                                      ? `Billing starts at $49/month on ${trialEndDate} unless you cancel.`
+                                      : 'Billing starts at $49/month after trial unless you cancel.'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleManageSubscription}
+                                disabled={isOpeningBilling}
+                                className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      }
+                      
+                      // Active subscription (not trial, not cancelled) - no banner needed
+                      return null
+                    })()}
                   </SectionErrorBoundary>
                 )}
               </div>
