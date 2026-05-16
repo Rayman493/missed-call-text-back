@@ -661,7 +661,7 @@ export default function DashboardContent() {
 
             {/* Main Content */}
             <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-              <div className="max-w-6xl mx-auto space-y-6">
+              <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
@@ -699,7 +699,7 @@ export default function DashboardContent() {
                     <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
                   </SectionErrorBoundary>
 
-                {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
+                {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed - HIDDEN ON MOBILE */}
                 {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
                   <SectionErrorBoundary sectionName="SetupHealthBanner">
                     {(() => {
@@ -714,7 +714,8 @@ export default function DashboardContent() {
                       console.log('[Render Child] SetupHealthBanner')
                       return null
                     })()}
-                    <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
+                    {/* Hidden on mobile to reduce visual clutter */}
+                    <div className="hidden md:block bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <span className="text-lg">⚠️</span>
@@ -878,20 +879,20 @@ export default function DashboardContent() {
                       if (isInTrial) {
                         const trialEndDate = formatDate(business?.trial_ends_at)
                         return (
-                          <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">🎉</span>
+                          <div className={`${themeClasses.banner} rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5`}>
+                            <div className="flex items-center justify-between gap-3 sm:gap-4">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm">🎉</span>
                                 <div>
-                                  <p className={`text-xs font-semibold ${textTokens.primary}`}>
+                                  <p className={`text-[10px] sm:text-xs font-semibold ${textTokens.primary}`}>
                                     Free trial active
                                   </p>
-                                  <p className={`text-[10px] ${textTokens.secondary}`}>
+                                  <p className={`text-[9px] sm:text-[10px] ${textTokens.secondary}`}>
                                     {trialEndDate 
                                       ? `Your 14-day free trial ends ${trialEndDate}`
                                       : 'Your 14-day free trial is active'}
                                   </p>
-                                  <p className={`text-[10px] ${textTokens.secondary}`}>
+                                  <p className={`text-[9px] sm:text-[10px] ${textTokens.secondary}`}>
                                     Then $49/month unless canceled.
                                   </p>
                                 </div>
@@ -899,7 +900,7 @@ export default function DashboardContent() {
                               <button
                                 onClick={handleManageSubscription}
                                 disabled={isOpeningBilling}
-                                className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`${buttonTokens.primary} px-2 py-1 text-[9px] sm:text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
                               </button>

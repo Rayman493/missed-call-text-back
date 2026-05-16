@@ -439,9 +439,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-4 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
+    <div className={`rounded-2xl border p-3 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
       {/* Horizontal layout: left text, right CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-2 sm:mb-3">
         <div className="min-w-0">
           <h2 className="text-base sm:text-lg font-semibold text-foreground">
             {complete ? 'Setup Complete ✓' : 'Setup Progress'}
@@ -499,6 +499,35 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </button>
         )}
       </div>
+
+      {/* Compact Next Step section - only on mobile, only when not complete */}
+      {!complete && !isExpanded && (
+        <div className="md:hidden bg-muted/50 rounded-lg p-3 mb-2">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground mb-1">
+                Next step:
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {doneSteps === 3 ? 'Test your setup by calling your business number from another phone.' : 'Complete the current step to continue.'}
+              </p>
+              {doneSteps === 3 && (
+                <Link
+                  href="/dashboard/test-setup"
+                  className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                >
+                  Test Setup
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slim progress bar */}
       <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-2">
