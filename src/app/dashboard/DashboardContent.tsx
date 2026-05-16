@@ -682,13 +682,15 @@ export default function DashboardContent() {
   console.log('[DASHBOARD] rendering AuthGuard and BusinessGuard')
   console.log('[DASHBOARD RENDER BRANCH] final: main dashboard content')
 
-  // TEMPORARY: Return safe render only to identify crash location
+  // TEMPORARY: Binary search - reintroducing sections one by one
+  // Step 1: Header section
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
         <BusinessGuard>
-          <div>
-            Dashboard safe render
+          <div className="min-h-screen bg-background flex flex-col">
+            {/* App Header */}
+            <AppHeader showNavigation={true} />
           </div>
         </BusinessGuard>
       </AuthGuard>
