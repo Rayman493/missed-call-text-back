@@ -43,6 +43,7 @@ import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import RecentLeadsSection from '@/components/RecentLeadsSection'
+import SectionErrorBoundary from '@/components/SectionErrorBoundary'
 
 // ErrorBoundary component to catch dashboard render errors
 class DashboardErrorBoundary extends React.Component<
@@ -726,9 +727,13 @@ export default function DashboardContent() {
             {/* Determine if onboarding is fully complete */}
             {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
             {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
-              <div>
+              <SectionErrorBoundary sectionName="SetupProgress">
+                {(() => {
+                  console.log('[Render Child] SetupProgress')
+                  return null
+                })()}
                 <GettingStarted isOnboardingComplete={isOnboardingComplete} />
-              </div>
+              </SectionErrorBoundary>
             )}
             {/* Billing Error */}
             {billingError && (
@@ -756,39 +761,51 @@ export default function DashboardContent() {
             )}
 
             {/* Provisioning Success Banner - Show after checkout success */}
-            <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+            <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+              {(() => {
+                console.log('[Render Child] ProvisioningSuccessBanner')
+                return null
+              })()}
+              <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+            </SectionErrorBoundary>
 
             {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
             {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
-              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">⚠️</span>
-                    <div>
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                        Finish testing your setup
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-amber-300">
-                        Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
-                      </p>
+              <SectionErrorBoundary sectionName="SetupHealthBanner">
+                {(() => {
+                  console.log('[Render Child] SetupHealthBanner')
+                  return null
+                })()}
+                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">⚠️</span>
+                      <div>
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                          Finish testing your setup
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-300">
+                          Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => router.push('/dashboard/test-setup')}
+                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                      >
+                        Test Setup
+                      </button>
+                      <button
+                        onClick={handleDismissSetupBanner}
+                        className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
+                      >
+                        Dismiss
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => router.push('/dashboard/test-setup')}
-                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                    >
-                      Test Setup
-                    </button>
-                    <button
-                      onClick={handleDismissSetupBanner}
-                      className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
                 </div>
-              </div>
+              </SectionErrorBoundary>
             )}
 
             {/* Success Banner - Show when forwarding is verified AND recently completed (within 5 minutes) */}
@@ -798,197 +815,232 @@ export default function DashboardContent() {
               const minutesSinceVerification = (now.getTime() - verifiedAt.getTime()) / (1000 * 60)
               return minutesSinceVerification < 5
             })() && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50 rounded-xl p-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
-                      <span className="text-xl">✅</span>
+              <SectionErrorBoundary sectionName="SuccessBanner">
+                {(() => {
+                  console.log('[Render Child] SuccessBanner')
+                  return null
+                })()}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50 rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                        <span className="text-xl">✅</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+                          ReplyFlow is active
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-300">
+                          Your missed-call text-back system is working. New leads will appear in your dashboard.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-green-800 dark:text-green-200">
-                        ReplyFlow is active
-                      </p>
-                      <p className="text-xs text-green-600 dark:text-green-300">
-                        Your missed-call text-back system is working. New leads will appear in your dashboard.
-                      </p>
-                    </div>
+                    <button
+                      onClick={handleDismissSetupBanner}
+                      className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
+                    >
+                      Dismiss
+                    </button>
                   </div>
-                  <button
-                    onClick={handleDismissSetupBanner}
-                    className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
-                  >
-                    Dismiss
-                  </button>
                 </div>
-              </div>
+              </SectionErrorBoundary>
             )}
 
             {/* Subscription Alerts - Only show when action needed */}
             {/* Payment Issue Warning - High Priority */}
             {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-              <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">⚠️</span>
-                    <div>
-                      <p className="text-sm font-semibold text-red-100">
-                        Payment issue — update billing to keep ReplyFlow active
-                      </p>
-                      <p className="text-xs text-red-300">
-                        {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
-                      </p>
+              <SectionErrorBoundary sectionName="PaymentIssueBanner">
+                {(() => {
+                  console.log('[Render Child] PaymentIssueBanner')
+                  return null
+                })()}
+                <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">⚠️</span>
+                      <div>
+                        <p className="text-sm font-semibold text-red-100">
+                          Payment issue — update billing to keep ReplyFlow active
+                        </p>
+                        <p className="text-xs text-red-300">
+                          {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={handleManageSubscription}
+                      disabled={isOpeningBilling}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isOpeningBilling ? 'Opening…' : 'Update Billing'}
+                    </button>
                   </div>
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={isOpeningBilling}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isOpeningBilling ? 'Opening…' : 'Update Billing'}
-                  </button>
                 </div>
-              </div>
+              </SectionErrorBoundary>
             )}
 
             {/* Consolidated Subscription/Trial Status Banner */}
             {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              (() => {
-                const isScheduledToCancelValue = isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end)
-                const isInTrial = isInTrialPeriod(business?.subscription_status)
-                
-                // If scheduled to cancel, show cancellation banner (supersedes trial banner)
-                if (isScheduledToCancelValue) {
-                  const endDate = isInTrial ? business?.trial_ends_at : business?.current_period_end
-                  const formattedDate = formatDate(endDate)
+              <SectionErrorBoundary sectionName="SubscriptionBanner">
+                {(() => {
+                  console.log('[Render Child] SubscriptionBanner')
+                  return null
+                })()}
+                {(() => {
+                  const isScheduledToCancelValue = isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end)
+                  const isInTrial = isInTrialPeriod(business?.subscription_status)
                   
-                  return (
-                    <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">⏰</span>
-                          <div>
-                            <p className="text-sm font-semibold text-amber-100">
-                              {isInTrial ? 'Trial cancelled' : 'Subscription cancelled'}
-                            </p>
-                            <p className="text-xs text-amber-300">
-                              {isInTrial 
-                                ? (formattedDate 
-                                  ? `You can continue using ReplyFlow until ${formattedDate}. You will not be charged.`
-                                  : 'You can continue using ReplyFlow until your trial ends. You will not be charged.')
-                                : (formattedDate
-                                  ? `Access remains active until ${formattedDate}.`
-                                  : 'Access remains active until your subscription ends.')
-                              }
-                            </p>
+                  // If scheduled to cancel, show cancellation banner (supersedes trial banner)
+                  if (isScheduledToCancelValue) {
+                    const endDate = isInTrial ? business?.trial_ends_at : business?.current_period_end
+                    const formattedDate = formatDate(endDate)
+                    
+                    return (
+                      <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">⏰</span>
+                            <div>
+                              <p className="text-sm font-semibold text-amber-100">
+                                {isInTrial ? 'Trial cancelled' : 'Subscription cancelled'}
+                              </p>
+                              <p className="text-xs text-amber-300">
+                                {isInTrial 
+                                  ? (formattedDate 
+                                    ? `You can continue using ReplyFlow until ${formattedDate}. You will not be charged.`
+                                    : 'You can continue using ReplyFlow until your trial ends. You will not be charged.')
+                                  : (formattedDate
+                                    ? `Access remains active until ${formattedDate}.`
+                                    : 'Access remains active until your subscription ends.')
+                                }
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={handleManageSubscription}
+                            disabled={isOpeningBilling}
+                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isOpeningBilling ? 'Opening…' : (isInTrial ? 'Reactivate Trial' : 'Resume Plan')}
+                          </button>
                         </div>
-                        <button
-                          onClick={handleManageSubscription}
-                          disabled={isOpeningBilling}
-                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isOpeningBilling ? 'Opening…' : (isInTrial ? 'Reactivate Trial' : 'Resume Plan')}
-                        </button>
                       </div>
-                    </div>
-                  )
-                }
-                
-                // If in trial and not cancelled, show trial banner
-                if (isInTrial) {
-                  const trialEndDate = formatDate(business?.trial_ends_at)
-                  return (
-                    <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">🎉</span>
-                          <div>
-                            <p className={`text-xs font-semibold ${textTokens.primary}`}>
-                              Free trial active
-                            </p>
-                            <p className={`text-[10px] ${textTokens.secondary}`}>
-                              {trialEndDate 
-                                ? `Billing starts at $49/month on ${trialEndDate} unless you cancel.`
-                                : 'Billing starts at $49/month after trial unless you cancel.'}
-                            </p>
+                    )
+                  }
+                  
+                  // If in trial and not cancelled, show trial banner
+                  if (isInTrial) {
+                    const trialEndDate = formatDate(business?.trial_ends_at)
+                    return (
+                      <div className={`${themeClasses.banner} rounded-xl px-3 py-2.5`}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">🎉</span>
+                            <div>
+                              <p className={`text-xs font-semibold ${textTokens.primary}`}>
+                                Free trial active
+                              </p>
+                              <p className={`text-[10px] ${textTokens.secondary}`}>
+                                {trialEndDate 
+                                  ? `Billing starts at $49/month on ${trialEndDate} unless you cancel.`
+                                  : 'Billing starts at $49/month after trial unless you cancel.'}
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={handleManageSubscription}
+                            disabled={isOpeningBilling}
+                            className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
+                          </button>
                         </div>
-                        <button
-                          onClick={handleManageSubscription}
-                          disabled={isOpeningBilling}
-                          className={`${buttonTokens.primary} px-2 py-1 text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
-                        </button>
                       </div>
-                    </div>
-                  )
-                }
-                
-                // Active subscription (not trial, not cancelled) - no banner needed
-                return null
-              })()
+                    )
+                  }
+                  
+                  // Active subscription (not trial, not cancelled) - no banner needed
+                  return null
+                })()}
+              </SectionErrorBoundary>
             )}
 
             {/* Pre-trial premium onboarding hero: single, focused activation card */}
             {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
-              <section className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 shadow-sm">
-                <div className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-30 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.18),_transparent_55%)]" />
-                <div className="relative p-6 sm:p-10">
-                  <div className="max-w-2xl mx-auto text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-medium mb-5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-                      Ready to activate
+              <SectionErrorBoundary sectionName="ActivationHero">
+                {(() => {
+                  console.log('[Render Child] ActivationHero')
+                  return null
+                })()}
+                <section className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 shadow-sm">
+                  <div className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-30 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.18),_transparent_55%)]" />
+                  <div className="relative p-6 sm:p-10">
+                    <div className="max-w-2xl mx-auto text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-medium mb-5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                        Ready to activate
+                      </div>
+                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-3">
+                        Start capturing missed calls
+                      </h1>
+                      <p className="text-sm sm:text-base text-muted-foreground mb-6">
+                        Start your free trial to activate your dedicated ReplyFlow number and begin texting missed callers automatically.
+                      </p>
+                      <ul className="text-sm text-foreground mb-8 space-y-2 text-left max-w-md mx-auto">
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                          Get your dedicated ReplyFlow number
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                          Set up call forwarding in minutes
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
+                          Automatically text back missed callers
+                        </li>
+                      </ul>
+                      <button
+                        onClick={handleStartSubscription}
+                        disabled={checkoutLoading}
+                        className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      >
+                        {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
+                      </button>
+                      <p className="text-xs text-muted-foreground mt-4">
+                        No charge today. Cancel anytime before your trial ends.
+                      </p>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-3">
-                      Start capturing missed calls
-                    </h1>
-                    <p className="text-sm sm:text-base text-muted-foreground mb-6">
-                      Start your free trial to activate your dedicated ReplyFlow number and begin texting missed callers automatically.
-                    </p>
-                    <ul className="text-sm text-foreground mb-8 space-y-2 text-left max-w-md mx-auto">
-                      <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
-                        Get your dedicated ReplyFlow number
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
-                        Set up call forwarding in minutes
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
-                        Automatically text back missed callers
-                      </li>
-                    </ul>
-                    <button
-                      onClick={handleStartSubscription}
-                      disabled={checkoutLoading}
-                      className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    >
-                      {checkoutLoading ? 'Starting…' : 'Start 14-Day Free Trial'}
-                    </button>
-                    <p className="text-xs text-muted-foreground mt-4">
-                      No charge today. Cancel anytime before your trial ends.
-                    </p>
                   </div>
-                </div>
-              </section>
+                </section>
+              </SectionErrorBoundary>
             )}
 
             {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
             {hasActiveSubscription(business) ? (
               <>
                 {/* Live Activity Section - Top Priority */}
-                <div className="mb-6">
-                  <LiveActivity />
-                </div>
+                <SectionErrorBoundary sectionName="LiveActivity">
+                  {(() => {
+                    console.log('[Render Child] LiveActivity')
+                    return null
+                  })()}
+                  <div className="mb-6">
+                    <LiveActivity />
+                  </div>
+                </SectionErrorBoundary>
 
                 {/* Hero Metrics Section */}
-                {(() => {
-                  console.log('[Dashboard Render] StatsCards')
-                  return null
-                })()}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <SectionErrorBoundary sectionName="StatsCards">
+                  {(() => {
+                    console.log('[Render Child] StatsCards')
+                    return null
+                  })()}
+                  {(() => {
+                    console.log('[Dashboard Render] StatsCards')
+                    return null
+                  })()}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
@@ -1022,9 +1074,16 @@ export default function DashboardContent() {
                 <p className="text-[11px] text-muted-foreground">Scheduled</p>
               </div>
                 </div>
+                </SectionErrorBoundary>
 
                 {/* Recent Leads Section */}
-                {business?.id && <RecentLeadsSection businessId={business.id} />}
+                <SectionErrorBoundary sectionName="RecentLeadsSection">
+                  {(() => {
+                    console.log('[Render Child] RecentLeadsSection')
+                    return null
+                  })()}
+                  {business?.id && <RecentLeadsSection businessId={business.id} />}
+                </SectionErrorBoundary>
               </>
             ) : null}
 
@@ -1045,42 +1104,53 @@ export default function DashboardContent() {
             {/* Offboarding Banner - only for FULLY canceled/unpaid/expired subscriptions */}
             {/* Only show when subscription_status is actually canceled/unpaid/past_due, not when just scheduled to cancel */}
             {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && business?.stripe_subscription_id && (
-              <OffboardingBanner 
-                business={business}
-                subscriptionStatus={business?.subscription_status || 'inactive'}
-              />
+              <SectionErrorBoundary sectionName="OffboardingBanner">
+                {(() => {
+                  console.log('[Render Child] OffboardingBanner')
+                  return null
+                })()}
+                <OffboardingBanner 
+                  business={business}
+                  subscriptionStatus={business?.subscription_status || 'inactive'}
+                />
+              </SectionErrorBoundary>
             )}
 
-            {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
-            {/* TEMPORARY: Simplified leads render to isolate crash in leads UI layer */}
-            {/* Recent Leads */}
-            {(() => {
-              console.log('[Dashboard Render] RecentLeadsSection')
-              return null
-            })()}
-            {/* Recent Leads Section */}
-            {business?.id && <RecentLeadsSection businessId={business.id} />}
-            {/* Conversations */}
-            {(() => {
-              console.log('[Dashboard Render] ConversationsSection')
-              return null
-            })()}
-            <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">No conversations yet</h2>
-                  <p className="text-sm text-muted-foreground">Customer text conversations will appear here once someone replies.</p>
+            {/* Conversations Section */}
+            <SectionErrorBoundary sectionName="ConversationsSection">
+              {(() => {
+                console.log('[Render Child] ConversationsSection')
+                return null
+              })()}
+              {(() => {
+                console.log('[Dashboard Render] ConversationsSection')
+                return null
+              })()}
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">No conversations yet</h2>
+                    <p className="text-sm text-muted-foreground">Customer text conversations will appear here once someone replies.</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </SectionErrorBoundary>
 
             {/* Getting Started Section - At Bottom when onboarding complete */}
-            {isOnboardingComplete && <GettingStarted isOnboardingComplete={isOnboardingComplete} />}
+            {isOnboardingComplete && (
+              <SectionErrorBoundary sectionName="GettingStartedBottom">
+                {(() => {
+                  console.log('[Render Child] GettingStartedBottom')
+                  return null
+                })()}
+                <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+              </SectionErrorBoundary>
+            )}
           </div>
         </div>
       </div>
