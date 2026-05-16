@@ -691,7 +691,8 @@ export default function DashboardContent() {
   // Step 6: PaymentIssueBanner ✓
   // Step 7: SubscriptionBanner ✓
   // Step 8: ActivationHero ✓
-  // Step 9: LiveActivity
+  // Step 9: LiveActivity ✓
+  // Step 10: StatsCards
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -983,6 +984,52 @@ export default function DashboardContent() {
                       })()}
                       <div className="mb-6">
                         <LiveActivity />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Hero Metrics Section */}
+                    <SectionErrorBoundary sectionName="StatsCards">
+                      {(() => {
+                        console.log('[Render Child] StatsCards')
+                        return null
+                      })()}
+                      {(() => {
+                        console.log('[Dashboard Render] StatsCards')
+                        return null
+                      })()}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
+                            <h3 className="text-xs font-medium text-muted-foreground">Missed Calls</h3>
+                          </div>
+                          <p className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">0</p>
+                          <p className="text-[11px] text-muted-foreground">Waiting for first call</p>
+                        </div>
+                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-8 h-8 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">👥</span>
+                            <h3 className="text-xs font-medium text-muted-foreground">New Leads</h3>
+                          </div>
+                          <p className="text-2xl sm:text-3xl font-bold text-blue-500 dark:text-blue-100 mb-0.5">0</p>
+                          <p className="text-[11px] text-muted-foreground">Ready to capture leads</p>
+                        </div>
+                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-8 h-8 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">💬</span>
+                            <h3 className="text-xs font-medium text-muted-foreground">Conversations</h3>
+                          </div>
+                          <p className="text-2xl sm:text-3xl font-bold text-green-500 dark:text-green-100 mb-0.5">0</p>
+                          <p className="text-[11px] text-muted-foreground">Customer replies appear here</p>
+                        </div>
+                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-8 h-8 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">📅</span>
+                            <h3 className="text-xs font-medium text-muted-foreground">Follow-ups</h3>
+                          </div>
+                          <p className="text-2xl sm:text-3xl font-bold text-purple-500 dark:text-purple-100 mb-0.5">0</p>
+                          <p className="text-[11px] text-muted-foreground">Scheduled</p>
+                        </div>
                       </div>
                     </SectionErrorBoundary>
                   </>
