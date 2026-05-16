@@ -1200,6 +1200,10 @@ export default function DashboardContent() {
                 </div>
 
                 {/* Hero Metrics Section */}
+                {(() => {
+                  console.log('[Dashboard Render] StatsCards')
+                  return null
+                })()}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -1263,7 +1267,18 @@ export default function DashboardContent() {
             {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
             {/* TEMPORARY: Simplified leads render to isolate crash in leads UI layer */}
             {/* Recent Leads */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+            {(() => {
+              console.log('[Dashboard Render] RecentLeadsSection')
+              console.log('[RecentLeadsSection] raw leads data:', leads)
+              console.log('[RecentLeadsSection] Array.isArray(leads):', Array.isArray(leads))
+              console.log('[RecentLeadsSection] leads.length:', leads.length)
+              if (leads.length > 0) {
+                console.log('[RecentLeadsSection] first lead keys:', Object.keys(leads[0]))
+              }
+              return null
+            })()}
+            <DashboardErrorBoundary>
+              <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1287,7 +1302,12 @@ export default function DashboardContent() {
                 </Link>
               )}
             </div>
+            </DashboardErrorBoundary>
             {/* Conversations */}
+            {(() => {
+              console.log('[Dashboard Render] ConversationsSection')
+              return null
+            })()}
             <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
