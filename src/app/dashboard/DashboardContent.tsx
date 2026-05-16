@@ -696,9 +696,16 @@ export default function DashboardContent() {
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
-                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
+                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'SetupProgress',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                        onboardingStatus: business?.onboarding_status
+                      })
                       console.log('[Render Child] SetupProgress')
                       return null
                     })()}
@@ -709,6 +716,14 @@ export default function DashboardContent() {
                 {/* Provisioning Success Banner - Show after checkout success */}
                 <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
                   {(() => {
+                    console.log('[SECTION RENDER]', {
+                      section: 'ProvisioningSuccessBanner',
+                      mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                      hasBusiness: !!business,
+                      subscriptionStatus: business?.subscription_status,
+                      onboardingStatus: business?.onboarding_status,
+                      checkoutStatus
+                    })
                     console.log('[Render Child] ProvisioningSuccessBanner')
                     return null
                   })()}
@@ -719,6 +734,14 @@ export default function DashboardContent() {
                 {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
                   <SectionErrorBoundary sectionName="SetupHealthBanner">
                     {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'SetupHealthBanner',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                        onboardingStatus: business?.onboarding_status,
+                        forwardingVerified: business?.forwarding_verified
+                      })
                       console.log('[Render Child] SetupHealthBanner')
                       return null
                     })()}
@@ -763,6 +786,14 @@ export default function DashboardContent() {
                 })() && (
                   <SectionErrorBoundary sectionName="SuccessBanner">
                     {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'SuccessBanner',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                        onboardingStatus: business?.onboarding_status,
+                        forwardingVerified: business?.forwarding_verified
+                      })
                       console.log('[Render Child] SuccessBanner')
                       return null
                     })()}
@@ -915,6 +946,13 @@ export default function DashboardContent() {
                 {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
                   <SectionErrorBoundary sectionName="ActivationHero">
                     {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'ActivationHero',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                        onboardingStatus: business?.onboarding_status
+                      })
                       console.log('[Render Child] ActivationHero')
                       return null
                     })()}
@@ -968,6 +1006,13 @@ export default function DashboardContent() {
                     {/* Live Activity Section - Top Priority */}
                     <SectionErrorBoundary sectionName="LiveActivity">
                       {(() => {
+                        console.log('[SECTION RENDER]', {
+                          section: 'LiveActivity',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status
+                        })
                         console.log('[Render Child] LiveActivity')
                         return null
                       })()}
@@ -979,6 +1024,13 @@ export default function DashboardContent() {
                     {/* Hero Metrics Section */}
                     <SectionErrorBoundary sectionName="StatsCards">
                       {(() => {
+                        console.log('[SECTION RENDER]', {
+                          section: 'StatsCards',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status
+                        })
                         console.log('[Render Child] StatsCards')
                         return null
                       })()}
@@ -1025,6 +1077,13 @@ export default function DashboardContent() {
                     {/* Recent Leads Section */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {(() => {
+                        console.log('[SECTION RENDER]', {
+                          section: 'RecentLeadsSection',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status
+                        })
                         console.log('[Render Child] RecentLeadsSection')
                         return null
                       })()}
@@ -1034,6 +1093,13 @@ export default function DashboardContent() {
                     {/* Conversations Section */}
                     <SectionErrorBoundary sectionName="ConversationsSection">
                       {(() => {
+                        console.log('[SECTION RENDER]', {
+                          section: 'ConversationsSection',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status
+                        })
                         console.log('[Render Child] ConversationsSection')
                         return null
                       })()}
