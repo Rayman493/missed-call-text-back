@@ -695,7 +695,8 @@ export default function DashboardContent() {
   // Step 10: StatsCards ✓
   // Step 11: RecentLeadsSection ✓
   // Step 12: ConversationsSection ✓
-  // Step 13: GettingStartedBottom
+  // Step 13: GettingStartedBottom ✓
+  // Step 14: Footer (final section)
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -1084,6 +1085,34 @@ export default function DashboardContent() {
                 )}
               </div>
             </div>
+
+            {/* Footer */}
+            <SectionErrorBoundary sectionName="Footer">
+              {(() => {
+                console.log('[Render Child] Footer')
+                return null
+              })()}
+              <footer className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      © {new Date().getFullYear()} ReplyFlow. All rights reserved.
+                    </div>
+                    <div className="flex items-center gap-6 text-sm">
+                      <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                        Privacy
+                      </a>
+                      <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                        Terms
+                      </a>
+                      <a href="/compliance" className="text-muted-foreground hover:text-foreground transition-colors">
+                        Compliance
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </footer>
+            </SectionErrorBoundary>
           </div>
         </BusinessGuard>
       </AuthGuard>
