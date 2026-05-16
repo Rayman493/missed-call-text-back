@@ -258,71 +258,8 @@ export default function DashboardContent() {
     setIsSetupBannerDismissed(dismissed)
   }, [])
 
-  // EMERGENCY BYPASS: Return immediately if subscription is active/trialing
-  // This must happen AFTER all hooks to prevent React #310
-  if (business) {
-    const hasValidSub = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
-    if (hasValidSub) {
-      console.log('[DASHBOARD EMERGENCY BYPASS] Valid subscription detected, restoring dashboard layout shell')
-      console.log('[Dashboard Render] Header')
-      console.log('[Dashboard Render] Layout shell')
-      console.log('[Dashboard Render] StaticCards')
-      console.log('[Dashboard Render] PlaceholderSections')
-      console.log('[Dashboard Render] SetupProgress')
-      return (
-        <DashboardErrorBoundary>
-          <AuthGuard>
-            <BusinessGuard>
-              <div className={`min-h-screen bg-background flex flex-col`}>
-                {/* App Header */}
-                <AppHeader showNavigation={true} />
-                {/* Main Content - Static cards only */}
-                <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-                  <div className="max-w-6xl mx-auto space-y-6">
-                    {/* Setup Progress Section - with guards */}
-                    {business && (
-                      <div>
-                        <GettingStarted isOnboardingComplete={isOnboardingComplete} />
-                      </div>
-                    )}
-                    {/* Static Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
-                        <p className="text-slate-400 text-sm">Leads Recovered</p>
-                        <p className="text-2xl font-bold text-slate-100">0</p>
-                      </div>
-                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
-                        <p className="text-slate-400 text-sm">Texts Sent</p>
-                        <p className="text-2xl font-bold text-slate-100">0</p>
-                      </div>
-                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
-                        <p className="text-slate-400 text-sm">Replies</p>
-                        <p className="text-2xl font-bold text-slate-100">0</p>
-                      </div>
-                      <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-4 border border-slate-700 dark:border-slate-700">
-                        <p className="text-slate-400 text-sm">Follow-ups</p>
-                        <p className="text-2xl font-bold text-slate-100">0</p>
-                      </div>
-                    </div>
-                    {/* Static Placeholder Sections */}
-                    <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-6 border border-slate-700 dark:border-slate-700">
-                      <h2 className="text-lg font-semibold text-slate-100 mb-4">Recent Leads</h2>
-                      <p className="text-slate-400 text-sm">No leads yet - static placeholder</p>
-                    </div>
-                    <div className="bg-slate-800 dark:bg-slate-800 rounded-xl p-6 border border-slate-700 dark:border-slate-700">
-                      <h2 className="text-lg font-semibold text-slate-100 mb-4">Conversations</h2>
-                      <p className="text-slate-400 text-sm">No conversations yet - static placeholder</p>
-                    </div>
-                  </div>
-                </div>
-                <Footer />
-              </div>
-            </BusinessGuard>
-          </AuthGuard>
-        </DashboardErrorBoundary>
-      )
-    }
-  }
+  // EMERGENCY BYPASS REMOVED - Restoring full dashboard with selective feature enablement
+  // All hooks are called before any conditional returns to prevent React #310
 
   const handleDismissSetupBanner = () => {
     setIsSetupBannerDismissed(true)
@@ -630,6 +567,7 @@ export default function DashboardContent() {
     setCurrentBusinessId(business.id)
 
     const fetchLeads = async () => {
+      console.log('[Leads Fetch] Starting leads fetch', { businessId: business.id, loading })
       dlog('[DashboardContent] Fetching leads for business:', business.id)
       setLoading(true)
       try {
@@ -667,9 +605,12 @@ export default function DashboardContent() {
         const leadsData = data as any[]
 
         dlog('[DashboardContent] Fetched', leadsData?.length || 0, 'leads')
+        console.log('[Leads Fetch] Success', { count: leadsData?.length || 0, loading: false })
         setLeads(leadsData || [])
       } catch (error) {
         console.error('[DashboardContent] Error fetching leads:', error)
+        console.log('[Leads Fetch] Error', { error, loading: false })
+        setLeads([]) // Safe default on error
       }
 
       // Fetch follow-up jobs
@@ -971,6 +912,7 @@ export default function DashboardContent() {
   console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
   console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
   console.log('[DASHBOARD] leads count:', leads.length)
+  console.log('[Dashboard Render] Leads')
   const textsSent = leads.reduce((count, lead) => {
     return count + (lead.messages?.length > 0 ? 1 : 0)
   }, 0)
