@@ -714,24 +714,26 @@ export default function DashboardContent() {
                 )}
 
                 {/* Provisioning Success Banner - Show after checkout success */}
-                <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
-                  {(() => {
-                    console.log('[SECTION RENDER]', {
-                      section: 'ProvisioningSuccessBanner',
-                      mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                      hasBusiness: !!business,
-                      subscriptionStatus: business?.subscription_status,
-                      onboardingStatus: business?.onboarding_status,
-                      checkoutStatus
-                    })
-                    console.log('[Render Child] ProvisioningSuccessBanner')
-                    return null
-                  })()}
-                  <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
-                </SectionErrorBoundary>
+                {!(typeof window !== 'undefined' && window.innerWidth < 768) && (
+                  <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+                    {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'ProvisioningSuccessBanner',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                        onboardingStatus: business?.onboarding_status,
+                        checkoutStatus
+                      })
+                      console.log('[Render Child] ProvisioningSuccessBanner')
+                      return null
+                    })()}
+                    <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+                  </SectionErrorBoundary>
+                )}
 
                 {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed */}
-                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
+                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
                   <SectionErrorBoundary sectionName="SetupHealthBanner">
                     {(() => {
                       console.log('[SECTION RENDER]', {
@@ -778,7 +780,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Success Banner - Show when forwarding is verified AND recently completed (within 5 minutes) */}
-                {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && (() => {
+                {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && !(typeof window !== 'undefined' && window.innerWidth < 768) && (() => {
                   const verifiedAt = new Date(business.forwarding_verified_at)
                   const now = new Date()
                   const minutesSinceVerification = (now.getTime() - verifiedAt.getTime()) / (1000 * 60)
@@ -943,7 +945,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Pre-trial premium onboarding hero: single, focused activation card */}
-                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !(typeof window !== 'undefined' && window.innerWidth < 768) && (
                   <SectionErrorBoundary sectionName="ActivationHero">
                     {(() => {
                       console.log('[SECTION RENDER]', {

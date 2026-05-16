@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import ProvidersWrapper from '@/components/ProvidersWrapper'
+import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -93,7 +94,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <ProvidersWrapper>{children}</ProvidersWrapper>
+        <GlobalErrorBoundary>
+          <ProvidersWrapper>{children}</ProvidersWrapper>
+        </GlobalErrorBoundary>
       </body>
     </html>
   )
