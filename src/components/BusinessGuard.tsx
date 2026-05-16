@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
-  const { business, loading } = useBusiness()
+  const { business, loading, fetchComplete } = useBusiness()
   const { user, session } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -19,6 +19,10 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     console.log('[Routing] BusinessGuard evaluating')
+    console.log('[Routing] auth user id:', user?.id || 'none')
+    console.log('[Routing] businessLoading:', loading)
+    console.log('[Routing] business exists:', !!business)
+    console.log('[Routing] business fetch complete:', fetchComplete)
     console.log('[Routing] User authenticated:', !!user)
     console.log('[Routing] User ID:', user?.id)
     console.log('[Routing] Loading state:', loading)
@@ -32,8 +36,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     console.log('[Routing] Pathname:', pathname)
     console.log('[Routing] Checkout status:', checkoutStatus)
     
-    // Mark as initialized once loading is complete
-    if (!loading) {
+    // Mark as initialized once loading is complete and fetch is complete
+    if (!loading && fetchComplete) {
       setInitialized(true)
       console.log('[Routing] BusinessGuard initialized')
     }
@@ -74,33 +78,41 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       // Redirect if no business exists
       if (!business) {
-        console.log('[Routing] No business found, redirecting to onboarding')
-        console.log('[Routing] User authenticated:', !!user)
-        console.log('[Routing] User ID:', user?.id)
+        console.log('[Routing] No business found, checking if fetch is complete')
         
-        // Verify session exists before redirecting to onboarding
-        if (!session) {
+        // Only redirect to onboarding if fetch is complete
+        if (fetchComplete) {
+          console.log('[Routing] Fetch complete and no business, redirecting to onboarding')
+          console.log('[Routing] render branch: no business, fetch complete -> onboarding')
+          
+          // Verify session exists before redirecting to onboarding
+          if (!session) {
+            console.log('[REDIRECT]', {
+              from: pathname,
+              to: '/auth/signin?redirect=/dashboard',
+              reason: 'No session exists, redirecting to sign in instead of onboarding',
+              hasSession: !!session,
+              component: 'BusinessGuard',
+            })
+            console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+            router.push('/auth/signin?redirect=/dashboard')
+            return
+          }
+          
           console.log('[REDIRECT]', {
             from: pathname,
-            to: '/auth/signin?redirect=/dashboard',
-            reason: 'No session exists, redirecting to sign in instead of onboarding',
+            to: '/onboarding',
+            reason: 'No business found and fetch complete',
             hasSession: !!session,
             component: 'BusinessGuard',
           })
-          console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
-          router.push('/auth/signin?redirect=/dashboard')
+          router.push('/onboarding')
+          return
+        } else {
+          console.log('[Routing] Fetch not complete yet, waiting for business data')
+          console.log('[Routing] render branch: no business, fetch incomplete -> loading')
           return
         }
-        
-        console.log('[REDIRECT]', {
-          from: pathname,
-          to: '/onboarding',
-          reason: 'No business found',
-          hasSession: !!session,
-          component: 'BusinessGuard',
-        })
-        router.push('/onboarding')
-        return
       }
       
       // Redirect if onboarding is not completed AND forwarding is not verified

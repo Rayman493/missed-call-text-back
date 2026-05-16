@@ -12,6 +12,7 @@ interface BusinessContextType {
   business: Business | null
   loading: boolean
   error: string | null
+  fetchComplete: boolean
   refreshBusiness: () => Promise<void>
   setBusiness: (business: Business | null) => void
 }
@@ -22,6 +23,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fetchComplete, setFetchComplete] = useState(false)
   const userIdRef = useRef<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
   const hasInitialFetchRef = useRef(false)
@@ -31,7 +33,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const fetchBusiness = useCallback(async () => {
     if (!supabase) return
     log('[BusinessContext] Fetching business...')
+    console.log('[BUSINESS FETCH] auth user id:', (await supabase.auth.getUser()).data.user?.id || 'none')
+    console.log('[BUSINESS FETCH] businessLoading:', true)
     setLoading(true)
+    setFetchComplete(false)
     setError(null)
 
     try {
@@ -42,6 +47,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setBusiness(null)
         userIdRef.current = null
         setLoading(false)
+        setFetchComplete(true)
+        console.log('[BUSINESS FETCH] businessLoading:', false)
+        console.log('[BUSINESS FETCH] business exists:', false)
+        console.log('[BUSINESS FETCH] business fetch complete:', true)
+        console.log('[BUSINESS FETCH] render branch: no user')
         return
       }
 
@@ -66,6 +76,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           // No business found - do NOT auto-create, just set business to null
           log('[BusinessContext] No business found, not auto-creating. User must explicitly create business.')
           setBusiness(null)
+          setLoading(false)
+          setFetchComplete(true)
+          console.log('[BUSINESS FETCH] businessLoading:', false)
+          console.log('[BUSINESS FETCH] business exists:', false)
+          console.log('[BUSINESS FETCH] business fetch complete:', true)
+          console.log('[BUSINESS FETCH] render branch: no business')
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)
           throw fetchError
@@ -73,12 +89,25 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       } else {
         log('[BusinessContext] Business found:', businessData?.id)
         setBusiness(businessData)
+        setLoading(false)
+        setFetchComplete(true)
+        console.log('[BUSINESS FETCH] businessLoading:', false)
+        console.log('[BUSINESS FETCH] business exists:', true)
+        console.log('[BUSINESS FETCH] business fetch complete:', true)
+        console.log('[BUSINESS FETCH] render branch: business found')
       }
     } catch (err: any) {
       console.error('[BusinessContext] Fetch business failed:', err)
       setError(err.message || 'Failed to fetch business')
-    } finally {
       setLoading(false)
+      setFetchComplete(true)
+      console.log('[BUSINESS FETCH] businessLoading:', false)
+      console.log('[BUSINESS FETCH] business exists:', false)
+      console.log('[BUSINESS FETCH] business fetch complete:', true)
+      console.log('[BUSINESS FETCH] business fetch error:', err.message)
+      console.log('[BUSINESS FETCH] render branch: error')
+    } finally {
+      // setLoading(false) // Already set in each path
     }
   }, [supabase])
 
@@ -125,17 +154,17 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchBusiness])
 
-  const refreshBusiness = useCallback(async () => {
-    await fetchBusiness()
-  }, [fetchBusiness])
-
-  const contextValue = useMemo<BusinessContextType>(() => ({
-    business,
-    loading,
-    error,
-    refreshBusiness,
-    setBusiness,
-  }), [business, loading, error, refreshBusiness])
+  const contextValue = useMemo(() => {
+    const value: BusinessContextType = {
+      business,
+      loading,
+      error,
+      fetchComplete,
+      refreshBusiness: fetchBusiness,
+      setBusiness,
+    }
+    return value
+  }, [business, loading, error, fetchComplete, fetchBusiness])
 
   // Show setup error if env vars are missing
   if (!supabase) {
