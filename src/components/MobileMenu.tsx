@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,18 @@ export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const { user, loading } = useAuth()
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
@@ -68,16 +80,16 @@ export default function MobileMenu() {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 top-16 z-20 w-48 bg-card rounded-lg shadow-lg border border-border py-2 transform transition-all duration-200 ease-in-out">
+          <div className="absolute left-3 right-3 top-16 z-50 bg-card rounded-xl shadow-2xl border border-border py-2 transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-4 duration-200">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-2 text-sm transition-colors ${
+                className={`block px-4 py-3 text-sm transition-colors ${
                   isActive(item.href)
                     ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                     : 'text-foreground hover:bg-muted'
