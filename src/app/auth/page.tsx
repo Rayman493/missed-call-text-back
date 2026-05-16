@@ -47,13 +47,14 @@ function AuthContent() {
   const emailParam = searchParams?.get('email')
   const redirectParam = searchParams?.get('redirect') || '/dashboard'
   
-  const [isSignIn, setIsSignIn] = useState(mode === 'signup')
+  const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
   const [debugError, setDebugError] = useState<any>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const passwordRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
 
@@ -164,22 +165,29 @@ function AuthContent() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('[SIGNUP] submit clicked')
+    console.log('[SIGNUP] isSubmitting:', isSubmitting)
+    console.log('[SIGNUP] isSubmittingRef.current:', isSubmittingRef.current)
+    console.trace('[SIGNUP] submit invoked from')
+
     // IMPORTANT: For MVP/testing mode, email confirmation should be disabled in Supabase
     // Supabase Dashboard → Authentication → Providers → Email → Confirm email = OFF
     // This allows signup to immediately create a session without requiring email confirmation
     // If email confirmation is enabled, users will see: "Please check your email to confirm your account before continuing."
 
     // Hard submit lock - prevent double-submit
-    if (isSubmittingRef.current) {
-      console.log('[Auth] Submit already in progress, blocking duplicate submit')
+    if (isSubmitting || isSubmittingRef.current) {
+      console.log('[SIGNUP] Submit already in progress, blocking duplicate submit')
       return
     }
+    setIsSubmitting(true)
     isSubmittingRef.current = true
     setLoading(true)
     setError('')
     setExistingAccount(false)
 
     try {
+      console.log('[SIGNUP] signUp starting')
       console.log('[AUTH CREATE CALLED]', {
         source: 'handleSignUp',
         trigger: 'submit',
@@ -218,8 +226,8 @@ function AuthContent() {
       console.log('[Auth] Session access token exists:', !!data.session?.access_token)
       console.log('[Auth] Error:', error)
 
-      // Error path: Stop immediately if sign up API returns an error
       if (error) {
+        console.log('[SIGNUP] signUp error:', error)
         console.error('[Auth] Sign up API returned error:', error.message)
         console.error('[Auth] Error status:', error.status)
         console.error('[Auth] Error code/name:', error.name || error.code || 'unknown')
@@ -254,10 +262,12 @@ function AuthContent() {
         })
         
         setLoading(false)
+        setIsSubmitting(false)
         isSubmittingRef.current = false
         return
       }
 
+      console.log('[SIGNUP] signUp completed successfully')
       // Success path 1: Email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
         console.log('[Auth] Email confirmation required - user created but no session')
@@ -370,13 +380,16 @@ function AuthContent() {
       router.replace('/dashboard')
     } catch (err: any) {
       console.error('[Auth] Unexpected sign up error:', err)
+      console.log('[SIGNUP] signUp error in catch block:', err)
       setError(err.message || 'Failed to sign up')
     } finally {
       // Only set loading false if not already set in success/error paths
       if (loading) {
         setLoading(false)
       }
+      setIsSubmitting(false)
       isSubmittingRef.current = false
+      console.log('[SIGNUP] submit lock released')
     }
   }
 
@@ -481,10 +494,10 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
+              disabled={loading || isSubmitting}
+              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
             >
-              {loading ? (isSignIn ? 'Signing in...' : 'Signing up...') : (isSignIn ? 'Sign In' : 'Sign Up')}
+              {loading || isSubmitting ? (isSignIn ? 'Signing in...' : 'Signing up...') : (isSignIn ? 'Sign In' : 'Sign Up')}
             </button>
           </form>
 
