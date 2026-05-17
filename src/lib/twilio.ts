@@ -965,6 +965,17 @@ export async function saveProvisionedNumberToBusiness({
   console.log(`[saveProvisionedNumber] DB number matches purchased number correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] ========== END SUCCESS ========== correlation_id=${correlationId}`)
   
+  // Trigger background warm number replenishment after successful assignment
+  // This maintains a pool of available warm numbers for future signups
+  try {
+    const { triggerBackgroundReplenishment } = await import('@/lib/warm-number-manager')
+    triggerBackgroundReplenishment()
+    console.log(`[saveProvisionedNumber] Triggered background warm number replenishment correlation_id=${correlationId}`)
+  } catch (error) {
+    // Don't fail the provisioning if replenishment trigger fails
+    console.warn(`[saveProvisionedNumber] Failed to trigger background replenishment correlation_id=${correlationId}`, error)
+  }
+  
   return { 
     success: true, 
     dbNumber: data.twilio_phone_number, 
