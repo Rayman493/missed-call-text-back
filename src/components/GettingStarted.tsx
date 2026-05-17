@@ -28,7 +28,7 @@ interface ChecklistItem {
   id: string
   title: string
   description: string
-  status: 'complete' | 'needs-action' | 'not-tested-yet'
+  status: 'complete' | 'needs-action' | 'not-tested-yet' | 'action-needed'
   buttonText?: string
   buttonHref?: string
   buttonOnClick?: () => void
@@ -393,15 +393,24 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const forwardingDone = Boolean(forwardingSetupComplete)
     const testDone = Boolean(testComplete)
 
+    // Check if subscription was previously active but now inactive (ACTION NEEDED)
+    const subscriptionActionNeeded = !subscriptionActive && business.stripe_customer_id
+    // Check if number was provisioned but now has issues (ACTION NEEDED)
+    const numberActionNeeded = numberDone && (!twilioReady || provisioningStatus === 'failed')
+    // Check if forwarding was set up but now disabled (ACTION NEEDED)
+    const forwardingActionNeeded = forwardingDone && !business.call_forwarding_enabled
+
     return [
       {
         id: 'trial',
         title: 'Start your free trial',
         description: 'Activate ReplyFlow so your missed-call system can run.',
-        status: trialDone ? 'complete' : 'needs-action',
-        details: trialDone
-          ? (isTrialing ? '14-day free trial active' : 'Subscription active')
-          : 'No charge today. Cancel anytime.',
+        status: subscriptionActionNeeded ? 'action-needed' : (trialDone ? 'complete' : 'needs-action'),
+        details: subscriptionActionNeeded
+          ? 'Subscription inactive - reactivate to continue'
+          : trialDone
+            ? (isTrialing ? '14-day free trial active' : 'Subscription active')
+            : 'No charge today. Cancel anytime.',
         buttonText: trialDone
           ? 'Manage Billing'
           : (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial'),
@@ -412,19 +421,23 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         id: 'number',
         title: 'Get your ReplyFlow number',
         description: 'A dedicated local number is provisioned for your business.',
-        status: numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action'),
-        details: numberDone
-          ? `Your ReplyFlow number: ${formatPhoneNumber(business.twilio_phone_number || '')}`
-          : (trialDone ? 'Provisioning your dedicated number…' : 'Available after trial activation'),
+        status: numberActionNeeded ? 'action-needed' : (numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action')),
+        details: numberActionNeeded
+          ? 'Number provisioned but has issues - check status'
+          : numberDone
+            ? `Your ReplyFlow number: ${formatPhoneNumber(business.twilio_phone_number || '')}`
+            : (trialDone ? 'Provisioning your dedicated number…' : 'Available after trial activation'),
       },
       {
         id: 'forwarding',
         title: 'Forward your calls',
         description: 'Forward missed calls from your business phone to ReplyFlow.',
-        status: forwardingDone ? 'complete' : 'needs-action',
-        details: forwardingDone
-          ? 'Your business phone is now connected to ReplyFlow.'
-          : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
+        status: forwardingActionNeeded ? 'action-needed' : (forwardingDone ? 'complete' : 'needs-action'),
+        details: forwardingActionNeeded
+          ? 'Forwarding disabled - re-enable to continue'
+          : forwardingDone
+            ? 'Your business phone is now connected to ReplyFlow.'
+            : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
         // Always show button when number is ready and forwarding is not complete
         buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
         buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
@@ -552,7 +565,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
+            {complete ? 'Your missed-call text-back system is live.' : 'Almost ready — one quick test left'}
           </p>
           {!complete && (
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -622,7 +635,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           {checklistItems.map((item, idx) => {
             const stepNum = idx + 1
             const isComplete = item.status === 'complete'
-            const isCurrent = !isComplete && checklistItems.findIndex(i => i.status !== 'complete') === idx
+            const isActionNeeded = item.status === 'action-needed'
+            // If all steps are complete, no step should show as CURRENT
+            const isCurrent = !complete && !isComplete && !isActionNeeded && checklistItems.findIndex(i => i.status !== 'complete' && i.status !== 'action-needed') === idx
             const isExpanded = expandedCardId === item.id
             const isForwardingCard = item.id === 'forwarding'
             
@@ -634,10 +649,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 className={`flex items-start gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-300 ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
-                    : isCurrent
-                      ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md'
-                      : 'bg-muted/50 border-border'
-                } ${isForwardingCard && !isComplete ? 'cursor-pointer hover:bg-blue-100/80 dark:hover:bg-blue-900/25' : ''}`}
+                    : isActionNeeded
+                      ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60 shadow-sm'
+                      : isCurrent
+                        ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md'
+                        : 'bg-muted/50 border-border'
+                } ${isForwardingCard && !isComplete && !isActionNeeded ? 'cursor-pointer hover:bg-blue-100/80 dark:hover:bg-blue-900/25' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -649,9 +666,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   ) : (
                     <div
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold ${
-                        isCurrent
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-muted text-muted-foreground'
+                        isActionNeeded
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : isCurrent
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {stepNum}
@@ -672,12 +691,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
                           isComplete
                             ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
-                            : isCurrent
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                              : 'bg-muted text-muted-foreground'
+                            : isActionNeeded
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                              : isCurrent
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                                : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {isComplete ? 'Done' : isCurrent ? 'Current' : 'Upcoming'}
+                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : 'Upcoming'}
                       </span>
                       {isForwardingCard && !isComplete && (
                         <div className="flex-shrink-0">
