@@ -9,54 +9,30 @@ import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 
-// Helper to generate conversational voice greeting with Amazon Polly voice or prerecorded audio
+// Helper to generate voice greeting - simplest version for troubleshooting
 function generateVoiceGreeting(businessName?: string): string {
-  // Check for prerecorded audio URL
-  const defaultGreetingAudioUrl = process.env.DEFAULT_GREETING_AUDIO_URL;
-  
-  if (defaultGreetingAudioUrl && defaultGreetingAudioUrl.trim() !== '') {
-    // Log greeting mode
-    console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: audio');
-    console.log('ACTIVE TWILIO GREETING: prerecorded audio');
-    console.log('ACTIVE TWILIO VOICE: audio playback');
-    
-    // Return prerecorded audio
-    return `<Play>${defaultGreetingAudioUrl}</Play>`;
-  }
-  
-  // Force Polly.Joanna-Neural voice with optimized script
-  const voice = "Polly.Joanna-Neural";
-  
-  // Shortened message for improved reliability on forwarded calls
-  // Forwarded carrier calls sometimes bridge audio late, so we use pauses to improve playback reliability
+  // Simplest TwiML to test if recent changes caused silence
   const greetingText = "Sorry we missed your call. We'll text you shortly.";
   
   // DEBUG LOGS
   console.log('[Twilio Voice] DEBUG: Generating voice greeting');
-  console.log('[Twilio Voice] DEBUG: Voice:', voice);
   console.log('[Twilio Voice] DEBUG: Business Name:', businessName);
   console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
-  console.log('VOICE TEXT:', greetingText); // Add requested VOICE TEXT logging
+  console.log('VOICE TEXT:', greetingText);
   
   // Log production voice selection
-  console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: tts');
+  console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: simple tts');
   console.log('ACTIVE TWILIO GREETING:', greetingText);
-  console.log('ACTIVE TWILIO VOICE:', voice);
+  console.log('ACTIVE TWILIO VOICE: default (no specific voice)');
   
-  // Generate TwiML with pauses for improved reliability
-  // Pause before speaking: allows carrier audio bridge to establish
-  // Pause after speaking: ensures message completes before hangup
-  const twimlWithPauses = `
-    <Pause length="1"/>
-    <Say voice="${voice}" language="en-US">
-      ${greetingText}
-    </Say>
-    <Pause length="3"/>
-  `.trim();
+  // Simplest TwiML for troubleshooting
+  const simpleTwiml = `
+    <Say>${greetingText}</Say>
+    <Pause length="2"/>
+    <Hangup/>
+  `;
   
-  console.log('FORCE DEPLOYMENT - TwiML being returned:', twimlWithPauses);
-  
-  return twimlWithPauses;
+  return simpleTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
