@@ -24,23 +24,17 @@ function generateVoiceGreeting(businessName?: string): string {
     return `<Play>${defaultGreetingAudioUrl}</Play>`;
   }
   
-  // Force Polly.Joanna-Neural voice with conversational script
+  // Force Polly.Joanna-Neural voice with optimized script
   const voice = "Polly.Joanna-Neural";
   
-  // Create conversational script with improved punctuation and pauses
-  const businessNameText = businessName && businessName.trim() !== '' ? businessName : undefined;
-  let greetingText: string;
-  
-  if (businessNameText) {
-    greetingText = `Hey, thanks for calling ${businessNameText}. Sorry we missed your call. We'll send you a quick text message shortly.`;
-  } else {
-    greetingText = "Hey, thanks for calling. Sorry we missed your call. We'll send you a quick text message shortly.";
-  }
+  // Shortened message for improved reliability on forwarded calls
+  // Forwarded carrier calls sometimes bridge audio late, so we use pauses to improve playback reliability
+  const greetingText = "Sorry we missed your call. We'll text you shortly.";
   
   // DEBUG LOGS
   console.log('[Twilio Voice] DEBUG: Generating voice greeting');
   console.log('[Twilio Voice] DEBUG: Voice:', voice);
-  console.log('[Twilio Voice] DEBUG: Business Name:', businessNameText);
+  console.log('[Twilio Voice] DEBUG: Business Name:', businessName);
   console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
   console.log('VOICE TEXT:', greetingText); // Add requested VOICE TEXT logging
   
@@ -49,12 +43,20 @@ function generateVoiceGreeting(businessName?: string): string {
   console.log('ACTIVE TWILIO GREETING:', greetingText);
   console.log('ACTIVE TWILIO VOICE:', voice);
   
-  // Force the correct TwiML response with improved pacing
-  const forcedTwiML = `<Say voice="${voice}" language="en-US">${greetingText}</Say><Pause length="1"/>`;
+  // Generate TwiML with pauses for improved reliability
+  // Pause before speaking: allows carrier audio bridge to establish
+  // Pause after speaking: ensures message completes before hangup
+  const twimlWithPauses = `
+    <Pause length="1"/>
+    <Say voice="${voice}" language="en-US">
+      ${greetingText}
+    </Say>
+    <Pause length="3"/>
+  `.trim();
   
-  console.log('FORCE DEPLOYMENT - TwiML being returned:', forcedTwiML);
+  console.log('FORCE DEPLOYMENT - TwiML being returned:', twimlWithPauses);
   
-  return forcedTwiML;
+  return twimlWithPauses;
 }
 
 // Helper to generate complete TwiML response with fallback structure
