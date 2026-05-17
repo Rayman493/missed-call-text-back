@@ -14,7 +14,7 @@ const supabase = createClient(
 // Get environment variables
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+// NOTE: Removed global TWILIO_PHONE_NUMBER fallback - must always use business.twilio_phone_number for tenant isolation
 
 // Only initialize Twilio client if credentials are available and valid
 export const twilioClient = accountSid && authToken && accountSid.startsWith('AC')
@@ -156,17 +156,46 @@ export async function sendSms(
           console.log('[SMS SEND] sender pool verification passed');
           console.log('[SMS SEND] using messaging service:', globalMessagingServiceSid);
           
+          // CRITICAL: Always specify from to ensure tenant isolation
+          // Without from parameter, Twilio can choose any sender from the pool
+          const fromNumber = business.twilio_phone_number;
+          
+          console.log('[SMS SEND CONTEXT]', {
+            business_id: business.id,
+            business_name: business.name,
+            to,
+            from: fromNumber,
+            messaging_service_sid: globalMessagingServiceSid,
+            twilio_phone_number: business.twilio_phone_number,
+            twilio_phone_number_sid: business.twilio_phone_number_sid,
+            source: options?.lead_id ? 'missed_call_auto_reply' : 'manual',
+          });
+          
+          // Safety assertion: verify sender matches business
+          if (fromNumber !== business.twilio_phone_number) {
+            console.error('[SMS FAILED] Sender mismatch: selected sender does not belong to business', {
+              business_id: business.id,
+              business_twilio_phone_number: business.twilio_phone_number,
+              selected_from: fromNumber,
+            });
+            await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
+            return null;
+          }
+          
           console.log('[SMS SEND] Calling Twilio API with Messaging Service:', {
             business_id: business.id,
             to,
+            from: fromNumber,
             messagingServiceSid: globalMessagingServiceSid,
             statusCallbackUrl
           });
           
           // Use Messaging Service with business's canonical number
+          // CRITICAL: Always specify from to ensure tenant isolation
           messageResult = await client.messages.create({
             body: message,
             to,
+            from: fromNumber,
             messagingServiceSid: globalMessagingServiceSid,
             statusCallback: statusCallbackUrl,
           });
@@ -205,19 +234,43 @@ export async function sendSms(
     } else {
       // No Messaging Service configured - use direct from with business number
       console.warn('[SMS SEND] warning: no messaging service configured, using direct from');
-      console.log('[SMS SEND] final from number:', business.twilio_phone_number);
+      
+      // CRITICAL: Always use business's canonical number for tenant isolation
+      const fromNumber = business.twilio_phone_number;
+      
+      console.log('[SMS SEND CONTEXT]', {
+        business_id: business.id,
+        business_name: business.name,
+        to,
+        from: fromNumber,
+        messaging_service_sid: null,
+        twilio_phone_number: business.twilio_phone_number,
+        twilio_phone_number_sid: business.twilio_phone_number_sid,
+        source: options?.lead_id ? 'missed_call_auto_reply' : 'manual',
+      });
+      
+      // Safety assertion: verify sender matches business
+      if (fromNumber !== business.twilio_phone_number) {
+        console.error('[SMS FAILED] Sender mismatch: selected sender does not belong to business', {
+          business_id: business.id,
+          business_twilio_phone_number: business.twilio_phone_number,
+          selected_from: fromNumber,
+        });
+        await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
+        return null;
+      }
       
       console.log('[SMS SEND] Calling Twilio API with direct from:', {
         business_id: business.id,
         to,
-        from: business.twilio_phone_number,
+        from: fromNumber,
         statusCallbackUrl
       });
       
       messageResult = await client.messages.create({
         body: message,
         to,
-        from: business.twilio_phone_number,
+        from: fromNumber,
         statusCallback: statusCallbackUrl,
       });
       
