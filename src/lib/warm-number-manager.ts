@@ -353,3 +353,70 @@ export async function triggerBackgroundReplenishment(): Promise<void> {
       console.error('[Warm Inventory] Background replenish failed:', error);
     });
 }
+
+/**
+ * Get and assign the oldest available warm number to a business
+ * Returns the assigned number or null if no warm numbers available
+ */
+export async function getAndAssignWarmNumber(businessId: string): Promise<{ success: boolean; phoneNumber?: string; phoneNumberSid?: string; error?: string }> {
+  console.log(`[Warm Inventory] Attempting to assign warm number to business ${businessId}...`);
+
+  if (!supabase) {
+    console.error('[Warm Inventory] Supabase client not configured');
+    return { success: false, error: 'Supabase client not configured' };
+  }
+
+  try {
+    // Get the oldest available warm number (with legacy compatibility)
+    const { data: availableNumbers, error: fetchError } = await supabase
+      .from('twilio_numbers')
+      .select('*')
+      .is('business_id', null)
+      .or('status.eq.available,status.eq.active')
+      .or('sms_status.eq.ready,sms_status.eq.pending')
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    if (fetchError) {
+      console.error('[Warm Inventory] Error fetching available warm numbers:', fetchError);
+      return { success: false, error: 'Failed to fetch available warm numbers' };
+    }
+
+    if (!availableNumbers || availableNumbers.length === 0) {
+      console.log('[Warm Inventory] No warm numbers available for assignment');
+      return { success: false, error: 'No warm numbers available' };
+    }
+
+    const warmNumber = availableNumbers[0];
+    console.log(`[Warm Inventory] Available warm number found: ${warmNumber.phone_number}`);
+
+    // Update twilio_numbers table
+    const { error: updateError } = await supabase
+      .from('twilio_numbers')
+      .update({
+        status: 'assigned',
+        business_id: businessId,
+        assigned_at: new Date().toISOString(),
+        sms_status: 'ready', // Ensure sms_status is updated to ready for legacy numbers
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', warmNumber.id);
+
+    if (updateError) {
+      console.error('[Warm Inventory] Failed to assign warm number:', updateError);
+      return { success: false, error: 'Failed to assign warm number' };
+    }
+
+    console.log(`[Warm Inventory] Assigned warm number to business: ${warmNumber.phone_number}`);
+
+    return {
+      success: true,
+      phoneNumber: warmNumber.phone_number,
+      phoneNumberSid: warmNumber.twilio_sid,
+    };
+
+  } catch (error: any) {
+    console.error('[Warm Inventory] Exception assigning warm number:', error);
+    return { success: false, error: error.message };
+  }
+}

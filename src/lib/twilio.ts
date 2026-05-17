@@ -611,7 +611,57 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   console.log(`[ProvisioningGuard] ========== PROCEEDING WITH PROVISIONING ========== correlation_id=${correlationId}`)
 
-  // Provision a dedicated local number for the business
+  // STEP 1: Try to assign from warm inventory first
+  console.log(`[Warm Inventory] Checking for available warm numbers before live provisioning correlation_id=${correlationId}`)
+  try {
+    const { getAndAssignWarmNumber, triggerBackgroundReplenishment } = await import('@/lib/warm-number-manager')
+    const warmNumberResult = await getAndAssignWarmNumber(businessId)
+
+    if (warmNumberResult.success && warmNumberResult.phoneNumber && warmNumberResult.phoneNumberSid) {
+      console.log(`[Warm Inventory] ✓ Assigned warm number from inventory correlation_id=${correlationId}`)
+      console.log(`[Warm Inventory] Phone number: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`)
+      console.log(`[Warm Inventory] Phone SID: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`)
+
+      // Update businesses table with the warm number
+      const { error: updateBusinessError } = await supabase
+        .from('businesses')
+        .update({
+          twilio_phone_number: warmNumberResult.phoneNumber,
+          twilio_phone_number_sid: warmNumberResult.phoneNumberSid,
+          sms_type: 'a2p_local',
+          a2p_status: 'active',
+          messaging_status: 'active',
+          twilio_messaging_service_sid: messagingServiceSid,
+          provisioning_status: 'attached',
+          provisioning_error: null,
+          provisioned_at: new Date().toISOString()
+        })
+        .eq('id', businessId)
+
+      if (updateBusinessError) {
+        console.error(`[Warm Inventory] Failed to update business with warm number correlation_id=${correlationId}`, updateBusinessError)
+        // Fallback to live provisioning if business update fails
+      } else {
+        console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`)
+        
+        // Trigger background replenishment to maintain pool
+        triggerBackgroundReplenishment()
+        
+        console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`)
+        return {
+          phoneNumber: warmNumberResult.phoneNumber,
+          phoneNumberSid: warmNumberResult.phoneNumberSid,
+          messagingServiceAttached: true,
+        }
+      }
+    } else {
+      console.log(`[Warm Inventory] No warm numbers available, falling back to live provisioning correlation_id=${correlationId}`)
+    }
+  } catch (error) {
+    console.error(`[Warm Inventory] Error checking warm inventory, falling back to live provisioning correlation_id=${correlationId}`, error)
+  }
+
+  // STEP 2: Fallback to live provisioning if no warm numbers available
   console.log(`[Provisioning] Provisioning dedicated local number for business=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using approved Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
 
