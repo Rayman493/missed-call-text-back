@@ -243,6 +243,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
  * Provisions additional numbers if below minimum
  */
 export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
+  console.log('[Warm Inventory] ========== MANUAL REPLENISH TRIGGERED ==========');
   console.log('[Warm Inventory] Checking warm number minimum...');
 
   const availableBefore = await getAvailableWarmNumberCount();
@@ -266,11 +267,14 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
 
   for (let i = 0; i < numbersNeeded; i++) {
     console.log(`[Warm Inventory] Provisioning warm number ${i + 1} of ${numbersNeeded}...`);
+    console.log(`[Warm Inventory] ========== PURCHASING REPLACEMENT NUMBER ==========`);
     const result = await provisionWarmNumber();
 
     if (result.success) {
       numbersAdded++;
+      console.log(`[Warm Inventory] ========== PURCHASED REPLACEMENT NUMBER ==========`);
       console.log(`[Warm Inventory] Successfully provisioned warm number ${numbersAdded}`);
+      console.log(`[Warm Inventory] Phone number: ${result.phoneNumber}`);
     } else {
       console.error(`[Warm Inventory] Failed to provision warm number ${i + 1}:`, result.error);
       lastError = result.error;
@@ -280,6 +284,7 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
 
   const availableAfter = await getAvailableWarmNumberCount();
   console.log(`[Warm Inventory] Available after: ${availableAfter}`);
+  console.log(`[Warm Inventory] ========== MANUAL REPLENISH COMPLETE ==========`);
 
   const success = numbersAdded === numbersNeeded;
   
