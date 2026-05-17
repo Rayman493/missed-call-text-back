@@ -337,7 +337,7 @@ export default function PhoneForwardingPage() {
                   )}
 
                   {/* What happens next */}
-                  <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4">
+                  <div className="bg-blue-50/50 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4 mb-4">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600/70 dark:text-blue-400/70 mb-2">
                       What happens after you dial
                     </p>
@@ -359,6 +359,20 @@ export default function PhoneForwardingPage() {
                         Your carrier may confirm the forwarding number out loud
                       </li>
                     </ul>
+                  </div>
+
+                  {/* Helper text */}
+                  <div className="text-center mb-3">
+                    <p className="text-sm text-muted-foreground">
+                      Once you've dialed the code on your business phone, press Continue.
+                    </p>
+                  </div>
+
+                  {/* Info section */}
+                  <div className="bg-muted/50 border border-border rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground text-center">
+                      You can disable forwarding anytime from your carrier settings.
+                    </p>
                   </div>
                 </div>
               )}

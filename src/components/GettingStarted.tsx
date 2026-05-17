@@ -32,6 +32,8 @@ interface ChecklistItem {
   buttonText?: string
   buttonHref?: string
   buttonOnClick?: () => void
+  secondaryButtonText?: string
+  secondaryButtonOnClick?: () => void
   details?: string
 }
 
@@ -348,6 +350,33 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
   const testComplete = business?.forwarding_verified
 
+  const handleCompleteForwarding = async () => {
+    if (!business) return
+    
+    try {
+      const supabase = createBrowserClient()
+      const { error } = await supabase
+        .from('businesses')
+        .update({
+          call_forwarding_enabled: true,
+          call_forwarding_status: "enabled",
+          phone_setup_completed_at: new Date().toISOString(),
+          onboarding_status: "pending_test",
+          onboarding_step: "phone_setup_completed"
+        })
+        .eq('id', business.id)
+      
+      if (error) {
+        console.error('[GettingStarted] Failed to mark forwarding complete:', error)
+      } else {
+        console.log('[GettingStarted] Forwarding marked as complete')
+        refreshBusiness()
+      }
+    } catch (error) {
+      console.error('[GettingStarted] Error completing forwarding:', error)
+    }
+  }
+
   const handleStartTrial = async () => {
     if (isHandlingBilling) return
     
@@ -441,6 +470,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         // Always show button when number is ready and forwarding is not complete
         buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
         buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
+        // Secondary button for users who have already enabled forwarding
+        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : undefined,
+        secondaryButtonOnClick: numberDone && !forwardingDone ? handleCompleteForwarding : undefined,
       },
       {
         id: 'test',
@@ -646,15 +678,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
                 onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}
-                className={`flex items-start gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-300 ${
+                className={`flex items-start gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isActionNeeded
                       ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60 shadow-sm'
                       : isCurrent
-                        ? 'bg-blue-50/70 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700/60 shadow-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md'
+                        ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
                         : 'bg-muted/50 border-border'
-                } ${isForwardingCard && !isComplete && !isActionNeeded ? 'cursor-pointer hover:bg-blue-100/80 dark:hover:bg-blue-900/25' : ''}`}
+                } ${isForwardingCard && !isComplete && !isActionNeeded ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -688,13 +720,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </h3>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                           isComplete
                             ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
                             : isActionNeeded
                               ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                               : isCurrent
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                                ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
                                 : 'bg-muted text-muted-foreground'
                         }`}
                       >
@@ -756,6 +788,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           {item.buttonText}
                         </Link>
                       )}
+                    </div>
+                  )}
+                  {item.secondaryButtonText && item.secondaryButtonOnClick && (
+                    <div className="mt-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          item.secondaryButtonOnClick!()
+                        }}
+                        className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-transparent hover:border-border"
+                      >
+                        {item.secondaryButtonText}
+                      </button>
                     </div>
                   )}
                 </div>
