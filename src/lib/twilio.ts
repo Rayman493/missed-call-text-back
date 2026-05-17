@@ -289,6 +289,60 @@ export async function sendSms(
       conversation_id: options?.conversation_id
     });
 
+    // Fetch actual message status after send to detect any immediate errors
+    // This helps identify deliverability issues like warning 30034
+    let actualStatus = messageResult.status;
+    let twilioErrorCode = messageResult.errorCode;
+    let twilioErrorMessage = messageResult.errorMessage;
+    
+    try {
+      console.log('[SMS DELIVERY DEBUG] Fetching post-send message status:', {
+        message_sid: messageResult.sid,
+        business_id: business.id,
+        to,
+        from: business.twilio_phone_number
+      });
+      
+      const fetchedMessage = await client.messages(messageResult.sid).fetch();
+      actualStatus = fetchedMessage.status;
+      twilioErrorCode = fetchedMessage.errorCode;
+      twilioErrorMessage = fetchedMessage.errorMessage;
+      
+      console.log('[SMS DELIVERY DEBUG] Post-send status fetched:', {
+        message_sid: messageResult.sid,
+        business_id: business.id,
+        from: business.twilio_phone_number,
+        to,
+        twilio_sid: fetchedMessage.sid,
+        twilio_status: fetchedMessage.status,
+        error_code: fetchedMessage.errorCode,
+        error_message: fetchedMessage.errorMessage,
+        direction: fetchedMessage.direction,
+        price: fetchedMessage.price,
+        priceUnit: fetchedMessage.priceUnit
+      });
+      
+      // NOTE: Warning 30034 (Message delivery - Possible delivery issue) should be monitored
+      // but not used alone as proof of failure. This warning can occur due to carrier delays
+      // or temporary issues. We should track it across multiple sends to identify patterns.
+      if (twilioErrorCode === 30034) {
+        console.warn('[SMS DELIVERY DEBUG] Warning 30034 detected - possible delivery issue:', {
+          message_sid: messageResult.sid,
+          business_id: business.id,
+          from: business.twilio_phone_number,
+          to,
+          error_message: twilioErrorMessage,
+          status: actualStatus
+        });
+      }
+    } catch (fetchError) {
+      console.warn('[SMS DELIVERY DEBUG] Failed to fetch post-send status:', {
+        message_sid: messageResult.sid,
+        error: fetchError
+      });
+      // Continue with original status if fetch fails
+    }
+
     // Insert successful message record into database
     const { error: insertError } = await supabase
       .from('messages')
@@ -300,11 +354,11 @@ export async function sendSms(
         from_phone: business.twilio_phone_number,
         to_phone: to,
         twilio_message_sid: messageResult.sid,
-        status: 'sent', // Twilio accepted it
+        status: actualStatus, // Use fetched status if available
         sent_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
-        error_code: null,
-        error_message: null,
+        error_code: twilioErrorCode,
+        error_message: twilioErrorMessage,
         created_at: new Date().toISOString(),
       });
 
@@ -316,10 +370,15 @@ export async function sendSms(
         error: insertError
       });
     } else {
-      console.log('[SMS SEND] message inserted successfully:', {
+      console.log('[SMS DELIVERY DEBUG] Message record stored with delivery info:', {
         message_sid: messageResult.sid,
-        lead_id: options?.lead_id,
-        conversation_id: options?.conversation_id
+        business_id: business.id,
+        from: business.twilio_phone_number,
+        to,
+        twilio_sid: messageResult.sid,
+        twilio_status: actualStatus,
+        error_code: twilioErrorCode,
+        error_message: twilioErrorMessage
       });
     }
 
