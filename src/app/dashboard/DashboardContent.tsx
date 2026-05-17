@@ -700,54 +700,7 @@ export default function DashboardContent() {
                     <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
                   </SectionErrorBoundary>
 
-                {/* Setup Health Banner - Show when forwarding not verified AND user has valid subscription AND setup not completed AND banner not dismissed - HIDDEN ON MOBILE */}
-                {business?.onboarding_status === 'completed' && !business?.forwarding_verified && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && !isSetupBannerDismissed && (
-                  <SectionErrorBoundary sectionName="SetupHealthBanner">
-                    {(() => {
-                      console.log('[SECTION RENDER]', {
-                        section: 'SetupHealthBanner',
-                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                        hasBusiness: !!business,
-                        subscriptionStatus: business?.subscription_status,
-                        onboardingStatus: business?.onboarding_status,
-                        forwardingVerified: business?.forwarding_verified
-                      })
-                      console.log('[Render Child] SetupHealthBanner')
-                      return null
-                    })()}
-                    {/* Hidden on mobile to reduce visual clutter */}
-                    <div className="hidden md:block bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">⚠️</span>
-                          <div>
-                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                              Finish testing your setup
-                            </p>
-                            <p className="text-xs text-amber-600 dark:text-amber-300">
-                              Call your business number from another phone and let it ring once to confirm ReplyFlow is active.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => router.push('/dashboard/test-setup')}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                          >
-                            Test Setup
-                          </button>
-                          <button
-                            onClick={handleDismissSetupBanner}
-                            className="px-2.5 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-md transition-colors"
-                          >
-                            Dismiss
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
-
+                
                 {/* Success Banner - Show when forwarding is verified AND recently completed (within 5 minutes) */}
                 {business?.forwarding_verified && business?.forwarding_verified_at && !isSetupBannerDismissed && (() => {
                   const verifiedAt = new Date(business.forwarding_verified_at)

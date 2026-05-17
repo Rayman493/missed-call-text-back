@@ -581,11 +581,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-3 sm:p-5 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
+    <div className={`rounded-2xl border p-2.5 sm:p-4 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
       {/* Horizontal layout: left text, right CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-2 sm:mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-0.5">
             <h2 className="text-base sm:text-lg font-semibold text-foreground">
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
@@ -596,11 +596,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground">
             {complete ? 'Your missed-call text-back system is live.' : 'Almost ready — one quick test left'}
           </p>
           {!complete && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0">
               {doneSteps} of {totalSteps} steps completed
             </p>
           )}
@@ -650,8 +650,28 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         )}
       </div>
 
+      {/* Inline test reminder when on test step */}
+      {!complete && doneSteps === 3 && !isExpanded && (
+        <div className="bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30 rounded-lg px-3 py-2 mb-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📞</span>
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                Final step: Test your business phone to confirm ReplyFlow is active.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/test-setup"
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex-shrink-0"
+            >
+              Test Setup →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Slim progress bar */}
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-2">
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-1.5">
         <div
           className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
           style={{ width: `${progressPct}%` }}
