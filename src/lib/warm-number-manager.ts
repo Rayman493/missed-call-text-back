@@ -359,15 +359,27 @@ export async function triggerBackgroundReplenishment(): Promise<void> {
  * Returns the assigned number or null if no warm numbers available
  */
 export async function getAndAssignWarmNumber(businessId: string): Promise<{ success: boolean; phoneNumber?: string; phoneNumberSid?: string; error?: string }> {
+  console.log(`[Warm Inventory] ========== START WARM INVENTORY ASSIGNMENT ==========`);
   console.log(`[Warm Inventory] Attempting to assign warm number to business ${businessId}...`);
 
   if (!supabase) {
-    console.error('[Warm Inventory] Supabase client not configured');
+    console.error('[Warm Inventory] ERROR: Supabase client not configured');
     return { success: false, error: 'Supabase client not configured' };
   }
 
   try {
-    // Get the oldest available warm number (with legacy compatibility)
+    // STEP 1: Get available count
+    console.log(`[Warm Inventory] STEP 1: Checking for available numbers...`);
+    const countResult = await getAvailableWarmNumberCount();
+    console.log(`[Warm Inventory] Available count: ${countResult}`);
+
+    if (countResult === 0) {
+      console.log(`[Warm Inventory] No warm numbers available, returning failure`);
+      return { success: false, error: 'No warm numbers available' };
+    }
+
+    // STEP 2: Fetch the oldest available warm number (with legacy compatibility)
+    console.log(`[Warm Inventory] STEP 2: Fetching oldest available warm number...`);
     const { data: availableNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
@@ -378,19 +390,29 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
       .limit(1);
 
     if (fetchError) {
-      console.error('[Warm Inventory] Error fetching available warm numbers:', fetchError);
+      console.error('[Warm Inventory] ERROR: Failed to fetch available warm numbers:', fetchError);
+      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(fetchError, null, 2));
       return { success: false, error: 'Failed to fetch available warm numbers' };
     }
 
     if (!availableNumbers || availableNumbers.length === 0) {
-      console.log('[Warm Inventory] No warm numbers available for assignment');
+      console.log('[Warm Inventory] No warm numbers found in query result');
       return { success: false, error: 'No warm numbers available' };
     }
 
     const warmNumber = availableNumbers[0];
-    console.log(`[Warm Inventory] Available warm number found: ${warmNumber.phone_number}`);
+    console.log(`[Warm Inventory] First available number: ${warmNumber.phone_number}`);
+    console.log(`[Warm Inventory] First available SID: ${warmNumber.twilio_sid}`);
+    console.log(`[Warm Inventory] First available status: ${warmNumber.status}`);
+    console.log(`[Warm Inventory] First available sms_status: ${warmNumber.sms_status}`);
+    console.log(`[Warm Inventory] First available id: ${warmNumber.id}`);
 
-    // Update twilio_numbers table
+    // STEP 3: Update twilio_numbers table
+    console.log(`[Warm Inventory] STEP 3: Assigning number to business...`);
+    console.log(`[Warm Inventory] Business ID: ${businessId}`);
+    console.log(`[Warm Inventory] Phone Number: ${warmNumber.phone_number}`);
+    console.log(`[Warm Inventory] Phone SID: ${warmNumber.twilio_sid}`);
+
     const { error: updateError } = await supabase
       .from('twilio_numbers')
       .update({
@@ -403,11 +425,14 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
       .eq('id', warmNumber.id);
 
     if (updateError) {
-      console.error('[Warm Inventory] Failed to assign warm number:', updateError);
+      console.error('[Warm Inventory] ERROR: Assignment DB update failed');
+      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(updateError, null, 2));
       return { success: false, error: 'Failed to assign warm number' };
     }
 
+    console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
     console.log(`[Warm Inventory] Assigned warm number to business: ${warmNumber.phone_number}`);
+    console.log(`[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (SUCCESS) ==========`);
 
     return {
       success: true,
@@ -416,7 +441,9 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     };
 
   } catch (error: any) {
-    console.error('[Warm Inventory] Exception assigning warm number:', error);
+    console.error('[Warm Inventory] EXCEPTION: Exception assigning warm number');
+    console.error('[Warm Inventory] EXCEPTION Details:', JSON.stringify(error, null, 2));
+    console.error('[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (EXCEPTION) ==========');    
     return { success: false, error: error.message };
   }
 }

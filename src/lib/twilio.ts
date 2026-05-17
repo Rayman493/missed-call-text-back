@@ -612,17 +612,35 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   console.log(`[ProvisioningGuard] ========== PROCEEDING WITH PROVISIONING ========== correlation_id=${correlationId}`)
 
   // STEP 1: Try to assign from warm inventory first
-  console.log(`[Warm Inventory] Checking for available warm numbers before live provisioning correlation_id=${correlationId}`)
+  console.log(`[Warm Inventory] ========== START WARM INVENTORY CHECK ========== correlation_id=${correlationId}`);
+  console.log(`[Warm Inventory] Checking for available warm numbers before live provisioning correlation_id=${correlationId}`);
+  console.log(`[Warm Inventory] Business ID: ${businessId} correlation_id=${correlationId}`);
+  
   try {
+    console.log(`[Warm Inventory] Importing warm number manager... correlation_id=${correlationId}`);
     const { getAndAssignWarmNumber, triggerBackgroundReplenishment } = await import('@/lib/warm-number-manager')
+    console.log(`[Warm Inventory] Warm number manager imported successfully correlation_id=${correlationId}`);
+    
+    console.log(`[Warm Inventory] Calling getAndAssignWarmNumber... correlation_id=${correlationId}`);
     const warmNumberResult = await getAndAssignWarmNumber(businessId)
+    console.log(`[Warm Inventory] getAndAssignWarmNumber returned correlation_id=${correlationId}`);
+    console.log(`[Warm Inventory] Result success: ${warmNumberResult.success} correlation_id=${correlationId}`);
+    console.log(`[Warm Inventory] Result phoneNumber: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`);
+    console.log(`[Warm Inventory] Result phoneNumberSid: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`);
+    console.log(`[Warm Inventory] Result error: ${warmNumberResult.error} correlation_id=${correlationId}`);
 
     if (warmNumberResult.success && warmNumberResult.phoneNumber && warmNumberResult.phoneNumberSid) {
-      console.log(`[Warm Inventory] ✓ Assigned warm number from inventory correlation_id=${correlationId}`)
-      console.log(`[Warm Inventory] Phone number: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`)
-      console.log(`[Warm Inventory] Phone SID: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`)
+      console.log(`[Warm Inventory] ========== WARM NUMBER ASSIGNMENT SUCCESS ========== correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] ✓ Assigned warm number from inventory correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Phone number: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Phone SID: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`);
 
       // Update businesses table with the warm number
+      console.log(`[Warm Inventory] Updating businesses table with warm number... correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Business ID: ${businessId} correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Phone Number: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Phone SID: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`);
+      
       const { error: updateBusinessError } = await supabase
         .from('businesses')
         .update({
@@ -639,15 +657,20 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         .eq('id', businessId)
 
       if (updateBusinessError) {
-        console.error(`[Warm Inventory] Failed to update business with warm number correlation_id=${correlationId}`, updateBusinessError)
-        // Fallback to live provisioning if business update fails
+        console.error(`[Warm Inventory] ========== BUSINESS UPDATE FAILED ========== correlation_id=${correlationId}`);
+        console.error(`[Warm Inventory] Failed to update business with warm number correlation_id=${correlationId}`, updateBusinessError);
+        console.error(`[Warm Inventory] ERROR Details: ${JSON.stringify(updateBusinessError, null, 2)} correlation_id=${correlationId}`);
+        console.log(`[Warm Inventory] Fallback to live provisioning due to business update failure correlation_id=${correlationId}`);
       } else {
-        console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`)
+        console.log(`[Warm Inventory] ========== BUSINESS UPDATE SUCCESS ========== correlation_id=${correlationId}`);
+        console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`);
         
-        // Trigger background replenishment to maintain pool
+        console.log(`[Warm Inventory] Triggering background replenishment... correlation_id=${correlationId}`);
         triggerBackgroundReplenishment()
+        console.log(`[Warm Inventory] Background replenishment triggered correlation_id=${correlationId}`);
         
-        console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`)
+        console.log(`[Warm Inventory] ========== WARM NUMBER ASSIGNMENT COMPLETE ========== correlation_id=${correlationId}`);
+        console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`);
         return {
           phoneNumber: warmNumberResult.phoneNumber,
           phoneNumberSid: warmNumberResult.phoneNumberSid,
@@ -655,13 +678,18 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         }
       }
     } else {
-      console.log(`[Warm Inventory] No warm numbers available, falling back to live provisioning correlation_id=${correlationId}`)
+      console.log(`[Warm Inventory] ========== NO WARM NUMBER AVAILABLE ========== correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] No warm numbers available, falling back to live provisioning correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Reason: ${warmNumberResult.error} correlation_id=${correlationId}`);
     }
   } catch (error) {
-    console.error(`[Warm Inventory] Error checking warm inventory, falling back to live provisioning correlation_id=${correlationId}`, error)
+    console.error(`[Warm Inventory] ========== WARM INVENTORY CHECK FAILED ========== correlation_id=${correlationId}`);
+    console.error(`[Warm Inventory] Error checking warm inventory, falling back to live provisioning correlation_id=${correlationId}`, error);
+    console.error(`[Warm Inventory] ERROR Details: ${JSON.stringify(error, null, 2)} correlation_id=${correlationId}`);
   }
 
   // STEP 2: Fallback to live provisioning if no warm numbers available
+  console.log(`[Warm Inventory] ========== FALLING BACK TO LIVE PROVISIONING ========== correlation_id=${correlationId}`);
   console.log(`[Provisioning] Provisioning dedicated local number for business=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using approved Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
 
