@@ -5,6 +5,7 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
 import { Phone, MessageCircle, Clock, ArrowRight } from 'lucide-react'
+import { FollowUpJob } from '@/lib/types'
 
 interface Lead {
   id: string
@@ -17,12 +18,6 @@ interface Lead {
     content: string
     created_at: string
   }>
-}
-
-interface FollowUpJob {
-  id: string
-  status: string
-  created_at: string
 }
 
 interface LiveActivityProps {

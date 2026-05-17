@@ -1,6 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
-import { Business, Lead, Message, CallEvent, Conversation, FollowUp, LeadWithMessages } from '../types'
+import { Business, Lead, Message, CallEvent, Conversation, LeadWithMessages } from '../types'
 
 // Helper function to validate environment variables (server-side only)
 function getRequiredEnvVar(name: string): string {
@@ -859,55 +859,6 @@ export const db = {
     return data
   },
 
-  // Follow-up operations
-  async createFollowUp(followUp: Omit<FollowUp, 'id' | 'created_at'>): Promise<FollowUp | null> {
-    const { data, error } = await supabaseAdmin
-      .from('follow_ups')
-      .insert(followUp)
-      .select()
-      .single()
-    
-    if (error) {
-      console.error('Error creating follow-up:', error)
-      return null
-    }
-    
-    return data
-  },
-
-  async getDueFollowUps(): Promise<FollowUp[]> {
-    const now = new Date().toISOString()
-    
-    const { data, error } = await supabaseAdmin
-      .from('follow_ups')
-      .select('*')
-      .eq('status', 'pending')
-      .lte('scheduled_for', now)
-      .order('scheduled_for', { ascending: true })
-    
-    if (error) {
-      console.error('Error fetching due follow-ups:', error)
-      return []
-    }
-    
-    return data || []
-  },
-
-  async cancelLegacyFollowUpsForConversation(conversationId: string): Promise<boolean> {
-    const { error } = await supabaseAdmin
-      .from('follow_ups')
-      .update({ status: 'cancelled' })
-      .eq('conversation_id', conversationId)
-      .eq('status', 'pending')
-    
-    if (error) {
-      console.error('Error cancelling follow-ups:', error)
-      return false
-    }
-    
-    return true
-  },
-
   async cancelPendingFollowUpJobsForLead(leadId: string, cancelledReason: string): Promise<number> {
     const now = new Date().toISOString()
     const { data, error } = await supabaseAdmin
@@ -1015,25 +966,6 @@ export const db = {
     return !!data
   },
 
-  async markFollowUpSent(followUpId: string): Promise<FollowUp | null> {
-    const { data, error } = await supabaseAdmin
-      .from('follow_ups')
-      .update({ 
-        status: 'sent',
-        sent_at: new Date().toISOString()
-      })
-      .eq('id', followUpId)
-      .select()
-      .single()
-    
-    if (error) {
-      console.error('Error marking follow-up as sent:', error)
-      return null
-    }
-    
-    return data
-  },
-
   async getConversationById(conversationId: string): Promise<Conversation | null> {
     const { data, error } = await supabaseAdmin
       .from('conversations')
@@ -1066,41 +998,6 @@ export const db = {
     
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
       console.error('Error fetching latest inbound message:', error)
-      return null
-    }
-    
-    return data
-  },
-
-  async hasPendingFollowUpForConversation(conversationId: string, kind: string): Promise<boolean> {
-    const { data, error } = await supabaseAdmin
-      .from('follow_ups')
-      .select('id')
-      .eq('conversation_id', conversationId)
-      .eq('kind', kind)
-      .eq('status', 'pending')
-      .limit(1)
-      .single()
-    
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error checking pending follow-up:', error)
-      return false
-    }
-    
-    return !!data
-  },
-
-  // Additional helper functions for cron route
-  async cancelFollowUp(followUpId: string): Promise<FollowUp | null> {
-    const { data, error } = await supabaseAdmin
-      .from('follow_ups')
-      .update({ status: 'cancelled' })
-      .eq('id', followUpId)
-      .select()
-      .single()
-    
-    if (error) {
-      console.error('Error cancelling follow-up:', error)
       return null
     }
     

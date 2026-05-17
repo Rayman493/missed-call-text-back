@@ -136,16 +136,22 @@ export interface Conversation {
   created_at: string;
 }
 
-export interface FollowUp {
+export interface FollowUpJob {
   id: string;
-  conversation_id: string;
   lead_id: string;
   business_id: string;
-  kind: string;
-  status: 'pending' | 'sent' | 'cancelled';
-  scheduled_for: string;
+  conversation_id?: string;
   message_body: string;
-  sent_at?: string;
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  scheduled_for: string;
+  attempt_count: number;
+  max_attempts: number;
+  last_error_message?: string;
+  last_error_code?: string;
+  cancelled_reason?: string;
+  cancelled_at?: string;
+  idempotency_key?: string;
+  step?: number;
   created_at: string;
 }
 
