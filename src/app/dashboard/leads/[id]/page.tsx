@@ -40,6 +40,8 @@ function getStatusColor(status: string): string {
       return 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200'
     case 'failed':
       return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+    case 'not_sent':
+      return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
     case 'pending':
       return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
     case 'simulated':
@@ -61,6 +63,8 @@ function getStatusText(status: string): string {
       return 'Undelivered'
     case 'failed':
       return 'Failed'
+    case 'not_sent':
+      return 'Not sent — configuration issue'
     case 'pending':
       return 'Pending'
     case 'simulated':

@@ -876,38 +876,11 @@ export default function DashboardContent() {
                         )
                       }
                       
-                      // If in trial and not cancelled, show trial banner
+                      // If in trial and not cancelled, show trial banner - REMOVED to reduce dashboard clutter
+                      // Trial status now shown in Setup Progress card as compact pill
                       if (isInTrial) {
-                        const trialEndDate = formatDate(business?.trial_ends_at)
-                        return (
-                          <div className={`${themeClasses.banner} rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5`}>
-                            <div className="flex items-center justify-between gap-3 sm:gap-4">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <span className="text-xs sm:text-sm">🎉</span>
-                                <div>
-                                  <p className={`text-[10px] sm:text-xs font-semibold ${textTokens.primary}`}>
-                                    Free trial active
-                                  </p>
-                                  <p className={`text-[9px] sm:text-[10px] ${textTokens.secondary}`}>
-                                    {trialEndDate 
-                                      ? `Your 14-day free trial ends ${trialEndDate}`
-                                      : 'Your 14-day free trial is active'}
-                                  </p>
-                                  <p className={`text-[9px] sm:text-[10px] ${textTokens.secondary}`}>
-                                    Then $49/month unless canceled.
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={handleManageSubscription}
-                                disabled={isOpeningBilling}
-                                className={`${buttonTokens.primary} px-2 py-1 text-[9px] sm:text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                {isOpeningBilling ? 'Opening…' : 'Manage Billing'}
-                              </button>
-                            </div>
-                          </div>
-                        )
+                        // Return null to remove the full-width banner
+                        return null
                       }
                       
                       // Active subscription (not trial, not cancelled) - no banner needed

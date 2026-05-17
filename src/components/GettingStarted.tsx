@@ -53,6 +53,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [realCallDataExists, setRealCallDataExists] = useState(false)
   const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
 
   // Mobile detection
@@ -73,7 +74,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    const testComplete = business?.forwarding_verified
+    const testComplete = business?.forwarding_verified || realCallDataExists
     
     // Determine which step should be expanded
     if (!subscriptionActive) {
@@ -89,7 +90,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       // Step 4: Test - auto-expand on mobile
       setExpandedCardId('test')
     }
-  }, [isMobile, business])
+  }, [isMobile, business, realCallDataExists])
 
   // When onboarding is complete, collapse by default
   useEffect(() => {
@@ -154,16 +155,112 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     }
   }, [business])
 
+  // Calculate trial days remaining - must be before early returns
+  const trialDaysRemaining = useMemo(() => {
+    if (!business?.trial_ends_at) return null
+    const trialEnd = new Date(business.trial_ends_at)
+    const now = new Date()
+    const diffTime = trialEnd.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays > 0 ? diffDays : 0
+  }, [business?.trial_ends_at])
+
+  const isInTrial = hasActiveTrial(business)
+
   // If user is on dashboard, don't force them back to phone-setup even if forwarding is not complete
   // This allows users to click "Finish later" on Step 4 and stay on dashboard
   const isOnDashboard = pathname === '/dashboard'
+
+  // Check if Step 4 should be complete based on real DB state
+  // Step 4 is complete if ANY of these are true:
+  // - business.forwarding_verified === true
+  // - business.forwarding_verified_at is not null
+  // - at least one call_event exists for business_id
+  // - at least one lead exists for business_id created by missed call
+  // - at least one conversation exists from call flow
+  useEffect(() => {
+    if (!business?.id) return
+
+    const checkRealCallData = async () => {
+      try {
+        const supabase = createBrowserClient()
+        
+        // Check for call_events
+        const { count: callEventsCount } = await supabase
+          .from('call_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+
+        // Check for leads (non-demo)
+        const { count: leadsCount } = await supabase
+          .from('leads')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+          .eq('is_demo', false)
+
+        // Check for conversations
+        const { count: conversationsCount } = await supabase
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+
+        const hasRealData = (callEventsCount || 0) > 0 || (leadsCount || 0) > 0 || (conversationsCount || 0) > 0
+
+        console.log('[Setup Progress] Step 4 real DB state check:', {
+          businessId: business.id,
+          forwarding_verified: business.forwarding_verified,
+          forwarding_verified_at: business.forwarding_verified_at,
+          callEventsCount,
+          leadsCount,
+          conversationsCount,
+          hasRealData,
+          step4Complete: business.forwarding_verified || hasRealData
+        })
+
+        setRealCallDataExists(hasRealData)
+
+        // Auto-repair: if real data exists but forwarding_verified is false, update it
+        if (hasRealData && !business.forwarding_verified) {
+          console.log('[Setup Progress] Auto-repair: marking forwarding_verified for business with real call data:', business.id)
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update({ 
+              forwarding_verified: true, 
+              forwarding_verified_at: new Date().toISOString(),
+              onboarding_status: 'completed'
+            })
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[Setup Progress] Auto-repair failed:', updateError)
+          } else {
+            console.log('[Setup Progress] Auto-repair successful for business:', business.id)
+            // Refresh business to get updated state
+            refreshBusiness()
+          }
+        }
+      } catch (error) {
+        console.error('[Setup Progress] Error checking real call data:', error)
+      }
+    }
+
+    checkRealCallData()
+  }, [business?.id, business?.forwarding_verified, refreshBusiness])
 
   const currentOnboardingState = useMemo(() => {
     if (!business) return 'loading'
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    const testComplete = business?.forwarding_verified
+    // Step 4 is complete if forwarding_verified OR if real call data exists
+    const testComplete = business?.forwarding_verified || realCallDataExists
+    
+    console.log('[Setup Progress] Step 4 completion check:', {
+      businessId: business.id,
+      forwarding_verified: business?.forwarding_verified,
+      realCallDataExists,
+      testComplete
+    })
     
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
@@ -172,7 +269,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     if (!forwardingSetupComplete) return 'forwarding_needed'
     if (!testComplete) return 'testing_needed'
     return 'active_ready'
-  }, [business, isOnDashboard])
+  }, [business, isOnDashboard, realCallDataExists])
 
   // Calculate if all steps are complete based on computed state
   const isFullyComplete = useMemo(() => {
@@ -443,9 +540,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-2 sm:mb-3">
         <div className="min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold text-foreground">
-            {complete ? 'Setup Complete ✓' : 'Setup Progress'}
-          </h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">
+              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
+            </h2>
+            {/* Trial badge - only show when in trial and onboarding incomplete */}
+            {!complete && isInTrial && trialDaysRemaining !== null && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-[10px] sm:text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                Free Trial • {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'} left
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             {complete ? 'All steps completed' : 'Almost ready — one quick test left'}
           </p>

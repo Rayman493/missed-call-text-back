@@ -264,14 +264,16 @@ export async function POST(req: NextRequest) {
         }
         
         // Send SMS using the same sendSms helper as manual SMS
-        console.log(`[Follow-up SMS] Sending SMS:`, {
+        console.log(`[Follow-up SMS] Preparing to send SMS:`, {
           followUpId: followUp.id,
           businessId: business.id,
+          businessName: business.name,
           businessPhone: business.twilio_phone_number,
           businessPhoneSid: business.twilio_phone_number_sid,
-          messagingServiceSid: business.twilio_messaging_service_sid,
+          messagingServiceSid: business.messaging_service_sid,
           toPhone: lead.caller_phone,
           conversationId: conversation?.id,
+          messageLength: followUp.message_body.length,
           messagePreview: followUp.message_body.substring(0, 50) + '...'
         })
 
@@ -287,14 +289,14 @@ export async function POST(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.error(`[Follow-up SMS] Error - SMS failed to send: ${followUp.id}`)
+          console.error(`[Follow-up SMS] SMS send failed - no message SID returned: ${followUp.id}`)
           
           // Mark job as failed
           const { error: failError } = await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              last_error_message: 'SMS send failed - no Twilio message SID returned'
+              last_error_message: 'SMS send failed - no Twilio message SID returned (check Vercel logs for details)'
             })
             .eq('id', followUp.id)
           
@@ -607,14 +609,16 @@ export async function GET(req: NextRequest) {
         }
         
         // Send SMS using the same sendSms helper as manual SMS
-        console.log(`[Follow-up SMS] Sending SMS:`, {
+        console.log(`[Follow-up SMS] Preparing to send SMS:`, {
           followUpId: followUp.id,
           businessId: business.id,
+          businessName: business.name,
           businessPhone: business.twilio_phone_number,
           businessPhoneSid: business.twilio_phone_number_sid,
-          messagingServiceSid: business.twilio_messaging_service_sid,
+          messagingServiceSid: business.messaging_service_sid,
           toPhone: lead.caller_phone,
           conversationId: conversation?.id,
+          messageLength: followUp.message_body.length,
           messagePreview: followUp.message_body.substring(0, 50) + '...'
         })
 
@@ -630,14 +634,14 @@ export async function GET(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.error(`[Follow-up SMS] Error - SMS failed to send: ${followUp.id}`)
+          console.error(`[Follow-up SMS] SMS send failed - no message SID returned: ${followUp.id}`)
           
           // Mark job as failed
           const { error: failError } = await supabase
             .from('follow_up_jobs')
             .update({ 
               status: 'failed',
-              last_error_message: 'SMS send failed - no Twilio message SID returned'
+              last_error_message: 'SMS send failed - no Twilio message SID returned (check Vercel logs for details)'
             })
             .eq('id', followUp.id)
           

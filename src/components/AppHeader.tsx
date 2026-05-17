@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navigation from './Navigation'
 import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
+import { ChevronLeft } from 'lucide-react'
 
 interface AppHeaderProps {
   title?: string
@@ -41,8 +42,12 @@ export default function AppHeader({
             <div className="hidden md:flex items-center gap-4">
               {showNavigation && <Navigation />}
               {showBackLink && (
-                <Link href={backLinkHref} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                  ← Dashboard
+                <Link 
+                  href={backLinkHref} 
+                  className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/50 dark:bg-slate-700/50 border border-slate-700/50 dark:border-slate-600/50 text-sm font-medium text-slate-300 hover:text-slate-200 hover:bg-slate-700/50 dark:hover:bg-slate-600/50 hover:border-slate-600/50 dark:hover:border-slate-500/50 transition-all duration-200"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Dashboard
                 </Link>
               )}
               {title && <h1 className="text-lg font-semibold text-white">{title}</h1>}

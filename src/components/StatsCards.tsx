@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import SectionErrorBoundary from './SectionErrorBoundary'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface StatsCardsProps {
   businessId: string
@@ -10,12 +12,14 @@ interface StatsCardsProps {
 
 export default function StatsCards({ businessId }: StatsCardsProps) {
   // ALL hooks must be called at the top before any conditional returns
+  const router = useRouter()
   const [leadsCount, setLeadsCount] = useState(0)
   const [conversationsCount, setConversationsCount] = useState(0)
   const [followUpsCount, setFollowUpsCount] = useState(0)
   const [missedCallsCount, setMissedCallsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [realtimeConnected, setRealtimeConnected] = useState(true)
   const supabase = createBrowserClient()
 
   // Fetch stats from Supabase
@@ -72,6 +76,78 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
     fetchStats()
   }, [businessId, supabase])
 
+  // Realtime subscription for live updates
+  useEffect(() => {
+    if (!businessId) return
+
+    const channel = supabase
+      .channel('stats-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          console.log('[StatsCards] Realtime: leads changed, refreshing')
+          fetchStats()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          console.log('[StatsCards] Realtime: conversations changed, refreshing')
+          fetchStats()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_up_jobs',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          console.log('[StatsCards] Realtime: follow_up_jobs changed, refreshing')
+          fetchStats()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'call_events',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          console.log('[StatsCards] Realtime: call_events changed, refreshing')
+          fetchStats()
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('[StatsCards] Realtime subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          setRealtimeConnected(true)
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setRealtimeConnected(false)
+        }
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [businessId, supabase])
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -90,8 +166,13 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
   return (
     <SectionErrorBoundary sectionName="StatsCardsData">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Dashboard Stats</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+            <span className="text-xs font-medium text-muted-foreground">
+              {realtimeConnected ? 'Live' : 'Reconnecting...'}
+            </span>
+          </div>
           {refreshing && (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
           )}
@@ -108,45 +189,53 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
         </button>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {/* Missed Calls */}
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-lg shadow-sm">📞</span>
-            <h3 className="text-xs font-medium text-muted-foreground">Missed Calls</h3>
+        {/* Captured Calls */}
+        <Link href="/dashboard/leads" className="group">
+          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-9 h-9 bg-muted rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-muted/80 transition-colors">📞</span>
+              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Captured Calls</h3>
+            </div>
+            <p className="text-3xl sm:text-4xl font-bold text-foreground mb-1">{missedCallsCount}</p>
+            <p className="text-xs text-muted-foreground">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">{missedCallsCount}</p>
-          <p className="text-[11px] text-muted-foreground">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total calls'}</p>
-        </div>
+        </Link>
 
         {/* New Leads */}
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-8 h-8 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">👥</span>
-            <h3 className="text-xs font-medium text-muted-foreground">New Leads</h3>
+        <Link href="/dashboard/leads" className="group">
+          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-9 h-9 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-900/30 transition-colors">👥</span>
+              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">New Leads</h3>
+            </div>
+            <p className="text-3xl sm:text-4xl font-bold text-blue-500 dark:text-blue-100 mb-1">{leadsCount}</p>
+            <p className="text-xs text-muted-foreground">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-blue-500 dark:text-blue-100 mb-0.5">{leadsCount}</p>
-          <p className="text-[11px] text-muted-foreground">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
-        </div>
+        </Link>
 
         {/* Conversations */}
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-8 h-8 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">💬</span>
-            <h3 className="text-xs font-medium text-muted-foreground">Conversations</h3>
+        <Link href="/dashboard/leads" className="group">
+          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-9 h-9 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-green-900/30 transition-colors">💬</span>
+              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Conversations</h3>
+            </div>
+            <p className="text-3xl sm:text-4xl font-bold text-green-500 dark:text-green-100 mb-1">{conversationsCount}</p>
+            <p className="text-xs text-muted-foreground">{conversationsCount === 0 ? 'No conversations yet' : 'Active conversations'}</p>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-green-500 dark:text-green-100 mb-0.5">{conversationsCount}</p>
-          <p className="text-[11px] text-muted-foreground">{conversationsCount === 0 ? 'No conversations yet' : 'Active conversations'}</p>
-        </div>
+        </Link>
 
         {/* Follow-ups */}
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-8 h-8 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-lg shadow-sm">📅</span>
-            <h3 className="text-xs font-medium text-muted-foreground">Follow-ups</h3>
+        <Link href="/dashboard/leads" className="group">
+          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-9 h-9 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-purple-900/30 transition-colors">📅</span>
+              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Follow-ups</h3>
+            </div>
+            <p className="text-3xl sm:text-4xl font-bold text-purple-500 dark:text-purple-100 mb-1">{followUpsCount}</p>
+            <p className="text-xs text-muted-foreground">{followUpsCount === 0 ? 'None scheduled' : 'Scheduled'}</p>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-purple-500 dark:text-purple-100 mb-0.5">{followUpsCount}</p>
-          <p className="text-[11px] text-muted-foreground">{followUpsCount === 0 ? 'None scheduled' : 'Scheduled'}</p>
-        </div>
+        </Link>
       </div>
     </SectionErrorBoundary>
   )

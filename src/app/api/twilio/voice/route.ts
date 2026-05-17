@@ -218,8 +218,42 @@ export async function POST(request: NextRequest) {
     });
 
     // Mark forwarding as verified if this is the first successful forwarded call
-    // Note: We'll mark it verified after SMS is successfully sent to ensure full setup verification
+    // Update: Mark forwarding_verified when ANY call is received (not just when SMS succeeds)
+    // This ensures Step 4 completes when real calls are coming in
     let shouldMarkForwardingVerified = !business.forwarding_verified
+
+    console.log('[Setup Progress] Step 4 check:', {
+      businessId: business.id,
+      forwarding_verified: business.forwarding_verified,
+      shouldMarkForwardingVerified
+    });
+
+    // Mark forwarding as verified when ANY call is received (not just when SMS succeeds)
+    // This ensures Step 4 completes when real calls are coming in
+    if (shouldMarkForwardingVerified) {
+      console.log('[Setup Progress] Marking forwarding_verified = true for business:', business.id);
+      try {
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update({ 
+            forwarding_verified: true, 
+            forwarding_verified_at: new Date().toISOString(),
+            phone_setup_completed_at: new Date().toISOString(),
+            onboarding_status: 'completed'
+          })
+          .eq('id', business.id);
+
+        if (updateError) {
+          console.error('[Setup Progress] Error updating forwarding verification:', updateError);
+        } else {
+          console.log('[Setup Progress] Forwarding verified successfully for business:', business.id);
+          // Mark as verified so we don't try again in the SMS section
+          shouldMarkForwardingVerified = false;
+        }
+      } catch (verificationError) {
+        console.error('[Setup Progress] Exception updating forwarding verification:', verificationError);
+      }
+    }
 
     console.log('[Twilio Voice] Business found:', {
       businessId: business.id,
