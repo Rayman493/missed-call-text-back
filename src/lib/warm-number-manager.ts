@@ -25,7 +25,15 @@ interface WarmNumberStats {
 
 /**
  * Get count of available warm numbers
- * Counts numbers with status='available' OR 'active' (legacy), business_id IS NULL, sms_status='ready' OR 'pending' (legacy)
+ * ONLY counts numbers with:
+ * - status='available'
+ * - business_id IS NULL
+ * - sms_status='ready'
+ * 
+ * Does NOT count:
+ * - assigned numbers
+ * - legacy active rows
+ * - rows with business_id populated
  */
 export async function getAvailableWarmNumberCount(): Promise<number> {
   if (!supabase) {
@@ -34,12 +42,15 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
   }
 
   try {
+    console.log('[Warm Inventory] ========== COUNTING AVAILABLE WARM NUMBERS ==========');
+    console.log('[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready');
+    
     const { data, error } = await supabase
       .from('twilio_numbers')
       .select('id')
       .is('business_id', null)
-      .or('status.eq.available,status.eq.active')
-      .or('sms_status.eq.ready,sms_status.eq.pending');
+      .eq('status', 'available')
+      .eq('sms_status', 'ready');
 
     if (error) {
       console.error('[Warm Inventory] Error fetching available warm numbers:', error);
@@ -47,7 +58,8 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
     }
 
     const count = data?.length || 0;
-    console.log(`[Warm Inventory] Available warm numbers: ${count} (legacy compatibility mode active)`);
+    console.log(`[Warm Inventory] Available warm numbers count: ${count}`);
+    console.log('[Warm Inventory] ========== COUNTING COMPLETE ==========');
     return count;
   } catch (error) {
     console.error('[Warm Inventory] Exception fetching available warm numbers:', error);
@@ -57,6 +69,7 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
 
 /**
  * Get comprehensive warm number statistics
+ * ONLY counts numbers with exact status matches (no legacy compatibility)
  */
 export async function getWarmNumberStats(): Promise<WarmNumberStats> {
   if (!supabase) {
@@ -70,28 +83,42 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
   }
 
   try {
+    console.log('[Warm Inventory] ========== GETTING WARM NUMBER STATS ==========');
+    
+    // Available: status='available', business_id IS NULL, sms_status='ready'
     const { data: available } = await supabase
       .from('twilio_numbers')
       .select('id')
       .is('business_id', null)
-      .or('status.eq.available,status.eq.active')
-      .or('sms_status.eq.ready,sms_status.eq.pending');
+      .eq('status', 'available')
+      .eq('sms_status', 'ready');
 
+    console.log(`[Warm Inventory] Available count: ${available?.length || 0} (status=available, business_id IS NULL, sms_status=ready)`);
+
+    // Assigned: status='assigned' (includes business_id populated)
     const { data: assigned } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .or('status.eq.assigned,status.eq.active')
-      .not('business_id', 'is', null);
+      .eq('status', 'assigned');
 
+    console.log(`[Warm Inventory] Assigned count: ${assigned?.length || 0} (status=assigned)`);
+
+    // Failed: status='failed'
     const { data: failed } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .or('status.eq.failed,status.eq.error');
+      .eq('status', 'failed');
 
+    console.log(`[Warm Inventory] Failed count: ${failed?.length || 0} (status=failed)`);
+
+    // Quarantined: status='quarantined'
     const { data: quarantined } = await supabase
       .from('twilio_numbers')
       .select('id')
       .eq('status', 'quarantined');
+
+    console.log(`[Warm Inventory] Quarantined count: ${quarantined?.length || 0} (status=quarantined)`);
+    console.log('[Warm Inventory] ========== STATS COMPLETE ==========');
 
     return {
       availableCount: available?.length || 0,
@@ -383,14 +410,15 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
       return { success: false, error: 'No warm numbers available' };
     }
 
-    // STEP 2: Fetch the oldest available warm number (with legacy compatibility)
+    // STEP 2: Fetch the oldest available warm number (NO legacy compatibility)
     console.log(`[Warm Inventory] STEP 2: Fetching oldest available warm number...`);
+    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready`);
     const { data: availableNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
       .is('business_id', null)
-      .or('status.eq.available,status.eq.active')
-      .or('sms_status.eq.ready,sms_status.eq.pending')
+      .eq('status', 'available')
+      .eq('sms_status', 'ready')
       .order('created_at', { ascending: true })
       .limit(1);
 
@@ -424,7 +452,7 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
         status: 'assigned',
         business_id: businessId,
         assigned_at: new Date().toISOString(),
-        sms_status: 'ready', // Ensure sms_status is updated to ready for legacy numbers
+        sms_status: 'ready',
         updated_at: new Date().toISOString(),
       })
       .eq('id', warmNumber.id);
@@ -438,7 +466,6 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
     console.log(`[Warm Inventory] Assigned warm number to business: ${warmNumber.phone_number}`);
     console.log(`[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (SUCCESS) ==========`);
-
     return {
       success: true,
       phoneNumber: warmNumber.phone_number,
