@@ -25,7 +25,7 @@ interface WarmNumberStats {
 
 /**
  * Get count of available warm numbers
- * Counts numbers with status='available', business_id IS NULL, sms_status='ready'
+ * Counts numbers with status='available' OR 'active' (legacy), business_id IS NULL, sms_status='ready' OR 'pending' (legacy)
  */
 export async function getAvailableWarmNumberCount(): Promise<number> {
   if (!supabase) {
@@ -37,9 +37,9 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
     const { data, error } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .eq('status', 'available')
       .is('business_id', null)
-      .eq('sms_status', 'ready');
+      .or('status.eq.available,status.eq.active')
+      .or('sms_status.eq.ready,sms_status.eq.pending');
 
     if (error) {
       console.error('[Warm Inventory] Error fetching available warm numbers:', error);
@@ -47,7 +47,7 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
     }
 
     const count = data?.length || 0;
-    console.log(`[Warm Inventory] Available warm numbers: ${count}`);
+    console.log(`[Warm Inventory] Available warm numbers: ${count} (legacy compatibility mode active)`);
     return count;
   } catch (error) {
     console.error('[Warm Inventory] Exception fetching available warm numbers:', error);
@@ -73,20 +73,20 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
     const { data: available } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .eq('status', 'available')
       .is('business_id', null)
-      .eq('sms_status', 'ready');
+      .or('status.eq.available,status.eq.active')
+      .or('sms_status.eq.ready,sms_status.eq.pending');
 
     const { data: assigned } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .eq('status', 'assigned')
+      .or('status.eq.assigned,status.eq.active')
       .not('business_id', 'is', null);
 
     const { data: failed } = await supabase
       .from('twilio_numbers')
       .select('id')
-      .eq('status', 'failed');
+      .or('status.eq.failed,status.eq.error');
 
     const { data: quarantined } = await supabase
       .from('twilio_numbers')
