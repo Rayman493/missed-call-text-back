@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
+import { checkTestSetupRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,27 +18,6 @@ const supabase = createClient(
   getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
   getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 );
-
-// Simple in-memory rate limiter for test SMS (for production, use Redis)
-const testSmsAttempts = new Map<string, number[]>()
-const TEST_SMS_RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
-const MAX_TEST_SMS_ATTEMPTS = 3 // Max 3 test SMS per user per hour
-
-// Clean up old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  const userIds = Array.from(testSmsAttempts.keys())
-  for (let i = 0; i < userIds.length; i++) {
-    const userId = userIds[i]
-    const timestamps = testSmsAttempts.get(userId) || []
-    const validTimestamps = timestamps.filter(ts => now - ts < TEST_SMS_RATE_LIMIT_WINDOW)
-    if (validTimestamps.length === 0) {
-      testSmsAttempts.delete(userId)
-    } else {
-      testSmsAttempts.set(userId, validTimestamps)
-    }
-  }
-}, 5 * 60 * 1000) // Clean up every 5 minutes
 
 export async function GET(request: Request) {
   try {
@@ -57,22 +37,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Rate limiting check
-    const now = Date.now()
-    const attempts = testSmsAttempts.get(user.id) || []
-    const recentAttempts = attempts.filter(ts => now - ts < TEST_SMS_RATE_LIMIT_WINDOW)
-    
-    if (recentAttempts.length >= MAX_TEST_SMS_ATTEMPTS) {
-      console.error('[Security] Rate limit exceeded for test SMS:', user.id)
-      return NextResponse.json({ 
-        error: 'Too many test SMS attempts',
-        retryAfter: Math.ceil((TEST_SMS_RATE_LIMIT_WINDOW - (now - recentAttempts[0])) / 1000)
-      }, { status: 429 })
+    // Rate limiting check (user-based)
+    const rateLimitResult = await checkTestSetupRateLimit(user.id);
+    if (!rateLimitResult.success) {
+      console.error('[Security] Rate limit exceeded for test SMS:', user.id);
+      return NextResponse.json(
+        { error: 'Too many test SMS attempts', retryAfter: rateLimitResult.reset },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.reset.toString(),
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          }
+        }
+      );
     }
-    
-    // Add this attempt to tracking
-    recentAttempts.push(now)
-    testSmsAttempts.set(user.id, recentAttempts)
 
     // Get user's business
     const { data: business, error: businessError } = await supabase

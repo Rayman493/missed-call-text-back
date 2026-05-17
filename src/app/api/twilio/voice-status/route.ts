@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { db } from '@/lib/supabase/admin'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
+import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,13 +20,27 @@ export async function POST(req: NextRequest) {
       return new Response('Unauthorized', { status: 401 });
     }
     
+    const CallSid = params.CallSid
+    
+    // Rate limiting check (CallSid-based to allow Twilio retries)
+    const rateLimitResult = await checkVoiceStatusRateLimit(CallSid);
+    if (!rateLimitResult.success) {
+      console.warn('[Voice Status] Rate limit exceeded for CallSid:', CallSid);
+      return new Response('OK', { 
+        status: 200,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        }
+      })
+    }
+    
     // Create fresh Supabase client for this request
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
-    const CallSid = params.CallSid
     const From = params.From
     const To = params.To
     const CallStatus = params.CallStatus

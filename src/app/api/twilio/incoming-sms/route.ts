@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { processInboundSms } from '@/lib/sms-processing'
+import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +26,25 @@ export async function POST(req: NextRequest) {
     const To = params.To
     const Body = params.Body
     const MessageSid = params.MessageSid
+    
+    // Rate limiting check (phone number-based)
+    const rateLimitResult = await checkIncomingSmsRateLimit(From);
+    if (!rateLimitResult.success) {
+      console.warn('[Incoming SMS] Rate limit exceeded for phone:', From);
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Too many requests</Message>
+</Response>`
+      return new Response(errorTwiml, {
+        status: 429,
+        headers: {
+          'Content-Type': 'text/xml',
+          'Retry-After': rateLimitResult.reset.toString(),
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        },
+      })
+    }
     
     if (!From || !To || !Body || !MessageSid) {
       console.error('[SYSTEM] [INCOMING-SMS] Missing required fields:', { From, To, Body, MessageSid })

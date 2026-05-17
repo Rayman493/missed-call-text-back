@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSms } from '@/lib/twilio'
 import { db } from '@/lib/supabase/admin'
+import { checkCronRateLimit } from '@/lib/rate-limit'
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -44,6 +45,24 @@ export async function POST(req: NextRequest) {
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups');
     console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
+    
+    // Rate limiting check (secret-based)
+    const rateLimitResult = await checkCronRateLimit(expectedSecret);
+    if (!rateLimitResult.success) {
+      console.warn('[Cron] Rate limit exceeded');
+      return NextResponse.json(
+        { error: 'Too many requests', retryAfter: rateLimitResult.reset },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.reset.toString(),
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          }
+        }
+      );
+    }
+    
     console.log('[send-followups] Starting follow-up processing')
     
     // Clean up old failed follow-up jobs to prevent UI pollution

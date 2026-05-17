@@ -7,6 +7,7 @@ import { timelineEvents } from '@/lib/event-timeline';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
+import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Helper to generate conversational voice greeting with Amazon Polly voice or prerecorded audio
 function generateVoiceGreeting(businessName?: string): string {
@@ -118,6 +119,24 @@ export async function POST(request: NextRequest) {
     const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+    
+    // Rate limiting check (IP-based)
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await checkTwilioVoiceRateLimit(clientIp);
+    if (!rateLimitResult.success) {
+      console.warn('[Twilio Voice] Rate limit exceeded for IP:', clientIp);
+      return NextResponse.json(
+        { error: 'Too many requests', retryAfter: rateLimitResult.reset },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.reset.toString(),
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          }
+        }
+      );
     }
     
     // Create Supabase client for forwarding verification
