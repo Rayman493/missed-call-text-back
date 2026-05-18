@@ -41,6 +41,7 @@ import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
+import OnboardingGuide from '@/components/OnboardingGuide'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -722,6 +723,22 @@ export default function DashboardContent() {
                       return null
                     })()}
                     <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                  </SectionErrorBoundary>
+                )}
+
+                {!hasActiveSubscription(business) && (
+                  <SectionErrorBoundary sectionName="OnboardingGuide">
+                    {(() => {
+                      console.log('[SECTION RENDER]', {
+                        section: 'OnboardingGuide',
+                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        hasBusiness: !!business,
+                        subscriptionStatus: business?.subscription_status,
+                      })
+                      console.log('[Render Child] OnboardingGuide')
+                      return null
+                    })()}
+                    <OnboardingGuide isTrialActive={hasActiveSubscription(business)} />
                   </SectionErrorBoundary>
                 )}
 

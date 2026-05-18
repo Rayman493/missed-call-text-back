@@ -766,11 +766,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {complete ? 'ReplyFlow is live and monitoring missed calls.' : 'Almost ready — one quick test left'}
+            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (!isInTrial ? 'Get started in minutes' : 'Almost ready — one quick test left')}
           </p>
           {!complete && (
             <p className="text-xs text-muted-foreground mt-0">
-              {doneSteps} of {totalSteps} steps completed
+              {!isInTrial ? 'Activate your free trial to begin setting up ReplyFlow.' : `${doneSteps} of ${totalSteps} steps completed`}
             </p>
           )}
         </div>
