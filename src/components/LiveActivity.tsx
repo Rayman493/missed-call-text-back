@@ -104,17 +104,9 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
     let description = ''
 
     if (!isOnboardingComplete) {
-      // Not fully set up yet
-      if (provisioningStatus !== 'active') {
-        title = 'Activating your ReplyFlow number'
-        description = 'Carrier registration in progress. Almost ready — complete your setup.'
-      } else if (!forwardingVerified) {
-        title = 'Almost ready'
-        description = 'Complete your setup to begin monitoring missed calls.'
-      } else {
-        title = 'Setup in progress'
-        description = 'ReplyFlow is preparing your missed-call system.'
-      }
+      // Not fully set up yet - keep it simple, Setup Progress handles detailed messaging
+      title = 'Monitoring your business line'
+      description = 'Complete setup to begin capturing missed calls.'
     } else {
       // Fully active
       title = 'Monitoring your business line'

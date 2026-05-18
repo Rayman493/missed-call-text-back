@@ -169,17 +169,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
   return (
     <SectionErrorBoundary sectionName="StatsCardsData">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-            <span className="text-[10px] font-normal text-muted-foreground/70">
-              {realtimeConnected ? 'Live' : 'Reconnecting...'}
-            </span>
-          </div>
-          {refreshing && (
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600/50"></div>
-          )}
-        </div>
         <button
           onClick={fetchStats}
           disabled={loading || refreshing}
@@ -202,7 +191,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
             <p className="text-xs text-slate-500 dark:text-muted-foreground/70">
               {missedCallsCount === 0 
-                ? (isOnboardingComplete ? 'Ready to capture missed calls' : 'Complete setup to begin capturing missed calls') 
+                ? (isOnboardingComplete ? 'Missed calls will appear here after your first call' : 'Complete setup to begin capturing missed calls') 
                 : 'Total captured'}
             </p>
           </div>
@@ -218,7 +207,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
             <p className="text-xs text-slate-500 dark:text-muted-foreground/70">
               {leadsCount === 0 
-                ? (isOnboardingComplete ? 'Ready to capture leads' : 'Complete setup to begin capturing leads') 
+                ? (isOnboardingComplete ? 'Recovered leads will appear here after your first missed call' : 'Complete setup to begin capturing leads') 
                 : 'Leads recovered'}
             </p>
           </div>
@@ -232,7 +221,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{conversationsCount === 0 ? 'Customer replies will appear here' : 'Active conversations'}</p>
           </div>
         </Link>
 
