@@ -428,7 +428,7 @@ export default function SettingsContent() {
             <AppHeader title="Settings" showBackLink={true} showNavigation={false} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-8 sm:pt-12 p-4 sm:p-6 lg:p-8 pb-24 bg-gradient-to-b from-slate-900/5 to-transparent">
+            <div className="flex-1 pt-8 sm:pt-12 p-4 sm:p-6 lg:p-8 pb-24">
               <div className="max-w-7xl mx-auto">
 
             {/* System Status Section */}
