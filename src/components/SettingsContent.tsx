@@ -27,6 +27,7 @@ import {
 import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
+import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -42,6 +43,9 @@ export default function SettingsContent() {
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
+
+  // Use centralized onboarding state machine
+  const onboardingState = getBusinessOnboardingState(business, {})
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
@@ -427,42 +431,165 @@ export default function SettingsContent() {
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
 
             {/* System Status Section */}
-            <div className="bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 rounded-xl border-x border-b border-green-200/60 dark:border-green-800/50 shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6">
+            <div className={`rounded-xl border-x border-b shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6 ${
+              onboardingState.state === 'LIVE'
+                ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 border-green-200/60 dark:border-green-800/50'
+                : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
+                  ? 'bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200/60 dark:border-blue-800/50'
+                  : onboardingState.state === 'PRE_TRIAL'
+                    ? 'bg-muted/30 border-border'
+                    : 'bg-muted/30 border-border'
+            }`}>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
-                <h2 className="text-sm font-semibold text-green-800 dark:text-green-200">System Status</h2>
+                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                  onboardingState.state === 'LIVE'
+                    ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50'
+                    : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
+                      ? 'bg-blue-500 animate-pulse shadow-sm shadow-blue-500/50'
+                      : onboardingState.state === 'PRE_TRIAL'
+                        ? 'bg-slate-400'
+                        : 'bg-amber-500'
+                }`}></div>
+                <h2 className={`text-sm font-semibold ${
+                  onboardingState.state === 'LIVE'
+                    ? 'text-green-800 dark:text-green-200'
+                    : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
+                      ? 'text-blue-800 dark:text-blue-200'
+                      : onboardingState.state === 'PRE_TRIAL'
+                        ? 'text-foreground'
+                        : 'text-amber-800 dark:text-amber-200'
+                }`}>System Status</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">ReplyFlow is monitoring missed calls</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Auto-replies enabled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">SMS system operational</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isInTrialPeriod(business?.subscription_status) ? (
-                    <>
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                    </>
-                  ) : hasActiveSubscription(business) ? (
-                    <>
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Subscription active</span>
-                    </>
-                  ) : (
-                    <>
+                {onboardingState.state === 'PRE_TRIAL' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Waiting for activation</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Business texting inactive</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Missed-call monitoring inactive</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
                       <span className="text-xs sm:text-sm text-amber-700/80 dark:text-amber-300/70">Trial needed</span>
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </>
+                )}
+                {onboardingState.state === 'ACTIVATING' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Preparing your ReplyFlow system</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Activating business texting</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Setup in progress</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                    </div>
+                  </>
+                )}
+                {onboardingState.state === 'MESSAGING_SETUP' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Activating messaging</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Finalizing ReplyFlow line</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Carrier setup in progress</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                    </div>
+                  </>
+                )}
+                {onboardingState.state === 'AWAITING_FORWARDING' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">ReplyFlow line ready</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Waiting for business line connection</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Missed-call monitoring inactive</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                    </div>
+                  </>
+                )}
+                {onboardingState.state === 'VERIFICATION_PENDING' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Waiting for test call</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">ReplyFlow standing by</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Monitoring will begin after verification</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                    </div>
+                  </>
+                )}
+                {onboardingState.state === 'LIVE' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Monitoring missed calls</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Auto-replies active</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">SMS system operational</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isInTrialPeriod(business?.subscription_status) ? (
+                        <>
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                          <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Subscription active</span>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
