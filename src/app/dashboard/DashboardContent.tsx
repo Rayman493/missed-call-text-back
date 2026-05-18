@@ -48,6 +48,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import RecentLeadsSection from '@/components/RecentLeadsSection'
 import StatsCards from '@/components/StatsCards'
 import SectionErrorBoundary from '@/components/SectionErrorBoundary'
+import BusinessActivity from '@/components/BusinessActivity'
 import NoBusinessSetup from '@/components/NoBusinessSetup'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -935,6 +936,29 @@ export default function DashboardContent() {
                             forwardingVerified={business?.forwarding_verified || false}
                           />
                         </div>
+                      )}
+                    </SectionErrorBoundary>
+
+                    {/* Business Activity Section - shows operational metrics when active */}
+                    <SectionErrorBoundary sectionName="BusinessActivity">
+                      {(() => {
+                        console.log('[SECTION RENDER]', {
+                          section: 'BusinessActivity',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status
+                        })
+                        console.log('[Render Child] BusinessActivity')
+                        return null
+                      })()}
+                      {business?.id && (
+                        <BusinessActivity 
+                          businessId={business.id}
+                          isOnboardingComplete={isOnboardingComplete}
+                          provisioningStatus={business?.provisioning_status || 'pending'}
+                          forwardingVerified={business?.forwarding_verified || false}
+                        />
                       )}
                     </SectionErrorBoundary>
 
