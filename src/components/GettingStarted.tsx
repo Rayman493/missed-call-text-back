@@ -428,6 +428,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const numberActionNeeded = numberDone && (!twilioReady || provisioningStatus === 'failed')
     // Check if forwarding was set up but now disabled (ACTION NEEDED)
     const forwardingActionNeeded = forwardingDone && !business.call_forwarding_enabled
+    // Check if test was previously complete but now failed (ACTION NEEDED)
+    const testActionNeeded = testDone && !business.forwarding_verified && !realCallDataExists
 
     return [
       {
@@ -459,8 +461,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'forwarding',
-        title: 'Forward your calls',
-        description: 'Forward missed calls from your business phone to ReplyFlow.',
+        title: 'Call forwarding connected',
+        description: 'Missed calls from your business number are now routed to ReplyFlow.',
         status: forwardingActionNeeded ? 'action-needed' : (forwardingDone ? 'complete' : 'needs-action'),
         details: forwardingActionNeeded
           ? 'Forwarding disabled - re-enable to continue'
@@ -477,11 +479,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'test',
         title: 'Test your setup',
-        description: 'Call your business number once to verify ReplyFlow is capturing missed calls correctly.',
-        status: testDone ? 'complete' : 'needs-action',
-        details: testDone
-          ? 'Setup tested successfully'
-          : (forwardingDone ? 'Takes about 30 seconds' : 'Available once forwarding is enabled'),
+        description: 'Place one missed test call to confirm ReplyFlow is live.',
+        status: testActionNeeded ? 'action-needed' : (testDone ? 'complete' : 'needs-action'),
+        details: testActionNeeded
+          ? 'Test failed - try again'
+          : testDone
+            ? 'ReplyFlow is now monitoring your missed calls.'
+            : (forwardingDone ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: forwardingDone && !testDone ? 'Complete Final Test' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
       },
@@ -750,7 +754,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                                 : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : 'Upcoming'}
+                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : ''}
                       </span>
                       {isForwardingCard && !isComplete && (
                         <div className="flex-shrink-0">
