@@ -646,10 +646,10 @@ export async function retryProvisioning(
   console.log('[RETRY PROVISIONING] business_id:', businessId);
   
   try {
-    // Get current state
+    // Get current state with all provisioning fields
     const { data: business } = await supabase
       .from('businesses')
-      .select('provisioning_status, twilio_phone_number, twilio_phone_number_sid')
+      .select('provisioning_status, twilio_phone_number, twilio_phone_number_sid, campaign_registered_at, sender_pool_attached_at')
       .eq('id', businessId)
       .single();
     
@@ -660,6 +660,8 @@ export async function retryProvisioning(
     console.log('[RETRY PROVISIONING] Current status:', business.provisioning_status);
     console.log('[RETRY PROVISIONING] Has phone number:', !!business.twilio_phone_number);
     console.log('[RETRY PROVISIONING] Has phone SID:', !!business.twilio_phone_number_sid);
+    console.log('[RETRY PROVISIONING] campaign_registered_at:', business.campaign_registered_at);
+    console.log('[RETRY PROVISIONING] sender_pool_attached_at:', business.sender_pool_attached_at);
     
     // If no number purchased, start fresh
     if (!business.twilio_phone_number_sid) {
@@ -667,36 +669,22 @@ export async function retryProvisioning(
       return provisionTwilioNumberWithCompliance(businessId, correlation);
     }
     
-    // If number purchased but failed at campaign registration
-    if (business.provisioning_status === 'purchased' || 
-        business.provisioning_status === 'campaign_registering' ||
-        business.provisioning_status === 'failed') {
-      console.log('[RETRY PROVISIONING] Retrying from campaign registration step');
-      
-      const campaignResult = await registerToA2PCampaign(
-        business.twilio_phone_number_sid,
-        businessId,
-        correlation
-      );
-      
-      if (!campaignResult.success) {
-        return { success: false, error: campaignResult.error };
-      }
-      
-      // Continue to sender pool attachment
-      const senderPoolResult = await attachToSenderPool(
-        business.twilio_phone_number_sid,
-        businessId,
-        correlation
-      );
-      
-      if (!senderPoolResult.success) {
-        return { success: false, error: senderPoolResult.error };
-      }
-      
-      // Mark as ready
-      await updateProvisioningStatus(businessId, business.twilio_phone_number_sid, 'ready', null, correlation);
-      
+    // Check if truly ready (all conditions must pass)
+    const isTrulyReady = 
+      business.provisioning_status === 'ready' &&
+      business.campaign_registered_at !== null &&
+      business.sender_pool_attached_at !== null;
+    
+    console.log('[RETRY PROVISIONING] Readiness check:', {
+      provisioning_status: business.provisioning_status,
+      campaign_registered_at: business.campaign_registered_at,
+      sender_pool_attached_at: business.sender_pool_attached_at,
+      is_truly_ready: isTrulyReady
+    });
+    
+    // Only return early if truly ready
+    if (isTrulyReady) {
+      console.log('[RETRY PROVISIONING] Number is truly ready - no action needed');
       return {
         success: true,
         phoneNumber: business.twilio_phone_number,
@@ -705,38 +693,59 @@ export async function retryProvisioning(
       };
     }
     
-    // If failed at sender pool attachment
-    if (business.provisioning_status === 'sender_pool_attaching') {
-      console.log('[RETRY PROVISIONING] Retrying from sender pool attachment step');
+    // Legacy status normalization
+    const legacyStatuses = ['active', 'attached', 'provisioning', 'pending'];
+    if (legacyStatuses.includes(business.provisioning_status || '')) {
+      console.log('[RETRY PROVISIONING] Legacy status detected:', business.provisioning_status);
+      console.log('[RETRY PROVISIONING] Normalizing to campaign_registering for full provisioning');
       
-      const senderPoolResult = await attachToSenderPool(
-        business.twilio_phone_number_sid,
-        businessId,
-        correlation
-      );
-      
-      if (!senderPoolResult.success) {
-        return { success: false, error: senderPoolResult.error };
-      }
-      
-      // Mark as ready
-      await updateProvisioningStatus(businessId, business.twilio_phone_number_sid, 'ready', null, correlation);
-      
-      return {
-        success: true,
-        phoneNumber: business.twilio_phone_number,
-        phoneNumberSid: business.twilio_phone_number_sid,
-        status: 'ready'
-      };
+      // Update status to campaign_registering to trigger full provisioning
+      await updateProvisioningStatus(businessId, business.twilio_phone_number_sid, 'campaign_registering', null, correlation);
     }
     
-    // Already ready or unknown state
-    console.log('[RETRY PROVISIONING] Number already in status:', business.provisioning_status);
+    // Continue with campaign registration (even if already done, it will verify)
+    console.log('[RETRY PROVISIONING] Continuing with campaign registration step');
+    
+    const campaignResult = await registerToA2PCampaign(
+      business.twilio_phone_number_sid,
+      businessId,
+      correlation
+    );
+    
+    if (!campaignResult.success) {
+      console.error('[RETRY PROVISIONING] Campaign registration failed:', campaignResult.error);
+      return { success: false, error: campaignResult.error };
+    }
+    
+    console.log('[RETRY PROVISIONING] Campaign registration completed');
+    
+    // Continue to sender pool attachment
+    console.log('[RETRY PROVISIONING] Continuing with sender pool attachment step');
+    
+    const senderPoolResult = await attachToSenderPool(
+      business.twilio_phone_number_sid,
+      businessId,
+      correlation
+    );
+    
+    if (!senderPoolResult.success) {
+      console.error('[RETRY PROVISIONING] Sender pool attachment failed:', senderPoolResult.error);
+      return { success: false, error: senderPoolResult.error };
+    }
+    
+    console.log('[RETRY PROVISIONING] Sender pool attachment completed');
+    
+    // Mark as ready
+    await updateProvisioningStatus(businessId, business.twilio_phone_number_sid, 'ready', null, correlation);
+    
+    console.log('[RETRY PROVISIONING] ========== COMPLETE ==========');
+    console.log('[RETRY PROVISIONING] Final status: ready');
+    
     return {
       success: true,
       phoneNumber: business.twilio_phone_number,
       phoneNumberSid: business.twilio_phone_number_sid,
-      status: business.provisioning_status as ProvisioningStatus
+      status: 'ready'
     };
     
   } catch (error: any) {
