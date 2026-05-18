@@ -1082,6 +1082,50 @@ export default function DashboardContent() {
                           </button>
                         </div>
 
+                        {/* Provisioning Status */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h3 className="text-sm font-medium mb-3 text-foreground">Provisioning Status</h3>
+                          <div className="text-sm space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Status:</span>
+                              <span className="font-medium text-foreground">{business?.provisioning_status || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Twilio SID:</span>
+                              <span className="font-mono text-xs text-foreground">{business?.twilio_phone_number_sid || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Phone Number:</span>
+                              <span className="font-mono text-xs text-foreground">{business?.twilio_phone_number || 'N/A'}</span>
+                            </div>
+                            {business?.provisioning_error && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Error:</span>
+                                <span className="text-red-600 text-xs">{business.provisioning_error}</span>
+                              </div>
+                            )}
+                            {business?.last_provisioning_attempt_at && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Last Attempt:</span>
+                                <span className="text-xs text-foreground">{new Date(business.last_provisioning_attempt_at).toLocaleString()}</span>
+                              </div>
+                            )}
+                          </div>
+                          {(business?.provisioning_status === 'failed' || business?.provisioning_status === 'campaign_registering' || business?.provisioning_status === 'sender_pool_attaching') && (
+                            <button
+                              onClick={async () => {
+                                const { getBusinessProvisioningStatus, retryBusinessProvisioning } = await import('@/app/admin/actions');
+                                const result = await retryBusinessProvisioning(business.id);
+                                console.log('[Retry Provisioning] Result:', result);
+                                window.location.reload();
+                              }}
+                              className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm"
+                            >
+                              Retry Provisioning
+                            </button>
+                          )}
+                        </div>
+
                         {/* Reconcile Warm Numbers */}
                         <div className="bg-muted/50 rounded-lg p-4">
                           <h3 className="text-sm font-medium mb-3 text-foreground">Reconcile Warm Numbers</h3>

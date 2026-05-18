@@ -1,6 +1,7 @@
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
 import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
+import { isNumberReadyForUse } from './twilio-provisioning-service';
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -90,8 +91,18 @@ export async function sendSms(
     return null;
   }
 
-  // NOTE: Removed pre-send blocker based on local provisioning_status
-  // Local DB state may be stale. Instead, verify against Twilio API sender pool below.
+  // FAIL-SAFE: Check if number is ready for use before sending
+  console.log('[SMS FAIL-SAFE] Checking if number is ready for use');
+  const isReady = await isNumberReadyForUse(business.id);
+  
+  if (!isReady) {
+    console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
+    console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
+    await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
+    return null;
+  }
+  
+  console.log('[SMS FAIL-SAFE] Number is ready for use');
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {

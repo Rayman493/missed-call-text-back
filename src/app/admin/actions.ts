@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { getProvisioningStatus, retryProvisioning } from '@/lib/twilio-provisioning-service'
 
 /**
  * Server action to reconcile warm numbers
@@ -79,5 +80,35 @@ export async function getWarmInventoryStats() {
     }
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to get stats' }
+  }
+}
+
+/**
+ * Server action to get provisioning status for a business
+ */
+export async function getBusinessProvisioningStatus(businessId: string) {
+  try {
+    const status = await getProvisioningStatus(businessId)
+    
+    if (!status) {
+      return { success: false, error: 'Business not found' }
+    }
+    
+    return { success: true, data: status }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to get provisioning status' }
+  }
+}
+
+/**
+ * Server action to retry provisioning for a business
+ */
+export async function retryBusinessProvisioning(businessId: string) {
+  try {
+    const result = await retryProvisioning(businessId)
+    
+    return result
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to retry provisioning' }
   }
 }
