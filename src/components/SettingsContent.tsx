@@ -432,7 +432,7 @@ export default function SettingsContent() {
               <div className="max-w-7xl mx-auto">
 
             {/* System Status Section */}
-            <div className={`rounded-xl border border-border p-3.5 sm:p-4 mb-4 sm:mb-6`}>
+            <div className={`rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6`}>
               <div className="flex items-center gap-2 mb-3">
                 <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                   onboardingState.state === 'LIVE'
