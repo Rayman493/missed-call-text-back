@@ -429,16 +429,10 @@ export default function SettingsContent() {
 
             {/* Main Content */}
             <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 border-t-0">
-              <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">
+              <div className="max-w-7xl mx-auto">
 
             {/* System Status Section */}
-            <div className={`rounded-xl border-x border-b p-3.5 sm:p-4 mt-6 sm:mt-8 mb-4 sm:mb-6 ${
-              onboardingState.state === 'LIVE'
-                ? 'border-green-200/60 dark:border-green-800/50'
-                : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
-                  ? 'border-blue-200/60 dark:border-blue-800/50'
-                  : 'border-border'
-            }`}>
+            <div className={`rounded-xl p-3.5 sm:p-4 mt-6 sm:mt-8 mb-4 sm:mb-6`}>
               <div className="flex items-center gap-2 mb-3">
                 <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                   onboardingState.state === 'LIVE'
