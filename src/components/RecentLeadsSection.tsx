@@ -242,47 +242,47 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
   return (
     <DashboardErrorBoundary>
       {/* Recent Leads */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 p-6">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Recent Leads</h2>
-              <p className="text-sm text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Recent Leads</h2>
+              <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
             </div>
           </div>
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-8 px-4">
+          <div className="text-center py-6 px-4">
             <div className="flex justify-center mb-3">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full flex items-center justify-center shadow-sm">
                 <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No recovered leads yet</h3>
-            <p className="text-sm text-muted-foreground">Leads from missed calls will appear here automatically after your first customer call.</p>
+            <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">No recovered leads yet</h3>
+            <p className="text-sm text-slate-600 dark:text-muted-foreground">Leads from missed calls will appear here automatically after your first customer call.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {leads.slice(0, 5).map((lead) => (
               <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/80 hover:border-border/60 border border-transparent transition-all duration-300 hover:scale-[1.02] cursor-pointer">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-muted/50 rounded-lg hover:bg-slate-100 dark:hover:bg-muted/80 hover:border-slate-300 dark:hover:border-border/60 border border-slate-200 dark:border-transparent transition-all duration-300 hover:scale-[1.01] cursor-pointer">
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">{getLeadDisplayName(lead)}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-medium text-slate-900 dark:text-foreground">{getLeadDisplayName(lead)}</p>
+                    <p className="text-xs text-slate-500 dark:text-muted-foreground">
                       {lead.last_message_at
                         ? new Date(lead.last_message_at).toLocaleDateString()
                         : new Date(lead.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-slate-500 dark:text-muted-foreground">
                     {lead.messages?.length || 0} message{lead.messages?.length !== 1 ? 's' : ''}
                   </div>
                 </div>

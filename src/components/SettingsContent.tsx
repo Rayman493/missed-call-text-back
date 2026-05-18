@@ -427,11 +427,11 @@ export default function SettingsContent() {
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
 
             {/* Settings Sections */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Account Section */}
-              <div id="account" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Account</h2>
-                <div className="space-y-4">
+              <div id="account" className="bg-card rounded-xl border border-border/60 shadow-sm p-4 sm:p-5">
+                <h2 className="text-lg font-semibold text-foreground mb-3">Account</h2>
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">
                       Email
@@ -452,9 +452,9 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Billing</h2>
-                <div className="space-y-4">
+              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-5">
+                <h2 className="text-lg font-semibold text-foreground mb-3">Billing</h2>
+                <div className="space-y-2">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">
                       Subscription Status
@@ -469,7 +469,7 @@ export default function SettingsContent() {
               {/* Business Info Section */}
               <div id="business" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Business Info</h2>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">
                       Business Name
@@ -478,7 +478,7 @@ export default function SettingsContent() {
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all"
                     />
                   </div>
                   <div>
@@ -490,7 +490,7 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all"
                     />
                   </div>
                 </div>
@@ -514,7 +514,7 @@ export default function SettingsContent() {
               {/* Messaging Settings */}
               <div id="messaging" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Messaging Settings</h2>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">
                       Auto Reply Message
@@ -523,7 +523,7 @@ export default function SettingsContent() {
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all"
                     />
                   </div>
                   <div>
@@ -534,7 +534,7 @@ export default function SettingsContent() {
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground placeholder:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all"
                     />
                   </div>
                 </div>
@@ -549,7 +549,7 @@ export default function SettingsContent() {
                   </p>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Spam & Repeat Call Filtering */}
                   <div className="bg-muted rounded-lg border border-border p-3 sm:p-5">
                     <div className="flex items-start justify-between mb-4">
@@ -806,7 +806,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-5">
+              <div id="ignored-contacts" className="bg-card rounded-xl border border-border/60 shadow-sm p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-foreground">Ignored Contacts</h2>
                   <button
@@ -816,22 +816,22 @@ export default function SettingsContent() {
                     + Add Ignored Contact
                   </button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-xs text-muted-foreground mb-3">
                       These phone numbers will not create leads or receive automated texts. Use this for personal contacts, family, or other numbers you don't want to treat as business leads.
                     </p>
                   </div>
                   
                   {isLoadingIgnored ? (
-                    <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center justify-center py-4">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-8 bg-muted rounded-lg border border-border">
-                      <div className="text-4xl mb-2">📵</div>
-                      <h3 className="text-sm font-medium text-foreground mb-2">Prevent personal calls from becoming leads</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
+                    <div className="text-center py-4 bg-muted/50 rounded-lg border border-border/50">
+                      <div className="text-2xl mb-1">📵</div>
+                      <h3 className="text-sm font-medium text-foreground mb-1">Prevent personal calls from becoming leads</h3>
+                      <p className="text-xs text-muted-foreground mb-3">
                         Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
                       </p>
                       <button
@@ -914,17 +914,17 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-card rounded-2xl shadow-sm border border-red-200/70 dark:border-red-800/70 p-3 sm:p-5">
-                <h2 className="text-lg font-semibold text-red-600/90 dark:text-red-400/90 mb-3">Danger Zone</h2>
+              <div id="danger" className="bg-card rounded-xl border border-red-200/50 dark:border-red-800/30 shadow-sm p-4 sm:p-5">
+                <h2 className="text-lg font-semibold text-red-700/80 dark:text-red-400/80 mb-3">Account Management</h2>
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-medium text-foreground">Delete Account</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Permanently delete your account and all data.
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Permanently delete your account and all data. This action cannot be undone.
                     </p>
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                      className="px-4 py-2 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
                     >
                       Delete Account
                     </button>
@@ -1009,7 +1009,7 @@ export default function SettingsContent() {
                 <p className="text-sm text-muted-foreground mb-4">
                   ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads.
                 </p>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm text-foreground mb-2">
                       Phone Number <span className="text-red-500">*</span>

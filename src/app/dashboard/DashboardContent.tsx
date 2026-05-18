@@ -699,7 +699,7 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-background flex flex-col">
+          <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col">
             {/* App Header */}
             <AppHeader showNavigation={true} />
 

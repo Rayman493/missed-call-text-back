@@ -168,8 +168,8 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-            <span className="text-xs font-medium text-muted-foreground">
+            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse shadow-sm' : 'bg-amber-500 shadow-sm'}`}></div>
+            <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground">
               {realtimeConnected ? 'Live' : 'Reconnecting...'}
             </span>
           </div>
@@ -180,7 +180,7 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
         <button
           onClick={fetchStats}
           disabled={loading || refreshing}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-md"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -191,49 +191,49 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Missed Calls */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-amber-500/10 dark:bg-amber-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-amber-500/20 group-hover:scale-105 transition-all duration-300">📞</span>
-              <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600/20 dark:from-amber-500/20 dark:to-amber-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-all duration-300">📞</span>
+              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
-            <p className="text-xs text-muted-foreground/70">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
           </div>
         </Link>
 
         {/* New Leads */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-500/20 group-hover:scale-105 transition-all duration-300">👥</span>
-              <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-all duration-300">👥</span>
+              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
-            <p className="text-xs text-muted-foreground/70">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
           </div>
         </Link>
 
         {/* Conversations */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-green-500/10 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-green-500/20 group-hover:scale-105 transition-all duration-300">💬</span>
-              <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600/20 dark:from-green-500/20 dark:to-green-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-green-200/50 dark:border-green-800/50 group-hover:scale-105 transition-all duration-300">💬</span>
+              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-muted-foreground/70">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
           </div>
         </Link>
 
         {/* Follow-ups */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-purple-500/10 dark:bg-purple-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-purple-500/20 group-hover:scale-105 transition-all duration-300">📅</span>
-              <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600/20 dark:from-purple-500/20 dark:to-purple-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-purple-200/50 dark:border-purple-800/50 group-hover:scale-105 transition-all duration-300">📅</span>
+              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-purple-600 dark:text-purple-400 mb-2 tracking-tight">{followUpsCount}</p>
-            <p className="text-xs text-muted-foreground/70">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
           </div>
         </Link>
       </div>
