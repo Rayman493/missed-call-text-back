@@ -9,11 +9,12 @@ import MobileMenu from '@/components/MobileMenu'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
-import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
+import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -303,11 +304,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // Handle mark complete
-  const handleMarkComplete = async () => {
-    setIsCompleting(true)
-    setError('')
-    
+  // Handle status update (unified handler)
+  const handleStatusUpdate = async (newStatus: LeadLifecycleStatus) => {
     try {
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession()
@@ -317,7 +315,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         throw new Error('Not authenticated')
       }
 
-      // Update lead status to completed
+      // Update lead status
       const response = await fetch(`/api/leads/${params.id}/status`, {
         method: 'PATCH',
         headers: {
@@ -325,24 +323,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          status: 'completed'
+          status: newStatus
         })
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to mark lead as complete')
+        throw new Error(error.error || `Failed to update lead status to ${newStatus}`)
       }
 
       // Update local state
       setLeadData((prev: any) => ({
         ...prev,
-        lead_status: 'completed',
+        lead_status: newStatus,
         updated_at: new Date().toISOString()
       }))
 
       // Show success message
-      setSuccessMessage('Lead marked as complete')
+      const statusMessages = {
+        completed: 'Lead marked as complete',
+        ignored: 'Lead ignored',
+        active: 'Lead marked as active',
+        new: 'Lead reset to new'
+      }
+      setSuccessMessage(statusMessages[newStatus] || `Lead status updated to ${newStatus}`)
       
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
@@ -350,10 +354,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }, 3000)
       
     } catch (error) {
-      console.error('Error marking lead complete:', error)
-      setError(error instanceof Error ? error.message : 'Failed to mark lead as complete')
-    } finally {
-      setIsCompleting(false)
+      console.error('Error updating lead status:', error)
+      setError(error instanceof Error ? error.message : `Failed to update lead status`)
     }
   }
 
@@ -1039,35 +1041,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     )}
                   </div>
                 </div>
-              </div>
             </div>
             
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
-              {/* Primary Action - Mark Complete */}
-              {getLeadLifecycleStatus(leadData) !== 'completed' && (
-                <button
-                  onClick={() => handleMarkComplete()}
-                  disabled={isCompleting}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 shadow-lg"
-                >
-                  {isCompleting ? (
-                    <>
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      <span>Completing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Mark Complete</span>
-                    </>
-                  )}
-                </button>
-              )}
+              {/* Primary Action - Status Dropdown */}
+              <LeadStatusDropdown
+                currentStatus={getLeadLifecycleStatus(leadData)}
+                onStatusChange={handleStatusUpdate}
+                disabled={isCompleting || isIgnoring || isRemoving}
+                size="md"
+              />
               
-              {/* Secondary Actions */}
+              {/* Refresh Button */}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -1100,7 +1086,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {getLeadLifecycleStatus(leadData) !== 'completed' && (
                       <button
                         onClick={() => {
-                          handleMarkComplete()
+                          handleStatusUpdate('completed')
                           setShowMoreActions(false)
                         }}
                         disabled={isCompleting}
@@ -1324,6 +1310,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <MobileFollowUpSummary followUpJobs={followUpJobs} />
 
       </div>
+    </div>
 
       {/* Ignore Contact Modal */}
       {showIgnoreModal && (

@@ -364,8 +364,16 @@ export async function POST(req: NextRequest) {
       // Continue to final summary instead of returning early
     } else {
       
-      // ALWAYS attempt follow-up job creation for missed calls, regardless of lead status
-      if (conversation) {
+      // Check lead status before creating follow-up jobs
+      // Only create follow-ups for new or active leads
+      const currentStatus = (lead as any).status || (lead as any).lead_status || 'new'
+      const shouldCreateFollowUp = currentStatus === 'new' || currentStatus === 'active'
+      
+      console.log(`[Twilio Voice Status Webhook] Lead status: ${currentStatus}, should create follow-up: ${shouldCreateFollowUp}`)
+      
+      if (!shouldCreateFollowUp) {
+        console.log(`[Twilio Voice Status Webhook] Skipping follow-up creation for lead with status: ${currentStatus}`)
+      } else if (conversation) {
         console.log(`[Twilio Voice Status Webhook] Attempting follow-up job creation for conversation: ${conversation.id}`)
         
         try {

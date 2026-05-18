@@ -242,7 +242,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Lifecycle Summary Cards */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
                 <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
@@ -259,6 +259,12 @@ export default function LeadsPage() {
                 <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
+                </p>
+              </div>
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
+                <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length}
                 </p>
               </div>
             </div>
@@ -334,9 +340,9 @@ export default function LeadsPage() {
                     >
                       <option value="all">All Status</option>
                       <option value="new">New</option>
-                      <option value="qualified">Qualified</option>
-                      <option value="replied">Replied</option>
-                      <option value="closed">Closed</option>
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="ignored">Ignored</option>
                     </select>
                   </div>
                 </div>
