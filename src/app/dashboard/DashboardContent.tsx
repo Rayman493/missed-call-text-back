@@ -3,7 +3,9 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { isAdminUser } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -184,8 +186,12 @@ export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
 
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
+  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Check if user is admin based on email allowlist
+  const isAdmin = isAdminUser(user?.email)
   
   // ALL hooks must be called before any conditional returns to prevent React #310
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
@@ -1039,75 +1045,77 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Admin Tools - Temporary */}
-                <SectionErrorBoundary sectionName="AdminTools">
-                  <div className="bg-card border border-border rounded-xl p-6 mb-6">
-                    <h2 className="text-xl font-semibold mb-4 text-foreground">DEV ADMIN TOOLS</h2>
-                    
-                    <div className="space-y-4">
-                      {/* Warm Inventory Stats */}
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <h3 className="text-sm font-medium mb-3 text-foreground">Warm Inventory Stats</h3>
-                        {stats?.success ? (
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <div className="text-muted-foreground">Available</div>
-                              <div className="text-lg font-semibold text-foreground">{stats.stats.availableCount}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">Assigned</div>
-                              <div className="text-lg font-semibold text-foreground">{stats.stats.assignedCount}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">Failed</div>
-                              <div className="text-lg font-semibold text-foreground">{stats.stats.failedCount}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">Loading stats...</div>
-                        )}
-                        <button
-                          onClick={handleRefreshStats}
-                          disabled={refreshingStats}
-                          className="mt-3 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
-                        >
-                          {refreshingStats ? 'Refreshing...' : 'Refresh Stats'}
-                        </button>
-                      </div>
+                {/* Admin Tools - Only visible to admin users */}
+                {isAdmin && (
+                  <SectionErrorBoundary sectionName="AdminTools">
+                    <div className="bg-card border border-border rounded-xl p-6 mb-6">
+                      <h2 className="text-xl font-semibold mb-4 text-foreground">DEV ADMIN TOOLS</h2>
 
-                      {/* Reconcile Warm Numbers */}
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <h3 className="text-sm font-medium mb-3 text-foreground">Reconcile Warm Numbers</h3>
-                        <button
-                          onClick={handleReconcileWarmNumbers}
-                          disabled={reconciling}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {reconciling ? 'Reconciling...' : 'Reconcile Warm Numbers'}
-                        </button>
-                        
-                        {reconciliationResult && (
-                          <div className="mt-3 text-sm">
-                            {reconciliationResult.success ? (
-                              <div className="text-green-600">
-                                <div className="font-medium">Reconciliation Complete</div>
-                                <div className="mt-2 space-y-1">
-                                  <div>Checked: {reconciliationResult.data.checked_count}</div>
-                                  <div>Kept Available: {reconciliationResult.data.kept_available_count}</div>
-                                  <div>Marked Failed: {reconciliationResult.data.marked_failed_count}</div>
-                                  <div>Replenished: {reconciliationResult.data.replenished_count}</div>
-                                  <div>Available After: {reconciliationResult.data.available_after}</div>
-                                </div>
+                      <div className="space-y-4">
+                        {/* Warm Inventory Stats */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h3 className="text-sm font-medium mb-3 text-foreground">Warm Inventory Stats</h3>
+                          {stats?.success ? (
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <div className="text-muted-foreground">Available</div>
+                                <div className="text-lg font-semibold text-foreground">{stats.stats.availableCount}</div>
                               </div>
-                            ) : (
-                              <div className="text-red-600">Error: {reconciliationResult.error}</div>
-                            )}
-                          </div>
-                        )}
+                              <div>
+                                <div className="text-muted-foreground">Assigned</div>
+                                <div className="text-lg font-semibold text-foreground">{stats.stats.assignedCount}</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Failed</div>
+                                <div className="text-lg font-semibold text-foreground">{stats.stats.failedCount}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">Loading stats...</div>
+                          )}
+                          <button
+                            onClick={handleRefreshStats}
+                            disabled={refreshingStats}
+                            className="mt-3 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                          >
+                            {refreshingStats ? 'Refreshing...' : 'Refresh Stats'}
+                          </button>
+                        </div>
+
+                        {/* Reconcile Warm Numbers */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h3 className="text-sm font-medium mb-3 text-foreground">Reconcile Warm Numbers</h3>
+                          <button
+                            onClick={handleReconcileWarmNumbers}
+                            disabled={reconciling}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {reconciling ? 'Reconciling...' : 'Reconcile Warm Numbers'}
+                          </button>
+
+                          {reconciliationResult && (
+                            <div className="mt-3 text-sm">
+                              {reconciliationResult.success ? (
+                                <div className="text-green-600">
+                                  <div className="font-medium">Reconciliation Complete</div>
+                                  <div className="mt-2 space-y-1">
+                                    <div>Checked: {reconciliationResult.data.checked_count}</div>
+                                    <div>Kept Available: {reconciliationResult.data.kept_available_count}</div>
+                                    <div>Marked Failed: {reconciliationResult.data.marked_failed_count}</div>
+                                    <div>Replenished: {reconciliationResult.data.replenished_count}</div>
+                                    <div>Available After: {reconciliationResult.data.available_after}</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-red-600">Error: {reconciliationResult.error}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </SectionErrorBoundary>
+                  </SectionErrorBoundary>
+                )}
               </div>
             </div>
 
