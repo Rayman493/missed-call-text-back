@@ -981,6 +981,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       </button>
                     </div>
                   )}
+                  {item.secondaryButtonText && item.secondaryButtonHref && (
+                    <div className="mt-2">
+                      <Link
+                        href={item.secondaryButtonHref}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-block w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-transparent hover:border-border"
+                      >
+                        {item.secondaryButtonText}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </li>
             )
