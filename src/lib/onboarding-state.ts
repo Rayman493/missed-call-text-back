@@ -77,9 +77,9 @@ export function getBusinessOnboardingState(
   const subscriptionBusiness: SubscriptionBusiness = {
     subscription_status: business.subscription_status,
     twilio_phone_number: business.twilio_phone_number,
-    forwarding_enabled: business.call_forwarding_enabled || business.forwarding_enabled,
+    forwarding_enabled: business.call_forwarding_enabled ?? undefined,
     phone_setup_completed_at: business.phone_setup_completed_at,
-    forwarding_verified: business.forwarding_verified
+    forwarding_verified: business.forwarding_verified ?? undefined
   }
 
   const hasActiveSubscription = hasActiveAccess(subscriptionBusiness)

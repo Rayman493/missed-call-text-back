@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -51,6 +51,7 @@ import SectionErrorBoundary from '@/components/SectionErrorBoundary'
 import NoBusinessSetup from '@/components/NoBusinessSetup'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
+import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -218,6 +219,31 @@ export default function DashboardContent() {
 
   // Determine if onboarding is fully complete
   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+
+  // Use centralized onboarding state machine
+  const onboardingState = useMemo(() => {
+    const businessData: BusinessData = {
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id,
+      twilio_phone_number: business?.twilio_phone_number,
+      twilio_phone_number_sid: business?.twilio_phone_number_sid,
+      provisioning_status: business?.provisioning_status,
+      phone_setup_completed_at: business?.phone_setup_completed_at,
+      call_forwarding_enabled: business?.call_forwarding_enabled,
+      forwarding_verified: business?.forwarding_verified,
+      forwarding_verified_at: business?.forwarding_verified_at,
+      onboarding_status: business?.onboarding_status,
+      messaging_status: business?.messaging_status,
+      a2p_status: business?.a2p_status
+    }
+    
+    return getBusinessOnboardingState(businessData, {
+      hasLeads: processedLeads.length > 0,
+      hasConversations: processedLeads.filter(l => l.conversation_id).length > 0,
+      hasSuccessfulSms: false // Would need to check message status
+    })
+  }, [business, processedLeads])
 
   // Initialize setup banner dismissal state from sessionStorage
   useEffect(() => {
