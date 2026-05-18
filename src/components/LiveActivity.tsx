@@ -48,7 +48,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
   })
 
   const formatLeadPhone = (phone: string) => {
-    if (!phone) return 'Unknown'
+    if (!phone) return 'Recent caller'
     if (phone.length === 10) {
       return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
     }

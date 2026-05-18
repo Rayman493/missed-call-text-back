@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 
@@ -272,7 +273,7 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
             {leads.slice(0, 5).map((lead) => (
               <div key={lead.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex-1">
-                  <p className="font-medium text-foreground">{lead.customer_phone || 'Unknown'}</p>
+                  <p className="font-medium text-foreground">{getLeadDisplayName(lead)}</p>
                   <p className="text-xs text-muted-foreground">
                     {lead.last_message_at
                       ? new Date(lead.last_message_at).toLocaleDateString()

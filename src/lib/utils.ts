@@ -70,8 +70,8 @@ export function isValidPhone(phone: string): boolean {
 }
 
 export function formatPhoneNumber(phone: string | null | undefined): string {
-  if (!phone) return 'Unknown caller'
-  
+  if (!phone) return 'Recent caller'
+
   let normalized = phone.replace(/\D/g, '')
 
   // Handle E.164 format (+1XXXXXXXXXX) - strip leading 1
@@ -84,8 +84,31 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
     return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`
   }
 
-  // Fallback to original if not 10 digits
+  // Return original if can't format
   return phone
+}
+
+/**
+ * Get lead display name with graceful fallback
+ * Priority: lead.name → formatted phone number → "Recent caller"
+ */
+export function getLeadDisplayName(lead: any): string {
+  // Try lead name first
+  if (lead.name && lead.name.trim()) {
+    return lead.name.trim()
+  }
+
+  // Try formatted phone number
+  if (lead.customer_phone || lead.caller_phone) {
+    const phone = lead.customer_phone || lead.caller_phone
+    const formatted = formatPhoneNumber(phone)
+    if (formatted !== 'Recent caller') {
+      return formatted
+    }
+  }
+
+  // Fallback to generic text
+  return 'Recent caller'
 }
 
 export function formatDate(dateString: string | null | undefined): string {
