@@ -184,6 +184,15 @@ function formatMessageTimestamp(message: any): string {
   return formatRelativeTime(timestamp)
 }
 
+const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
+
+// Check if onboarding is expanded
+const isOnboardingExpanded = (() => {
+  if (typeof window === 'undefined') return false
+  const savedPreference = localStorage.getItem(COLLAPSE_PREFERENCE_KEY)
+  return savedPreference === 'false' // false means expanded
+})()
+
 export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
 
@@ -942,16 +951,19 @@ export default function DashboardContent() {
                         console.log('[Render Child] StatsCards')
                         return null
                       })()}
-                      <div className={`transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        {business?.id && (
-                          <StatsCards 
-                            businessId={business.id} 
-                            isOnboardingComplete={isOnboardingComplete}
-                            provisioningStatus={business?.provisioning_status || 'pending'}
-                            forwardingVerified={business?.forwarding_verified || false}
-                          />
-                        )}
-                      </div>
+                      {/* Hide StatsCards when onboarding is expanded to avoid duplicate messaging */}
+                      {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
+                        <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                          {business?.id && (
+                            <StatsCards 
+                              businessId={business.id} 
+                              isOnboardingComplete={isOnboardingComplete}
+                              provisioningStatus={business?.provisioning_status || 'pending'}
+                              forwardingVerified={business?.forwarding_verified || false}
+                            />
+                          )}
+                        </div>
+                      )}
                     </SectionErrorBoundary>
 
                     {/* Recent Leads Section */}
@@ -967,16 +979,19 @@ export default function DashboardContent() {
                         console.log('[Render Child] RecentLeadsSection')
                         return null
                       })()}
-                      <div className={`transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        {business?.id && (
-                          <RecentLeadsSection 
-                            businessId={business.id} 
-                            isOnboardingComplete={isOnboardingComplete}
-                            provisioningStatus={business?.provisioning_status || 'pending'}
-                            forwardingVerified={business?.forwarding_verified || false}
-                          />
-                        )}
-                      </div>
+                      {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
+                      {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
+                        <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                          {business?.id && (
+                            <RecentLeadsSection 
+                              businessId={business.id} 
+                              isOnboardingComplete={isOnboardingComplete}
+                              provisioningStatus={business?.provisioning_status || 'pending'}
+                              forwardingVerified={business?.forwarding_verified || false}
+                            />
+                          )}
+                        </div>
+                      )}
                     </SectionErrorBoundary>
 
                     {/* Conversations Section */}
