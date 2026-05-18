@@ -133,6 +133,10 @@ main {
     @apply border-border;
   }
   
+  header {
+    @apply border-0;
+  }
+  
   html,
   body {
     /* Removed hardcoded dark background to allow theme-aware styling */

@@ -428,7 +428,7 @@ export default function SettingsContent() {
             <AppHeader title="Settings" showBackLink={true} showNavigation={false} />
 
             {/* Main Content */}
-            <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 border-t-0">
               <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">
 
             {/* System Status Section */}
