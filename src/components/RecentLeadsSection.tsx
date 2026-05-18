@@ -266,8 +266,8 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
                 </svg>
               </div>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">No recovered leads yet</h3>
-            <p className="text-sm text-slate-600 dark:text-muted-foreground">Leads from missed calls will appear here automatically after your first customer call.</p>
+            <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">ReplyFlow is ready to capture missed callers</h3>
+            <p className="text-sm text-slate-600 dark:text-muted-foreground">Your recovered customer calls will appear here automatically after your first missed call.</p>
           </div>
         ) : (
           <div className="space-y-2">

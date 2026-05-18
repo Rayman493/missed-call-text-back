@@ -197,7 +197,7 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
               <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{missedCallsCount === 0 ? 'Ready to capture missed calls' : 'Total captured'}</p>
           </div>
         </Link>
 

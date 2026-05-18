@@ -919,7 +919,7 @@ export default function DashboardContent() {
                             </li>
                             <li className="flex items-start gap-3">
                               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
-                              Set up call forwarding in minutes
+                              Connect your business line in minutes
                             </li>
                             <li className="flex items-start gap-3">
                               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-300 flex items-center justify-center mt-0.5 text-[11px] font-bold">✓</span>
@@ -1025,7 +1025,7 @@ export default function DashboardContent() {
                           </div>
                           <div>
                             <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
-                            <p className="text-sm text-muted-foreground">When someone replies to a ReplyFlow text, the conversation will appear here.</p>
+                            <p className="text-sm text-muted-foreground">When a customer replies to a ReplyFlow text, you'll see the conversation here.</p>
                           </div>
                         </div>
                       </div>
@@ -1062,9 +1062,9 @@ export default function DashboardContent() {
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                          <h2 className="text-sm font-semibold text-slate-300">Admin Diagnostics</h2>
+                          <h2 className="text-sm font-semibold text-slate-300">Admin Diagnostics (Internal)</h2>
                         </div>
-                        <span className="text-xs text-slate-500">Internal diagnostics and provisioning tools</span>
+                        <span className="text-xs text-slate-500">Technical provisioning and system status</span>
                       </button>
 
                       {/* Collapsible Content */}

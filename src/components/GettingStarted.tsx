@@ -452,7 +452,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'number',
         title: 'Get your ReplyFlow number',
-        description: 'A dedicated local number is set up for your business.',
+        description: 'Your dedicated local number is set up automatically.',
         status: numberActionNeeded ? 'action-needed' : (numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action')),
         details: numberActionNeeded
           ? 'Number setup has issues - check status'
@@ -462,8 +462,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'forwarding',
-        title: 'Call forwarding connected',
-        description: 'Missed calls from your business number are now routed to ReplyFlow.',
+        title: 'Connect your business line',
+        description: 'Missed calls from your business number are routed to ReplyFlow.',
         status: forwardingActionNeeded ? 'action-needed' : (forwardingDone ? 'complete' : 'needs-action'),
         details: forwardingActionNeeded
           ? 'Forwarding disabled - re-enable to continue'
@@ -479,7 +479,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Test your setup',
+        title: 'Confirm everything works',
         description: 'Place one missed test call to confirm ReplyFlow is live.',
         status: testActionNeeded ? 'action-needed' : (testDone ? 'complete' : 'needs-action'),
         details: testActionNeeded
