@@ -363,28 +363,81 @@ export default function LeadsPage() {
             {/* Empty State */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
               <div className="bg-card rounded-xl shadow-sm border border-border p-6 sm:p-10 text-center animate-fadeIn">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                  <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                  ReplyFlow is ready
-                </h3>
-                <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                  <p>Your missed-call textback system is working. When customers call and you can't answer, they'll appear here automatically.</p>
-                  <p className="text-sm text-muted-foreground">Test it by calling your business number and letting it ring.</p>
-                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
-                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-green-700 dark:text-green-300 font-medium text-sm">
-                        {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length} completed
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {(() => {
+                  // Determine actual onboarding state
+                  const hasActiveSubscription = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
+                  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+                  const provisioningStatus = business?.provisioning_status || 'pending'
+                  
+                  // STATE 1: PRE-TRIAL / NOT ACTIVATED
+                  if (!hasActiveSubscription || provisioningStatus === 'pending') {
+                    return (
+                      <>
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                          <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                          Start capturing missed callers
+                        </h3>
+                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
+                          <p>Activate your free trial to begin setting up ReplyFlow.</p>
+                          <p className="text-sm text-muted-foreground">Customer leads and conversations will appear here after setup is complete.</p>
+                        </div>
+                      </>
+                    )
+                  }
+                  
+                  // STATE 2: SETUP IN PROGRESS
+                  if (!isOnboardingComplete) {
+                    return (
+                      <>
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                          <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                          Complete your setup
+                        </h3>
+                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
+                          <p>Finish connecting your business line to begin capturing missed callers automatically.</p>
+                          <p className="text-sm text-muted-foreground">Your leads will begin appearing here after setup is completed.</p>
+                        </div>
+                      </>
+                    )
+                  }
+                  
+                  // STATE 3: FULLY ACTIVE
+                  return (
+                    <>
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                        <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                        ReplyFlow is live
+                      </h3>
+                      <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
+                        <p>Your missed callers will appear here automatically.</p>
+                        <p className="text-sm text-muted-foreground">Test it by calling your business number and letting it ring.</p>
+                        {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
+                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-green-700 dark:text-green-300 font-medium text-sm">
+                              {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length} completed
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             )}
 
