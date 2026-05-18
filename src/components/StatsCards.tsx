@@ -191,8 +191,8 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Missed Calls */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-amber-500/10 dark:bg-amber-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-amber-500/20 group-hover:scale-105 transition-all duration-300">📞</span>
               <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
             </div>
@@ -203,8 +203,8 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
 
         {/* New Leads */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-500/20 group-hover:scale-105 transition-all duration-300">👥</span>
               <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
@@ -215,8 +215,8 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
 
         {/* Conversations */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-green-500/10 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-green-500/20 group-hover:scale-105 transition-all duration-300">💬</span>
               <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
@@ -227,8 +227,8 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
 
         {/* Follow-ups */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-xl hover:border-border/100 transition-all duration-300 hover:-translate-y-1 p-3 sm:p-4 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-purple-500/10 dark:bg-purple-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-purple-500/20 group-hover:scale-105 transition-all duration-300">📅</span>
               <h3 className="text-xs font-bold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
             </div>

@@ -97,21 +97,17 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
 
   if (leads.length === 0 && missedCalls === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 dark:border-slate-700 p-6">
-        <div className="text-center py-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              ReplyFlow is live and monitoring your business line.
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Recent missed calls and customer activity will appear automatically.
+            </p>
           </div>
-          <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-3">
-            ReplyFlow is monitoring your business line.
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Recent missed calls and customer activity will appear here automatically.
-          </p>
         </div>
       </div>
     )

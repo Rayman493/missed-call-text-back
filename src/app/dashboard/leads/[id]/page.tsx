@@ -8,6 +8,7 @@ import MobileConversationMessageList from '@/components/MobileConversationMessag
 import MobileMenu from '@/components/MobileMenu'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
+import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -252,6 +253,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // State for remove lead modal
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
+  const [isCompleting, setIsCompleting] = useState(false)
 
   // Handle ignore contact
   const handleIgnoreContact = async () => {
@@ -296,6 +298,60 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setError(error instanceof Error ? error.message : 'Failed to ignore contact')
     } finally {
       setIsIgnoring(false)
+    }
+  }
+
+  // Handle mark complete
+  const handleMarkComplete = async () => {
+    setIsCompleting(true)
+    setError('')
+    
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update lead status to completed
+      const response = await fetch(`/api/leads/${params.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'completed'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to mark lead as complete')
+      }
+
+      // Update local state
+      setLeadData((prev: any) => ({
+        ...prev,
+        lead_status: 'completed',
+        updated_at: new Date().toISOString()
+      }))
+
+      // Show success message
+      setSuccessMessage('Lead marked as complete')
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage('')
+      }, 3000)
+      
+    } catch (error) {
+      console.error('Error marking lead complete:', error)
+      setError(error instanceof Error ? error.message : 'Failed to mark lead as complete')
+    } finally {
+      setIsCompleting(false)
     }
   }
 
@@ -905,8 +961,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="md:hidden">
                 <MobileMenu />
               </div>
-              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0">
-                <span className="text-lg md:text-xl font-semibold tracking-tight">
+              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0 group">
+                <span className="text-lg md:text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
                   <span className="text-white">Reply</span>
                   <span className="text-blue-400">Flow</span>
                 </span>
@@ -923,7 +979,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </Link>
               </div>
               {/* Phone Number */}
-              <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate">
+              <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate group-hover:text-blue-300 transition-colors duration-200">
                 {formatPhoneNumber(lead?.caller_phone || '')}
               </h2>
 
@@ -949,7 +1005,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
                 title="Refresh"
               >
                 {refreshing ? (
@@ -964,7 +1020,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="relative">
                 <button
                   onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
                   title="More"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -974,6 +1030,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 
                 {showMoreActions && (
                   <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">
+                    {getLeadLifecycleStatus(leadData) !== 'completed' && (
+                      <button
+                        onClick={() => {
+                          handleMarkComplete()
+                          setShowMoreActions(false)
+                        }}
+                        disabled={isCompleting}
+                        className="w-full px-3 py-1.5 text-left text-xs text-green-400 dark:text-green-400 hover:bg-green-900/20 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isCompleting ? (
+                          <>
+                            <div className="w-3 h-3 animate-spin rounded-full border border-green-400 border-t-transparent"></div>
+                            <span>Completing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Mark Complete</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setShowIgnoreModal(true)
@@ -1041,25 +1121,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Thread */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 pb-8">
-        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-border overflow-hidden">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="p-2.5 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto">
+          <div ref={conversationContainerRef} className="p-3 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : messagesArray.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-5xl mb-4">💬</div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
+              <div className="text-center py-12 animate-fadeIn">
+                <div className="text-4xl mb-3 animate-bounce">💬</div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   No messages yet
                 </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                   Messages will appear here after missed calls, replies, or manual sends.
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Start the conversation by sending a message below.
-                </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                    Start the conversation by sending a message below
+                  </p>
+                </div>
               </div>
             ) : (
               <MobileConversationMessageList
@@ -1075,7 +1160,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {showJumpButton && (
           <button
             onClick={() => scrollToBottom('smooth', true)}
-            className="fixed bottom-24 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-105"
+            className="fixed bottom-24 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 animate-bounce"
             aria-label="Jump to latest message"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

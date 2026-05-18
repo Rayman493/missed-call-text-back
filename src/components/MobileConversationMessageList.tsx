@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 
 interface MobileConversationMessageListProps {
@@ -14,6 +14,16 @@ export default function MobileConversationMessageList({
   handleRetry, 
   getErrorMessage 
 }: MobileConversationMessageListProps) {
+  const [previousMessageCount, setPreviousMessageCount] = useState(0)
+  
+  // Detect new messages for animation
+  useEffect(() => {
+    if (messagesArray.length > previousMessageCount) {
+      // New message added - could trigger additional animations here
+    }
+    setPreviousMessageCount(messagesArray.length)
+  }, [messagesArray.length, previousMessageCount])
+
   return (
     <div className="space-y-2.5 sm:space-y-4">
       {messagesArray.map((msg: any, index: number) => {
@@ -29,7 +39,8 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-2 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 ${isInbound ? 'flex-row' : 'flex-row-reverse'} animate-slideInUp`}
+            style={{ animationDelay: `${index * 0.05}s` }}
           >
             {/* Avatar - Hide on mobile for cleaner look */}
             <div className={`hidden sm:flex flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -54,39 +65,40 @@ export default function MobileConversationMessageList({
                 {isOutbound && !isOptimistic && (
                   <>
                     {msg.status === 'delivered' && (
-                      <span className="px-1 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium hidden sm:inline">
-                        Delivered
+                      <span className="px-1 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium hidden sm:inline animate-fadeIn">
+                        ✓ Delivered
                       </span>
                     )}
                     {msg.status === 'failed' && (
-                      <span className="px-1 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium hidden sm:inline">
-                        Failed
+                      <span className="px-1 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium hidden sm:inline animate-shake">
+                        ✗ Failed
                       </span>
                     )}
                   </>
                 )}
                 {isOptimistic && (
-                  <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
-                    Sending...
+                  <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium animate-pulse">
+                    ⏳ Sending...
                   </span>
                 )}
               </div>
               
               <div
-                className={`rounded-lg sm:rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 relative ${
+                className={`rounded-lg sm:rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 relative transition-all duration-300 ease-out ${
                   isInbound
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none hover:shadow-sm'
                     : isOptimistic && isSending
-                    ? 'bg-blue-500 text-white rounded-tr-none animate-pulse'
-                    : 'bg-blue-600 text-white rounded-tr-none'
+                    ? 'bg-blue-500 text-white rounded-tr-none animate-pulse shadow-sm'
+                    : 'bg-blue-600 text-white rounded-tr-none hover:shadow-sm hover:bg-blue-700 transition-colors'
                 }`}
               >
                 {isOptimistic && isSending && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 flex items-center gap-1">
                     <div className="w-2 h-2 bg-white/30 rounded-full animate-ping"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 )}
-                <p className="text-sm sm:text-base leading-relaxed break-words">
+                <p className="text-sm sm:text-base leading-relaxed break-words animate-fadeIn">
                   {msg.body || 'No content'}
                 </p>
               </div>

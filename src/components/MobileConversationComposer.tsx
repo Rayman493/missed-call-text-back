@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 interface MobileConversationComposerProps {
   message: string
@@ -13,20 +13,45 @@ export default function MobileConversationComposer({
   handleSendMessage, 
   sending 
 }: MobileConversationComposerProps) {
+  const [isTyping, setIsTyping] = useState(false)
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    setMessage(newValue)
+    
+    // Auto-resize on change
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px'
+    
+    // Handle typing indicator
+    if (newValue.trim()) {
+      setIsTyping(true)
+      if (typingTimeout) clearTimeout(typingTimeout)
+      const newTimeout = setTimeout(() => setIsTyping(false), 1000)
+      setTypingTimeout(newTimeout)
+    } else {
+      setIsTyping(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
       <div className="flex items-end gap-2 sm:gap-3">
         <textarea
           value={message}
-          onChange={(e) => {
-            setMessage(e.target.value)
-            // Auto-resize on change
-            const textarea = e.target
-            textarea.style.height = 'auto'
-            textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px'
-          }}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
+          className="flex-1 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200 focus:scale-[1.02] focus:shadow-lg"
           rows={1}
           style={{ minHeight: '36px', maxHeight: '100px' }}
           disabled={sending}
@@ -35,7 +60,7 @@ export default function MobileConversationComposer({
           type="button"
           onClick={() => handleSendMessage()}
           disabled={sending || !message.trim()}
-          className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 text-white rounded-full transition-all duration-200 flex-shrink-0"
+          className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 text-white rounded-full transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {sending ? (
             <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

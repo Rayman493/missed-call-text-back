@@ -541,20 +541,20 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
-                <div className="mb-6">
+              <div id="automation" className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-5">
+                <div className="mb-4">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Automation Settings</h2>
                   <p className="text-sm text-muted-foreground">
                     Configure how ReplyFlow automatically handles your missed calls and follow-ups.
                   </p>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="bg-muted rounded-lg border border-border p-4 sm:p-6">
-                    <div className="flex items-start justify-between mb-6">
+                  <div className="bg-muted rounded-lg border border-border p-3 sm:p-5">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-base font-semibold text-foreground">Spam & Repeat Call Filtering</h3>
                           {spamFilteringEnabled && (
                             <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
@@ -721,9 +721,9 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border">
+                  <div className="flex items-start justify-between p-3 sm:p-4 bg-muted rounded-lg border border-border">
                     <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-sm font-medium text-foreground">Business Hours Only</h3>
                         {formBusiness.business_hours_enabled && (
                           <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
@@ -731,7 +731,7 @@ export default function SettingsContent() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-sm text-muted-foreground mb-1">
                         Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
                       </p>
                       <div className="text-xs text-muted-foreground">
@@ -754,7 +754,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automation Status Summary */}
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-start gap-3">
                       <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -795,7 +795,7 @@ export default function SettingsContent() {
                           {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                              <span>Automation features are disabled</span>
+                              <span>Automation is currently turned off. Enable one of the options above to automatically respond to missed calls.</span>
                             </div>
                           )}
                         </div>
@@ -806,8 +806,8 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div id="ignored-contacts" className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-foreground">Ignored Contacts</h2>
                   <button
                     onClick={() => setShowAddModal(true)}
@@ -882,9 +882,9 @@ export default function SettingsContent() {
               )}
 
               {/* Billing Section */}
-              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Billing</h2>
-                <div className="space-y-4">
+              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-5">
+                <h2 className="text-lg font-semibold text-foreground mb-3">Billing</h2>
+                <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-medium text-foreground">Current Plan</h3>
                     <p className="text-sm text-muted-foreground">
@@ -892,7 +892,7 @@ export default function SettingsContent() {
                       {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                     </p>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-3">
                     <button
                       onClick={() => handleBillingActionClick('portal')}
                       disabled={isOpeningPortal}
@@ -914,9 +914,9 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-card rounded-2xl shadow-sm border border-red-200 dark:border-red-700 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Danger Zone</h2>
-                <div className="space-y-4">
+              <div id="danger" className="bg-card rounded-2xl shadow-sm border border-red-200/70 dark:border-red-800/70 p-3 sm:p-5">
+                <h2 className="text-lg font-semibold text-red-600/90 dark:text-red-400/90 mb-3">Danger Zone</h2>
+                <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-medium text-foreground">Delete Account</h3>
                     <p className="text-sm text-muted-foreground mb-2">

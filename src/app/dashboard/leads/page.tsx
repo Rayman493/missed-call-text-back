@@ -37,6 +37,7 @@ import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import Footer from '@/components/Footer'
+import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
@@ -240,24 +241,24 @@ export default function LeadsPage() {
               <GettingStarted />
             </div>
 
-            {/* CRM Summary Cards */}
+            {/* Lifecycle Summary Cards */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
                 <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                  {leads.filter(l => l.lead_status === 'new' || (Date.now() - new Date(l.last_message_at || l.first_contact_at || l.created_at).getTime()) < 24 * 60 * 60 * 1000).length}
+                <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 </p>
               </div>
               <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
-                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Awaiting Reply</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight">
-                  {leads.filter(l => needsResponseCheck(l.id)).length}
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
                 </p>
               </div>
               <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
-                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Follow-ups</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight">
-                  {leads.filter(l => l.lead_status === 'qualified').length}
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-muted-foreground tracking-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
                 </p>
               </div>
             </div>
@@ -269,7 +270,7 @@ export default function LeadsPage() {
                   Customer Leads
                 </h2>
                 <p className="text-sm sm:text-muted-foreground mt-0.5 sm:mt-1">
-                  {leads.length} {leads.length === 1 ? 'lead' : 'leads'} total
+                  {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length} {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 1 ? 'active lead' : 'active leads'} total
                 </p>
               </div>
               
@@ -353,6 +354,43 @@ export default function LeadsPage() {
               </div>
             )}
 
+            {/* Empty State */}
+            {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
+              <div className="bg-card rounded-xl shadow-sm border border-border p-8 sm:p-12 text-center animate-fadeIn">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
+                  All caught up
+                </h3>
+                <div className="text-muted-foreground mb-8 max-w-md mx-auto text-sm sm:text-base space-y-3">
+                  <p>No active conversations to handle.</p>
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
+                    <div className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-green-700 dark:text-green-300 font-medium">
+                        {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length} completed
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <Link
+                  href="/dashboard/settings"
+                  className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Check Settings
+                </Link>
+              </div>
+            )}
+
             {/* Error State */}
             {error && (
               <div className="text-center py-16 px-4">
@@ -387,50 +425,11 @@ export default function LeadsPage() {
               </div>
             )}
 
-            {/* Empty State */}
-            {!loading && !error && leads.length === 0 && (
-              <div className="text-center py-8 sm:py-12 px-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-900/30 mb-4 sm:mb-6">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                  No recovered leads yet
-                </h3>
-                <div className="text-muted-foreground mb-6 max-w-md mx-auto text-sm sm:text-base">
-                  <p>Leads from missed calls will appear here automatically after your first customer call.</p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
-                    <Link
-                      href="/dashboard/test-setup"
-                      className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      Test My Setup
-                    </Link>
-                  )}
-                  <Link
-                    href="/demo"
-                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 bg-transparent border border-border text-secondary-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    View Demo
-                  </Link>
-                </div>
-              </div>
-            )}
-
             {/* Leads List */}
-            {!loading && !error && leads.length > 0 && (
+            {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length > 0 && (
               <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 <div className="divide-y divide-border">
-                  {sortedLeads.map((lead, index) => {
+                  {sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed').map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
                       ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
                       : null
@@ -445,12 +444,8 @@ export default function LeadsPage() {
                     // Check if this is the newest lead (within 24 hours)
                     const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
-                    let statusBadge = 'New'
-                    if (lead.lead_status === 'qualified') statusBadge = 'Qualified'
-                    else if (lead.lead_status === 'closed') statusBadge = 'Closed'
-                    else if (lead.lead_status === 'replied') statusBadge = 'Replied'
-                    else if (hasReplied) statusBadge = 'Replied'
-                    else if (lead.status === 'blocked') statusBadge = 'Blocked'
+                    let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
+                    const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
 
                     return (
                       <Link
@@ -508,14 +503,7 @@ export default function LeadsPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              statusBadge === 'New' ? 'bg-blue-900/30 text-blue-300' :
-                              statusBadge === 'Qualified' ? 'bg-purple-900/30 text-purple-300' :
-                              statusBadge === 'Replied' ? 'bg-green-900/30 text-green-300' :
-                              statusBadge === 'Closed' ? 'bg-muted text-muted-foreground' :
-                              statusBadge === 'Blocked' ? 'bg-red-900/30 text-red-400' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
                               {statusBadge}
                             </span>
                             <div className="text-blue-400 hover:text-blue-300 text-sm font-medium whitespace-nowrap">
