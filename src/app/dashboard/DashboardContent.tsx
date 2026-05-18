@@ -917,13 +917,16 @@ export default function DashboardContent() {
                         console.log('[Render Child] LiveActivity')
                         return null
                       })()}
-                      <div className={`mb-4 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        <LiveActivity 
-                          isOnboardingComplete={isOnboardingComplete}
-                          provisioningStatus={business?.provisioning_status || 'pending'}
-                          forwardingVerified={business?.forwarding_verified || false}
-                        />
-                      </div>
+                      {/* Hide LiveActivity when Step 4 is visible (forwarding verified but test pending) to avoid redundant messaging */}
+                      {!(business?.provisioning_status === 'active' && business?.forwarding_verified && !isOnboardingComplete) && (
+                        <div className={`mb-4 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                          <LiveActivity 
+                            isOnboardingComplete={isOnboardingComplete}
+                            provisioningStatus={business?.provisioning_status || 'pending'}
+                            forwardingVerified={business?.forwarding_verified || false}
+                          />
+                        </div>
+                      )}
                     </SectionErrorBoundary>
 
                     {/* Hero Metrics Section */}
