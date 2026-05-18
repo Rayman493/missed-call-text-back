@@ -951,79 +951,123 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </pre>
         </div>
       )}
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700 shadow-sm">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2">
-          {/* Primary Row - Compact */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              {/* Mobile menu - only visible on mobile/tablet */}
+      {/* Enhanced Header */}
+      <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-800/95 border-b border-slate-800 dark:border-slate-700 backdrop-blur-sm shadow-lg">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          {/* Lead Identity Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Lead Info */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {/* Mobile menu */}
               <div className="md:hidden">
                 <MobileMenu />
               </div>
-              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0 group">
-                <span className="text-lg md:text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
-                  <span className="text-white">Reply</span>
-                  <span className="text-blue-400">Flow</span>
-                </span>
-              </Link>
-              {/* Desktop navigation - only visible on desktop */}
-              <div className="hidden md:flex items-center gap-2">
-                <Link
-                  href="/dashboard"
-                  className="flex-shrink-0 text-gray-300 hover:text-white transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </Link>
-              </div>
-              {/* Phone Number */}
-              <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate group-hover:text-blue-300 transition-colors duration-200">
-                {formatPhoneNumber(lead?.caller_phone || '')}
-              </h2>
-
-              {/* Status Pills */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(lead?.status)}`}>
-                  {lead?.status}
-                </span>
-                {conversation && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                    conversation.status === 'open'
-                      ? 'bg-green-900/50 dark:bg-green-900/50 text-green-300 dark:text-green-300'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {conversation.status}
+              
+              {/* Brand/Back */}
+              <div className="flex items-center gap-3">
+                <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0 group">
+                  <span className="text-lg md:text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
+                    <span className="text-white">Reply</span>
+                    <span className="text-blue-400">Flow</span>
                   </span>
-                )}
+                </Link>
+                
+                {/* Desktop Back */}
+                <div className="hidden md:flex items-center">
+                  <Link
+                    href="/dashboard"
+                    className="flex-shrink-0 text-gray-400 hover:text-white transition-colors p-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Lead Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight truncate">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </h1>
+                  
+                  {/* Status Badges */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                    </span>
+                    {hasInboundReply && (
+                      <span className="px-2 py-1 bg-green-900/40 text-green-300 rounded-full text-xs font-medium flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Lead Meta */}
+                <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                  {lead?.last_message_at && (
+                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                  )}
+                  {automationStatus && (
+                    <span className="text-blue-400">{automationStatus}</span>
+                  )}
+                </div>
               </div>
             </div>
             
-            {/* Compact Actions */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {/* Primary Action - Mark Complete */}
+              {getLeadLifecycleStatus(leadData) !== 'completed' && (
+                <button
+                  onClick={() => handleMarkComplete()}
+                  disabled={isCompleting}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 shadow-lg"
+                >
+                  {isCompleting ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Mark Complete</span>
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {/* Secondary Actions */}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
                 title="Refresh"
               >
                 {refreshing ? (
-                  <div className="w-3.5 h-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent border-solid"></div>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
                 ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 )}
               </button>
               
+              {/* More Actions */}
               <div className="relative">
                 <button
                   onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
-                  title="More"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
+                  title="More actions"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
                 </button>
@@ -1120,28 +1164,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 pb-8">
-        <div className="bg-card rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-border overflow-hidden">
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
+        <div className="bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="p-3 sm:p-6 min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-250px)] overflow-y-auto scroll-smooth">
+          <div ref={conversationContainerRef} className="p-4 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : messagesArray.length === 0 ? (
-              <div className="text-center py-12 animate-fadeIn">
-                <div className="text-4xl mb-3 animate-bounce">💬</div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+              <div className="text-center py-16 animate-fadeIn">
+                <div className="text-5xl mb-4 animate-bounce">💬</div>
+                <h3 className="text-xl font-semibold text-foreground mb-3">
                   No messages yet
                 </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                   Messages will appear here after missed calls, replies, or manual sends.
                 </p>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="inline-flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                   <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                     Start the conversation by sending a message below
                   </p>
                 </div>

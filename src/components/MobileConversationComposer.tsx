@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 
 interface MobileConversationComposerProps {
   message: string
@@ -15,6 +15,7 @@ export default function MobileConversationComposer({
 }: MobileConversationComposerProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
@@ -44,35 +45,78 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-      <div className="flex items-end gap-2 sm:gap-3">
-        <textarea
-          value={message}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          className="flex-1 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200 focus:scale-[1.02] focus:shadow-lg"
-          rows={1}
-          style={{ minHeight: '36px', maxHeight: '100px' }}
-          disabled={sending}
-        />
-        <button
-          type="button"
-          onClick={() => handleSendMessage()}
-          disabled={sending || !message.trim()}
-          className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 text-white rounded-full transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          {sending ? (
-            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M2.01 21L23 12 2.01 3 11 10.5 22 12 11 13.5 2.01 21z" />
-            </svg>
+    <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Composer Container */}
+        <div className="relative">
+          <div className="flex items-end gap-3">
+            {/* Message Input */}
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Reply to this customer..."
+                disabled={sending}
+                className="w-full px-4 py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base leading-relaxed min-h-[48px] max-h-[120px]"
+                rows={1}
+              />
+              
+              {/* Character Count (optional) */}
+              {message.length > 1000 && (
+                <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                  {message.length}/1600
+                </div>
+              )}
+            </div>
+            
+            {/* Send Button */}
+            <button
+              onClick={handleSendMessage}
+              disabled={sending || !message.trim()}
+              className="flex-shrink-0 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 min-w-[100px] justify-center"
+            >
+              {sending ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span className="text-sm font-medium">Sending</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  <span className="text-sm font-medium">Send</span>
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Typing Indicator */}
+          {isTyping && (
+            <div className="absolute bottom-full left-4 mb-2 flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg rounded-bl-none shadow-lg">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+              <span className="text-xs font-medium">Typing...</span>
+            </div>
           )}
-        </button>
+        </div>
+        
+        {/* Helper Text */}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">Shift+Enter</kbd> for new line
+          </div>
+          {message.trim() && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {message.trim().length} characters
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
