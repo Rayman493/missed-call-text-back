@@ -242,50 +242,50 @@ export default function LeadsPage() {
             </div>
 
             {/* Lifecycle Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
-                <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
+                <p className="text-xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
-                <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
+                <p className="text-xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
-                <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
+                <p className="text-xl sm:text-3xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4">
-                <p className="text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
+                <p className="text-xl sm:text-3xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length}
                 </p>
               </div>
             </div>
 
             {/* Leads Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-3 sm:mb-4">
               <div>
-                <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
+                <h2 className="text-lg sm:text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
                 </h2>
-                <p className="text-sm sm:text-muted-foreground mt-0.5 sm:mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                   {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length} {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 1 ? 'active lead' : 'active leads'} total
                 </p>
               </div>
               
               <div className="flex items-center gap-2">
                 {leads.length > 0 && (
-                  <div className="flex items-center gap-2 bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
+                  <div className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
                     <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                      className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
                         showFilters 
                           ? 'bg-slate-100 dark:bg-muted text-slate-900 dark:text-foreground' 
                           : 'text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-50 dark:hover:bg-muted/50'
@@ -297,16 +297,16 @@ export default function LeadsPage() {
                     <button
                       onClick={fetchLeads}
                       disabled={loading || refreshing}
-                      className="px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-50 dark:hover:bg-muted/50 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-50 dark:hover:bg-muted/50 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2"
                     >
                       {refreshing ? (
-                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-600"></div>
+                        <div className="animate-spin rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 border-b-2 border-blue-600"></div>
                       ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       )}
-                      Refresh
+                      <span className="hidden sm:inline">Refresh</span>
                     </button>
                   </div>
                 )}
@@ -362,38 +362,28 @@ export default function LeadsPage() {
 
             {/* Empty State */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
-              <div className="bg-card rounded-xl shadow-sm border border-border p-8 sm:p-12 text-center animate-fadeIn">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-card rounded-xl shadow-sm border border-border p-6 sm:p-10 text-center animate-fadeIn">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                  <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                  All caught up
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                  No active leads yet
                 </h3>
-                <div className="text-muted-foreground mb-8 max-w-md mx-auto text-sm sm:text-base space-y-3">
-                  <p>No active conversations to handle.</p>
+                <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
+                  <p>When customers call your business, they'll appear here automatically.</p>
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
-                    <div className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
                       <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-green-700 dark:text-green-300 font-medium">
+                      <span className="text-green-700 dark:text-green-300 font-medium text-sm">
                         {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length} completed
                       </span>
                     </div>
                   )}
                 </div>
-                <Link
-                  href="/dashboard/settings"
-                  className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg hover:bg-secondary/80 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Check Settings
-                </Link>
               </div>
             )}
 
@@ -458,46 +448,46 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-muted/80 transition-all duration-300 hover:scale-[1.01] relative border-l-4 border-transparent hover:border-l-slate-300 dark:hover:border-l-border/50 cursor-pointer ${
+                        className={`block p-3.5 sm:p-5 hover:bg-slate-50 dark:hover:bg-muted/80 transition-all duration-300 hover:scale-[1.01] relative border-l-4 border-transparent hover:border-l-slate-300 dark:hover:border-l-border/50 cursor-pointer ${
                           isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10 border-l-blue-500' : ''
                         } ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10 border-l-orange-500' : ''}`}
                       >
                         {/* Unread indicator dot */}
                         {isUnread && (
-                          <div className="absolute top-5 left-4 w-2 h-2 bg-blue-600 rounded-full shadow-sm"></div>
+                          <div className="absolute top-4 left-3.5 sm:top-5 sm:left-4 w-2 h-2 bg-blue-600 rounded-full shadow-sm"></div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm ${
+                            <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
+                              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm ${
                                 messageStatus.color === 'green' ? 'bg-green-50 border-green-200' :
                                 messageStatus.color === 'red' ? 'bg-red-50 border-red-200' :
                                 messageStatus.color === 'orange' ? 'bg-orange-50 border-orange-200' :
                                 'bg-blue-50 border-blue-200'
                               }`}>
-                                <span className="text-lg">{messageStatus.icon}</span>
+                                <span className="text-base sm:text-lg">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className={`font-bold text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
+                                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                                  <p className={`font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
                                     isUnread ? 'font-extrabold' : ''
                                   }`}>
                                     {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                   {isNewLead && (
-                                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-xs font-bold rounded-full flex-shrink-0">New</span>
+                                    <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
                                   )}
                                   {needsResponse && (
-                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                                    <span className="px-1.5 sm:px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
                                   )}
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{formatRelativeTime(lastActivity)}</p>
+                                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">{formatRelativeTime(lastActivity)}</p>
                               </div>
                             </div>
                             {latestMessage && (
-                              <div className="ml-13">
-                                <p className={`text-sm truncate ${
+                              <div className="ml-11 sm:ml-13">
+                                <p className={`text-xs sm:text-sm truncate ${
                                   latestMessage.direction === 'inbound'
                                     ? 'text-slate-600 dark:text-muted-foreground/80'
                                     : 'text-blue-600 dark:text-blue-400/90'
@@ -508,11 +498,11 @@ export default function LeadsPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusClasses}`}>
                               {statusBadge}
                             </span>
-                            <div className="text-blue-400 hover:text-blue-300 text-sm font-medium whitespace-nowrap">
+                            <div className="text-blue-400 hover:text-blue-300 text-xs sm:text-sm font-medium whitespace-nowrap">
                               View →
                             </div>
                           </div>
