@@ -130,10 +130,18 @@ export default function BusinessActivity({
 
   return (
     <SectionErrorBoundary sectionName="BusinessActivity">
-      <div className="mb-4">
+      <div className="mb-4 sm:mb-6">
+        {/* Section Heading */}
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">
+            Business Activity
+          </h2>
+          <span className="text-xs text-muted-foreground">• This Month</span>
+        </div>
+
         {/* Operational Status Indicators */}
         {(provisioningStatus === 'active' || forwardingVerified) && (
-          <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4 text-xs text-muted-foreground">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             <span>
               {provisioningStatus === 'active' && 'ReplyFlow is monitoring your business line'}
@@ -156,14 +164,14 @@ export default function BusinessActivity({
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg sm:text-xl">📞</span>
               <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Recovered
+                Missed Calls Recovered
               </span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+            <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-1">
               {metrics.missedCallsRecovered}
             </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60 mt-1">
-              This month
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
+              Customers automatically contacted after missed calls
             </p>
           </div>
 
@@ -172,46 +180,46 @@ export default function BusinessActivity({
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg sm:text-xl">👥</span>
               <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Leads
+                Leads Captured
               </span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
+            <p className="text-2xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-1">
               {metrics.leadsCaptured}
             </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60 mt-1">
-                Captured
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
+              New opportunities captured by ReplyFlow
             </p>
           </div>
 
-          {/* Auto-Replies Sent */}
+          {/* Customer Replies */}
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg sm:text-xl">💬</span>
               <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Replies
+                Customer Replies
               </span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight">
+            <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mb-1">
               {metrics.autoRepliesSent}
             </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60 mt-1">
-              Auto-sent
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
+              Customers continued the conversation
             </p>
           </div>
 
-          {/* Conversations Started */}
+          {/* Follow-Ups Scheduled */}
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg sm:text-xl">💡</span>
               <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Active
+                Follow-Ups Scheduled
               </span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight">
+            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-1">
               {metrics.conversationsStarted}
             </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60 mt-1">
-              {metrics.responseRate > 0 ? `${Math.round(metrics.responseRate)}% response` : 'Conversations'}
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
+              {metrics.responseRate > 0 ? `${Math.round(metrics.responseRate)}% response rate` : 'Active conversations'}
             </p>
           </div>
         </div>
