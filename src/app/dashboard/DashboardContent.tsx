@@ -1125,20 +1125,20 @@ export default function DashboardContent() {
                 console.log('[Render Child] Footer')
                 return null
               })()}
-              <footer className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <footer className="border-t border-border/50 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 mt-12">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-xs text-muted-foreground/60">
                       © {new Date().getFullYear()} ReplyFlow. All rights reserved.
                     </div>
-                    <div className="flex items-center gap-6 text-sm">
-                      <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <div className="flex items-center gap-6 text-xs">
+                      <a href="/privacy" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
                         Privacy
                       </a>
-                      <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                      <a href="/terms" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
                         Terms
                       </a>
-                      <a href="/compliance" className="text-muted-foreground hover:text-foreground transition-colors">
+                      <a href="/compliance" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
                         Compliance
                       </a>
                     </div>

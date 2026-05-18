@@ -188,52 +188,52 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
           Refresh
         </button>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {/* Captured Calls */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Missed Calls */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-9 h-9 bg-muted rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-muted/80 transition-colors">📞</span>
-              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Captured Calls</h3>
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-lg hover:border-border/100 transition-all duration-200 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-10 h-10 bg-amber-500/10 dark:bg-amber-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-amber-500/20 transition-colors">📞</span>
+              <h3 className="text-xs font-semibold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
             </div>
-            <p className="text-3xl sm:text-4xl font-bold text-foreground mb-1">{missedCallsCount}</p>
-            <p className="text-xs text-muted-foreground">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
+            <p className="text-4xl sm:text-5xl font-bold text-amber-600 dark:text-amber-400 mb-2">{missedCallsCount}</p>
+            <p className="text-xs text-muted-foreground/70">{missedCallsCount === 0 ? 'Waiting for first call' : 'Total captured'}</p>
           </div>
         </Link>
 
         {/* New Leads */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-9 h-9 bg-blue-900/20 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-900/30 transition-colors">👥</span>
-              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">New Leads</h3>
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-lg hover:border-border/100 transition-all duration-200 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-500/20 transition-colors">👥</span>
+              <h3 className="text-xs font-semibold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
-            <p className="text-3xl sm:text-4xl font-bold text-blue-500 dark:text-blue-100 mb-1">{leadsCount}</p>
-            <p className="text-xs text-muted-foreground">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
+            <p className="text-4xl sm:text-5xl font-bold text-blue-600 dark:text-blue-400 mb-2">{leadsCount}</p>
+            <p className="text-xs text-muted-foreground/70">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
           </div>
         </Link>
 
         {/* Conversations */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-9 h-9 bg-green-900/20 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-green-900/30 transition-colors">💬</span>
-              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Conversations</h3>
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-lg hover:border-border/100 transition-all duration-200 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-10 h-10 bg-green-500/10 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-green-500/20 transition-colors">💬</span>
+              <h3 className="text-xs font-semibold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
-            <p className="text-3xl sm:text-4xl font-bold text-green-500 dark:text-green-100 mb-1">{conversationsCount}</p>
-            <p className="text-xs text-muted-foreground">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
+            <p className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-400 mb-2">{conversationsCount}</p>
+            <p className="text-xs text-muted-foreground/70">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
           </div>
         </Link>
 
         {/* Follow-ups */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-border/80 transition-all hover:-translate-y-0.5 p-4 sm:p-5 cursor-pointer h-full">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-9 h-9 bg-purple-900/20 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-xl shadow-sm group-hover:bg-purple-900/30 transition-colors">📅</span>
-              <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Follow-ups</h3>
+          <div className="bg-card border border-border/60 rounded-2xl shadow-sm hover:shadow-lg hover:border-border/100 transition-all duration-200 hover:-translate-y-1 p-4 sm:p-5 cursor-pointer h-full">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-10 h-10 bg-purple-500/10 dark:bg-purple-500/20 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-purple-500/20 transition-colors">📅</span>
+              <h3 className="text-xs font-semibold text-muted-foreground/80 group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
             </div>
-            <p className="text-3xl sm:text-4xl font-bold text-purple-500 dark:text-purple-100 mb-1">{followUpsCount}</p>
-            <p className="text-xs text-muted-foreground">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
+            <p className="text-4xl sm:text-5xl font-bold text-purple-600 dark:text-purple-400 mb-2">{followUpsCount}</p>
+            <p className="text-xs text-muted-foreground/70">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
           </div>
         </Link>
       </div>
