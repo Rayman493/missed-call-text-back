@@ -917,8 +917,8 @@ export default function DashboardContent() {
                         console.log('[Render Child] LiveActivity')
                         return null
                       })()}
-                      {/* Hide LiveActivity when Step 4 is visible (forwarding verified but test pending) to avoid redundant messaging */}
-                      {!(business?.provisioning_status === 'active' && business?.forwarding_verified && !isOnboardingComplete) && (
+                      {/* Hide LiveActivity when Setup Progress is visible to avoid redundant messaging */}
+                      {!(!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
                         <div className={`mb-4 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
                           <LiveActivity 
                             isOnboardingComplete={isOnboardingComplete}

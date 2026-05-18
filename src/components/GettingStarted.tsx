@@ -779,12 +779,21 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (!isInTrial ? 'Get started in minutes' : `${doneSteps} of ${totalSteps} steps completed`)}
+            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
           </p>
-          {!complete && (
-            <p className="text-xs text-muted-foreground mt-0">
-              {!isInTrial ? 'Get started in minutes' : `${doneSteps} of ${totalSteps} steps completed`}
-            </p>
+          {!complete && incompleteItems.length === 1 && (
+            <div className="mt-2">
+              <Link
+                href="/dashboard/test-setup"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-muted/50 hover:border-border/80 cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Complete Final Test
+              </Link>
+            </div>
           )}
         </div>
         {complete && (
@@ -986,7 +995,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       <Link
                         href={item.secondaryButtonHref}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-2.5 px-3.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-muted/50 hover:border-border/80 cursor-pointer"
+                        className="inline-flex items-center gap-2.5 px-4 py-2 text-xs font-medium rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-muted/50 hover:border-border/80 cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />

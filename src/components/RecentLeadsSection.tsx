@@ -273,14 +273,14 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               {!isOnboardingComplete 
                 ? (provisioningStatus === 'pending' || provisioningStatus === 'failed' 
                   ? 'Start capturing missed callers' 
-                  : 'Complete your setup')
+                  : 'ReplyFlow is almost live')
                 : 'ReplyFlow is live'}
             </h3>
             <p className="text-sm text-slate-600 dark:text-muted-foreground">
               {!isOnboardingComplete 
                 ? (provisioningStatus === 'pending' || provisioningStatus === 'failed'
                   ? 'Activate your free trial to begin setting up ReplyFlow and automatically text back missed callers.'
-                  : 'Finish connecting your business line to begin capturing missed callers automatically.')
+                  : 'Run your final test call to activate missed-call monitoring.')
                 : 'Missed callers and customer conversations will appear here automatically.'}
             </p>
             {!isOnboardingComplete && provisioningStatus === 'pending' && (
