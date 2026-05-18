@@ -121,8 +121,8 @@ export default function BusinessActivity({
     return 'Recently'
   }
 
-  // Only show if onboarding is complete and we have some activity
-  const shouldShow = isOnboardingComplete && (metrics.missedCallsRecovered > 0 || metrics.autoRepliesSent > 0)
+  // Only show if onboarding is complete
+  const shouldShow = isOnboardingComplete
 
   if (!shouldShow || loading) {
     return null
