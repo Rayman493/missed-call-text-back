@@ -275,7 +275,9 @@ export default function LeadsPage() {
                   Customer Leads
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                  {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length} {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 1 ? 'active lead' : 'active leads'} total
+                  {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 
+                    ? 'No leads yet' 
+                    : `${leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length} ${leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 1 ? 'active lead' : 'active leads'} total`}
                 </p>
               </div>
               
@@ -399,11 +401,11 @@ export default function LeadsPage() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          ReplyFlow is almost live
+                          Your lead pipeline is ready
                         </h3>
                         <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Run your final test call to activate missed-call monitoring.</p>
-                          <p className="text-sm text-muted-foreground">Your lead pipeline will populate here in real time after verification.</p>
+                          <p>Customer opportunities will appear here automatically.</p>
+                          <p className="text-sm text-muted-foreground">Run your final test call to activate missed-call monitoring.</p>
                         </div>
                       </>
                     )
@@ -418,11 +420,31 @@ export default function LeadsPage() {
                         </svg>
                       </div>
                       <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                        ReplyFlow is live
+                        Your lead pipeline is live
                       </h3>
+                      
+                      {/* Operational Status Indicators */}
+                      <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-5 text-xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full border border-green-200 dark:border-green-800/30">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                          Monitoring Active
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800/30">
+                          Auto-Replies Enabled
+                        </span>
+                        {business?.forwarding_verified && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full border border-slate-200 dark:border-border/50">
+                            Forwarding Connected
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full border border-slate-200 dark:border-border/50">
+                          Waiting for first missed call
+                        </span>
+                      </div>
+
                       <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                        <p>Your missed callers will appear here automatically.</p>
-                        <p className="text-sm text-muted-foreground">Test it by calling your business number and letting it ring.</p>
+                        <p>Missed-call conversations will appear here in real time.</p>
+                        <p className="text-sm text-muted-foreground">Customer opportunities will appear here automatically.</p>
                         {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
                             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
