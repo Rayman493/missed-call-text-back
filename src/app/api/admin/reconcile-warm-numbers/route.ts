@@ -194,15 +194,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Reconciliation complete',
-      validCount,
-      failedCount,
-      totalChecked: availableNumbers.length,
-      failedNumbers,
-      poolRestoration: {
-        availableBefore: result.availableBefore,
-        numbersAdded: result.numbersAdded,
-        availableAfter: result.availableAfter,
-      },
+      checked_count: availableNumbers.length,
+      kept_available_count: validCount,
+      marked_failed_count: failedCount,
+      replenished_count: result.numbersAdded,
+      available_after: result.availableAfter,
+      failed_numbers: failedNumbers,
     });
 
   } catch (error: any) {
