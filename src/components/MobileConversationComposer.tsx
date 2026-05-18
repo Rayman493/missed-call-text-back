@@ -75,7 +75,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 min-w-[100px] justify-center"
+              className="flex-shrink-0 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-2 min-w-[100px] justify-center"
             >
               {sending ? (
                 <>

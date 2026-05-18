@@ -47,7 +47,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
                       {job.scheduled_at ? formatRelativeTime(job.scheduled_at) : 'Scheduled'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {job.step === 1 ? 'First follow-up' : job.step === 2 ? 'Second follow-up' : `Follow-up #${job.step}`}
+                      {job.step === 1 ? 'First follow-up' : job.step === 2 ? 'Second follow-up' : job.step ? `Follow-up #${job.step}` : 'Scheduled follow-up'}
                     </div>
                   </div>
                 </div>

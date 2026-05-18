@@ -34,6 +34,7 @@ interface ChecklistItem {
   buttonOnClick?: () => void
   secondaryButtonText?: string
   secondaryButtonOnClick?: () => void
+  secondaryButtonHref?: string
   details?: string
 }
 
@@ -76,7 +77,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    const testComplete = business?.forwarding_verified || realCallDataExists
+    const testComplete = business?.forwarding_verified || realCallDataExists || realCallDataExists
     
     // Determine which step should be expanded
     if (!subscriptionActive) {
@@ -255,7 +256,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
     // Step 4 is complete if forwarding_verified OR if real call data exists
-    const testComplete = business?.forwarding_verified || realCallDataExists
+    const testComplete = business?.forwarding_verified || realCallDataExists || realCallDataExists
     
     console.log('[Setup Progress] Step 4 completion check:', {
       businessId: business.id,
@@ -348,7 +349,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const subscriptionActive = hasActiveAccess(business)
   const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
   const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-  const testComplete = business?.forwarding_verified
+  const testComplete = business?.forwarding_verified || realCallDataExists
 
   const handleCompleteForwarding = async () => {
     if (!business) return
@@ -484,10 +485,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         details: testActionNeeded
           ? 'Test failed - try again'
           : testDone
-            ? 'ReplyFlow is now monitoring your missed calls.'
+            ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
             : (forwardingDone ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: forwardingDone && !testDone ? 'Complete Final Test' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
+        secondaryButtonText: testDone ? 'Run Another Test' : undefined,
+        secondaryButtonHref: testDone ? '/dashboard/test-setup' : undefined,
       },
     ]
   }

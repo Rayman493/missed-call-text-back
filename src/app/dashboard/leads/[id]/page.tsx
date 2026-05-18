@@ -7,6 +7,7 @@ import MobileFollowUpSummary from '@/components/MobileFollowUpSummary'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import MobileMenu from '@/components/MobileMenu'
 import { useRouter } from 'next/navigation'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import Link from 'next/link'
@@ -90,6 +91,7 @@ async function getLeadDetails(leadId: string) {
 
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { business } = useBusiness()
   const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -1012,9 +1014,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {lead?.last_message_at && (
                     <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
                   )}
-                  {automationStatus && (
-                    <span className="text-blue-400">{automationStatus}</span>
-                  )}
+                  {/* Operational Status */}
+                  <div className="flex items-center gap-1">
+                    {getLeadLifecycleStatus(leadData) === 'completed' && (
+                      <span className="px-2 py-0.5 bg-green-900/40 text-green-300 rounded-full text-xs font-medium flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                        Lead handled
+                      </span>
+                    )}
+                    {getLeadLifecycleStatus(leadData) === 'active' && hasInboundReply && (
+                      <span className="px-2 py-0.5 bg-blue-900/40 text-blue-300 rounded-full text-xs font-medium flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                        Awaiting reply
+                      </span>
+                    )}
+                    {getLeadLifecycleStatus(leadData) === 'new' && (
+                      <span className="px-2 py-0.5 bg-orange-900/40 text-orange-300 rounded-full text-xs font-medium flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                        New lead
+                      </span>
+                    )}
+                    {automationStatus && (
+                      <span className="text-blue-400">{automationStatus}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1122,39 +1145,96 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* Inline Details Toggle */}
-          <div className="mt-2 sm:mt-3 border-t border-border pt-2">
+          {/* Enhanced Details Section */}
+          <div className="mt-2 sm:mt-3 border-t border-border pt-3">
             <button
               onClick={() => setShowLeadInfo(!showLeadInfo)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
             >
-              <span>{showLeadInfo ? 'Hide details' : 'Show details'}</span>
               <svg
-                className={`w-3 h-3 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7m7 7V3" />
               </svg>
+              <span className="font-medium group-hover:text-blue-400 transition-colors">
+                {showLeadInfo ? 'Hide lead details' : 'Show lead details'}
+              </span>
             </button>
             
             {showLeadInfo && (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
-                  {lead?.last_message_at && (
-                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
-                  )}
+              <div className="mt-4 bg-muted/30 rounded-xl p-4 border border-border/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Lead Information */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Lead Information
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                          {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Created:</span>
+                        <span>{formatRelativeTime(lead?.created_at)}</span>
+                      </div>
+                      {lead?.last_message_at && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Last activity:</span>
+                          <span>{formatRelativeTime(lead.last_message_at)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* System Information */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      System Details
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ReplyFlow number:</span>
+                        <span className="font-mono">{formatPhoneNumber(business?.twilio_phone_number || '')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Business number:</span>
+                        <span className="font-mono">{formatPhoneNumber(business?.business_phone_number || '')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Customer number:</span>
+                        <span className="font-mono">{formatPhoneNumber(lead?.caller_phone || '')}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Follow-up Status - Subtle Info */}
+                {/* Follow-up Status */}
                 {automationStatus && (
-                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded border border-border">
-                    {automationStatus === 'Follow-ups cancelled after customer reply' 
-                      ? 'Follow-ups stopped after customer replied'
-                      : automationStatus
-                    }
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <div className="flex items-center gap-2 text-xs">
+                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-medium text-foreground">Automation Status</span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground bg-background rounded-lg p-2 border border-border">
+                      {automationStatus === 'Follow-ups cancelled after customer reply' 
+                        ? 'Follow-ups automatically paused after customer replied'
+                        : automationStatus
+                      }
+                    </div>
                   </div>
                 )}
               </div>
@@ -1164,10 +1244,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
-        <div className="bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
+        <div className="bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="p-4 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1214,12 +1294,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         )}
 
           {/* Send Message Input */}
-          <MobileConversationComposer
-            message={message}
-            setMessage={setMessage}
-            handleSendMessage={handleSendMessage}
-            sending={sending}
-          />
+          <div className="border-t border-border bg-card/50 backdrop-blur-sm">
+            <MobileConversationComposer
+              message={message}
+              setMessage={setMessage}
+              handleSendMessage={handleSendMessage}
+              sending={sending}
+            />
+          </div>
           {error && (
             <div className={`text-sm p-3 rounded-lg border ${
               error.includes('verification') || error.includes('carrier')

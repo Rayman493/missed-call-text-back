@@ -52,7 +52,7 @@ export default function MobileConversationMessageList({
             </div>
             
             {/* Message Content */}
-            <div className={`max-w-[70%] sm:max-w-[65%] ${isOutbound ? 'text-right' : ''}`}>
+            <div className={`max-w-[65%] sm:max-w-[60%] ${isOutbound ? 'text-right' : ''}`}>
               {/* Message Header */}
               <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
                 <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
@@ -86,21 +86,21 @@ export default function MobileConversationMessageList({
               
               {/* Message Bubble */}
               <div
-                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out ${
+                className={`rounded-2xl px-3 py-2 relative transition-all duration-300 ease-out ${
                   isInbound
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none hover:shadow-sm'
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none hover:shadow-sm border border-gray-200 dark:border-gray-700'
                     : isOptimistic && isSending
-                    ? 'bg-blue-500 text-white rounded-tr-none animate-pulse shadow-sm'
-                    : 'bg-blue-600 text-white rounded-tr-none hover:shadow-sm hover:bg-blue-700'
+                    ? 'bg-blue-500 text-white rounded-tr-none animate-pulse shadow-sm border border-blue-600'
+                    : 'bg-blue-600 text-white rounded-tr-none hover:shadow-sm hover:bg-blue-700 border border-blue-700'
                 }`}
               >
                 {isOptimistic && isSending && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                  <div className="absolute top-2 right-2 flex items-center gap-1">
                     <div className="w-2 h-2 bg-white/30 rounded-full animate-ping"></div>
                     <div className="w-2 h-2 bg-white/40 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 )}
-                <p className="text-sm sm:text-base leading-relaxed break-words animate-fadeIn">
+                <p className="text-sm leading-relaxed break-words animate-fadeIn">
                   {msg.body || 'No content'}
                 </p>
               </div>
