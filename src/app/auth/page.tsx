@@ -14,21 +14,21 @@ function AuthFooter() {
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <p className="text-slate-600 dark:text-slate-400 text-base">
+          <p className="text-slate-600/70 dark:text-slate-400/70 text-xs sm:text-sm">
             © {currentYear} ReplyFlowHQ. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 mt-4 md:mt-0">
+          <div className="flex items-center gap-4 sm:gap-6 mt-4 md:mt-0">
             <a
               href="/privacy"
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors"
+              className="text-slate-500/60 dark:text-slate-400/60 hover:text-slate-700/80 dark:hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
             >
               Privacy Policy
             </a>
             <a
               href="/terms"
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 text-base transition-colors"
+              className="text-slate-500/60 dark:text-slate-400/60 hover:text-slate-700/80 dark:hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
             >
               Terms of Service
             </a>
@@ -57,7 +57,16 @@ function AuthContent() {
   const [debugError, setDebugError] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const passwordRef = React.useRef<HTMLInputElement>(null)
+  const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
+  const [redirecting, setRedirecting] = useState(false)
+
+  // Auto-focus email field on desktop only
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      emailRef.current?.focus()
+    }
+  }, [])
 
   // Update mode when URL changes
   useEffect(() => {
@@ -154,7 +163,12 @@ function AuthContent() {
 
       subscription.unsubscribe()
       
+      // Show redirecting state
+      setRedirecting(true)
+      setLoading(false)
+      
       console.log('[Auth] Session persisted successfully, redirecting to:', redirectParam)
+      await new Promise(resolve => setTimeout(resolve, 800))
       router.push(redirectParam)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
@@ -378,6 +392,11 @@ function AuthContent() {
       })
       setLoading(false)
       isSubmittingRef.current = false
+      
+      // Show redirecting state
+      setRedirecting(true)
+      
+      await new Promise(resolve => setTimeout(resolve, 800))
       router.replace('/dashboard')
     } catch (err: any) {
       console.error('[Auth] Unexpected sign up error:', err)
@@ -403,7 +422,7 @@ function AuthContent() {
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-8">
         {/* Back to Homepage Link */}
-        <div className="w-full max-w-md mb-4">
+        <div className="w-full max-w-md sm:max-w-[480px] mb-4">
           <Link 
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors"
@@ -415,7 +434,7 @@ function AuthContent() {
           </Link>
         </div>
         
-        <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
+        <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
           <div className="text-center mb-5 sm:mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-900/40 to-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/30 mb-3 sm:mb-4 shadow-lg shadow-blue-900/20">
               <span className="text-lg sm:text-xl font-bold text-blue-400 dark:text-blue-400">RF</span>
@@ -423,8 +442,8 @@ function AuthContent() {
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}
             </h1>
-            <p className="text-sm text-slate-400 dark:text-slate-400">
-              Automatically text back missed callers.
+            <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400">
+              Automatically text back missed calls.
             </p>
           </div>
           
@@ -481,6 +500,7 @@ function AuthContent() {
               </label>
               <input
                 id="email"
+                ref={emailRef}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -509,10 +529,15 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading || isSubmitting}
-              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-[1px] font-semibold"
+              disabled={loading || isSubmitting || redirecting}
+              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
             >
-              {loading || isSubmitting ? (isSignIn ? 'Signing In...' : 'Creating Account...') : (isSignIn ? 'Sign In' : 'Sign Up')}
+              {redirecting ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent inline-block mr-2"></div>
+                  Redirecting to dashboard...
+                </>
+              ) : loading || isSubmitting ? (isSignIn ? 'Signing In...' : 'Creating Account...') : (isSignIn ? 'Sign In' : 'Sign Up')}
             </button>
           </form>
 
@@ -538,6 +563,11 @@ function AuthContent() {
                 <span>Keep your existing business number</span>
               </div>
             </div>
+            
+            {/* Trust Microcopy */}
+            <p className="mt-4 text-center text-[11px] sm:text-xs text-slate-500/70">
+              Built for service businesses that never want to miss another lead.
+            </p>
           </div>
 
           <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400 dark:text-slate-400">
