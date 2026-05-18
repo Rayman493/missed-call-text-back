@@ -432,155 +432,111 @@ export default function SettingsContent() {
               <div className="max-w-7xl mx-auto">
 
             {/* System Status Section */}
-            <div className={`rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6`}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  onboardingState.state === 'LIVE'
-                    ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50'
-                    : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
-                      ? 'bg-blue-500 animate-pulse shadow-sm shadow-blue-500/50'
-                      : onboardingState.state === 'PRE_TRIAL'
-                        ? 'bg-slate-400'
-                        : 'bg-amber-500'
-                }`}></div>
-                <h2 className={`text-sm font-semibold ${
-                  onboardingState.state === 'LIVE'
-                    ? 'text-green-800 dark:text-green-200'
-                    : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
-                      ? 'text-blue-800 dark:text-blue-200'
-                      : onboardingState.state === 'PRE_TRIAL'
-                        ? 'text-foreground'
-                        : 'text-amber-800 dark:text-amber-200'
-                }`}>System Status</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className={`rounded-xl p-2.5 sm:p-3 mb-4 sm:mb-6`}>
+              <div className="flex flex-wrap items-center gap-2">
                 {onboardingState.state === 'PRE_TRIAL' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-muted-foreground">Waiting for activation</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-muted-foreground">Business texting inactive</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-muted-foreground">Missed-call monitoring inactive</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-amber-700/80 dark:text-amber-300/70">Trial needed</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
+                      Waiting for activation
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
+                      Business texting inactive
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
+                      Monitoring inactive
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full text-xs">
+                      Trial needed
+                    </span>
                   </>
                 )}
                 {onboardingState.state === 'ACTIVATING' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Preparing your ReplyFlow system</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Activating business texting</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Setup in progress</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Preparing system
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Activating texting
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                      Setup in progress
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Trial active
+                    </span>
                   </>
                 )}
                 {onboardingState.state === 'MESSAGING_SETUP' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Activating messaging</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Finalizing ReplyFlow line</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Carrier setup in progress</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Activating messaging
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Finalizing ReplyFlow line
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                      Carrier setup in progress
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Trial active
+                    </span>
                   </>
                 )}
                 {onboardingState.state === 'AWAITING_FORWARDING' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">ReplyFlow line ready</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Waiting for business line connection</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-muted-foreground">Missed-call monitoring inactive</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      ReplyFlow line ready
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Waiting for connection
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
+                      Monitoring inactive
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Trial active
+                    </span>
                   </>
                 )}
                 {onboardingState.state === 'VERIFICATION_PENDING' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Waiting for test call</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">ReplyFlow standing by</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-muted-foreground">Monitoring will begin after verification</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Waiting for test call
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      ReplyFlow standing by
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
+                      Monitoring pending
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      Trial active
+                    </span>
                   </>
                 )}
                 {onboardingState.state === 'LIVE' && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Monitoring missed calls</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Auto-replies active</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">SMS system operational</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isInTrialPeriod(business?.subscription_status) ? (
-                        <>
-                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                          <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Subscription active</span>
-                        </>
-                      )}
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      Monitoring active
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
+                      Auto-replies active
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
+                      SMS operational
+                    </span>
+                    {isInTrialPeriod(business?.subscription_status) ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                        Trial active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
+                        Subscription active
+                      </span>
+                    )}
                   </>
                 )}
               </div>
