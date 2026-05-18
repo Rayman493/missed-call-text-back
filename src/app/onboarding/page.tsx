@@ -301,10 +301,17 @@ export default function OnboardingPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
-        <div className="max-w-md w-full bg-slate-800 rounded-lg shadow-lg p-6 sm:p-8">
-          <p className="text-xs text-slate-400 mb-2">Step 1 of 2</p>
+        <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-5 sm:p-8">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
+              <div className="h-1 flex-1 bg-slate-600 rounded-full"></div>
+            </div>
+            <p className="text-xs text-slate-400 text-right">Step 1 of 2</p>
+          </div>
+          
           <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-sm text-slate-400 mb-4">Never miss a customer again - we'll text back when you can't answer</p>
+          <p className="text-sm text-slate-400 mb-5">Let's get you set up so you never miss a customer again</p>
           
           {/* Pricing Information */}
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6">
@@ -325,8 +332,8 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">How It Works</p>
-                <p className="text-xs text-blue-300 leading-relaxed">Customer calls your business → You can't answer → ReplyFlow texts them back automatically → You get the lead</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">Simple setup in 3 steps</p>
+                <p className="text-xs text-blue-300 leading-relaxed">1. Add your business info → 2. Activate your free trial → 3. Set up call forwarding</p>
               </div>
             </div>
           </div>
@@ -349,7 +356,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
                 placeholder="e.g., ABC Plumbing"
-                className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
               />
             </div>
 
@@ -364,33 +371,33 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
                 placeholder="(555) 123-4567"
-                className="w-full px-3 py-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
               />
               <p className="mt-2 text-xs text-gray-400">
-                The phone number your customers already call
+                The phone number customers call to reach you
               </p>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base font-medium flex items-center justify-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
             >
               {loading ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  Setting up your business...
+                  Setting up your account...
                 </>
               ) : (
-                'Continue Setup'
+                'Continue to Free Trial'
               )}
             </button>
-            <p className="text-sm text-gray-400 text-center mt-3">Takes less than 5 minutes to complete</p>
+            <p className="text-xs text-gray-400 text-center mt-3">Takes about 2 minutes</p>
           </form>
 
           {/* Live Preview Section */}
           <div className="mt-8 pt-6 border-t border-gray-700">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">See what your customers will receive</h3>
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Your auto-reply message</h3>
             <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
               <p className="text-sm text-gray-200">
                 "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
@@ -402,15 +409,15 @@ export default function OnboardingPage() {
           </div>
 
           {/* Trust Messaging */}
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-2">
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Start your free trial to explore the dashboard
+              ✓ Start your free trial, no credit card required
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Set up call forwarding after you activate your trial
+              ✓ Set up call forwarding after activation
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ No commitment - cancel anytime during trial
+              ✓ Cancel anytime during your 14-day trial
             </p>
           </div>
         </div>

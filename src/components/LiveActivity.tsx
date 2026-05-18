@@ -99,13 +99,13 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
     return (
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0" />
+          <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">
-              ReplyFlow is live and monitoring your business line.
+              ReplyFlow is live and monitoring your business line
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Recent missed calls and customer activity will appear automatically.
+              Recent missed calls and customer activity will appear automatically
             </p>
           </div>
         </div>
@@ -114,20 +114,20 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 border border-slate-200 dark:border-slate-700">
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-slate-700">
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50" />
-              <span className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide">Live</span>
+              <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
+              <span className="text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide">Live</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">
                 Live Activity
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
                 Recent missed calls and customer conversations
               </p>
             </div>
@@ -135,7 +135,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('recent')}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all duration-200 ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 ${
                 activeTab === 'recent'
                   ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -145,7 +145,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
             </button>
             <button
               onClick={() => setActiveTab('responses')}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all duration-200 relative ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 relative ${
                 activeTab === 'responses'
                   ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -163,12 +163,12 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6">
+      <div className="p-3.5 sm:p-6">
         {activeTab === 'recent' && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentActivity.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-gray-400">
+                <p className="text-gray-400 text-sm">
                   No recent activity to show
                 </p>
               </div>
@@ -176,25 +176,25 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
               recentActivity.map((item, index) => (
                 <div
                   key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                     <div className="flex-shrink-0">
                       {item.status === 'new' ? (
-                        <div className="w-10 h-10 bg-orange-900/30 rounded-full flex items-center justify-center">
-                          <Phone className="w-5 h-5 text-orange-400" />
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-900/30 rounded-full flex items-center justify-center">
+                          <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <MessageCircle className="w-5 h-5 text-blue-400" />
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-900/30 rounded-full flex items-center justify-center">
+                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {getActivityText(item)}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                         {getActivityTime(item)}
                       </p>
                     </div>
@@ -202,10 +202,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
                   <div className="flex-shrink-0">
                     <Link
                       href={`/dashboard/leads/${item.id}`}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                      className="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
                     >
                       View
-                      <ArrowRight className="w-3 h-3 ml-1" />
+                      <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 ml-1" />
                     </Link>
                   </div>
                 </div>
@@ -214,10 +214,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
           </div>
         )}
         {activeTab === 'responses' && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {leadsNeedingResponse.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-gray-400">
+                <p className="text-gray-400 text-sm">
                   No responses needed right now
                 </p>
               </div>
@@ -225,19 +225,19 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
               leadsNeedingResponse.map((lead, index) => (
                 <div
                   key={lead.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                     <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-red-900/30 rounded-full flex items-center justify-center">
-                        <MessageCircle className="w-5 h-5 text-red-400" />
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-red-900/30 rounded-full flex items-center justify-center">
+                        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         Reply from {formatLeadPhone(lead.caller_phone)}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                         {formatRelativeTime(lead.last_message_at || lead.first_contact_at)}
                       </p>
                     </div>
@@ -245,10 +245,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
                   <div className="flex-shrink-0">
                     <Link
                       href={`/dashboard/leads/${lead.id}`}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
+                      className="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
                     >
                       Respond
-                      <ArrowRight className="w-3 h-3 ml-1" />
+                      <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 ml-1" />
                     </Link>
                   </div>
                 </div>
@@ -258,10 +258,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
         )}
         {/* View All Link */}
         {leads.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-gray-700">
+          <div className="mt-5 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-700">
             <Link
               href="/dashboard/leads"
-              className="block text-center text-sm text-blue-400 hover:text-blue-300 font-medium"
+              className="block text-center text-xs sm:text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
               View All Leads
             </Link>

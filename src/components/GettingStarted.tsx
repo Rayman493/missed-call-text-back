@@ -550,12 +550,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
     return (
-      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 p-3 sm:p-4 mb-6 transition-all duration-300 hover:shadow-md">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
-                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 p-3.5 sm:p-4 mb-6 transition-all duration-300 hover:shadow-md">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+            <div className="relative flex-shrink-0">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -566,20 +566,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 ✅ ReplyFlow is live and monitoring your business line
               </h2>
               <p className="text-xs text-green-700/80 dark:text-green-300/70 mt-0.5">
-                Recent missed calls and customer activity will appear automatically.
+                Recent missed calls and customer activity will appear automatically
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => window.location.href = '/dashboard/test-setup'}
-              className="text-xs text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors font-medium hover:underline"
+              className="text-[10px] sm:text-xs text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors font-medium hover:underline"
             >
               Run another test
             </button>
             <button
               onClick={handleToggle}
-              className="text-xs text-green-600/80 dark:text-green-400/70 hover:text-green-800 dark:hover:text-green-300 transition-colors font-medium hover:underline"
+              className="text-[10px] sm:text-xs text-green-600/80 dark:text-green-400/70 hover:text-green-800 dark:hover:text-green-300 transition-colors font-medium hover:underline"
               aria-expanded={isExpanded}
               aria-label="View setup details"
             >
