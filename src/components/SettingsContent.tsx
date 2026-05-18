@@ -502,7 +502,7 @@ export default function SettingsContent() {
                   <h2 className="text-lg font-semibold text-foreground mb-2">Messaging & Automation</h2>
                   <p className="text-sm text-muted-foreground mb-3">
                     Auto-reply messages, business hours, spam filtering, and ignored contacts unlock
-                    once you start your free trial. Your dedicated ReplyFlow number is provisioned
+                    once you start your free trial. Your dedicated ReplyFlow number is set up
                     automatically right after activation.
                   </p>
                   <p className="text-xs text-muted-foreground">

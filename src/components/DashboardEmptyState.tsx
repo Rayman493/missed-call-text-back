@@ -14,7 +14,7 @@ export default function DashboardEmptyState() {
   const [showTestModal, setShowTestModal] = useState(false)
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
 
-  // Only show test setup if user has valid subscription and provisioned number
+  // Only show test setup if user has valid subscription and set up number
   const canShowTestSetup = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number
 
   const handleTestSetup = () => {

@@ -32,13 +32,13 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
 
     const items: SetupChecklistItem[] = []
 
-    // Twilio Active
+    // ReplyFlow Number Active
     items.push({
-      label: 'Twilio Active',
+      label: 'ReplyFlow Number Active',
       status: business.twilio_phone_number ? 'healthy' : 'error',
       details: business.twilio_phone_number 
         ? `Number: ${business.twilio_phone_number}` 
-        : 'No Twilio number assigned'
+        : 'No ReplyFlow number assigned'
     })
 
     // SMS Working

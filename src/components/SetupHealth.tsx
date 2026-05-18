@@ -62,7 +62,7 @@ export default function SetupHealth() {
   if (loading || !business) {
     return (
       <div className="bg-card rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Setup Health</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">Connection Status</h2>
         <div className="animate-pulse">
           <div className="h-4 bg-muted rounded mb-3"></div>
           <div className="h-4 bg-muted rounded mb-3"></div>
@@ -143,15 +143,15 @@ export default function SetupHealth() {
     }
   }
 
-  // 3. Twilio active
+  // 3. ReplyFlow number active
   const twilioActive = !!business.twilio_phone_number
   healthItems.push({
-    title: 'Twilio Active',
-    description: 'ReplyFlow number is assigned and ready',
+    title: 'ReplyFlow Number Active',
+    description: 'Your ReplyFlow number is assigned and ready',
     status: twilioActive ? 'healthy' : 'warning',
     details: twilioActive 
       ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}` 
-      : 'No Twilio number assigned'
+      : 'No ReplyFlow number assigned'
   })
 
   // 4. SMS working (simplified - would need to check recent message logs in real implementation)
@@ -161,8 +161,8 @@ export default function SetupHealth() {
     description: 'Auto-reply messages are being sent',
     status: smsWorking ? 'healthy' : 'warning',
     details: smsWorking 
-      ? 'SMS service is configured' 
-      : 'Not tested yet'
+      ? 'Message sending is active' 
+      : 'Not configured yet'
   })
 
   // Calculate overall status
@@ -247,10 +247,10 @@ return (
       onClick={handleHeaderClick}
       className="w-full p-6 flex items-center justify-between hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-t-xl"
       aria-expanded={!isCollapsed}
-      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Setup Health details`}
+      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Connection Status details`}
     >
       <div className="flex items-center gap-3">
-        <h2 className="text-xl font-semibold text-foreground">Setup Health</h2>
+        <h2 className="text-xl font-semibold text-foreground">Connection Status</h2>
         <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
           {overallStatus === 'healthy' ? 'Healthy' :
            overallStatus === 'warning' ? 'Warning' :

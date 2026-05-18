@@ -451,13 +451,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'number',
         title: 'Get your ReplyFlow number',
-        description: 'A dedicated local number is provisioned for your business.',
+        description: 'A dedicated local number is set up for your business.',
         status: numberActionNeeded ? 'action-needed' : (numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action')),
         details: numberActionNeeded
-          ? 'Number provisioned but has issues - check status'
+          ? 'Number setup has issues - check status'
           : numberDone
             ? `Your ReplyFlow number: ${formatPhoneNumber(business.twilio_phone_number || '')}`
-            : (trialDone ? 'Provisioning your dedicated number…' : 'Available after trial activation'),
+            : (trialDone ? 'Setting up your dedicated number…' : 'Available after trial activation'),
       },
       {
         id: 'forwarding',
