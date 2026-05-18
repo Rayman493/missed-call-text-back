@@ -251,13 +251,7 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
               </svg>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-foreground">Recent Leads</h2>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">Monitoring</span>
-                </div>
-              </div>
+              <h2 className="text-lg font-semibold text-foreground">Recent Leads</h2>
               <p className="text-sm text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
             </div>
           </div>
@@ -279,7 +273,7 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
           <div className="space-y-3">
             {leads.slice(0, 5).map((lead) => (
               <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/80 hover:border-border/60 border border-transparent transition-all duration-200 cursor-pointer">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/80 hover:border-border/60 border border-transparent transition-all duration-300 hover:scale-[1.02] cursor-pointer">
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{getLeadDisplayName(lead)}</p>
                     <p className="text-xs text-muted-foreground">

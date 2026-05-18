@@ -560,7 +560,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 Setup Complete
               </h2>
               <p className="text-sm text-green-700 dark:text-green-300">
-                ReplyFlow is active and ready to capture missed calls.
+                ReplyFlow is active and monitoring your business line.
               </p>
             </div>
           </div>
