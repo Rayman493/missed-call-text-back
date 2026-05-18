@@ -647,16 +647,25 @@ export async function retryProvisioning(
   
   try {
     // Get current state with all provisioning fields
-    const { data: business } = await supabase
+    console.log('[RETRY PROVISIONING] Querying businesses table for business_id:', businessId);
+    
+    const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('provisioning_status, twilio_phone_number, twilio_phone_number_sid, campaign_registered_at, sender_pool_attached_at')
       .eq('id', businessId)
       .single();
     
+    if (businessError) {
+      console.error('[RETRY PROVISIONING] Business query error:', businessError);
+      return { success: false, error: `Business query failed: ${businessError.message}` };
+    }
+    
     if (!business) {
+      console.error('[RETRY PROVISIONING] Business not found in businesses table');
       return { success: false, error: 'Business not found' };
     }
     
+    console.log('[RETRY PROVISIONING] Business found in businesses table');
     console.log('[RETRY PROVISIONING] Current status:', business.provisioning_status);
     console.log('[RETRY PROVISIONING] Has phone number:', !!business.twilio_phone_number);
     console.log('[RETRY PROVISIONING] Has phone SID:', !!business.twilio_phone_number_sid);
