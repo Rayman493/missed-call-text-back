@@ -235,43 +235,43 @@ export default function LeadsPage() {
               />
             )}
 
-            {/* Getting Started - moved above empty state for onboarding focus */}
-            <div className="mb-4">
+            {/* Getting Started - made more compact on Leads page to reduce prominence */}
+            <div className="mb-3">
               <GettingStarted />
             </div>
 
-            {/* Lifecycle Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+            {/* Lifecycle Summary Cards - reduced visual dominance on Leads page */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
-                <p className="text-xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+                <p className="text-lg sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
-                <p className="text-xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
+                <p className="text-lg sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
-                <p className="text-xl sm:text-3xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
+                <p className="text-lg sm:text-2xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2.5 sm:p-4">
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
-                <p className="text-xl sm:text-3xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
+                <p className="text-lg sm:text-2xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length}
                 </p>
               </div>
             </div>
 
-            {/* Leads Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-3 sm:mb-4">
+            {/* Leads Header - dominant focus on Leads page */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-6">
               <div>
-                <h2 className="text-lg sm:text-2xl sm:text-3xl font-bold text-foreground">
+                <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
@@ -381,7 +381,7 @@ export default function LeadsPage() {
                           Customer conversations will appear here
                         </h3>
                         <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Customer conversations will begin appearing here after ReplyFlow is connected to your business line.</p>
+                          <p>Your recovered leads and conversations will populate here in real time.</p>
                           <p className="text-sm text-muted-foreground">Activate your free trial to begin setting up ReplyFlow.</p>
                         </div>
                       </>
@@ -403,7 +403,7 @@ export default function LeadsPage() {
                         </h3>
                         <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
                           <p>Run your final test call to activate missed-call monitoring.</p>
-                          <p className="text-sm text-muted-foreground">Your leads will begin appearing here after verification.</p>
+                          <p className="text-sm text-muted-foreground">Your lead pipeline will populate here in real time after verification.</p>
                         </div>
                       </>
                     )
