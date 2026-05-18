@@ -270,11 +270,24 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               </div>
             </div>
             <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">
-              {isOnboardingComplete ? 'ReplyFlow is live and ready to capture missed callers' : 'Complete setup to begin monitoring missed calls'}
+              {!isOnboardingComplete 
+                ? (provisioningStatus === 'pending' || provisioningStatus === 'failed' 
+                  ? 'Start capturing missed callers' 
+                  : 'Complete your setup')
+                : 'ReplyFlow is live'}
             </h3>
             <p className="text-sm text-slate-600 dark:text-muted-foreground">
-              {isOnboardingComplete ? 'Your recovered customer calls will appear here automatically after your first missed call.' : 'ReplyFlow is preparing your missed-call system. Complete your setup to start capturing calls.'}
+              {!isOnboardingComplete 
+                ? (provisioningStatus === 'pending' || provisioningStatus === 'failed'
+                  ? 'Activate your free trial to begin setting up ReplyFlow and automatically text back missed callers.'
+                  : 'Finish connecting your business line to begin capturing missed callers automatically.')
+                : 'Missed callers and customer conversations will appear here automatically.'}
             </p>
+            {!isOnboardingComplete && provisioningStatus === 'pending' && (
+              <p className="text-xs text-slate-500 dark:text-muted-foreground mt-2">
+                Your customer leads will appear here after setup is complete.
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

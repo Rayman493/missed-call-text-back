@@ -216,7 +216,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{leadsCount === 0 ? 'Ready to capture leads' : 'Leads recovered'}</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">
+              {leadsCount === 0 
+                ? (isOnboardingComplete ? 'Ready to capture leads' : 'Complete setup to begin capturing leads') 
+                : 'Leads recovered'}
+            </p>
           </div>
         </Link>
 
