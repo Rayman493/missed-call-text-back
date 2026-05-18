@@ -552,10 +552,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             </div>
             <div>
               <h2 className="text-lg font-semibold text-green-800 dark:text-green-200">
-                Getting Started
+                Setup Complete
               </h2>
               <p className="text-sm text-green-700 dark:text-green-300">
-                All setup steps complete!
+                ReplyFlow is live and monitoring missed calls.
               </p>
             </div>
           </div>
@@ -563,7 +563,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             onClick={handleToggle}
             className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
             aria-expanded={isExpanded}
-            aria-label="Toggle getting started checklist"
+            aria-label="Toggle setup checklist"
           >
             <svg
               className="w-5 h-5 transition-transform duration-300"
@@ -601,7 +601,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {complete ? 'Your missed-call text-back system is live.' : 'Almost ready — one quick test left'}
+            {complete ? 'ReplyFlow is live and monitoring missed calls.' : 'Almost ready — one quick test left'}
           </p>
           {!complete && (
             <p className="text-xs text-muted-foreground mt-0">
