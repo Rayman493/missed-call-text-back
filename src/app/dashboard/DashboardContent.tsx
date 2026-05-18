@@ -1098,6 +1098,18 @@ export default function DashboardContent() {
                               <span className="text-muted-foreground">Phone Number:</span>
                               <span className="font-mono text-xs text-foreground">{business?.twilio_phone_number || 'N/A'}</span>
                             </div>
+                            {business?.campaign_registered_at && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Campaign Registered:</span>
+                                <span className="text-xs text-foreground">{new Date(business.campaign_registered_at).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {business?.sender_pool_attached_at && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Sender Pool Attached:</span>
+                                <span className="text-xs text-foreground">{new Date(business.sender_pool_attached_at).toLocaleString()}</span>
+                              </div>
+                            )}
                             {business?.provisioning_error && (
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Error:</span>
@@ -1111,19 +1123,39 @@ export default function DashboardContent() {
                               </div>
                             )}
                           </div>
-                          {(business?.provisioning_status === 'failed' || business?.provisioning_status === 'campaign_registering' || business?.provisioning_status === 'sender_pool_attaching') && (
-                            <button
-                              onClick={async () => {
-                                const { getBusinessProvisioningStatus, retryBusinessProvisioning } = await import('@/app/admin/actions');
-                                const result = await retryBusinessProvisioning(business.id);
-                                console.log('[Retry Provisioning] Result:', result);
-                                window.location.reload();
-                              }}
-                              className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm"
-                            >
-                              Retry Provisioning
-                            </button>
-                          )}
+                          <button
+                            onClick={async () => {
+                              if (!business?.id) return;
+                              
+                              const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
+                              
+                              try {
+                                const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ business_id: business.id }),
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success) {
+                                  console.log('[Retry Provisioning] Success:', result);
+                                  alert('Provisioning retry initiated successfully');
+                                  window.location.reload();
+                                } else {
+                                  console.error('[Retry Provisioning] Failed:', result.error);
+                                  alert(`Provisioning retry failed: ${result.error}`);
+                                }
+                              } catch (error: any) {
+                                console.error('[Retry Provisioning] Exception:', error);
+                                alert(`Provisioning retry failed: ${error.message}`);
+                              }
+                            }}
+                            disabled={!business?.id}
+                            className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Retry Provisioning
+                          </button>
                         </div>
 
                         {/* Reconcile Warm Numbers */}
