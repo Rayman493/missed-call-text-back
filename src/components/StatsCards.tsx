@@ -179,7 +179,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
             <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {missedCallsCount === 0 
-                ? (isOnboardingComplete ? 'Missed calls will appear here after your first call' : 'Complete setup to begin capturing missed calls') 
+                ? (isOnboardingComplete ? 'Missed calls will appear after your first call' : 'Complete setup to begin capturing missed calls') 
                 : 'Total captured'}
             </p>
           </div>
@@ -195,7 +195,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
             <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {leadsCount === 0 
-                ? (isOnboardingComplete ? 'Recovered leads will appear here after your first missed call' : 'Complete setup to begin capturing leads') 
+                ? (isOnboardingComplete ? 'Recovered leads will appear after your first missed call' : 'Complete setup to begin capturing leads') 
                 : 'Leads recovered'}
             </p>
           </div>

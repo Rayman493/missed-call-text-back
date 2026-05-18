@@ -951,7 +951,7 @@ export default function DashboardContent() {
                         console.log('[Render Child] StatsCards')
                         return null
                       })()}
-                      <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                      <div className={`transition-opacity duration-300 mb-2 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
                         {business?.id && (
                           <StatsCards 
                             businessId={business.id} 
@@ -978,7 +978,7 @@ export default function DashboardContent() {
                       })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
-                        <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                        <div className={`transition-opacity duration-300 mb-2 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 

@@ -862,7 +862,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
                 onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
-                className={`flex items-start gap-4 p-2.5 sm:p-3 rounded-xl border transition-all duration-300 ease-out ${
+                className={`flex items-start gap-4 p-2 sm:p-2.5 rounded-xl border transition-all duration-300 ease-out ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isActionNeeded
