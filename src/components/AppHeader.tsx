@@ -20,7 +20,7 @@ export default function AppHeader({
   showNavigation = true
 }: AppHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 bg-slate-900 dark:bg-slate-800 flex-shrink-0 shadow-none border-b-0">
+    <header className="z-50 bg-slate-900 dark:bg-slate-800 flex-shrink-0 shadow-none border-b-0">
       <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2.5 border-0">
         <div className="flex items-center justify-between">
           {/* Left side - Mobile menu and logo */}
