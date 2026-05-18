@@ -242,7 +242,7 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
   return (
     <DashboardErrorBoundary>
       {/* Recent Leads */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+      <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">

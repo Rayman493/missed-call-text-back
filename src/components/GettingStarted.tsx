@@ -547,30 +547,30 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
     return (
-      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/20 p-3 sm:p-4 mb-6">
+      <div className="rounded-2xl border border-green-200/50 dark:border-green-800/50 bg-green-50/20 dark:bg-green-900/10 p-2.5 sm:p-3 mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-7 h-7 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="w-6 h-6 bg-green-500/80 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-semibold text-green-800 dark:text-green-200">
+              <h2 className="text-xs sm:text-sm font-semibold text-green-700/80 dark:text-green-300/80">
                 Setup Complete
               </h2>
-              <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">
+              <p className="text-[10px] sm:text-xs text-green-600/70 dark:text-green-400/70">
                 ReplyFlow is active and monitoring your business line.
               </p>
             </div>
           </div>
           <button
             onClick={handleToggle}
-            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors flex-shrink-0"
+            className="text-green-600/70 dark:text-green-400/70 hover:text-green-800 dark:hover:text-green-300 transition-colors flex-shrink-0"
             aria-expanded={isExpanded}
             aria-label="View setup details"
           >
-            <span className="text-xs sm:text-sm font-medium">View setup</span>
+            <span className="text-[10px] sm:text-xs font-medium">View setup</span>
           </button>
         </div>
 
