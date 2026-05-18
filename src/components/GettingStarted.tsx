@@ -480,8 +480,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Confirm everything works',
-        description: 'Place one missed test call to confirm ReplyFlow is live.',
+        title: 'Final test',
+        description: 'Place a test call to confirm ReplyFlow is live.',
         status: testActionNeeded ? 'action-needed' : (testDone ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Test failed - try again'
@@ -775,7 +775,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (!isInTrial ? 'Get started in minutes' : 'Almost ready — one quick test left')}
+            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (!isInTrial ? 'Get started in minutes' : `${doneSteps} of ${totalSteps} steps completed`)}
           </p>
           {!complete && (
             <p className="text-xs text-muted-foreground mt-0">
@@ -819,26 +819,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </button>
         )}
       </div>
-
-      {/* Inline test reminder when on test step */}
-      {!complete && doneSteps === 3 && !isExpanded && (
-        <div className="bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30 rounded-lg px-3 py-2 mb-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">📞</span>
-              <p className="text-xs text-amber-800 dark:text-amber-200">
-                Final step: Test your business phone to confirm ReplyFlow is active.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/test-setup"
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex-shrink-0"
-            >
-              Test Setup →
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Slim progress bar */}
       <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-1.5">
