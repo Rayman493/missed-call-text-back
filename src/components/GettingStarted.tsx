@@ -846,8 +846,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       </div>
 
       {isExpanded && (
-        <ol className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
-          {checklistItems.map((item, idx) => {
+        <div className="animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
+          <ol className="space-y-2.5">
+            {checklistItems.map((item, idx) => {
             const stepNum = idx + 1
             const isComplete = item.status === 'complete'
             const isActionNeeded = item.status === 'action-needed'
@@ -861,15 +862,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
                 onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
-                className={`flex items-start gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ease-out ${
+                className={`flex items-start gap-4 p-2.5 sm:p-3 rounded-xl border transition-all duration-300 ease-out ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isActionNeeded
                       ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60 shadow-sm'
                       : isCurrent
-                        ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
+                        ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-300/80 dark:border-blue-600/60 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
                         : 'bg-muted/50 border-border'
-                } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
+                } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -1009,6 +1010,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )
           })}
         </ol>
+        </div>
       )}
     </div>
   )

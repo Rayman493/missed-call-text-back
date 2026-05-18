@@ -173,11 +173,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         <Link href="/dashboard/leads" className="group">
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600/20 dark:from-amber-500/20 dark:to-amber-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-all duration-300">📞</span>
-              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600/30 dark:from-amber-500/30 dark:to-amber-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-all duration-300">📞</span>
+              <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Captured</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {missedCallsCount === 0 
                 ? (isOnboardingComplete ? 'Missed calls will appear here after your first call' : 'Complete setup to begin capturing missed calls') 
                 : 'Total captured'}
@@ -189,11 +189,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         <Link href="/dashboard/leads" className="group">
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-all duration-300">👥</span>
-              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/30 dark:from-blue-500/30 dark:to-blue-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-all duration-300">👥</span>
+              <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {leadsCount === 0 
                 ? (isOnboardingComplete ? 'Recovered leads will appear here after your first missed call' : 'Complete setup to begin capturing leads') 
                 : 'Leads recovered'}
@@ -205,11 +205,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         <Link href="/dashboard/leads" className="group">
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600/20 dark:from-green-500/20 dark:to-green-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-green-200/50 dark:border-green-800/50 group-hover:scale-105 transition-all duration-300">💬</span>
-              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600/30 dark:from-green-500/30 dark:to-green-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-green-200/50 dark:border-green-800/50 group-hover:scale-105 transition-all duration-300">💬</span>
+              <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{conversationsCount === 0 ? 'Customer replies will appear here' : 'Active conversations'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{conversationsCount === 0 ? 'Customer replies will appear here' : 'Active conversations'}</p>
           </div>
         </Link>
 
@@ -217,11 +217,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         <Link href="/dashboard/leads" className="group">
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-md hover:shadow-lg hover:border-slate-300 dark:hover:border-border/100 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600/20 dark:from-purple-500/20 dark:to-purple-600/20 rounded-xl flex items-center justify-center text-xl shadow-sm border border-purple-200/50 dark:border-purple-800/50 group-hover:scale-105 transition-all duration-300">📅</span>
-              <h3 className="text-xs font-bold text-slate-600 dark:text-muted-foreground/80 group-hover:text-slate-800 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
+              <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600/30 dark:from-purple-500/30 dark:to-purple-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-purple-200/50 dark:border-purple-800/50 group-hover:scale-105 transition-all duration-300">📅</span>
+              <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-ups</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-purple-600 dark:text-purple-400 mb-2 tracking-tight">{followUpsCount}</p>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground/70">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
           </div>
         </Link>
       </div>

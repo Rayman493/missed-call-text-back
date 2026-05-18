@@ -988,6 +988,7 @@ export default function DashboardContent() {
                               isOnboardingComplete={isOnboardingComplete}
                               provisioningStatus={business?.provisioning_status || 'pending'}
                               forwardingVerified={business?.forwarding_verified || false}
+                              isOnboardingExpanded={isOnboardingExpanded}
                             />
                           )}
                         </div>
