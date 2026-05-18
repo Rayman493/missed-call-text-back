@@ -938,7 +938,7 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Hero Metrics Section */}
+                    {/* Hero Metrics Section - always visible to maintain operational feel */}
                     <SectionErrorBoundary sectionName="StatsCards">
                       {(() => {
                         console.log('[SECTION RENDER]', {
@@ -951,19 +951,16 @@ export default function DashboardContent() {
                         console.log('[Render Child] StatsCards')
                         return null
                       })()}
-                      {/* Hide StatsCards when onboarding is expanded to avoid duplicate messaging */}
-                      {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
-                        <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                          {business?.id && (
-                            <StatsCards 
-                              businessId={business.id} 
-                              isOnboardingComplete={isOnboardingComplete}
-                              provisioningStatus={business?.provisioning_status || 'pending'}
-                              forwardingVerified={business?.forwarding_verified || false}
-                            />
-                          )}
-                        </div>
-                      )}
+                      <div className={`transition-opacity duration-300 mb-3 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                        {business?.id && (
+                          <StatsCards 
+                            businessId={business.id} 
+                            isOnboardingComplete={isOnboardingComplete}
+                            provisioningStatus={business?.provisioning_status || 'pending'}
+                            forwardingVerified={business?.forwarding_verified || false}
+                          />
+                        )}
+                      </div>
                     </SectionErrorBoundary>
 
                     {/* Recent Leads Section */}
@@ -1012,23 +1009,24 @@ export default function DashboardContent() {
                         console.log('[Dashboard Render] ConversationsSection')
                         return null
                       })()}
-                      <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
-                            <p className="text-sm text-muted-foreground">
-                              {isOnboardingComplete 
-                                ? "When a customer replies to a ReplyFlow text, you'll see the conversation here."
-                                : 'Complete setup to begin receiving customer replies.'}
-                            </p>
+                      {/* Only show conversations section when onboarding is complete */}
+                      {isOnboardingComplete && (
+                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
+                              <p className="text-sm text-muted-foreground">
+                                When a customer replies to a ReplyFlow text, you'll see the conversation here.
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </SectionErrorBoundary>
                   </>
                 ) : null}
