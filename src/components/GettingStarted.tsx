@@ -648,7 +648,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <li
                       key={item.id}
                       ref={(el) => { cardRefs.current[item.id] = el }}
-                      onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}
+                      onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
                       className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ${
                         isComplete
                           ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
@@ -657,7 +657,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             : isCurrent
                               ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
                               : 'bg-muted/50 border-border'
-                      } ${isForwardingCard && !isComplete && !isActionNeeded ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
+                      } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
                     >
                       <div className="flex-shrink-0 mt-0.5">
                         {isComplete ? (
@@ -682,7 +682,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground text-sm sm:text-base">{item.title}</h3>
+                          <h3 className={`font-semibold text-sm sm:text-base ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/70' : 'text-foreground'}`}>{item.title}</h3>
                           <span
                             className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                               isComplete
@@ -696,7 +696,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           >
                             {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : ''}
                           </span>
-                          {isForwardingCard && !isComplete && (
+                          {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
                             <div className="flex-shrink-0">
                               {isExpandedCard ? (
                                 <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -706,7 +706,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                        <p className={`text-sm mb-2 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
                         {item.details && (
                           <p className="text-xs text-muted-foreground mb-3">{item.details}</p>
                         )}
@@ -866,7 +866,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               <li
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
-                onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}
+                onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
                 className={`flex items-start gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
@@ -875,7 +875,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       : isCurrent
                         ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
                         : 'bg-muted/50 border-border'
-                } ${isForwardingCard && !isComplete && !isActionNeeded ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
+                } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -903,7 +903,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
-                        : 'text-foreground'
+                        : !isCurrent && !isActionNeeded
+                          ? 'text-muted-foreground/70'
+                          : 'text-foreground'
                     }`}>
                       Step {stepNum} — {item.title}
                     </h3>
@@ -921,7 +923,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       >
                         {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : ''}
                       </span>
-                      {isForwardingCard && !isComplete && (
+                      {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
                         <div className="flex-shrink-0">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -935,7 +937,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   <p className={`text-xs sm:text-sm mb-1.5 ${
                     isComplete
                       ? 'text-muted-foreground/60'
-                      : 'text-muted-foreground'
+                      : !isCurrent && !isActionNeeded
+                        ? 'text-muted-foreground/60'
+                        : 'text-muted-foreground'
                   }`}>
                     {item.description}
                   </p>
