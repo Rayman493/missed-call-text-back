@@ -52,9 +52,12 @@ export interface Business {
   forwarding_verified_at?: string | null;
   
   // Twilio provisioning lifecycle fields
-  provisioning_status?: 'pending' | 'provisioning' | 'active' | 'failed' | string | null;
+  provisioning_status?: 'purchasing' | 'purchased' | 'campaign_registering' | 'campaign_registered' | 'sender_pool_attaching' | 'ready' | 'failed' | 'pending' | 'provisioning' | 'active' | string | null;
   provisioning_error?: string | null;
   provisioned_at?: string | null;
+  last_provisioning_attempt_at?: string | null;
+  campaign_registered_at?: string | null;
+  sender_pool_attached_at?: string | null;
   
   created_at: string;
   updated_at?: string;
