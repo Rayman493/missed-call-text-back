@@ -131,26 +131,39 @@ export default function BusinessActivity({
   return (
     <SectionErrorBoundary sectionName="BusinessActivity">
       <div className="mb-4 sm:mb-6">
-        {/* Section Heading */}
-        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-          <h2 className="text-base sm:text-lg font-semibold text-foreground">
+        {/* Section Heading with Description */}
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
             Business Activity
           </h2>
-          <span className="text-xs text-muted-foreground">• This Month</span>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <span>This Month</span>
+            <span>•</span>
+            <span>See how ReplyFlow is helping your business</span>
+          </div>
         </div>
 
         {/* Operational Status Indicators */}
         {(provisioningStatus === 'active' || forwardingVerified) && (
-          <div className="flex items-center gap-2 mb-3 sm:mb-4 text-xs text-muted-foreground">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            <span>
-              {provisioningStatus === 'active' && 'ReplyFlow is monitoring your business line'}
-              {provisioningStatus === 'active' && forwardingVerified && ' • '}
-              {forwardingVerified && 'Forwarding connected'}
-            </span>
+          <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4 text-xs text-muted-foreground bg-muted/30 dark:bg-muted/20 px-3 py-2 rounded-lg border border-border/50">
+            {provisioningStatus === 'active' && (
+              <>
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span>Monitoring active</span>
+              </>
+            )}
+            {provisioningStatus === 'active' && forwardingVerified && (
+              <span className="hidden sm:inline">•</span>
+            )}
+            {forwardingVerified && (
+              <>
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span>Forwarding connected</span>
+              </>
+            )}
             {metrics.lastActivityTime && (
               <>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>Last activity: {getTimeAgo(metrics.lastActivityTime)}</span>
               </>
             )}
@@ -158,69 +171,71 @@ export default function BusinessActivity({
         )}
 
         {/* Business Activity Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-          {/* Missed Calls Recovered */}
-          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg sm:text-xl">📞</span>
-              <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Missed Calls Recovered
-              </span>
+        <div className="bg-white dark:bg-card/50 border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            {/* Missed Calls Recovered */}
+            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base sm:text-lg">📞</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
+                  Missed Calls Recovered
+                </span>
+              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-1">
+                {metrics.missedCallsRecovered}
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+                Customers automatically contacted
+              </p>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-1">
-              {metrics.missedCallsRecovered}
-            </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
-              Customers automatically contacted after missed calls
-            </p>
-          </div>
 
-          {/* Leads Captured */}
-          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg sm:text-xl">👥</span>
-              <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Leads Captured
-              </span>
+            {/* Leads Captured */}
+            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base sm:text-lg">👥</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
+                  Leads Captured
+                </span>
+              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-1">
+                {metrics.leadsCaptured}
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+                New opportunities captured
+              </p>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-1">
-              {metrics.leadsCaptured}
-            </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
-              New opportunities captured by ReplyFlow
-            </p>
-          </div>
 
-          {/* Customer Replies */}
-          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg sm:text-xl">💬</span>
-              <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Customer Replies
-              </span>
+            {/* Customer Replies */}
+            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base sm:text-lg">💬</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
+                  Customer Replies
+                </span>
+              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mb-1">
+                {metrics.autoRepliesSent}
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+                Customers continued conversation
+              </p>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mb-1">
-              {metrics.autoRepliesSent}
-            </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
-              Customers continued the conversation
-            </p>
-          </div>
 
-          {/* Follow-Ups Scheduled */}
-          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2.5 sm:p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg sm:text-xl">💡</span>
-              <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                Follow-Ups Scheduled
-              </span>
+            {/* Follow-Ups Scheduled */}
+            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base sm:text-lg">💡</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
+                  Follow-Ups Scheduled
+                </span>
+              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-1">
+                {metrics.conversationsStarted}
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+                {metrics.responseRate > 0 ? `${Math.round(metrics.responseRate)}% response rate` : 'Active conversations'}
+              </p>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-1">
-              {metrics.conversationsStarted}
-            </p>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/60">
-              {metrics.responseRate > 0 ? `${Math.round(metrics.responseRate)}% response rate` : 'Active conversations'}
-            </p>
           </div>
         </div>
       </div>
