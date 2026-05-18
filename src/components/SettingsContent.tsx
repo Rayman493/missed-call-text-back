@@ -434,12 +434,10 @@ export default function SettingsContent() {
             {/* System Status Section */}
             <div className={`rounded-xl border-x border-b shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6 ${
               onboardingState.state === 'LIVE'
-                ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 border-green-200/60 dark:border-green-800/50'
+                ? 'border-green-200/60 dark:border-green-800/50'
                 : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
-                  ? 'bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200/60 dark:border-blue-800/50'
-                  : onboardingState.state === 'PRE_TRIAL'
-                    ? 'bg-muted/30 border-border'
-                    : 'bg-muted/30 border-border'
+                  ? 'border-blue-200/60 dark:border-blue-800/50'
+                  : 'border-border'
             }`}>
               <div className="flex items-center gap-2 mb-3">
                 <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
