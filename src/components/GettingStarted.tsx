@@ -468,14 +468,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         details: forwardingActionNeeded
           ? 'Forwarding disabled - re-enable to continue'
           : forwardingDone
-            ? 'Your business phone is now connected to ReplyFlow.'
+            ? 'Your business phone is connected to ReplyFlow. You can review your forwarding instructions anytime.'
             : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
         // Always show button when number is ready and forwarding is not complete
         buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
         buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
         // Secondary button for users who have already enabled forwarding
-        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : undefined,
+        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'View forwarding instructions' : undefined),
         secondaryButtonOnClick: numberDone && !forwardingDone ? handleCompleteForwarding : undefined,
+        secondaryButtonHref: forwardingDone ? '/setup/phone-forwarding' : undefined,
       },
       {
         id: 'test',
@@ -648,7 +649,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <li
                       key={item.id}
                       ref={(el) => { cardRefs.current[item.id] = el }}
-                      onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
+                      onClick={() => isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && handleCardToggle(item.id)}
                       className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ${
                         isComplete
                           ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
@@ -657,7 +658,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             : isCurrent
                               ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
                               : 'bg-muted/50 border-border'
-                      } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
+                      } ${isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
                     >
                       <div className="flex-shrink-0 mt-0.5">
                         {isComplete ? (
@@ -696,7 +697,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           >
                             {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                           </span>
-                          {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
+                          {isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && (
                             <div className="flex-shrink-0">
                               {isExpandedCard ? (
                                 <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -724,7 +725,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             {item.buttonText}
                           </Link>
                         )}
-                        {item.secondaryButtonText && (
+                        {item.secondaryButtonText && item.secondaryButtonHref && (
+                          <Link
+                            href={item.secondaryButtonHref}
+                            className="ml-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            {item.secondaryButtonText}
+                          </Link>
+                        )}
+                        {item.secondaryButtonText && item.secondaryButtonOnClick && (
                           <button
                             onClick={item.secondaryButtonOnClick}
                             className="ml-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
