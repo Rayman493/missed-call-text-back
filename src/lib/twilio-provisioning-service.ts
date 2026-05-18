@@ -523,27 +523,29 @@ async function updateProvisioningStatus(
   console.log('[UPDATE STATUS] error:', error);
   
   try {
-    const updateData: any = {
-      provisioning_status: status,
-      last_provisioning_attempt_at: new Date().toISOString(),
-    };
-    
-    if (error) {
-      updateData.provisioning_error = error;
-    } else {
-      updateData.provisioning_error = null;
-    }
-    
-    if (setCampaignRegisteredAt) {
-      updateData.campaign_registered_at = new Date().toISOString();
-    }
-    
-    if (setSenderPoolAttachedAt) {
-      updateData.sender_pool_attached_at = new Date().toISOString();
-    }
-    
-    // Update twilio_numbers table
+    // Only update twilio_numbers table for provisioning fields
     if (phoneNumberSid) {
+      const updateData: any = {
+        provisioning_status: status,
+        last_provisioning_attempt_at: new Date().toISOString(),
+      };
+      
+      if (error) {
+        updateData.provisioning_error = error;
+      } else {
+        updateData.provisioning_error = null;
+      }
+      
+      if (setCampaignRegisteredAt) {
+        updateData.campaign_registered_at = new Date().toISOString();
+      }
+      
+      if (setSenderPoolAttachedAt) {
+        updateData.sender_pool_attached_at = new Date().toISOString();
+      }
+      
+      console.log('[UPDATE STATUS] Updating twilio_numbers table with data:', updateData);
+      
       const { error: twilioError } = await supabase
         .from('twilio_numbers')
         .update(updateData)
@@ -554,18 +556,8 @@ async function updateProvisioningStatus(
       } else {
         console.log('[UPDATE STATUS] Updated twilio_numbers successfully');
       }
-    }
-    
-    // Update businesses table
-    const { error: businessError } = await supabase
-      .from('businesses')
-      .update(updateData)
-      .eq('id', businessId);
-    
-    if (businessError) {
-      console.error('[UPDATE STATUS] Failed to update businesses:', businessError);
     } else {
-      console.log('[UPDATE STATUS] Updated businesses successfully');
+      console.error('[UPDATE STATUS] No phone number SID provided, cannot update');
     }
     
     console.log('[UPDATE STATUS] ========== COMPLETE ==========');
@@ -580,23 +572,43 @@ async function updateProvisioningStatus(
  */
 export async function isNumberReadyForUse(businessId: string): Promise<boolean> {
   try {
-    const { data: business } = await supabase
+    // Query businesses for phone SID
+    const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('provisioning_status, twilio_phone_number_sid')
+      .select('twilio_phone_number_sid')
       .eq('id', businessId)
       .single();
     
-    if (!business) {
+    if (businessError || !business) {
       console.error('[FAIL-SAFE] Business not found:', businessId);
       return false;
     }
     
+    if (!business.twilio_phone_number_sid) {
+      console.error('[FAIL-SAFE] No phone SID assigned to business');
+      return false;
+    }
+    
+    // Query twilio_numbers for provisioning status
+    const { data: twilioNumber, error: twilioError } = await supabase
+      .from('twilio_numbers')
+      .select('provisioning_status, campaign_registered_at, sender_pool_attached_at')
+      .eq('twilio_sid', business.twilio_phone_number_sid)
+      .single();
+    
+    if (twilioError || !twilioNumber) {
+      console.error('[FAIL-SAFE] Twilio number not found in twilio_numbers table');
+      return false;
+    }
+    
     console.log('[FAIL-SAFE] Checking provisioning status for business:', businessId);
-    console.log('[FAIL-SAFE] provisioning_status:', business.provisioning_status);
+    console.log('[FAIL-SAFE] provisioning_status from twilio_numbers:', twilioNumber.provisioning_status);
+    console.log('[FAIL-SAFE] campaign_registered_at:', twilioNumber.campaign_registered_at);
+    console.log('[FAIL-SAFE] sender_pool_attached_at:', twilioNumber.sender_pool_attached_at);
     
     // Only allow sending from 'ready' numbers
-    if (business.provisioning_status !== 'ready') {
-      console.warn('[FAIL-SAFE] Number not ready for use. Status:', business.provisioning_status);
+    if (twilioNumber.provisioning_status !== 'ready') {
+      console.warn('[FAIL-SAFE] Number not ready for use. Status:', twilioNumber.provisioning_status);
       return false;
     }
     
@@ -646,12 +658,12 @@ export async function retryProvisioning(
   console.log('[RETRY PROVISIONING] business_id:', businessId);
   
   try {
-    // Get current state with all provisioning fields
+    // Query businesses table for business fields only
     console.log('[RETRY PROVISIONING] Querying businesses table for business_id:', businessId);
     
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('provisioning_status, twilio_phone_number, twilio_phone_number_sid, campaign_registered_at, sender_pool_attached_at')
+      .select('id, name, twilio_phone_number, twilio_phone_number_sid')
       .eq('id', businessId)
       .single();
     
@@ -665,12 +677,9 @@ export async function retryProvisioning(
       return { success: false, error: 'Business not found' };
     }
     
-    console.log('[RETRY PROVISIONING] Business found in businesses table');
-    console.log('[RETRY PROVISIONING] Current status:', business.provisioning_status);
-    console.log('[RETRY PROVISIONING] Has phone number:', !!business.twilio_phone_number);
-    console.log('[RETRY PROVISIONING] Has phone SID:', !!business.twilio_phone_number_sid);
-    console.log('[RETRY PROVISIONING] campaign_registered_at:', business.campaign_registered_at);
-    console.log('[RETRY PROVISIONING] sender_pool_attached_at:', business.sender_pool_attached_at);
+    console.log('[RETRY PROVISIONING] Business found in businesses table:', business.name);
+    console.log('[RETRY PROVISIONING] Phone number:', business.twilio_phone_number);
+    console.log('[RETRY PROVISIONING] Phone SID:', business.twilio_phone_number_sid);
     
     // If no number purchased, start fresh
     if (!business.twilio_phone_number_sid) {
@@ -678,16 +687,76 @@ export async function retryProvisioning(
       return provisionTwilioNumberWithCompliance(businessId, correlation);
     }
     
+    // Query twilio_numbers table for provisioning fields
+    console.log('[RETRY PROVISIONING] Querying twilio_numbers table for phone SID:', business.twilio_phone_number_sid);
+    
+    const { data: twilioNumber, error: twilioError } = await supabase
+      .from('twilio_numbers')
+      .select('provisioning_status, provisioning_error, last_provisioning_attempt_at, campaign_registered_at, sender_pool_attached_at, a2p_campaign_sid')
+      .eq('twilio_sid', business.twilio_phone_number_sid)
+      .single();
+    
+    let twilioNumberData = twilioNumber;
+    
+    if (twilioError) {
+      console.error('[RETRY PROVISIONING] Twilio number query error:', twilioError);
+      // Try to create twilio_numbers row if it doesn't exist
+      console.log('[RETRY PROVISIONING] Creating twilio_numbers row for business');
+      
+      const { error: insertError } = await supabase
+        .from('twilio_numbers')
+        .insert({
+          business_id: businessId,
+          phone_number: business.twilio_phone_number,
+          twilio_sid: business.twilio_phone_number_sid,
+          number_type: 'both',
+          status: 'active',
+          sms_status: 'pending',
+          provisioning_status: 'purchased',
+          last_provisioning_attempt_at: new Date().toISOString(),
+          assigned_at: new Date().toISOString(),
+        });
+      
+      if (insertError) {
+        console.error('[RETRY PROVISIONING] Failed to create twilio_numbers row:', insertError);
+        return { success: false, error: `Failed to create twilio_numbers row: ${insertError.message}` };
+      }
+      
+      // Query again after creation
+      const { data: newTwilioNumber, error: newError } = await supabase
+        .from('twilio_numbers')
+        .select('provisioning_status, provisioning_error, last_provisioning_attempt_at, campaign_registered_at, sender_pool_attached_at, a2p_campaign_sid')
+        .eq('twilio_sid', business.twilio_phone_number_sid)
+        .single();
+      
+      if (newError || !newTwilioNumber) {
+        return { success: false, error: 'Failed to query twilio_numbers after creation' };
+      }
+      
+      console.log('[RETRY PROVISIONING] twilio_numbers row created successfully');
+      twilioNumberData = newTwilioNumber;
+    }
+    
+    if (!twilioNumberData) {
+      console.error('[RETRY PROVISIONING] Twilio number not found in twilio_numbers table');
+      return { success: false, error: 'Twilio number not found' };
+    }
+    
+    console.log('[RETRY PROVISIONING] Twilio number found in twilio_numbers table');
+    console.log('[RETRY PROVISIONING] Provisioning status from twilio_numbers:', twilioNumberData.provisioning_status);
+    console.log('[RETRY PROVISIONING] campaign_registered_at:', twilioNumberData.campaign_registered_at);
+    console.log('[RETRY PROVISIONING] sender_pool_attached_at:', twilioNumberData.sender_pool_attached_at);
+    
     // Check if truly ready (all conditions must pass)
     const isTrulyReady = 
-      business.provisioning_status === 'ready' &&
-      business.campaign_registered_at !== null &&
-      business.sender_pool_attached_at !== null;
+      twilioNumberData.provisioning_status === 'ready' &&
+      twilioNumberData.campaign_registered_at !== null &&
+      twilioNumberData.sender_pool_attached_at !== null;
     
     console.log('[RETRY PROVISIONING] Readiness check:', {
-      provisioning_status: business.provisioning_status,
-      campaign_registered_at: business.campaign_registered_at,
-      sender_pool_attached_at: business.sender_pool_attached_at,
+      provisioning_status: twilioNumberData.provisioning_status,
+      campaign_registered_at: twilioNumberData.campaign_registered_at,
+      sender_pool_attached_at: twilioNumberData.sender_pool_attached_at,
       is_truly_ready: isTrulyReady
     });
     
@@ -704,8 +773,8 @@ export async function retryProvisioning(
     
     // Legacy status normalization
     const legacyStatuses = ['active', 'attached', 'provisioning', 'pending'];
-    if (legacyStatuses.includes(business.provisioning_status || '')) {
-      console.log('[RETRY PROVISIONING] Legacy status detected:', business.provisioning_status);
+    if (legacyStatuses.includes(twilioNumberData.provisioning_status || '')) {
+      console.log('[RETRY PROVISIONING] Legacy status detected:', twilioNumberData.provisioning_status);
       console.log('[RETRY PROVISIONING] Normalizing to campaign_registering for full provisioning');
       
       // Update status to campaign_registering to trigger full provisioning
