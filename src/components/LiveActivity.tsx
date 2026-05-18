@@ -105,8 +105,8 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
 
     if (!isOnboardingComplete) {
       // Not fully set up yet - keep it simple, Setup Progress handles detailed messaging
-      title = 'Monitoring your business line'
-      description = 'Complete setup to begin capturing missed calls.'
+      title = 'Final verification pending'
+      description = 'Complete your missed-call test to activate live monitoring.'
     } else {
       // Fully active
       title = 'Monitoring your business line'

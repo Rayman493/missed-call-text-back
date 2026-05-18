@@ -168,18 +168,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
 
   return (
     <SectionErrorBoundary sectionName="StatsCardsData">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={fetchStats}
-          disabled={loading || refreshing}
-          className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-md"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </button>
-      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Missed Calls */}
         <Link href="/dashboard/leads" className="group">

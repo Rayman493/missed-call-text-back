@@ -765,10 +765,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
             {/* System Status - subtle indicator */}
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-[10px] font-medium text-green-700 dark:text-green-300">
-                System Status: Live
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+              <span className={`text-[10px] font-medium ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                {complete ? 'System Status: Live' : 'Ready for Final Test'}
               </span>
             </span>
             {/* Trial badge - only show when in trial and onboarding incomplete */}
