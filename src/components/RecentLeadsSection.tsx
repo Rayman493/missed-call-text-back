@@ -256,9 +256,16 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No leads yet</p>
-            <p className="text-sm text-muted-foreground">Recovered leads from missed calls will appear here automatically.</p>
+          <div className="text-center py-8 px-4">
+            <div className="flex justify-center mb-3">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">No recovered leads yet</h3>
+            <p className="text-sm text-muted-foreground">Leads from missed calls will appear here automatically after your first customer call.</p>
           </div>
         ) : (
           <div className="space-y-3">

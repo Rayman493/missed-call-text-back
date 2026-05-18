@@ -105,10 +105,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
             </div>
           </div>
           <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-3">
-            No missed calls yet
+            No missed calls recovered yet
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            When customers miss your calls, activity will appear here automatically.
+            Once a customer misses you, ReplyFlow will text them back and show the activity here.
           </p>
         </div>
       </div>

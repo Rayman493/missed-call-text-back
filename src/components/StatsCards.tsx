@@ -221,7 +221,7 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
               <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Conversations</h3>
             </div>
             <p className="text-3xl sm:text-4xl font-bold text-green-500 dark:text-green-100 mb-1">{conversationsCount}</p>
-            <p className="text-xs text-muted-foreground">{conversationsCount === 0 ? 'No conversations yet' : 'Active conversations'}</p>
+            <p className="text-xs text-muted-foreground">{conversationsCount === 0 ? 'No customer replies yet' : 'Active conversations'}</p>
           </div>
         </Link>
 
@@ -233,7 +233,7 @@ export default function StatsCards({ businessId }: StatsCardsProps) {
               <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Follow-ups</h3>
             </div>
             <p className="text-3xl sm:text-4xl font-bold text-purple-500 dark:text-purple-100 mb-1">{followUpsCount}</p>
-            <p className="text-xs text-muted-foreground">{followUpsCount === 0 ? 'None scheduled' : 'Scheduled'}</p>
+            <p className="text-xs text-muted-foreground">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
           </div>
         </Link>
       </div>

@@ -369,10 +369,10 @@ export default function LeadsPage() {
                   </svg>
                 </div>
                 <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                  No leads yet
+                  No recovered leads yet
                 </h3>
                 <div className="text-muted-foreground mb-6 max-w-md mx-auto text-sm sm:text-base">
-                  <p>Missed calls and conversations will appear here automatically once your forwarding is active.</p>
+                  <p>Leads from missed calls will appear here automatically after your first customer call.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (

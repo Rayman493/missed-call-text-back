@@ -1025,8 +1025,8 @@ export default function DashboardContent() {
                             </svg>
                           </div>
                           <div>
-                            <h2 className="text-lg font-semibold text-foreground">No conversations yet</h2>
-                            <p className="text-sm text-muted-foreground">Customer text conversations will appear here once someone replies.</p>
+                            <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
+                            <p className="text-sm text-muted-foreground">When someone replies to a ReplyFlow text, the conversation will appear here.</p>
                           </div>
                         </div>
                       </div>
