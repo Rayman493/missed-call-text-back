@@ -138,12 +138,13 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
 }
 
 /**
- * Provision a new warm number
- * Buys local Twilio number, configures webhooks, adds to Messaging Service, stores as available
+ * Provision a new warm number for the inventory
+ * Purchases a new Twilio number, configures it, and stores it as available
  */
 export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNumber?: string; error?: string }> {
-  console.log('[Warm Inventory] Starting warm number provisioning...');
-
+  console.log('[Warm Inventory] ========== provisionWarmNumber HIT ==========');
+  console.log('[Warm Inventory] Provisioning new warm number...');
+  
   if (!supabase) {
     console.error('[Warm Inventory] Supabase client not configured');
     return { success: false, error: 'Supabase client not configured' };
@@ -270,6 +271,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
  * Provisions additional numbers if below minimum
  */
 export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
+  console.log('[Warm Inventory] ========== ensureWarmNumberMinimum HIT ==========');
   console.log('[Warm Inventory] ========== MANUAL REPLENISH TRIGGERED ==========');
   console.log('[Warm Inventory] Checking warm number minimum...');
 
@@ -374,6 +376,7 @@ export async function assignWarmNumberToBusiness(phoneNumber: string, businessId
  * This should be called asynchronously after assigning a number
  */
 export async function triggerBackgroundReplenishment(): Promise<void> {
+  console.log('[Warm Inventory] ========== triggerBackgroundReplenishment HIT ==========');
   console.log('[Warm Inventory] Triggering background replenishment...');
   
   // Run asynchronously without awaiting
