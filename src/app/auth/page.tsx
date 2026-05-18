@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
@@ -400,17 +401,30 @@ function AuthContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-2xl shadow-sm p-6 sm:p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-4 sm:pt-8">
+        {/* Back to Homepage Link */}
+        <div className="w-full max-w-md mb-4">
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Homepage
+          </Link>
+        </div>
+        
+        <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-6 sm:p-8 backdrop-blur-sm">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-900/30 dark:bg-blue-900/30 mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-900/40 to-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/30 mb-4 shadow-lg shadow-blue-900/20">
               <span className="text-xl font-bold text-blue-400 dark:text-blue-400">RF</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}
             </h1>
             <p className="text-sm text-slate-400 dark:text-slate-400">
-              ReplyFlow - Conversational Missed-Call Response
+              Automatically text back missed callers.
             </p>
           </div>
           
@@ -462,7 +476,7 @@ function AuthContent() {
 
           <form onSubmit={isSignIn ? handleSignIn : handleSignUp} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
                 Email
               </label>
               <input
@@ -473,12 +487,13 @@ function AuthContent() {
                 required
                 autoComplete="email"
                 name="email"
-                className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100"
+                className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-400 dark:text-slate-400 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
                 Password
               </label>
               <PasswordInput
@@ -488,18 +503,42 @@ function AuthContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete={isSignIn ? "current-password" : "new-password"}
-                className="w-full px-3 py-2 border border-slate-600 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100"
+                className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading || isSubmitting}
-              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
+              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-[1px] font-semibold"
             >
-              {loading || isSubmitting ? (isSignIn ? 'Signing in...' : 'Signing up...') : (isSignIn ? 'Sign In' : 'Sign Up')}
+              {loading || isSubmitting ? (isSignIn ? 'Signing In...' : 'Creating Account...') : (isSignIn ? 'Sign In' : 'Sign Up')}
             </button>
           </form>
+
+          {/* Trust / Reassurance Bullets */}
+          <div className="mt-6 pt-6 border-t border-slate-700/50">
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+                <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>14-day free trial</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+                <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>No contracts</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+                <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Keep your existing business number</span>
+              </div>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-slate-400 dark:text-slate-400">
             {isSignIn ? "New to ReplyFlow? " : "Already have an account? "}
