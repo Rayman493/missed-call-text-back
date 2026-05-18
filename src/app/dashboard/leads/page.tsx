@@ -36,7 +36,6 @@ import MobileMenu from '@/components/MobileMenu'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
-import Footer from '@/components/Footer'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 
 // Helper to get latest activity timestamp for sorting
@@ -400,11 +399,11 @@ export default function LeadsPage() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          Complete your setup
+                          ReplyFlow is almost live
                         </h3>
                         <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Finish connecting your business line to begin capturing missed callers automatically.</p>
-                          <p className="text-sm text-muted-foreground">Your leads will begin appearing here after setup is completed.</p>
+                          <p>Run your final test call to activate missed-call monitoring.</p>
+                          <p className="text-sm text-muted-foreground">Your leads will begin appearing here after verification.</p>
                         </div>
                       </>
                     )
@@ -569,7 +568,6 @@ export default function LeadsPage() {
             )}
             </div>
           </main>
-        <Footer />
       </div>
       </BusinessGuard>
     </AuthGuard>
