@@ -474,7 +474,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
         buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
         // Secondary button for users who have already enabled forwarding
-        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'View forwarding instructions' : undefined),
+        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'Review Forwarding Setup' : undefined),
         secondaryButtonOnClick: numberDone && !forwardingDone ? handleCompleteForwarding : undefined,
         secondaryButtonHref: forwardingDone ? '/setup/phone-forwarding' : undefined,
       },
@@ -728,7 +728,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         {item.secondaryButtonText && item.secondaryButtonHref && (
                           <Link
                             href={item.secondaryButtonHref}
-                            className="ml-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors mt-2 sm:mt-0"
                           >
                             {item.secondaryButtonText}
                           </Link>
@@ -736,7 +736,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         {item.secondaryButtonText && item.secondaryButtonOnClick && (
                           <button
                             onClick={item.secondaryButtonOnClick}
-                            className="ml-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors mt-2 sm:mt-0"
                           >
                             {item.secondaryButtonText}
                           </button>
@@ -779,18 +779,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </p>
           {!complete && (
             <p className="text-xs text-muted-foreground mt-0">
-              {!isInTrial ? 'Activate your free trial to begin setting up ReplyFlow.' : `${doneSteps} of ${totalSteps} steps completed`}
+              {!isInTrial ? 'Get started in minutes' : `${doneSteps} of ${totalSteps} steps completed`}
             </p>
           )}
         </div>
-        {!complete && doneSteps === 3 && (
-          <Link
-            href="/dashboard/test-setup"
-            className="inline-flex items-center px-4 py-2.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0"
-          >
-            Complete Final Test
-          </Link>
-        )}
         {complete && (
           <button
             onClick={handleToggle}
