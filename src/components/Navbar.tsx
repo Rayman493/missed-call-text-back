@@ -95,7 +95,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     href="/dashboard/leads"
                     className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
                   >
-                    Conversations
+                    Leads
                   </Link>
                 </>
               )}

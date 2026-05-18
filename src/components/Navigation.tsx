@@ -49,7 +49,7 @@ export default function Navigation() {
             : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
-        Conversations
+        Leads
       </Link>
     </nav>
   )

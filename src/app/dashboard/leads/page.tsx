@@ -236,12 +236,34 @@ export default function LeadsPage() {
             )}
 
             {/* Getting Started - moved above empty state for onboarding focus */}
-            <div className="mb-6">
+            <div className="mb-4">
               <GettingStarted />
             </div>
 
+            {/* CRM Summary Cards */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                  {leads.filter(l => l.lead_status === 'new' || (Date.now() - new Date(l.last_message_at || l.first_contact_at || l.created_at).getTime()) < 24 * 60 * 60 * 1000).length}
+                </p>
+              </div>
+              <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Awaiting Reply</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight">
+                  {leads.filter(l => needsResponseCheck(l.id)).length}
+                </p>
+              </div>
+              <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4">
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide mb-1">Follow-ups</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight">
+                  {leads.filter(l => l.lead_status === 'qualified').length}
+                </p>
+              </div>
+            </div>
+
             {/* Leads Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
               <div>
                 <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
@@ -251,30 +273,35 @@ export default function LeadsPage() {
                 </p>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {leads.length > 0 && (
-                  <>
+                  <div className="flex items-center gap-2 bg-card border border-border/60 rounded-lg p-1">
                     <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors"
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                        showFilters 
+                          ? 'bg-muted text-foreground' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
                     >
                       Filters
                     </button>
+                    <div className="w-px h-5 bg-border/40"></div>
                     <button
                       onClick={fetchLeads}
                       disabled={loading || refreshing}
-                      className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-input rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {refreshing ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-600"></div>
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       )}
                       Refresh
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -430,16 +457,16 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-5 sm:p-6 hover:bg-muted transition-colors relative ${
+                        className={`block p-4 sm:p-5 hover:bg-muted/80 transition-all duration-300 hover:scale-[1.01] relative border border-transparent hover:border-border/50 cursor-pointer ${
                           isUnread ? 'bg-blue-900/10 dark:bg-blue-900/10' : ''
                         } ${isNewLead ? 'bg-orange-900/10 dark:bg-orange-900/10' : ''}`}
                       >
                         {/* Unread indicator dot */}
                         {isUnread && (
-                          <div className="absolute top-6 left-4 w-2 h-2 bg-blue-600 rounded-full"></div>
+                          <div className="absolute top-5 left-4 w-2 h-2 bg-blue-600 rounded-full"></div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -451,28 +478,28 @@ export default function LeadsPage() {
                                 <span className="text-lg">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className={`font-semibold text-foreground truncate ${
-                                    isUnread ? 'font-bold' : ''
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className={`font-bold text-lg sm:text-xl text-foreground truncate ${
+                                    isUnread ? 'font-extrabold' : ''
                                   }`}>
                                     {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                   {isNewLead && (
-                                    <span className="px-2 py-0.5 bg-orange-900/30 text-orange-300 text-xs font-medium rounded-full flex-shrink-0">New</span>
+                                    <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 text-xs font-bold rounded-full flex-shrink-0">New</span>
                                   )}
                                   {needsResponse && (
-                                    <span className="px-2 py-0.5 bg-red-900/30 text-red-300 text-xs font-medium rounded-full flex-shrink-0">Needs Response</span>
+                                    <span className="px-2 py-0.5 bg-red-600/20 text-red-300 text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">{formatRelativeTime(lastActivity)}</p>
+                                <p className="text-xs text-muted-foreground/70">{formatRelativeTime(lastActivity)}</p>
                               </div>
                             </div>
                             {latestMessage && (
                               <div className="ml-13">
                                 <p className={`text-sm truncate ${
                                   latestMessage.direction === 'inbound'
-                                    ? 'text-muted-foreground'
-                                    : 'text-blue-400'
+                                    ? 'text-muted-foreground/80'
+                                    : 'text-blue-400/90'
                                 } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
                                   {latestMessage.direction === 'inbound' && 'Customer: '}
                                   {latestMessage.body}

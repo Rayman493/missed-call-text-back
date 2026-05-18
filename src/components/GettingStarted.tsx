@@ -547,19 +547,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
     return (
-      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/20 p-4 sm:p-5 mb-6">
+      <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/20 p-3 sm:p-4 mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="w-7 h-7 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-green-800 dark:text-green-200">
+              <h2 className="text-sm sm:text-base font-semibold text-green-800 dark:text-green-200">
                 Setup Complete
               </h2>
-              <p className="text-sm text-green-700 dark:text-green-300">
+              <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">
                 ReplyFlow is active and monitoring your business line.
               </p>
             </div>
@@ -570,7 +570,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             aria-expanded={isExpanded}
             aria-label="View setup details"
           >
-            <span className="text-sm font-medium">View setup</span>
+            <span className="text-xs sm:text-sm font-medium">View setup</span>
           </button>
         </div>
 
