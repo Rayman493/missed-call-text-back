@@ -1028,27 +1028,30 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Admin Tools - Only visible to admin users */}
+                {/* Admin Tools - Only visible to admin users or development environment */}
                 {isAdmin && (
                   <SectionErrorBoundary sectionName="AdminTools">
-                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 sm:p-4 mb-4">
+                    <div className="bg-slate-900/30 border border-slate-800/30 rounded-lg p-3 sm:p-3.5 mb-4 opacity-75 hover:opacity-100 transition-opacity">
                       {/* Collapsible Header */}
                       <button
                         onClick={() => setAdminPanelCollapsed(!adminPanelCollapsed)}
-                        className="w-full flex items-center justify-between gap-3 text-left"
+                        className="w-full flex items-center justify-between gap-3 text-left group"
                       >
-                        <div className="flex items-center gap-2">
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${adminPanelCollapsed ? '' : 'rotate-90'}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                          <h2 className="text-sm font-semibold text-slate-300">Admin Diagnostics (Internal)</h2>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <svg
+                              className={`w-3.5 h-3.5 transition-transform duration-200 ${adminPanelCollapsed ? '' : 'rotate-90'} text-slate-500`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            <h2 className="text-xs font-semibold text-slate-400">Admin Diagnostics (Internal)</h2>
+                          </div>
+                          <span className="text-[10px] text-slate-600 pl-5.5">Technical provisioning, Twilio status, webhook diagnostics, and onboarding health</span>
                         </div>
-                        <span className="text-xs text-slate-500">Technical provisioning and system status</span>
+                        <span className="text-[10px] text-slate-600 font-mono opacity-50 group-hover:opacity-100 transition-opacity">DEV_ONLY</span>
                       </button>
 
                       {/* Collapsible Content */}
