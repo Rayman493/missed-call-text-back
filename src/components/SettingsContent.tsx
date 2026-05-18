@@ -427,7 +427,7 @@ export default function SettingsContent() {
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
 
             {/* System Status Section */}
-            <div className="bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 rounded-xl border border-green-200/60 dark:border-green-800/50 shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6">
+            <div className="bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 rounded-xl border-x border-b border-green-200/60 dark:border-green-800/50 shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
                 <h2 className="text-sm font-semibold text-green-800 dark:text-green-200">System Status</h2>
