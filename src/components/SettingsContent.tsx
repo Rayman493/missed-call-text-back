@@ -423,7 +423,7 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col">
+          <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col border-t-0">
             {/* Header */}
             <AppHeader title="Settings" showBackLink={true} showNavigation={false} />
 
@@ -432,7 +432,7 @@ export default function SettingsContent() {
               <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">
 
             {/* System Status Section */}
-            <div className={`rounded-xl border-x border-b shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6 ${
+            <div className={`rounded-xl border-x border-b p-3.5 sm:p-4 mt-6 sm:mt-8 mb-4 sm:mb-6 ${
               onboardingState.state === 'LIVE'
                 ? 'border-green-200/60 dark:border-green-800/50'
                 : onboardingState.state === 'ACTIVATING' || onboardingState.state === 'MESSAGING_SETUP'
