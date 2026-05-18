@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
       .from('twilio_numbers')
       .select('*')
       .eq('status', 'available')
-      .eq('sms_status', 'ready');
+      .eq('sms_status', 'ready')
+      .is('business_id', null);
 
     if (fetchError) {
       console.error('[Warm Inventory Sync] Error fetching available warm numbers:', fetchError);
