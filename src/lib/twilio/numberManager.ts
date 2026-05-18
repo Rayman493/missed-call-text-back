@@ -47,6 +47,9 @@ interface ReleaseResult {
  * Provision a Twilio phone number for a business
  */
 export async function provisionNumberForBusiness(businessId: string): Promise<ProvisionResult> {
+  console.log('[Provision Path] ========== provisionNumberForBusiness HIT ==========');
+  console.log(`[Provision Path] businessId=${businessId}`);
+  
   // Check if shared mode is explicitly enabled
   const { isSharedModeEnabled, getSharedTwilioNumber } = require('@/lib/twilio-assignment')
   
@@ -302,6 +305,9 @@ export async function releaseNumberForBusiness(businessId: string): Promise<Rele
  * Retry Twilio number provisioning for a business
  */
 export async function retryNumberProvisioning(businessId: string): Promise<ProvisionResult> {
+  console.log('[Provision Path] ========== retryNumberProvisioning HIT ==========');
+  console.log(`[Provision Path] businessId=${businessId}`);
+  
   console.log('[Twilio Number Manager] Retry: Starting retry provisioning for business:', businessId);
   console.log('[Twilio Number Manager] Retry provisioning for business:', businessId);
   

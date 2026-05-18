@@ -544,6 +544,9 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   messagingServiceAttached: boolean;
   messagingServiceError?: string;
 } | null> {
+  console.log('[Provision Path] ========== provisionTwilioNumber HIT ==========');
+  console.log(`[Provision Path] businessId=${businessId} correlation_id=${correlationId}`);
+  
   // Use provided correlation ID or generate one for backwards compatibility
   const finalCorrelationId = correlationId || `PROV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
@@ -980,6 +983,9 @@ export async function saveProvisionedNumberToBusiness({
   phoneNumberSid: string
   messagingServiceSid: string | null
 }): Promise<{ success: boolean; dbNumber: string | null; dbNumberSid: string | null }> {
+  console.log('[Provision Path] ========== saveProvisionedNumberToBusiness HIT ==========');
+  console.log(`[Provision Path] businessId=${businessId} phoneNumber=${phoneNumber}`);
+  
   const correlationId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
   console.log(`[saveProvisionedNumber] ========== START ========== correlation_id=${correlationId}`)
@@ -1063,6 +1069,9 @@ export async function saveProvisionedNumberToBusiness({
 }
 
 export async function repairProvisioningForBusiness(businessId: string): Promise<boolean> {
+  console.log('[Provision Path] ========== repairProvisioningForBusiness HIT ==========');
+  console.log(`[Provision Path] businessId=${businessId}`);
+  
   const correlationId = `REPAIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
   console.log(`[RepairProvisioning] START business_id=${businessId} correlation_id=${correlationId}`)
