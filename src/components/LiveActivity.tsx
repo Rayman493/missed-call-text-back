@@ -102,10 +102,10 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
           <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">
-              ReplyFlow is live and monitoring your business line
+              ReplyFlow is monitoring missed calls
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Recent missed calls and customer activity will appear automatically
+              Auto-replies are enabled and your missed-call textback is ready
             </p>
           </div>
         </div>

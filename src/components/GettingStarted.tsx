@@ -563,10 +563,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             </div>
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-semibold text-green-800 dark:text-green-200">
-                ✅ ReplyFlow is live and monitoring your business line
+                ✅ ReplyFlow is live and ready to recover missed calls
               </h2>
               <p className="text-xs text-green-700/80 dark:text-green-300/70 mt-0.5">
-                Recent missed calls and customer activity will appear automatically
+                Your missed-call textback system is working. ReplyFlow is monitoring your business line.
               </p>
             </div>
           </div>

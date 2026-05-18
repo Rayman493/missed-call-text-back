@@ -311,7 +311,7 @@ export default function OnboardingPage() {
           </div>
           
           <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">Welcome to ReplyFlow</h1>
-          <p className="text-sm text-slate-400 mb-5">Let's get you set up so you never miss a customer again</p>
+          <p className="text-sm text-slate-400 mb-5">You keep your phone number. We only handle missed calls.</p>
           
           {/* Pricing Information */}
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6">
@@ -320,7 +320,7 @@ export default function OnboardingPage() {
               <span className="text-slate-300">•</span>
               <span className="text-slate-300">{getPricingDisplay()} after trial</span>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-400">No contracts</span>
+              <span className="text-slate-400">Cancel anytime</span>
             </div>
           </div>
           
@@ -332,8 +332,8 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">Simple setup in 3 steps</p>
-                <p className="text-xs text-blue-300 leading-relaxed">1. Add your business info → 2. Activate your free trial → 3. Set up call forwarding</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">How it works</p>
+                <p className="text-xs text-blue-300 leading-relaxed">When you can't answer a call, ReplyFlow automatically texts the customer back. You keep your regular phone number.</p>
               </div>
             </div>
           </div>
@@ -411,13 +411,13 @@ export default function OnboardingPage() {
           {/* Trust Messaging */}
           <div className="mt-6 space-y-2">
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Start your free trial, no credit card required
+              ✓ You'll still receive all your normal calls
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Set up call forwarding after activation
+              ✓ ReplyFlow only responds when a call is missed
             </p>
             <p className="text-xs text-gray-400 text-center leading-relaxed">
-              ✓ Cancel anytime during your 14-day trial
+              ✓ You can turn this off anytime
             </p>
           </div>
         </div>

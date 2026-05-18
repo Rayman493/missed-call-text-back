@@ -57,7 +57,7 @@ export default function MobileConversationComposer({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Reply to this customer..."
+                placeholder="Type your reply here..."
                 disabled={sending}
                 className="w-full px-4 py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base leading-relaxed min-h-[48px] max-h-[120px]"
                 rows={1}

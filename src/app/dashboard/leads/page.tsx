@@ -369,10 +369,11 @@ export default function LeadsPage() {
                   </svg>
                 </div>
                 <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                  No active leads yet
+                  ReplyFlow is ready
                 </h3>
                 <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                  <p>When customers call your business, they'll appear here automatically.</p>
+                  <p>Your missed-call textback system is working. When customers call and you can't answer, they'll appear here automatically.</p>
+                  <p className="text-sm text-muted-foreground">Test it by calling your business number and letting it ring.</p>
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
                       <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

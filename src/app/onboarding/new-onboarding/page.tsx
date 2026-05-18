@@ -301,7 +301,7 @@ export default function NewOnboardingPage() {
 
             <h1 className="text-2xl sm:text-3xl font-bold mb-3">Your ReplyFlow number is ready</h1>
             <p className="text-gray-300 mb-6 text-sm sm:text-base">
-              Now let's set up call forwarding so ReplyFlow can automatically text back when you miss a call.
+              Now we'll set up call forwarding. This lets ReplyFlow automatically text back when you miss a call. You'll still receive all your normal calls.
             </p>
             
             <div className="bg-gray-700 rounded-lg p-6 mb-6">
@@ -340,7 +340,7 @@ export default function NewOnboardingPage() {
             {/* Dynamic Forwarding Instructions */}
             {selectedCarrier && (
               <div className="bg-gray-700 rounded-lg p-5 sm:p-6 mb-6">
-                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 1: From your business phone, dial this code:</p>
+                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 1: From your business phone, dial this code</p>
                 <div className="text-3xl sm:text-4xl font-mono text-center mb-4 break-all leading-tight bg-gray-800 rounded-lg p-4">
                   {getForwardingCode()}
                 </div>
@@ -351,7 +351,7 @@ export default function NewOnboardingPage() {
                   Copy Code
                 </button>
                 <p className="text-gray-400 text-xs sm:text-sm text-center">
-                  This enables missed-call forwarding. Your phone will still ring normally.
+                  This enables missed-call forwarding. Your phone will still ring normally for all calls.
                 </p>
               </div>
             )}
@@ -360,14 +360,14 @@ export default function NewOnboardingPage() {
             {selectedCarrier && (
               <div className="bg-gray-700 rounded-lg p-5 sm:p-6 mb-6">
                 <p className="text-gray-400 text-sm mb-3 font-medium">STEP 2: Test your setup</p>
-                <p className="text-gray-300 text-sm">Call your business number from another phone and let it ring.</p>
+                <p className="text-gray-300 text-sm">Call your business number from another phone and let it ring. ReplyFlow will automatically text back.</p>
               </div>
             )}
 
             {selectedCarrier && (
               <div className="bg-gray-700 rounded-lg p-5 sm:p-6 mb-6">
-                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 3: Done!</p>
-                <p className="text-gray-300 text-sm">ReplyFlow will automatically text the customer back.</p>
+                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 3: You're done!</p>
+                <p className="text-gray-300 text-sm">ReplyFlow is now monitoring your missed calls. You can turn this off anytime.</p>
               </div>
             )}
 

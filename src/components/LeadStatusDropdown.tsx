@@ -58,13 +58,13 @@ export default function LeadStatusDropdown({
   const getStatusDescription = (status: LeadLifecycleStatus) => {
     switch (status) {
       case 'new':
-        return 'New missed call'
+        return 'Needs attention'
       case 'active':
-        return 'Active conversation'
+        return 'Conversation open'
       case 'completed':
-        return 'Completed successfully'
+        return 'Handled and resolved'
       case 'ignored':
-        return 'Ignored contact'
+        return 'Do not contact'
       default:
         return ''
     }
