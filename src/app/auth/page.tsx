@@ -401,7 +401,7 @@ function AuthContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-4 sm:pt-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-8">
         {/* Back to Homepage Link */}
         <div className="w-full max-w-md mb-4">
           <Link 
@@ -415,12 +415,12 @@ function AuthContent() {
           </Link>
         </div>
         
-        <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-6 sm:p-8 backdrop-blur-sm">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-900/40 to-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/30 mb-4 shadow-lg shadow-blue-900/20">
-              <span className="text-xl font-bold text-blue-400 dark:text-blue-400">RF</span>
+        <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
+          <div className="text-center mb-5 sm:mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-900/40 to-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/30 mb-3 sm:mb-4 shadow-lg shadow-blue-900/20">
+              <span className="text-lg sm:text-xl font-bold text-blue-400 dark:text-blue-400">RF</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}
             </h1>
             <p className="text-sm text-slate-400 dark:text-slate-400">
@@ -429,11 +429,11 @@ function AuthContent() {
           </div>
           
           {isSignIn && emailParam && (
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-6">Welcome back — please sign in</p>
+            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Welcome back — please sign in</p>
           )}
           
           {!isSignIn && (
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-6">Create your account to get started</p>
+            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Create your account to get started</p>
           )}
           
           {error && (
@@ -517,8 +517,8 @@ function AuthContent() {
           </form>
 
           {/* Trust / Reassurance Bullets */}
-          <div className="mt-6 pt-6 border-t border-slate-700/50">
-            <div className="space-y-2.5">
+          <div className="mt-5 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-700/50">
+            <div className="space-y-2 sm:space-y-2.5">
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
                 <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -540,7 +540,7 @@ function AuthContent() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-slate-400 dark:text-slate-400">
+          <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400 dark:text-slate-400">
             {isSignIn ? "New to ReplyFlow? " : "Already have an account? "}
             <button
               onClick={toggleMode}
