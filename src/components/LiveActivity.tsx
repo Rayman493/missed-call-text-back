@@ -24,9 +24,12 @@ interface LiveActivityProps {
   leads?: Lead[]
   followUpJobs?: FollowUpJob[]
   missedCalls?: number
+  isOnboardingComplete?: boolean
+  provisioningStatus?: string
+  forwardingVerified?: boolean
 }
 
-export default function LiveActivity({ leads = [], followUpJobs = [], missedCalls = 0 }: LiveActivityProps) {
+export default function LiveActivity({ leads = [], followUpJobs = [], missedCalls = 0, isOnboardingComplete = false, provisioningStatus = 'pending', forwardingVerified = false }: LiveActivityProps) {
   const [activeTab, setActiveTab] = useState<'recent' | 'responses'>('recent')
 
   // Get recent activity (missed calls and new leads)
@@ -96,16 +99,38 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
   }
 
   if (leads.length === 0 && missedCalls === 0) {
+    // Determine the appropriate message based on activation state
+    let title = ''
+    let description = ''
+
+    if (!isOnboardingComplete) {
+      // Not fully set up yet
+      if (provisioningStatus !== 'active') {
+        title = 'Activating your ReplyFlow number'
+        description = 'Carrier registration in progress. Almost ready — complete your setup.'
+      } else if (!forwardingVerified) {
+        title = 'Almost ready'
+        description = 'Complete your setup to begin monitoring missed calls.'
+      } else {
+        title = 'Setup in progress'
+        description = 'ReplyFlow is preparing your missed-call system.'
+      }
+    } else {
+      // Fully active
+      title = 'Monitoring your business line'
+      description = 'Auto-replies are active. ReplyFlow is ready to capture missed callers.'
+    }
+
     return (
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isOnboardingComplete ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50' : 'bg-amber-500 shadow-sm'}`}></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">
-              Monitoring your business line
+              {title}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Auto-replies are active. ReplyFlow is ready to capture missed callers.
+              {description}
             </p>
           </div>
         </div>

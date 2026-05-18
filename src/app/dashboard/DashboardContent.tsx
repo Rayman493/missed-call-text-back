@@ -959,7 +959,11 @@ export default function DashboardContent() {
                         return null
                       })()}
                       <div className={`mb-6 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        <LiveActivity />
+                        <LiveActivity 
+                          isOnboardingComplete={isOnboardingComplete}
+                          provisioningStatus={business?.provisioning_status || 'pending'}
+                          forwardingVerified={business?.forwarding_verified || false}
+                        />
                       </div>
                     </SectionErrorBoundary>
 
@@ -977,7 +981,14 @@ export default function DashboardContent() {
                         return null
                       })()}
                       <div className={`transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        {business?.id && <StatsCards businessId={business.id} />}
+                        {business?.id && (
+                          <StatsCards 
+                            businessId={business.id} 
+                            isOnboardingComplete={isOnboardingComplete}
+                            provisioningStatus={business?.provisioning_status || 'pending'}
+                            forwardingVerified={business?.forwarding_verified || false}
+                          />
+                        )}
                       </div>
                     </SectionErrorBoundary>
 
@@ -995,7 +1006,14 @@ export default function DashboardContent() {
                         return null
                       })()}
                       <div className={`transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
-                        {business?.id && <RecentLeadsSection businessId={business.id} />}
+                        {business?.id && (
+                          <RecentLeadsSection 
+                            businessId={business.id} 
+                            isOnboardingComplete={isOnboardingComplete}
+                            provisioningStatus={business?.provisioning_status || 'pending'}
+                            forwardingVerified={business?.forwarding_verified || false}
+                          />
+                        )}
                       </div>
                     </SectionErrorBoundary>
 
@@ -1025,7 +1043,11 @@ export default function DashboardContent() {
                           </div>
                           <div>
                             <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
-                            <p className="text-sm text-muted-foreground">When a customer replies to a ReplyFlow text, you'll see the conversation here.</p>
+                            <p className="text-sm text-muted-foreground">
+                              {isOnboardingComplete 
+                                ? "When a customer replies to a ReplyFlow text, you'll see the conversation here."
+                                : 'Complete setup to begin receiving customer replies.'}
+                            </p>
                           </div>
                         </div>
                       </div>

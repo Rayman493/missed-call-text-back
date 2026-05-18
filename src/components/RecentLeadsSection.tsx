@@ -8,9 +8,12 @@ import Link from 'next/link'
 
 interface RecentLeadsSectionProps {
   businessId: string
+  isOnboardingComplete?: boolean
+  provisioningStatus?: string
+  forwardingVerified?: boolean
 }
 
-export default function RecentLeadsSection({ businessId }: RecentLeadsSectionProps) {
+export default function RecentLeadsSection({ businessId, isOnboardingComplete = false, provisioningStatus = 'pending', forwardingVerified = false }: RecentLeadsSectionProps) {
   // ALL hooks must be called at the top before any conditional returns
   const [leads, setLeads] = useState<any[]>([])
   const [followUpJobs, setFollowUpJobs] = useState<any[]>([])
@@ -266,8 +269,12 @@ export default function RecentLeadsSection({ businessId }: RecentLeadsSectionPro
                 </svg>
               </div>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">ReplyFlow is ready to capture missed callers</h3>
-            <p className="text-sm text-slate-600 dark:text-muted-foreground">Your recovered customer calls will appear here automatically after your first missed call.</p>
+            <h3 className="text-lg font-medium text-slate-900 dark:text-foreground mb-2">
+              {isOnboardingComplete ? 'ReplyFlow is live and ready to capture missed callers' : 'Complete setup to begin monitoring missed calls'}
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-muted-foreground">
+              {isOnboardingComplete ? 'Your recovered customer calls will appear here automatically after your first missed call.' : 'ReplyFlow is preparing your missed-call system. Complete your setup to start capturing calls.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
