@@ -204,14 +204,13 @@ export default function DashboardContent() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [billingError, setBillingError] = useState('')
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
+  const [adminPanelCollapsed, setAdminPanelCollapsed] = useState(true)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
-  const [lastRenderedSection, setLastRenderedSection] = useState('')
-  
-  // Admin tools state
-  const [reconciling, setReconciling] = useState(false)
-  const [reconciliationResult, setReconciliationResult] = useState<any>(null)
   const [stats, setStats] = useState<any>(null)
   const [refreshingStats, setRefreshingStats] = useState(false)
+  const [reconciling, setReconciling] = useState(false)
+  const [reconciliationResult, setReconciliationResult] = useState<any>(null)
+  const [lastRenderedSection, setLastRenderedSection] = useState('')
   
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
@@ -1048,147 +1047,173 @@ export default function DashboardContent() {
                 {/* Admin Tools - Only visible to admin users */}
                 {isAdmin && (
                   <SectionErrorBoundary sectionName="AdminTools">
-                    <div className="bg-card border border-border rounded-xl p-6 mb-6">
-                      <h2 className="text-xl font-semibold mb-4 text-foreground">DEV ADMIN TOOLS</h2>
-
-                      <div className="space-y-4">
-                        {/* Warm Inventory Stats */}
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <h3 className="text-sm font-medium mb-3 text-foreground">Warm Inventory Stats</h3>
-                          {stats?.success ? (
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <div className="text-muted-foreground">Available</div>
-                                <div className="text-lg font-semibold text-foreground">{stats.stats.availableCount}</div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Assigned</div>
-                                <div className="text-lg font-semibold text-foreground">{stats.stats.assignedCount}</div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Failed</div>
-                                <div className="text-lg font-semibold text-foreground">{stats.stats.failedCount}</div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">Loading stats...</div>
-                          )}
-                          <button
-                            onClick={handleRefreshStats}
-                            disabled={refreshingStats}
-                            className="mt-3 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 sm:p-4 mb-6">
+                      {/* Collapsible Header */}
+                      <button
+                        onClick={() => setAdminPanelCollapsed(!adminPanelCollapsed)}
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${adminPanelCollapsed ? '' : 'rotate-90'}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
-                            {refreshingStats ? 'Refreshing...' : 'Refresh Stats'}
-                          </button>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <h2 className="text-sm font-semibold text-slate-300">Admin Diagnostics</h2>
                         </div>
+                        <span className="text-xs text-slate-500">Internal diagnostics and provisioning tools</span>
+                      </button>
 
-                        {/* Provisioning Status */}
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <h3 className="text-sm font-medium mb-3 text-foreground">Provisioning Status</h3>
-                          <div className="text-sm space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Status:</span>
-                              <span className="font-medium text-foreground">{business?.provisioning_status || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Twilio SID:</span>
-                              <span className="font-mono text-xs text-foreground">{business?.twilio_phone_number_sid || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Phone Number:</span>
-                              <span className="font-mono text-xs text-foreground">{business?.twilio_phone_number || 'N/A'}</span>
-                            </div>
-                            {business?.campaign_registered_at && (
+                      {/* Collapsible Content */}
+                      {!adminPanelCollapsed && (
+                        <div className="mt-4 space-y-4">
+                          {/* Provisioning Status */}
+                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                            <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Provisioning</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Campaign Registered:</span>
-                                <span className="text-xs text-foreground">{new Date(business.campaign_registered_at).toLocaleString()}</span>
+                                <span className="text-slate-500">Status:</span>
+                                <span className={`font-mono ${
+                                  business?.provisioning_status === 'active' ? 'text-green-400' : 
+                                  business?.provisioning_status === 'failed' ? 'text-red-400' : 
+                                  business?.provisioning_status === 'assigned' ? 'text-blue-400' : 
+                                  business?.provisioning_status === 'ready' ? 'text-yellow-400' : 
+                                  'text-slate-300'
+                                }`}>
+                                  {business?.provisioning_status || 'N/A'}
+                                </span>
                               </div>
-                            )}
-                            {business?.sender_pool_attached_at && (
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Sender Pool Attached:</span>
-                                <span className="text-xs text-foreground">{new Date(business.sender_pool_attached_at).toLocaleString()}</span>
+                                <span className="text-slate-500">Twilio SID:</span>
+                                <span className="font-mono text-slate-300 truncate max-w-[120px]" title={business?.twilio_phone_number_sid || 'N/A'}>
+                                  {business?.twilio_phone_number_sid ? 
+                                    `${business.twilio_phone_number_sid.slice(0, 8)}...` : 
+                                    'N/A'}
+                                </span>
                               </div>
-                            )}
-                            {business?.provisioning_error && (
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Error:</span>
-                                <span className="text-red-600 text-xs">{business.provisioning_error}</span>
+                                <span className="text-slate-500">Phone:</span>
+                                <span className="font-mono text-slate-300">{business?.twilio_phone_number || 'N/A'}</span>
                               </div>
+                              {business?.provisioning_error && (
+                                <div className="flex justify-between col-span-full">
+                                  <span className="text-slate-500">Error:</span>
+                                  <span className="text-red-400 font-mono text-[10px] truncate max-w-[200px]" title={business.provisioning_error}>
+                                    {business.provisioning_error}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!business?.id) return;
+                                
+                                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
+                                
+                                try {
+                                  const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ business_id: business.id }),
+                                  });
+
+                                  const result = await response.json();
+
+                                  if (result.success) {
+                                    console.log('[Retry Provisioning] Success:', result);
+                                    alert('Provisioning retry initiated successfully');
+                                    window.location.reload();
+                                  } else {
+                                    console.error('[Retry Provisioning] Failed:', result.error);
+                                    alert(`Provisioning retry failed: ${result.error}`);
+                                  }
+                                } catch (error: any) {
+                                  console.error('[Retry Provisioning] Exception:', error);
+                                  alert(`Provisioning retry failed: ${error.message}`);
+                                }
+                              }}
+                              disabled={!business?.id}
+                              className="mt-2 w-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Retry Provisioning
+                            </button>
+                          </div>
+
+                          {/* Warm Number Inventory */}
+                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                            <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Warm Number Inventory</h3>
+                            {stats?.success ? (
+                              <div className="flex gap-4 text-xs">
+                                <div className="flex-1">
+                                  <div className="text-slate-500 mb-1">Available</div>
+                                  <div className={`px-2 py-1 rounded font-mono text-center ${
+                                    stats.stats.availableCount > 0 ? 'bg-green-900/30 text-green-400' : 'bg-slate-700 text-slate-400'
+                                  }`}>
+                                    {stats.stats.availableCount}
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-slate-500 mb-1">Assigned</div>
+                                  <div className="px-2 py-1 rounded font-mono text-center bg-blue-900/30 text-blue-400">
+                                    {stats.stats.assignedCount}
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-slate-500 mb-1">Failed</div>
+                                  <div className={`px-2 py-1 rounded font-mono text-center ${
+                                    stats.stats.failedCount > 0 ? 'bg-red-900/30 text-red-400' : 'bg-slate-700 text-slate-400'
+                                  }`}>
+                                    {stats.stats.failedCount}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-500">Loading stats...</div>
                             )}
-                            {business?.last_provisioning_attempt_at && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Last Attempt:</span>
-                                <span className="text-xs text-foreground">{new Date(business.last_provisioning_attempt_at).toLocaleString()}</span>
+                            <button
+                              onClick={handleRefreshStats}
+                              disabled={refreshingStats}
+                              className="mt-2 w-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {refreshingStats ? 'Refreshing...' : 'Refresh Stats'}
+                            </button>
+                          </div>
+
+                          {/* Recovery / Repair */}
+                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                            <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Recovery / Repair</h3>
+                            <button
+                              onClick={handleReconcileWarmNumbers}
+                              disabled={reconciling}
+                              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {reconciling ? 'Reconciling...' : 'Reconcile Warm Numbers'}
+                            </button>
+
+                            {reconciliationResult && (
+                              <div className="mt-2 text-xs">
+                                {reconciliationResult.success ? (
+                                  <div className="text-green-400 space-y-1">
+                                    <div className="font-medium">Reconciliation Complete</div>
+                                    <div className="grid grid-cols-2 gap-1 text-slate-400">
+                                      <div>Checked: {reconciliationResult.data.checked_count}</div>
+                                      <div>Kept: {reconciliationResult.data.kept_available_count}</div>
+                                      <div>Failed: {reconciliationResult.data.marked_failed_count}</div>
+                                      <div>Replenished: {reconciliationResult.data.replenished_count}</div>
+                                    </div>
+                                    <div className="text-slate-400">Available After: {reconciliationResult.data.available_after}</div>
+                                  </div>
+                                ) : (
+                                  <div className="text-red-400">Error: {reconciliationResult.error}</div>
+                                )}
                               </div>
                             )}
                           </div>
-                          <button
-                            onClick={async () => {
-                              if (!business?.id) return;
-                              
-                              const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
-                              
-                              try {
-                                const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ business_id: business.id }),
-                                });
-
-                                const result = await response.json();
-
-                                if (result.success) {
-                                  console.log('[Retry Provisioning] Success:', result);
-                                  alert('Provisioning retry initiated successfully');
-                                  window.location.reload();
-                                } else {
-                                  console.error('[Retry Provisioning] Failed:', result.error);
-                                  alert(`Provisioning retry failed: ${result.error}`);
-                                }
-                              } catch (error: any) {
-                                console.error('[Retry Provisioning] Exception:', error);
-                                alert(`Provisioning retry failed: ${error.message}`);
-                              }
-                            }}
-                            disabled={!business?.id}
-                            className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Retry Provisioning
-                          </button>
                         </div>
-
-                        {/* Reconcile Warm Numbers */}
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <h3 className="text-sm font-medium mb-3 text-foreground">Reconcile Warm Numbers</h3>
-                          <button
-                            onClick={handleReconcileWarmNumbers}
-                            disabled={reconciling}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {reconciling ? 'Reconciling...' : 'Reconcile Warm Numbers'}
-                          </button>
-
-                          {reconciliationResult && (
-                            <div className="mt-3 text-sm">
-                              {reconciliationResult.success ? (
-                                <div className="text-green-600">
-                                  <div className="font-medium">Reconciliation Complete</div>
-                                  <div className="mt-2 space-y-1">
-                                    <div>Checked: {reconciliationResult.data.checked_count}</div>
-                                    <div>Kept Available: {reconciliationResult.data.kept_available_count}</div>
-                                    <div>Marked Failed: {reconciliationResult.data.marked_failed_count}</div>
-                                    <div>Replenished: {reconciliationResult.data.replenished_count}</div>
-                                    <div>Available After: {reconciliationResult.data.available_after}</div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-red-600">Error: {reconciliationResult.error}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </SectionErrorBoundary>
                 )}
