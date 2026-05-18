@@ -169,15 +169,15 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
   return (
     <SectionErrorBoundary sectionName="StatsCardsData">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse shadow-sm' : 'bg-amber-500 shadow-sm'}`}></div>
-            <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${realtimeConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+            <span className="text-[10px] font-normal text-muted-foreground/70">
               {realtimeConnected ? 'Live' : 'Reconnecting...'}
             </span>
           </div>
           {refreshing && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600/50"></div>
           )}
         </div>
         <button
