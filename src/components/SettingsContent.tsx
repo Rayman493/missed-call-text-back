@@ -426,12 +426,53 @@ export default function SettingsContent() {
             {/* Main Content */}
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
 
+            {/* System Status Section */}
+            <div className="bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 rounded-xl border border-green-200/60 dark:border-green-800/50 shadow-sm p-3.5 sm:p-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50 flex-shrink-0"></div>
+                <h2 className="text-sm font-semibold text-green-800 dark:text-green-200">System Status</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">ReplyFlow is monitoring missed calls</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Auto-replies enabled</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">SMS system operational</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isInTrialPeriod(business?.subscription_status) ? (
+                    <>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/70">Trial active</span>
+                    </>
+                  ) : hasActiveSubscription(business) ? (
+                    <>
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-green-700/80 dark:text-green-300/70">Subscription active</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                      <span className="text-xs sm:text-sm text-amber-700/80 dark:text-amber-300/70">Trial needed</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-5 sm:space-y-8">
               {/* Account Section */}
-              <div id="account" className="bg-card rounded-xl border border-border/60 shadow-sm p-3.5 sm:p-5">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2.5 sm:mb-3">Account</h2>
-                <div className="space-y-2.5 sm:space-y-3">
+              <div id="account" className="bg-card rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Account</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage your account details and preferences.</p>
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
                       Email
@@ -467,22 +508,23 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-card rounded-xl shadow-sm border border-border p-3.5 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Business Info</h2>
-                <div className="space-y-2.5 sm:space-y-3">
+              <div id="business" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Business Info</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage the phone number and business identity customers interact with.</p>
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm"
+                      className="w-full px-4 py-2.5 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-border/80"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       Business Phone Number
                     </label>
                     <input
@@ -490,7 +532,7 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm"
+                      className="w-full px-4 py-2.5 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-border/80"
                     />
                   </div>
                 </div>
@@ -512,53 +554,54 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-card rounded-xl shadow-sm border border-border p-3.5 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Messaging Settings</h2>
-                <div className="space-y-2.5 sm:space-y-3">
+              <div id="messaging" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Messaging Settings</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Customize the automatic text customers receive after missed calls.</p>
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       Auto Reply Message
                     </label>
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm"
+                      rows={4}
+                      className="w-full px-4 py-2.5 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-border/80 resize-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       After Hours Message
                     </label>
                     <textarea
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm"
+                      rows={4}
+                      className="w-full px-4 py-2.5 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-border/80 resize-none"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-card rounded-xl shadow-sm border border-border p-3 sm:p-5">
-                <div className="mb-3 sm:mb-4">
+              <div id="automation" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6">
+                <div className="mb-4 sm:mb-5">
                   <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Automation Settings</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Configure how ReplyFlow automatically handles your missed calls and follow-ups.
+                    Control when ReplyFlow automatically responds to missed calls.
                   </p>
                 </div>
                 
                 <div className="space-y-2.5 sm:space-y-3">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="bg-muted rounded-lg border border-border p-2.5 sm:p-5">
+                  <div className="bg-muted/50 rounded-xl border border-border/60 p-3 sm:p-5 hover:bg-muted/60 transition-colors duration-200">
                     <div className="flex items-start justify-between mb-3 sm:mb-4">
                       <div className="flex-1 pr-3 sm:pr-4">
                         <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                           <h3 className="text-sm sm:text-base font-semibold text-foreground">Spam & Repeat Call Filtering</h3>
                           {spamFilteringEnabled && (
-                            <span className="text-[10px] sm:text-xs px-2 py-1 bg-green-900/30 text-green-400 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
-                              Active
+                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/15 text-green-600 dark:text-green-400 rounded-full font-medium">
+                              Enabled
                             </span>
                           )}
                         </div>
@@ -572,13 +615,13 @@ export default function SettingsContent() {
                       <button
                         onClick={handleToggleSpamFiltering}
                         disabled={isSavingSpamFiltering}
-                        className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          spamFilteringEnabled ? 'bg-blue-600' : 'bg-slate-600'
+                        className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-all duration-300 flex-shrink-0 ${
+                          spamFilteringEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
                         } ${isSavingSpamFiltering ? 'opacity-50 cursor-not-allowed' : ''}`}
                         aria-label={spamFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
                         <span
-                          className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                          className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-all duration-300 shadow-sm ${
                             spamFilteringEnabled ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -806,47 +849,44 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-card rounded-xl border border-border/60 shadow-sm p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-foreground">Ignored Contacts</h2>
+              <div id="ignored-contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1">Ignored Contacts</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Prevent personal numbers, employees, vendors, or spam callers from becoming leads.</p>
+                  </div>
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
                   >
-                    + Add Ignored Contact
+                    + Add Contact
                   </button>
                 </div>
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      These phone numbers will not create leads or receive automated texts. Use this for personal contacts, family, or other numbers you don't want to treat as business leads.
-                    </p>
-                  </div>
-                  
                   {isLoadingIgnored ? (
-                    <div className="flex items-center justify-center py-4">
+                    <div className="flex items-center justify-center py-6">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-4 bg-muted/50 rounded-lg border border-border/50">
-                      <div className="text-2xl mb-1">📵</div>
-                      <h3 className="text-sm font-medium text-foreground mb-1">Prevent personal calls from becoming leads</h3>
-                      <p className="text-xs text-muted-foreground mb-3">
+                    <div className="text-center py-8 sm:py-10 bg-muted/40 rounded-xl border border-border/50">
+                      <div className="text-3xl sm:text-4xl mb-3">📵</div>
+                      <h3 className="text-sm sm:text-base font-medium text-foreground mb-2">No ignored contacts yet</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
                         Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
                       </p>
                       <button
                         onClick={() => setShowAddModal(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
                       >
                         + Add Ignored Contact
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {ignoredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
+                          className="flex items-center justify-between p-3 sm:p-4 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -854,7 +894,7 @@ export default function SettingsContent() {
                                 {formatPhoneNumber(contact.phone_number)}
                               </span>
                               {contact.label && (
-                                <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full">
+                                <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
                                   {contact.label}
                                 </span>
                               )}
@@ -867,9 +907,9 @@ export default function SettingsContent() {
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-4 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            className="ml-3 sm:ml-4 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
                           >
-                            Unignore
+                            Remove
                           </button>
                         </div>
                       ))}
@@ -882,21 +922,38 @@ export default function SettingsContent() {
               )}
 
               {/* Billing Section */}
-              <div id="billing" className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-5">
-                <h2 className="text-lg font-semibold text-foreground mb-3">Billing</h2>
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Current Plan</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {getPricingDisplay()} 
+              <div id="billing" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Billing</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage your subscription and trial.</p>
+                <div className="space-y-4 sm:space-y-5">
+                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        isInTrialPeriod(business?.subscription_status) 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                          : hasActiveSubscription(business)
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      }`}>
+                        {getSubscriptionStatusText(business?.subscription_status)}
+                      </span>
+                    </div>
+                    <p className="text-sm sm:text-base font-medium text-foreground mb-1">
+                      {getPricingDisplay()}
                       {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isInTrialPeriod(business?.subscription_status) 
+                        ? 'Your trial includes full access to all features. No charge until trial ends.'
+                        : 'Your subscription is active and all features are unlocked.'}
+                    </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={() => handleBillingActionClick('portal')}
                       disabled={isOpeningPortal}
-                      className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                      className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
                     >
                       Manage Billing
                     </button>
@@ -904,7 +961,7 @@ export default function SettingsContent() {
                       <button
                         onClick={() => handleBillingActionClick('upgrade')}
                         disabled={isStartingCheckout}
-                        className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
                       >
                         Upgrade Plan
                       </button>
@@ -914,20 +971,23 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-card rounded-xl border border-red-200/50 dark:border-red-800/30 shadow-sm p-4 sm:p-5">
-                <h2 className="text-lg font-semibold text-red-700/80 dark:text-red-400/80 mb-3">Account Management</h2>
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Delete Account</h3>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Permanently delete your account and all data. This action cannot be undone.
-                    </p>
-                    <button
-                      onClick={() => setShowDeleteModal(true)}
-                      className="px-4 py-2 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-                    >
-                      Delete Account
-                    </button>
+              <div id="danger" className="bg-card rounded-xl border border-red-200/40 dark:border-red-800/30 shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-red-700/90 dark:text-red-400/90 mb-1.5 sm:mb-2">Account Management</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage your account and data preferences.</p>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-200/40 dark:border-red-800/30 p-3 sm:p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-1.5">Delete Account</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+                        Permanently delete your account, cancel your subscription, and remove all data. This action cannot be undone.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
+                      >
+                        Delete Account
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
