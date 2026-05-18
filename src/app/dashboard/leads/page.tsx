@@ -379,11 +379,11 @@ export default function LeadsPage() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          Start capturing missed callers
+                          Customer conversations will appear here
                         </h3>
                         <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Activate your free trial to begin setting up ReplyFlow.</p>
-                          <p className="text-sm text-muted-foreground">Customer leads and conversations will appear here after setup is complete.</p>
+                          <p>Customer conversations will begin appearing here after ReplyFlow is connected to your business line.</p>
+                          <p className="text-sm text-muted-foreground">Activate your free trial to begin setting up ReplyFlow.</p>
                         </div>
                       </>
                     )

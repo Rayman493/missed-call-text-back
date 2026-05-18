@@ -220,9 +220,9 @@ export function getEmptyStateCopy(state: OnboardingState): {
   switch (state) {
     case 'PRE_TRIAL':
       return {
-        title: 'Start capturing missed callers',
-        body: 'Activate your free trial to begin setting up ReplyFlow and automatically text back missed callers.',
-        supporting: 'Customer leads and conversations will appear here after setup is complete.'
+        title: 'Customer conversations will appear here',
+        body: 'Customer conversations will begin appearing here after ReplyFlow is connected to your business line.',
+        supporting: 'Activate your free trial to begin setting up ReplyFlow.'
       }
     case 'ACTIVATING':
     case 'MESSAGING_SETUP':
@@ -251,9 +251,9 @@ export function getEmptyStateCopy(state: OnboardingState): {
       }
     default:
       return {
-        title: 'Start capturing missed callers',
-        body: 'Activate your free trial to begin setting up ReplyFlow.',
-        supporting: 'Customer leads will appear here after setup is complete.'
+        title: 'Customer conversations will appear here',
+        body: 'Customer conversations will begin appearing here after ReplyFlow is connected to your business line.',
+        supporting: 'Activate your free trial to begin setting up ReplyFlow.'
       }
   }
 }

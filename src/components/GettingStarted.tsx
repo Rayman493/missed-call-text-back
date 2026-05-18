@@ -451,8 +451,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'number',
-        title: 'Get your ReplyFlow number',
-        description: 'Your dedicated local number is set up automatically.',
+        title: 'Prepare your ReplyFlow line',
+        description: 'Your dedicated local number is being set up automatically.',
         status: numberActionNeeded ? 'action-needed' : (numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action')),
         details: numberActionNeeded
           ? 'Number setup has issues - check status'
@@ -694,7 +694,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                                     : 'bg-muted text-muted-foreground'
                             }`}
                           >
-                            {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : ''}
+                            {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                           </span>
                           {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
                             <div className="flex-shrink-0">
@@ -921,7 +921,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                                 : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Current' : ''}
+                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                       </span>
                       {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
                         <div className="flex-shrink-0">
