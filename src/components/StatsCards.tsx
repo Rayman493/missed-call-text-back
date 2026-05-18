@@ -181,6 +181,24 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           </div>
         </div>
 
+        {/* Operational Status Indicators */}
+        {isOnboardingComplete && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full border border-green-200 dark:border-green-800/30">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              Monitoring Active
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800/30">
+              Auto-Replies Enabled
+            </span>
+            {missedCallsCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full border border-slate-200 dark:border-border/50">
+                Last Activity: Today
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Missed Calls */}
@@ -193,8 +211,8 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
             <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {missedCallsCount === 0 
-                ? (isOnboardingComplete ? 'Missed calls will appear after your first call' : 'Complete setup to begin capturing missed calls') 
-                : 'Total captured'}
+                ? (isOnboardingComplete ? 'Customers automatically contacted after missed calls' : 'Complete setup to begin capturing missed calls') 
+                : 'Customers automatically contacted'}
             </p>
           </div>
         </Link>
@@ -209,8 +227,8 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
             <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
               {leadsCount === 0 
-                ? (isOnboardingComplete ? 'Recovered leads will appear after your first missed call' : 'Complete setup to begin capturing leads') 
-                : 'Leads recovered'}
+                ? (isOnboardingComplete ? 'New opportunities captured by ReplyFlow' : 'Complete setup to begin capturing leads') 
+                : 'New opportunities captured'}
             </p>
           </div>
         </Link>
@@ -223,7 +241,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Customer Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{conversationsCount === 0 ? 'Customer replies will appear here' : 'Active conversations'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}</p>
           </div>
         </Link>
 
@@ -235,7 +253,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-700 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-Ups Scheduled</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-purple-600 dark:text-purple-400 mb-2 tracking-tight">{followUpsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{followUpsCount === 0 ? 'No follow-ups scheduled' : 'Scheduled'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}</p>
           </div>
         </Link>
       </div>

@@ -1055,17 +1055,6 @@ export default function DashboardContent() {
                   </>
                 ) : null}
 
-                {/* Getting Started Section - At Bottom when onboarding complete */}
-                {isOnboardingComplete && (
-                  <SectionErrorBoundary sectionName="GettingStartedBottom">
-                    {(() => {
-                      console.log('[Render Child] GettingStartedBottom')
-                      return null
-                    })()}
-                    <GettingStarted isOnboardingComplete={isOnboardingComplete} />
-                  </SectionErrorBoundary>
-                )}
-
                 {/* Admin Tools - Only visible to admin users or development environment */}
                 {isAdmin && (
                   <SectionErrorBoundary sectionName="AdminTools">
