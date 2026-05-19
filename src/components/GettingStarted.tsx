@@ -551,9 +551,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
     return (
-      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 p-2.5 sm:p-3 mb-6 transition-all duration-300 hover:shadow-md">
+      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 p-2 sm:p-3 mb-6 transition-all duration-300 hover:shadow-md">
         <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <div className="relative flex-shrink-0">
               <div className="w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
                 <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -588,10 +588,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
         {/* Expandable setup details */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-green-200/50 dark:border-green-800/50">
-            <div className={`rounded-xl border p-2.5 sm:p-4 border-green-200/50 dark:border-green-800/50`}>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-green-200/50 dark:border-green-800/50">
+            <div className={`rounded-xl border p-2 sm:p-4 border-green-200/50 dark:border-green-800/50`}>
               {/* Horizontal layout: left text, right CTA */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2 sm:mb-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                     <h2 className="text-base sm:text-lg font-semibold text-foreground">
@@ -623,7 +623,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </div>
 
               {/* Progress bar */}
-              <div className="mb-4 sm:mb-6">
+              <div className="mb-3 sm:mb-6">
                 <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <div
                     className="bg-green-600 h-2 transition-all duration-500 ease-out"
@@ -633,7 +633,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </div>
 
               {/* Checklist items */}
-              <ul className="space-y-2 sm:space-y-2.5">
+              <ul className="space-y-1.5 sm:space-y-2.5">
                 {checklistItems.map((item, idx) => {
                   const stepNum = idx + 1
                   const isComplete = item.status === 'complete'

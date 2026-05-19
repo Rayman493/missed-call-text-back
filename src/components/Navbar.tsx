@@ -50,21 +50,22 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700' : 'bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700'}`}>
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between">
         {/* Logo */}
         <Link 
           href={isLoggedIn ? '/dashboard' : '/'} 
-          className="flex items-center gap-3 hover:opacity-90 transition"
+          className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition"
         >
-          <BrandIcon size={40} />
-          <span className="text-xl md:text-2xl font-semibold tracking-tight">
+          <BrandIcon size={36} className="sm:hidden" />
+          <BrandIcon size={40} className="hidden sm:block" />
+          <span className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
             <span className="text-blue-400">HQ</span>
           </span>
         </Link>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-2 sm:gap-4">
+        <nav className="flex items-center gap-1.5 sm:gap-4">
           {isLoggedIn ? (
             // Logged-in navigation
             <>

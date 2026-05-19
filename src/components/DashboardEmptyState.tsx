@@ -33,23 +33,23 @@ export default function DashboardEmptyState() {
   const hasTwilioNumber = !!business?.twilio_phone_number
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 sm:py-10 px-6">
+    <div className="flex flex-col items-center justify-center py-4 sm:py-10 px-6">
       {/* Empty State Icon */}
-      <div className="inline-flex items-center justify-center mb-5 sm:mb-7">
-        <BrandIcon size={96} />
+      <div className="inline-flex items-center justify-center mb-3 sm:mb-7">
+        <BrandIcon size={72} className="sm:size-96" />
       </div>
 
       {/* Empty State Message */}
-      <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-2.5 sm:mb-3 text-center">
+      <h2 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3 text-center">
         No missed-call leads yet
       </h2>
-      <p className="text-base sm:text-lg text-slate-800 dark:text-muted-foreground text-center mb-5 sm:mb-7 max-w-md leading-relaxed font-medium">
+      <p className="text-sm sm:text-lg text-slate-800 dark:text-muted-foreground text-center mb-4 sm:mb-7 max-w-md leading-relaxed font-medium">
         Call your ReplyFlow number to test your setup. Missed calls and replies will appear here.
       </p>
 
       {/* SMS Status */}
       {!hasTwilioNumber && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6 sm:mb-7 max-w-md">
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-7 max-w-md">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -62,25 +62,25 @@ export default function DashboardEmptyState() {
       )}
 
       {/* CTA Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         {canShowTestSetup && (
           <button
             onClick={handleTestSetup}
-            className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="bg-blue-600 text-white py-2.5 sm:py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Optional Real-World Test
           </button>
         )}
         <button
           onClick={handleViewInstructions}
-          className="bg-secondary text-foreground py-3 px-6 rounded-lg hover:bg-secondary/80 transition-colors font-medium"
+          className="bg-secondary text-foreground py-2.5 sm:py-3 px-6 rounded-lg hover:bg-secondary/80 transition-colors font-medium"
         >
           View Setup Instructions
         </button>
       </div>
 
       {/* Additional Help */}
-      <div className="mt-8 text-center max-w-md">
+      <div className="mt-6 sm:mt-8 text-center max-w-md">
         <p className="text-sm text-muted-foreground">
           Your missed calls and customer replies will appear here.
         </p>

@@ -174,7 +174,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
             Business Activity
           </h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground/80">
             <span>This Month</span>
             <span>•</span>
             <span>See how ReplyFlow is helping your business</span>
@@ -206,10 +206,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600/30 dark:from-amber-500/30 dark:to-amber-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-all duration-300">📞</span>
-              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Missed Calls Recovered</h3>
+              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Missed Calls</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
-            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/70 font-medium">
               {missedCallsCount === 0 
                 ? (isOnboardingComplete ? 'Customers automatically contacted after missed calls' : 'Complete setup to begin capturing missed calls') 
                 : 'Customers automatically contacted'}
@@ -222,10 +222,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/30 dark:from-blue-500/30 dark:to-blue-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-all duration-300">👥</span>
-              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads Captured</h3>
+              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
-            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/70 font-medium">
               {leadsCount === 0 
                 ? (isOnboardingComplete ? 'New opportunities captured by ReplyFlow' : 'Complete setup to begin capturing leads') 
                 : 'New opportunities captured'}
@@ -238,10 +238,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600/30 dark:from-green-500/30 dark:to-green-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-green-200/50 dark:border-green-800/50 group-hover:scale-105 transition-all duration-300">💬</span>
-              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Customer Replies</h3>
+              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">{conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/70 font-medium">{conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}</p>
           </div>
         </Link>
 
@@ -250,10 +250,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600/30 dark:from-purple-500/30 dark:to-purple-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-purple-200/50 dark:border-purple-800/50 group-hover:scale-105 transition-all duration-300">📅</span>
-              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Automatic Check-ins Scheduled</h3>
+              <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Follow-Ups</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-purple-600 dark:text-purple-400 mb-2 tracking-tight">{followUpsCount}</p>
-            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">{followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}</p>
+            <p className="text-xs text-slate-600 dark:text-muted-foreground/70 font-medium">{followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}</p>
           </div>
         </Link>
       </div>
