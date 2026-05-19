@@ -65,7 +65,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         </Link>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-1.5 sm:gap-4">
+        <nav className="flex items-center gap-2 sm:gap-4">
           {isLoggedIn ? (
             // Logged-in navigation
             <>
