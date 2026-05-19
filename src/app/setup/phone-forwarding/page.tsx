@@ -22,6 +22,8 @@ export default function PhoneForwardingPage() {
   const { business, refreshBusiness } = useBusiness()
   const router = useRouter()
   const supabase = createBrowserClient()
+  
+  // All hooks must be called before any early returns
   const [selectedCarrier, setSelectedCarrier] = useState('')
   const [loading, setLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
@@ -38,49 +40,58 @@ export default function PhoneForwardingPage() {
       setSelectedCarrier(business.business_phone_carrier)
     }
   }, [business?.business_phone_carrier, selectedCarrier])
+  
+  console.log('[Phone Forwarding Route] Component mounted')
+  console.log('[Phone Forwarding Route] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'unknown')
 
-  // Animate expansion when carrier is selected
-  useEffect(() => {
-    if (selectedCarrier) {
-      setIsExpanded(true)
-    } else {
-      setIsExpanded(false)
-    }
-  }, [selectedCarrier])
+  // HARD GUARD: Check subscription status BEFORE any UI rendering
+  // This prevents flash of forwarding UI when subscription is not active
+  if (!business) {
+    console.log('[Phone Forwarding Route] Business data not loaded - showing loading')
+    return (
+      <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Check if user has active subscription before allowing phone setup
-  // Use deriveSetupState as the authoritative source of truth
-  useEffect(() => {
-    console.log('[Phone Forwarding Route] Current pathname:', window.location.pathname)
-    console.log('[Phone Forwarding Route] Business state:', {
-      id: business?.id,
-      subscription_status: business?.subscription_status,
-      twilio_phone_number: business?.twilio_phone_number,
-      forwarding_verified: business?.forwarding_verified,
-    })
+  console.log('[Phone Forwarding Route] Business state loaded:', {
+    id: business.id,
+    subscription_status: business.subscription_status,
+    twilio_phone_number: business.twilio_phone_number,
+    forwarding_verified: business.forwarding_verified,
+  })
 
-    const setupState = deriveSetupState(business)
-    console.log('[Phone Forwarding Route] Derived setup state:', setupState)
-    console.log('[Phone Forwarding Route] Route decision:', {
-      canAccess: setupState === 'needs_forwarding' || setupState === 'needs_final_test',
-      reason: setupState === 'needs_trial' ? 'Subscription not active' :
-               setupState === 'loading' ? 'Business data not loaded' :
-               setupState === 'provisioning_or_number_pending' ? 'Number not ready' :
-               setupState === 'complete' ? 'Setup already complete' :
-               'Unknown state',
-      redirectTarget: setupState === 'needs_trial' ? '/dashboard' : '/dashboard'
-    })
+  const setupState = deriveSetupState(business)
+  console.log('[Phone Forwarding Route] Derived setup state:', setupState)
+  console.log('[Phone Forwarding Route] Route decision:', {
+    canAccess: setupState === 'needs_forwarding' || setupState === 'needs_final_test',
+    reason: setupState === 'needs_trial' ? 'Subscription not active' :
+             setupState === 'loading' ? 'Business data not loaded' :
+             setupState === 'provisioning_or_number_pending' ? 'Number not ready' :
+             setupState === 'complete' ? 'Setup already complete' :
+             'Unknown state',
+    redirectTarget: '/dashboard'
+  })
 
-    // Do not render forwarding page if subscription is not active
-    // This prevents the flash of forwarding instructions when subscription_status is null
-    if (setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
-      console.log('[Phone Forwarding Route] Blocking access - redirecting to dashboard')
-      router.push('/dashboard')
-      return
-    }
+  // HARD GUARD: If subscription is not active, immediately redirect without rendering any UI
+  if (setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
+    console.log('[Phone Forwarding Route] Blocking access - redirecting to dashboard (no UI rendered)')
+    router.replace('/dashboard')
+    return (
+      <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
-    console.log('[Phone Forwarding Route] Access granted - rendering forwarding page')
-  }, [business, router])
+  console.log('[Phone Forwarding Route] Access granted - rendering forwarding UI')
 
   const handleCopyCode = () => {
     const code = getForwardingCode()
