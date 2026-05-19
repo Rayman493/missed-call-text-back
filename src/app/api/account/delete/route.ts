@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, business_email, name')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -208,21 +208,65 @@ export async function POST(request: NextRequest) {
       }
       console.log('[delete-account] Step 6 completed: deleted leads')
 
-      // Step 7: Delete businesses
-      console.log('[delete-account] Step 7: delete businesses')
-      const { error: businessesDeleteError } = await supabaseAdmin
-        .from('businesses')
-        .delete()
-        .in('id', businessIds)
+      // Step 7: Soft-delete businesses and record trial history
+      console.log('[delete-account] Step 7: soft-delete businesses and record trial history')
+      
+      for (const business of businesses as any[]) {
+        // Record trial history before soft-deleting
+        if (business.stripe_customer_id || business.trial_ends_at) {
+          // Extract domain from business_email if available
+          const businessDomain = business.business_email ? business.business_email.split('@')[1]?.toLowerCase() : null
+          
+          const trialHistoryData = {
+            business_id: business.id,
+            business_phone_number: business.twilio_phone_number,
+            business_email: business.business_email || null,
+            business_domain: businessDomain,
+            stripe_customer_id: business.stripe_customer_id,
+            stripe_subscription_id: business.stripe_subscription_id,
+            trial_started_at: business.created_at,
+            trial_ended_at: business.trial_ends_at,
+            trial_status: business.subscription_status === 'trialing' ? 'canceled' : 
+                          business.subscription_status === 'active' ? 'converted' : 
+                          business.subscription_status === 'inactive' ? 'completed' : 'canceled',
+            subscription_status: business.subscription_status,
+            user_id: user.id,
+            account_deleted_at: new Date().toISOString(),
+            account_deleted_by: 'self',
+            deletion_reason: 'user_request',
+          }
+          
+          const { error: trialHistoryError } = await supabaseAdmin
+            .from('trial_history')
+            .insert(trialHistoryData)
+          
+          if (trialHistoryError) {
+            console.error('[delete-account] Failed to record trial history:', trialHistoryError)
+            // Don't fail the deletion if trial history recording fails, but log it
+          } else {
+            console.log('[delete-account] Recorded trial history for business:', business.id)
+          }
+        }
+        
+        // Soft-delete the business (preserve data for abuse prevention)
+        const { error: businessesSoftDeleteError } = await supabaseAdmin
+          .from('businesses')
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by: 'self',
+            deletion_reason: 'user_request',
+          })
+          .eq('id', business.id)
 
-      if (businessesDeleteError) {
-        console.error('[delete-account] Step 7 failed:', businessesDeleteError)
-        return NextResponse.json(
-          { ok: false, step: 'delete_businesses', error: businessesDeleteError.message, details: businessesDeleteError },
-          { status: 500 }
-        )
+        if (businessesSoftDeleteError) {
+          console.error('[delete-account] Step 7 soft-delete failed:', businessesSoftDeleteError)
+          return NextResponse.json(
+            { ok: false, step: 'soft_delete_businesses', error: businessesSoftDeleteError.message, details: businessesSoftDeleteError },
+            { status: 500 }
+          )
+        }
       }
-      console.log('[delete-account] Step 7 completed: deleted businesses')
+      console.log('[delete-account] Step 7 completed: soft-deleted businesses and recorded trial history')
     }
 
     // Step 8: Delete the Supabase Auth user last

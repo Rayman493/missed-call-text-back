@@ -65,6 +65,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // Check trial eligibility before creating checkout session
+    console.log('[stripe-checkout] Checking trial eligibility');
+    
+    const eligibilityCheck = await fetch(`${siteUrl}/api/trial/check-eligibility`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify({
+        business_phone_number: business.twilio_phone_number || business.forwarding_phone_number,
+        business_email: user.email,
+      }),
+    });
+
+    const eligibilityResult = await eligibilityCheck.json();
+    console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
+
+    if (!eligibilityResult.ok || !eligibilityResult.eligible) {
+      console.error('[stripe-checkout] Trial eligibility check failed:', eligibilityResult);
+      return NextResponse.json(
+        { 
+          error: eligibilityResult.message || 'Trial eligibility check failed',
+          reasons: eligibilityResult.reasons,
+          support_email: eligibilityResult.support_email,
+        },
+        { status: 403 }
+      );
+    }
+
+    console.log('[stripe-checkout] Trial eligibility confirmed, proceeding with checkout');
+
     // Create or retrieve Stripe customer
     let customerId = business.stripe_customer_id
     if (!customerId) {

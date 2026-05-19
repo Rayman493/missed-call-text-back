@@ -26,6 +26,7 @@ export const db = {
       .from('businesses')
       .select('*')
       .eq('twilio_phone_number', phone)
+      .is('deleted_at', null) // Filter out soft-deleted records
       .limit(1) // Get first business if multiple exist
       .single()
     
@@ -47,6 +48,7 @@ export const db = {
     let query = supabaseAdmin
       .from('businesses')
       .select('*')
+      .is('deleted_at', null) // Filter out soft-deleted records
     
     if (phone === sharedTollFreeNumber) {
       // If the phone is the shared toll-free number, return all businesses
@@ -564,6 +566,7 @@ export const db = {
       .from('businesses')
       .select('*')
       .eq('user_id', userId)
+      .is('deleted_at', null) // Filter out soft-deleted records
       .limit(1)
       .single()
     
