@@ -1076,18 +1076,18 @@ export default function DashboardContent() {
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
-                            <h2 className="text-xs font-semibold text-slate-400">Admin Diagnostics (Internal)</h2>
+                            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400">Developer Diagnostics</h2>
                           </div>
-                          <span className="text-[10px] text-slate-600 pl-5.5">Technical provisioning, Twilio status, webhook diagnostics, and onboarding health</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 pl-5.5">Technical provisioning, Twilio status, webhook diagnostics, and onboarding health</span>
                         </div>
-                        <span className="text-[10px] text-slate-600 font-mono opacity-50 group-hover:opacity-100 transition-opacity">DEV_ONLY</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-500 font-mono opacity-70 group-hover:opacity-100 transition-opacity bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">DEV_ONLY</span>
                       </button>
 
                       {/* Collapsible Content */}
                       {!adminPanelCollapsed && (
                         <div className="mt-4 space-y-4">
                           {/* Provisioning Status */}
-                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                          <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200/50 dark:border-slate-700/50">
                             <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Provisioning</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                               <div className="flex justify-between">
@@ -1159,7 +1159,7 @@ export default function DashboardContent() {
                           </div>
 
                           {/* Warm Number Inventory */}
-                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                          <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200/50 dark:border-slate-700/50">
                             <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Warm Number Inventory</h3>
                             {stats?.success ? (
                               <div className="flex gap-4 text-xs">
@@ -1199,7 +1199,7 @@ export default function DashboardContent() {
                           </div>
 
                           {/* Recovery / Repair */}
-                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                          <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200/50 dark:border-slate-700/50">
                             <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Recovery / Repair</h3>
                             <button
                               onClick={handleReconcileWarmNumbers}
