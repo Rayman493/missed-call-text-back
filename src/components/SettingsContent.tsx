@@ -546,7 +546,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-3 sm:space-y-4">
               {/* Account Section */}
-              <div id="account" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Account</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage your account details and preferences.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -570,7 +570,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4">
+              <div id="billing" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2 sm:mb-2.5">Billing</h2>
                 <div className="space-y-2">
                   <div>
@@ -585,7 +585,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+              <div id="business" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Business Info</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage the phone number and business identity customers interact with.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -617,7 +617,7 @@ export default function SettingsContent() {
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
-                <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3.5 sm:p-6">
+                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3.5 sm:p-6">
                   <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2">Text Messaging & Automation</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-2.5 sm:mb-3">
                     Instant reply messages, business hours, spam filtering, and ignored contacts unlock
@@ -631,7 +631,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+              <div id="messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">Text Message Settings</h2>
                   {hasActiveSubscription(business) && (
@@ -669,7 +669,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <div className="mb-3 sm:mb-4">
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                     <h2 className="text-base sm:text-lg font-semibold text-foreground">Instant Response Settings</h2>
@@ -1118,7 +1118,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Account Management</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage your account and data preferences.</p>
                 <div className="space-y-2.5 sm:space-y-3">
