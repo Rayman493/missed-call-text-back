@@ -15,17 +15,21 @@ export default function Navigation() {
   // Show loading screen while auth is loading
   if (loading) {
     return (
-      <div className="flex items-center gap-6 animate-pulse">
-        <div className="h-4 w-16 bg-muted rounded"></div>
-        <div className="h-4 w-12 bg-muted rounded"></div>
-        <div className="h-4 w-20 bg-muted rounded"></div>
+      <div className="flex items-center gap-1">
+        <div className="h-8 w-20 bg-muted rounded animate-pulse"></div>
+        <div className="h-8 w-16 bg-muted rounded animate-pulse"></div>
       </div>
     )
   }
 
-  // Don't show navigation for logged-out users
+  // Don't show navigation for logged-out users, but render invisible placeholders to prevent layout shift
   if (!user) {
-    return null
+    return (
+      <div className="flex items-center gap-1 opacity-0">
+        <div className="h-8 w-20"></div>
+        <div className="h-8 w-16"></div>
+      </div>
+    )
   }
 
   // Navigation uses fixed colors for dark header (works in both light and dark modes)

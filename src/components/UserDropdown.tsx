@@ -95,7 +95,7 @@ export default function UserDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {isValidSession && user && (
+      {isValidSession && user ? (
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -181,6 +181,13 @@ export default function UserDropdown() {
             </div>
           )}
         </>
+      ) : (
+        // Skeleton placeholder during loading or when user is not logged in
+        <div className="flex items-center gap-2 px-3 py-1.5 opacity-0">
+          <div className="w-5 h-5 bg-muted rounded animate-pulse"></div>
+          <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
+          <div className="w-4 h-4 bg-muted rounded animate-pulse"></div>
+        </div>
       )}
     </div>
   )
