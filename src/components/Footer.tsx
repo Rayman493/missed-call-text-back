@@ -6,7 +6,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-slate-50 dark:bg-background border-t border-slate-200 dark:border-border">
+    <footer className="bg-slate-100 dark:bg-background border-t border-slate-300 dark:border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
@@ -18,7 +18,7 @@ export default function Footer() {
               </div>
               <span className="text-xl font-bold text-slate-900 dark:text-foreground">ReplyFlowHQ</span>
             </div>
-            <p className="text-slate-600 dark:text-muted-foreground mb-4 max-w-md leading-relaxed">
+            <p className="text-slate-700 dark:text-muted-foreground mb-4 max-w-md leading-relaxed">
               Conversational missed-call response automation for modern businesses. 
               Capture leads and provide exceptional customer service.
             </p>
@@ -41,31 +41,31 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/dashboard" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Dashboard
                 </Link>
               </li>
               <li>
                 <Link 
+                  href="/dashboard/leads" 
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                >
+                  Leads
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/dashboard/settings" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Settings
                 </Link>
               </li>
               <li>
                 <Link 
-                  href="/faq" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
-                >
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link 
                   href="/demo" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Demo
                 </Link>
@@ -82,7 +82,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/privacy" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -90,7 +90,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/terms" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Terms of Service
                 </Link>
@@ -98,7 +98,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/compliance" 
-                  className="text-slate-600 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
                 >
                   Compliance
                 </Link>
@@ -108,14 +108,14 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-slate-200 dark:border-border">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-slate-600 dark:text-muted-foreground">
-              © {currentYear} ReplyFlowHQ. All rights reserved.
+        <div className="mt-8 pt-8 border-t border-slate-300 dark:border-border">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-slate-600 dark:text-muted-foreground text-sm">
+              &copy; {currentYear} ReplyFlowHQ. All rights reserved.
             </p>
-            <div className="flex items-center gap-6">
-              <span className="text-sm text-slate-500 dark:text-muted-foreground">
-                Conversational messaging platform
+            <div className="flex items-center gap-6 mt-4 md:mt-0">
+              <span className="text-slate-600 dark:text-muted-foreground text-sm">
+                Built for service businesses
               </span>
             </div>
           </div>

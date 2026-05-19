@@ -43,7 +43,7 @@ export default function DashboardEmptyState() {
       <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2.5 sm:mb-3 text-center">
         No missed-call leads yet
       </h2>
-      <p className="text-base sm:text-lg text-slate-600 dark:text-muted-foreground text-center mb-5 sm:mb-7 max-w-md leading-relaxed">
+      <p className="text-base sm:text-lg text-slate-700 dark:text-muted-foreground text-center mb-5 sm:mb-7 max-w-md leading-relaxed">
         Call your ReplyFlow number to test your setup. Missed calls and replies will appear here.
       </p>
 

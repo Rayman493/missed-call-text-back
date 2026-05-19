@@ -203,7 +203,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Missed Calls */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border/40 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600/30 dark:from-amber-500/30 dark:to-amber-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-all duration-300">📞</span>
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Missed Calls Recovered</h3>
@@ -219,7 +219,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
 
         {/* New Leads */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border/40 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/30 dark:from-blue-500/30 dark:to-blue-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-all duration-300">👥</span>
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads Captured</h3>
@@ -235,7 +235,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
 
         {/* Conversations */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border/40 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600/30 dark:from-green-500/30 dark:to-green-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-green-200/50 dark:border-green-800/50 group-hover:scale-105 transition-all duration-300">💬</span>
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Customer Replies</h3>
@@ -247,7 +247,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
 
         {/* Follow-ups */}
         <Link href="/dashboard/leads" className="group">
-          <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border/40 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 rounded-2xl shadow-sm dark:shadow-sm hover:shadow-md dark:hover:shadow-md hover:border-slate-300 dark:hover:border-border/60 transition-all duration-300 hover:-translate-y-0.5 p-3 sm:p-4 cursor-pointer h-full">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600/30 dark:from-purple-500/30 dark:to-purple-600/30 rounded-xl flex items-center justify-center text-xl shadow-sm border border-purple-200/50 dark:border-purple-800/50 group-hover:scale-105 transition-all duration-300">📅</span>
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Automatic Check-ins Scheduled</h3>
