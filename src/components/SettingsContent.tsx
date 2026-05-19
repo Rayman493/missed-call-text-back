@@ -449,12 +449,6 @@ export default function SettingsContent() {
                   Contacts
                 </a>
                 <a
-                  href="#billing"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
-                >
-                  Billing
-                </a>
-                <a
                   href="#account"
                   className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
                 >
@@ -1057,55 +1051,7 @@ export default function SettingsContent() {
               </>
               )}
 
-              {/* Billing Section */}
-              <div id="billing" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6 scroll-mt-24">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Billing</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-4 sm:mb-5">Manage your subscription and trial.</p>
-                <div className="space-y-4 sm:space-y-5">
-                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        isInTrialPeriod(business?.subscription_status) 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
-                          : hasActiveSubscription(business)
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      }`}>
-                        {getSubscriptionStatusText(business?.subscription_status)}
-                      </span>
-                    </div>
-                    <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-1">
-                      {getPricingDisplay()}
-                      {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
-                    </p>
-                    <p className="text-xs text-slate-600 dark:text-muted-foreground">
-                      {isInTrialPeriod(business?.subscription_status) 
-                        ? 'Your trial includes full access to all features. No charge until trial ends.'
-                        : 'Your subscription is active and all features are unlocked.'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => handleBillingActionClick('portal')}
-                      disabled={isOpeningPortal}
-                      className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                    >
-                      Manage Billing
-                    </button>
-                    {needsUpgrade(business?.subscription_status) && (
-                      <button
-                        onClick={() => handleBillingActionClick('upgrade')}
-                        disabled={isStartingCheckout}
-                        className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                      >
-                        Upgrade Plan
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
+              
               {/* Danger Zone */}
               <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account Management</h2>
@@ -1131,22 +1077,73 @@ export default function SettingsContent() {
               {/* Account Section */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account details and preferences.</p>
-                <div className="space-y-2.5 sm:space-y-3">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
-                      Email
-                    </label>
-                    <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
-                      {user?.email}
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account details, subscription, and preferences.</p>
+                <div className="space-y-6">
+                  {/* Account Details */}
+                  <div className="space-y-2.5 sm:space-y-3">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
+                        Email
+                      </label>
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                        {user?.email}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
+                        Account Status
+                      </label>
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                        {getSubscriptionStatusText(business?.subscription_status)}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
-                      Account Status
-                    </label>
-                    <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
-                      {getSubscriptionStatusText(business?.subscription_status)}
+
+                  {/* Billing */}
+                  <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">Billing</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            isInTrialPeriod(business?.subscription_status) 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                              : hasActiveSubscription(business)
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                          }`}>
+                            {getSubscriptionStatusText(business?.subscription_status)}
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-1">
+                          {getPricingDisplay()}
+                          {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-muted-foreground">
+                          {isInTrialPeriod(business?.subscription_status) 
+                            ? 'Your trial includes full access to all features. No charge until trial ends.'
+                            : 'Your subscription is active and all features are unlocked.'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => handleBillingActionClick('portal')}
+                          disabled={isOpeningPortal}
+                          className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                        >
+                          Manage Billing
+                        </button>
+                        {needsUpgrade(business?.subscription_status) && (
+                          <button
+                            onClick={() => handleBillingActionClick('upgrade')}
+                            disabled={isStartingCheckout}
+                            className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                          >
+                            Upgrade Plan
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
