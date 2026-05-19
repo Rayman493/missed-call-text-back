@@ -221,12 +221,12 @@ export default function BusinessActivity({
               </p>
             </div>
 
-            {/* Follow-Ups Scheduled */}
+            {/* Automatic Check-ins Scheduled */}
             <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base sm:text-lg">💡</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                  Follow-Ups Scheduled
+                  Automatic Check-ins Scheduled
                 </span>
               </div>
               <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-1">

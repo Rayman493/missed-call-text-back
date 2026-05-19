@@ -494,7 +494,7 @@ export default function SettingsContent() {
                       Waiting for connection
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
-                      Monitoring inactive
+                      Not watching for calls
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                       Trial active
@@ -510,7 +510,7 @@ export default function SettingsContent() {
                       ReplyFlow standing by
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full text-xs">
-                      Monitoring pending
+                      Waiting to start watching
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                       Trial active
@@ -521,13 +521,13 @@ export default function SettingsContent() {
                   <>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
                       <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Monitoring active
+                      Watching for missed calls
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                      Auto-replies active
+                      Instant replies are on
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                      SMS operational
+                      Text messaging working
                     </span>
                     {isInTrialPeriod(business?.subscription_status) ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
@@ -618,9 +618,9 @@ export default function SettingsContent() {
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
                 <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3.5 sm:p-6">
-                  <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2">Messaging & Automation</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2">Text Messaging & Automation</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-2.5 sm:mb-3">
-                    Auto-reply messages, business hours, spam filtering, and ignored contacts unlock
+                    Instant reply messages, business hours, spam filtering, and ignored contacts unlock
                     once you start your free trial. Your dedicated ReplyFlow number is set up
                     automatically right after activation.
                   </p>
@@ -633,19 +633,19 @@ export default function SettingsContent() {
               {/* Messaging Settings */}
               <div id="messaging" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                  <h2 className="text-base sm:text-lg font-semibold text-foreground">Messaging Settings</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">Text Message Settings</h2>
                   {hasActiveSubscription(business) && (
                     <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
                       <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                      Operational
+                      Active
                     </span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Customize the automatic text customers receive after missed calls.</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Customize the instant text customers receive after missed calls.</p>
                 <div className="space-y-2.5 sm:space-y-3">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
-                      Auto Reply Message
+                      Instant Response Message
                     </label>
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
@@ -672,7 +672,7 @@ export default function SettingsContent() {
               <div id="automation" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <div className="mb-3 sm:mb-4">
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                    <h2 className="text-base sm:text-lg font-semibold text-foreground">Automation Settings</h2>
+                    <h2 className="text-base sm:text-lg font-semibold text-foreground">Instant Response Settings</h2>
                     {spamFilteringEnabled && (
                       <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
                         <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
@@ -681,7 +681,7 @@ export default function SettingsContent() {
                     )}
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Control when ReplyFlow automatically responds to missed calls.
+                    Control when ReplyFlow sends instant responses to missed calls.
                   </p>
                 </div>
                 
@@ -699,7 +699,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
-                          Control which callers receive automated text responses and which calls ReplyFlow should ignore.
+                          Control which callers receive instant text responses and which calls ReplyFlow should ignore.
                         </p>
                         <div className="text-[10px] sm:text-xs text-muted-foreground">
                           📋 Filtered calls will not create leads, trigger automations, or appear in your inbox.
@@ -728,7 +728,7 @@ export default function SettingsContent() {
                         <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                              <h4 className="text-xs sm:text-sm font-semibold text-foreground">Prevent duplicate auto-replies</h4>
+                              <h4 className="text-xs sm:text-sm font-semibold text-foreground">Prevent duplicate instant replies</h4>
                               <span className="text-[10px] sm:text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
                                 Recommended
                               </span>
@@ -737,7 +737,7 @@ export default function SettingsContent() {
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
                             </p>
                             <div className="text-[10px] sm:text-xs text-muted-foreground italic">
-                              Example: A customer calls 3 times within 15 minutes and only receives 1 automated reply.
+                              Example: A customer calls 3 times within 15 minutes and only receives 1 instant reply.
                             </div>
                           </div>
                           <button
@@ -770,7 +770,7 @@ export default function SettingsContent() {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              Prevent automated texts from being sent to callers who hide their number or appear as 'Unknown'.
+                              Prevent instant texts from being sent to callers who hide their number or appear as 'Unknown'.
                             </p>
                           </div>
                           <button
@@ -870,7 +870,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-1">
-                          Only send automated texts during your business hours.
+                          Only send instant texts during your business hours.
                         </p>
                         <div className="text-xs text-muted-foreground">
                           🕐 Prevents late-night texts and respects customer communication preferences.
@@ -1166,7 +1166,7 @@ export default function SettingsContent() {
                 </p>
                 <ul className="text-sm text-muted-foreground mb-4 list-disc pl-5 space-y-1">
                   <li>Cancel your active subscription in Stripe immediately</li>
-                  <li>Permanently delete your business, leads, messages, conversations, and follow-ups</li>
+                  <li>Permanently delete your business, leads, messages, conversations, and automatic check-ins</li>
                   <li>Sign you out and delete your login</li>
                 </ul>
                 <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-4">

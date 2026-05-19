@@ -181,7 +181,7 @@ export default function PhoneForwardingPage() {
                 Connect your business phone
               </h1>
               <p className="text-muted-foreground">
-                Forward missed calls to ReplyFlow so we can text customers back automatically.
+                Forward missed calls to ReplyFlow so we can text customers back instantly.
               </p>
             </div>
 
@@ -270,12 +270,12 @@ export default function PhoneForwardingPage() {
                 <div className="border-2 border-dashed border-border rounded-xl p-8 text-center mb-6">
                   <Phone className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">
-                    Select your carrier to see your forwarding code
+                    Select your carrier to see your connection code
                   </p>
                 </div>
               )}
 
-              {/* Forwarding Instructions */}
+              {/* Connection Instructions */}
               {selectedCarrier && (
                 <div 
                   className={`space-y-6 transition-all duration-300 ease-out ${
@@ -299,7 +299,7 @@ export default function PhoneForwardingPage() {
                         title="Click to copy code"
                       >
                         <code
-                          aria-label="Forwarding dial code"
+                          aria-label="Connection dial code"
                           className="block font-mono font-semibold text-foreground text-center text-2xl sm:text-3xl lg:text-4xl tracking-widest whitespace-nowrap select-all"
                         >
                           {getForwardingCodeDisplay()}

@@ -84,28 +84,28 @@ export default function SetupHealth() {
     let forwardingDescription: string
     let forwardingDetails: string
 
-    // Not Configured (Red) - Only if no Twilio number or onboarding not completed
+    // Not Configured (Red) - Only if no ReplyFlow number or onboarding not completed
     if (!business.twilio_phone_number || business.onboarding_status !== 'completed') {
       forwardingStatus = 'error'
-      forwardingTitle = 'Forwarding Not Configured'
+      forwardingTitle = 'Call Forwarding Not Connected'
       forwardingDescription = 'Call forwarding setup not completed'
-      forwardingDetails = 'Complete onboarding to enable call forwarding'
+      forwardingDetails = 'Complete onboarding to enable missed call forwarding'
     } 
     // Verified Working (Green) - If forwarding_verified is true
     else if (business.forwarding_verified) {
       forwardingStatus = 'healthy'
-      forwardingTitle = 'Forwarding Verified'
+      forwardingTitle = 'Call Forwarding Working'
       forwardingDescription = 'Missed-call forwarding is working correctly'
       forwardingDetails = business.forwarding_verified_at 
         ? `Verified at ${new Date(business.forwarding_verified_at).toLocaleDateString()}`
-        : 'Forwarding is working correctly'
+        : 'Call forwarding is working correctly'
     } 
     // Configured / Awaiting Test (Yellow) - Onboarding completed but forwarding not verified
     else {
       forwardingStatus = 'warning'
-      forwardingTitle = 'Forwarding Configured'
+      forwardingTitle = 'Forwarding Ready for Test'
       forwardingDescription = 'Awaiting first successful missed-call test'
-      forwardingDetails = 'Forwarding becomes verified after your first successful missed-call test'
+      forwardingDetails = 'Call forwarding becomes verified after your first successful test'
     }
 
     healthItems.push({
@@ -146,19 +146,19 @@ export default function SetupHealth() {
   // 3. ReplyFlow number active
   const twilioActive = !!business.twilio_phone_number
   healthItems.push({
-    title: 'ReplyFlow Number Active',
-    description: 'Your ReplyFlow number is assigned and ready',
+    title: 'ReplyFlow Line Ready',
+    description: 'Your ReplyFlow line is assigned and ready',
     status: twilioActive ? 'healthy' : 'warning',
     details: twilioActive 
-      ? `Number: ${getReplyFlowPhoneNumberDisplay(business)}` 
-      : 'No ReplyFlow number assigned'
+      ? `Line: ${getReplyFlowPhoneNumberDisplay(business)}` 
+      : 'Your ReplyFlow line is still being prepared'
   })
 
   // 4. SMS working (simplified - would need to check recent message logs in real implementation)
   const smsWorking = business.twilio_phone_number && subscriptionValid
   healthItems.push({
-    title: 'SMS Working',
-    description: 'Auto-reply messages are being sent',
+    title: 'Text Messaging Working',
+    description: 'Instant reply messages are being sent',
     status: smsWorking ? 'healthy' : 'warning',
     details: smsWorking 
       ? 'Message sending is active' 

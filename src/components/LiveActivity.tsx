@@ -84,7 +84,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
       return `Conversation with ${formatLeadPhone(item.caller_phone)}`
     } else {
       // It's a follow-up job
-      return 'Follow-up scheduled'
+      return 'Automatic check-in scheduled'
     }
   }
 

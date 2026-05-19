@@ -24,7 +24,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
           </svg>
         </div>
         <h3 className="text-sm font-semibold text-foreground">
-          {allCancelledAfterReply ? 'Follow-ups Paused' : 'Upcoming Follow-ups'}
+          {allCancelledAfterReply ? 'Automatic Check-ins Paused' : 'Upcoming Automatic Check-ins'}
         </h3>
         {allCancelledAfterReply && (
           <span className="ml-auto px-2 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs rounded-full font-medium border border-green-100 dark:border-green-800/30">
@@ -56,7 +56,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
                       {job.scheduled_at ? formatRelativeTime(job.scheduled_at) : 'Scheduled'}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {job.step === 1 ? 'First follow-up' : job.step === 2 ? 'Second follow-up' : job.step ? `Follow-up #${job.step}` : 'Scheduled follow-up'}
+                      {job.step === 1 ? 'First check-in' : job.step === 2 ? 'Second check-in' : job.step ? `Check-in #${job.step}` : 'Scheduled check-in'}
                     </div>
                   </div>
                 </div>
