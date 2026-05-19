@@ -28,43 +28,51 @@ export default function DemoPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="max-w-2xl mx-auto">
           <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
+            {/* Customer Message 1 - Customer initiates */}
+            <div className="flex justify-start mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+                <p className="text-sm text-slate-800 dark:text-slate-200">Hi, do you offer same-day AC repair?</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:34 PM</p>
+              </div>
+            </div>
+            
             {/* Business Message 1 - ReplyFlow sends first text */}
             <div className="flex justify-end mb-4">
               <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                <p className="text-sm text-white">Sorry we missed your call — this is Wolfie Plumbing. How can we help?</p>
-                <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
-              </div>
-            </div>
-            
-            {/* Customer Message 1 */}
-            <div className="flex justify-start mb-4">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
-                <p className="text-sm text-slate-800 dark:text-slate-200">Do you install water heaters?</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
-              </div>
-            </div>
-            
-            {/* Business Message 2 */}
-            <div className="flex justify-end mb-4">
-              <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                <p className="text-sm text-white">Yes, we do. What size water heater do you need?</p>
-                <p className="text-xs text-blue-200 mt-1">2:36 PM</p>
+                <p className="text-sm text-white">Sorry we missed your call — this is Arctic Air HVAC. What issue are you experiencing?</p>
+                <p className="text-xs text-blue-200 mt-1">2:35 PM</p>
               </div>
             </div>
             
             {/* Customer Message 2 */}
             <div className="flex justify-start mb-4">
               <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
-                <p className="text-sm text-slate-800 dark:text-slate-200">50 gallon gas</p>
-                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:37 PM</p>
+                <p className="text-sm text-slate-800 dark:text-slate-200">My upstairs AC isn't cooling.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:36 PM</p>
+              </div>
+            </div>
+            
+            {/* Business Message 2 */}
+            <div className="flex justify-end mb-4">
+              <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+                <p className="text-sm text-white">We can help with that. What city are you located in?</p>
+                <p className="text-xs text-blue-200 mt-1">2:37 PM</p>
+              </div>
+            </div>
+            
+            {/* Customer Message 3 */}
+            <div className="flex justify-start mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+                <p className="text-sm text-slate-800 dark:text-slate-200">Pittsburgh</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:38 PM</p>
               </div>
             </div>
             
             {/* Business Message 3 */}
             <div className="flex justify-end mb-4">
               <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                <p className="text-sm text-white">Perfect — we can help with that. What zip code are you located in?</p>
-                <p className="text-xs text-blue-200 mt-1">2:38 PM</p>
+                <p className="text-sm text-white">Thanks — a technician can reach out shortly to schedule service.</p>
+                <p className="text-xs text-blue-200 mt-1">2:39 PM</p>
               </div>
             </div>
           </div>
