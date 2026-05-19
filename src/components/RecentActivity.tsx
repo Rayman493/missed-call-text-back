@@ -113,7 +113,7 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md p-6">
+      <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-xl shadow-md p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
             <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +130,7 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md p-6">
+    <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-xl shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">

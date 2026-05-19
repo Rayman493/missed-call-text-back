@@ -113,7 +113,7 @@ export default function LeadStatusDropdown({
           />
           
           {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg shadow-lg z-20 min-w-[160px] overflow-hidden">
+          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-lg shadow-lg z-20 min-w-[160px] overflow-hidden">
             {availableStatuses.map((status) => (
               <button
                 key={status}
