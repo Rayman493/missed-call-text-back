@@ -654,23 +654,43 @@ export default function DashboardContent() {
     return () => clearTimeout(timeout)
   }, [businessLoading, webhookConfirming])
 
-  // Show loading state while business is loading, webhook is confirming, or subscription state is not yet resolved
-  // This prevents flicker by not rendering onboarding UI until state is fully resolved
-  if (shouldShowLoadingState && !loadingTimeout) {
+  // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
+  // This prevents flash of previous setup/onboarding screens during dashboard load
+  if (businessLoading || webhookConfirming || !businessFetchComplete) {
+    console.log('[Dashboard Gate] loading - waiting for auth/business/subscription state to resolve', {
+      businessLoading,
+      webhookConfirming,
+      businessFetchComplete,
+      subscription_status: business?.subscription_status
+    })
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">
-            {webhookConfirming ? 'Payment confirmed. Setting up your account...' : 'Loading your dashboard...'}
-          </p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-            Please wait while we prepare your workspace
-          </p>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
         </div>
       </div>
     )
   }
+
+  // State is resolved - log which dashboard state we're rendering
+  if (!isSubscriptionActive) {
+    console.log('[Dashboard Gate] rendering pre-trial dashboard', {
+      subscription_status: business?.subscription_status,
+      isSubscriptionActive
+    })
+  } else {
+    console.log('[Dashboard Gate] rendering active setup dashboard', {
+      subscription_status: business?.subscription_status,
+      isSubscriptionActive
+    })
+  }
+
+  console.log('[Dashboard Gate] resolved - state fully loaded', {
+    subscription_status: business?.subscription_status,
+    isSubscriptionActive,
+    onboardingState: onboardingState.state
+  })
 
   // If loading timeout reached, show dashboard anyway (don't render blank)
   if (loadingTimeout) {
