@@ -43,6 +43,7 @@ export default function SettingsContent() {
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
+  const [activeSection, setActiveSection] = useState('general')
 
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
@@ -396,6 +397,49 @@ export default function SettingsContent() {
     }
   }, [business])
 
+  // IntersectionObserver for scroll-aware active section
+  useEffect(() => {
+    const sections = ['general', 'automation', 'contacts', 'account']
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id)
+          }
+        })
+      },
+      {
+        threshold: 0.3,
+        rootMargin: '-80px 0px -60% 0px'
+      }
+    )
+
+    sections.forEach((sectionId) => {
+      const element = document.getElementById(sectionId)
+      if (element) {
+        observer.observe(element)
+      }
+    })
+
+    return () => {
+      sections.forEach((sectionId) => {
+        const element = document.getElementById(sectionId)
+        if (element) {
+          observer.unobserve(element)
+        }
+      })
+    }
+  }, [])
+
+  // Smooth scroll handler
+  const handleSectionClick = (sectionId: string) => {
+    setActiveSection(sectionId)
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   // Load ignored contacts
 
   if (!business || !formBusiness) {
@@ -430,30 +474,58 @@ export default function SettingsContent() {
             {/* Settings Navigation Tabs */}
             <div className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-900 py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200 dark:border-slate-700 shadow-sm">
               <nav className="flex items-center gap-1 overflow-x-auto pb-1">
-                <a
-                  href="#general"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                <button
+                  onClick={() => handleSectionClick('general')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                    activeSection === 'general'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
+                  }`}
                 >
                   General
-                </a>
-                <a
-                  href="#automation"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                  {activeSection === 'general' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSectionClick('automation')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                    activeSection === 'automation'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
+                  }`}
                 >
                   Automation
-                </a>
-                <a
-                  href="#contacts"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                  {activeSection === 'automation' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSectionClick('contacts')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                    activeSection === 'contacts'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
+                  }`}
                 >
                   Contacts
-                </a>
-                <a
-                  href="#account"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                  {activeSection === 'contacts' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSectionClick('account')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                    activeSection === 'account'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
+                  }`}
                 >
                   Account
-                </a>
+                  {activeSection === 'account' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
               </nav>
             </div>
 
