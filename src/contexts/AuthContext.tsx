@@ -176,8 +176,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null)
       setUser(null)
       
-      // Redirect to login (not homepage)
-      router.push('/auth/signin')
+      // Redirect: stay on homepage if already there, otherwise go to signin
+      if (pathname === '/') {
+        console.log('[Auth] User on homepage, staying on homepage after logout')
+        router.push('/')
+      } else {
+        console.log('[Auth] Redirecting to login after logout')
+        router.push('/auth/signin')
+      }
     } catch (error) {
       console.error('[Auth] Sign out error:', error)
     }
