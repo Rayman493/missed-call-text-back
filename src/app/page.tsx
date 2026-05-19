@@ -134,7 +134,7 @@ function HomepageFooter() {
             </p>
             <div className="flex items-center gap-6 mt-4 md:mt-0">
               <span className="text-muted-foreground text-base">
-                Built for service businesses
+                Built for local businesses
               </span>
             </div>
           </div>
@@ -475,7 +475,7 @@ export default function Home() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-              Trusted by service businesses
+              Trusted by local businesses
             </h2>
             <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
               Built for businesses that value every customer interaction
@@ -541,7 +541,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-20 border-t border-slate-200 dark:border-border">
+      <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-24 sm:py-28 border-t border-slate-200 dark:border-border">
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -549,11 +549,11 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
               Ready to never miss a customer again?
             </h2>
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-10 leading-relaxed">
-              Built for service businesses that never want to miss another lead.
+            <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
+              Built for contractors and home services that never want to miss another lead.
             </p>
             <Link
               href="/signup"
