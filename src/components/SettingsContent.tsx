@@ -543,12 +543,12 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-4">
               {/* Account Section */}
-              <div id="account" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="account" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Account</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage your account details and preferences.</p>
-                <div className="space-y-3 sm:space-y-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage your account details and preferences.</p>
+                <div className="space-y-2.5 sm:space-y-3">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
                       Email
@@ -569,8 +569,8 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2.5 sm:mb-3">Billing</h2>
+              <div id="billing" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2 sm:mb-2.5">Billing</h2>
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
@@ -584,10 +584,10 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="business" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Business Info</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage the phone number and business identity customers interact with.</p>
-                <div className="space-y-3 sm:space-y-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage the phone number and business identity customers interact with.</p>
+                <div className="space-y-2.5 sm:space-y-3">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       Business Name
@@ -630,10 +630,10 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="messaging" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Messaging Settings</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Customize the automatic text customers receive after missed calls.</p>
-                <div className="space-y-3 sm:space-y-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Customize the automatic text customers receive after missed calls.</p>
+                <div className="space-y-2.5 sm:space-y-3">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5">
                       Auto Reply Message
@@ -641,7 +641,7 @@ export default function SettingsContent() {
                     <textarea
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
-                      rows={4}
+                      rows={3}
                       className="w-full px-4 py-2.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                     />
                   </div>
@@ -652,7 +652,7 @@ export default function SettingsContent() {
                     <textarea
                       value={formBusiness.after_hours_message || ''}
                       onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
-                      rows={4}
+                      rows={3}
                       className="w-full px-4 py-2.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                     />
                   </div>
@@ -660,15 +660,15 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
-                <div className="mb-4 sm:mb-5">
+              <div id="automation" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+                <div className="mb-3 sm:mb-4">
                   <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Automation Settings</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     Control when ReplyFlow automatically responds to missed calls.
                   </p>
                 </div>
                 
-                <div className="space-y-2.5 sm:space-y-3">
+                <div className="space-y-2 sm:space-y-2.5">
                   {/* Spam & Repeat Call Filtering */}
                   <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
                     <div className="flex items-start justify-between mb-3 sm:mb-4">
@@ -706,7 +706,7 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-4 sm:space-y-6 border-t border-border pt-4 sm:pt-6">
+                      <div className="space-y-3 sm:space-y-4 border-t border-border pt-3 sm:pt-4">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
@@ -810,22 +810,22 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Blocked Numbers List */}
-                        <div className="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                          <div className="mb-3">
-                            <div className="flex items-center gap-2 mb-2">
+                        <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                          <div className="mb-2.5">
+                            <div className="flex items-center gap-2 mb-1.5">
                               <h4 className="text-sm font-semibold text-foreground">Blocked phone numbers</h4>
                               <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full font-medium">
                                 Optional
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground mb-3">
+                            <p className="text-sm text-muted-foreground mb-2.5">
                               ReplyFlow will ignore calls from these numbers and will not create leads or send texts.
                             </p>
                           </div>
                           <textarea
                             value={getBlockedNumbersText()}
                             onChange={(e) => updateBlockedNumbers(e.target.value)}
-                            rows={4}
+                            rows={3}
                             placeholder="+14125551234&#10;+14125559876"
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground text-sm font-mono"
                           />
@@ -1074,11 +1074,11 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone */}
-              <div id="danger" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-red-200/60 dark:border-red-800/40 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-red-700/90 dark:text-red-400/90 mb-1.5 sm:mb-2">Account Management</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">Manage your account and data preferences.</p>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-200/40 dark:border-red-800/30 p-3 sm:p-4">
+              <div id="danger" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Account Management</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Manage your account and data preferences.</p>
+                <div className="space-y-2.5 sm:space-y-3">
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-300/50 dark:border-slate-600/30 p-3 sm:p-4">
                     <div>
                       <h3 className="text-sm font-semibold text-foreground mb-1.5">Delete Account</h3>
                       <p className="text-xs sm:text-sm text-muted-foreground mb-3">
