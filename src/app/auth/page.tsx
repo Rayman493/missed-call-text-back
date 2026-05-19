@@ -42,6 +42,53 @@ function AuthFooter() {
 
 const supabase = createBrowserClient()
 
+// Helper function to ensure business row exists after auth/signup
+// This is called after successful signin/signup to ensure business exists before Stripe checkout
+async function ensureBusinessExists() {
+  try {
+    console.log('[Auth] Checking if business exists...')
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      console.log('[Auth] No user found, skipping business creation')
+      return
+    }
+
+    // Check if business already exists
+    const { data: existingBusiness } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (existingBusiness) {
+      console.log('[Auth] Business already exists:', existingBusiness.id)
+      return
+    }
+
+    console.log('[Auth] Business not found, creating business row...')
+    
+    // Call the get-or-create API to ensure business exists
+    const response = await fetch('/api/business/get-or-create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log('[Auth] Business created successfully:', data.business?.id)
+    } else {
+      console.error('[Auth] Failed to create business:', await response.text())
+    }
+  } catch (error) {
+    console.error('[Auth] Error ensuring business exists:', error)
+    // Don't throw - this is non-blocking and the server-side API will handle it
+  }
+}
+
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -169,6 +216,13 @@ function AuthContent() {
       setLoading(false)
       
       console.log('[Auth] Session persisted successfully, redirecting to:', redirectParam)
+      
+      // Ensure business row exists after successful signin (fire-and-forget, non-blocking)
+      // This ensures business exists before user tries to start trial
+      ensureBusinessExists().catch(err => {
+        console.error('[Auth] Business creation check failed (non-blocking):', err)
+      })
+      
       await new Promise(resolve => setTimeout(resolve, 800))
       router.push(redirectParam)
     } catch (err: any) {
@@ -396,6 +450,12 @@ function AuthContent() {
       
       // Show redirecting state
       setRedirecting(true)
+      
+      // Ensure business row exists after successful signup (fire-and-forget, non-blocking)
+      // This ensures business exists before user tries to start trial
+      ensureBusinessExists().catch(err => {
+        console.error('[Auth] Business creation check failed (non-blocking):', err)
+      })
       
       await new Promise(resolve => setTimeout(resolve, 800))
       router.replace('/dashboard')

@@ -28,31 +28,29 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
 
     console.log('[Billing Action] Session found, user ID:', session.user.id)
     
-    // Fetch current user's business
+    // Note: We no longer check for business existence here
+    // The server-side API (create-checkout-session) handles business creation via db.getOrCreateBusiness
+    // This prevents "Business not found" errors when user hasn't completed full onboarding yet
+    console.log('[Billing Action] Skipping client-side business check - server API will handle business creation')
+
+    // Determine action based on existing Stripe data
+    // Fetch current user's business to check for existing Stripe customer/subscription
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('*')
+      .select('stripe_customer_id, stripe_subscription_id')
       .eq('user_id', session.user.id)
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (businessError || !business) {
-      console.error('[Billing Action] Business not found:', businessError)
-      return {
-        success: false,
-        error: 'Business not found. Please refresh the page.'
-      }
-    }
-
-    console.log('[Billing Action] Business found:', {
-      businessId: business.id,
-      subscriptionStatus: business.subscription_status,
-      hasStripeCustomerId: !!business.stripe_customer_id,
-      hasStripeSubscriptionId: !!business.stripe_subscription_id
+    console.log('[Billing Action] Business Stripe data check:', {
+      businessExists: !!business,
+      hasStripeCustomerId: !!business?.stripe_customer_id,
+      hasStripeSubscriptionId: !!business?.stripe_subscription_id,
+      businessError: businessError?.message
     })
 
     // Determine action based on Stripe customer/subscription existence
-    const hasStripeAccount = business.stripe_customer_id || business.stripe_subscription_id
+    const hasStripeAccount = business?.stripe_customer_id || business?.stripe_subscription_id
     
     if (hasStripeAccount) {
       console.log('[Billing Action] Selected action: portal (has Stripe account)')

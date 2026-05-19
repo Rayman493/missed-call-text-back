@@ -62,8 +62,17 @@ export async function POST(request: Request) {
 
     if (!business) {
       console.error('[stripe-checkout] Failed to resolve business for user:', user.id);
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      console.error('[stripe-checkout] This should not happen - db.getOrCreateBusiness should always return a business');
+      return NextResponse.json({ 
+        error: 'Unable to set up your account. Please refresh the page and try again. If the issue persists, contact support.' 
+      }, { status: 500 })
     }
+
+    console.log('[stripe-checkout] Business resolved successfully:', { 
+      businessId: business.id,
+      onboardingStatus: business.onboarding_status,
+      subscriptionStatus: business.subscription_status
+    });
 
     const siteUrl = getAppBaseUrl()
     const origin = request.headers.get('origin') || siteUrl
