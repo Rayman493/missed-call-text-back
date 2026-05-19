@@ -3,6 +3,14 @@
  * Use these throughout the app to ensure consistent subscription logic
  */
 
+export type SetupState = 
+  | 'loading'
+  | 'needs_trial'
+  | 'provisioning_or_number_pending'
+  | 'needs_forwarding'
+  | 'needs_final_test'
+  | 'complete'
+
 export interface Business {
   subscription_status?: string | null;
   twilio_phone_number?: string | null;
@@ -12,6 +20,10 @@ export interface Business {
   setup_completed_at?: string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  messaging_status?: string | null;
+  a2p_status?: string | null;
+  call_forwarding_enabled?: boolean | null;
+  provisioning_status?: string | null;
 }
 
 /**
@@ -88,4 +100,54 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
     !isForwardingComplete(business) &&
     !isSetupComplete(business)
   );
+}
+
+/**
+ * Authoritative derived setup state function
+ * This is the single source of truth for determining setup routing
+ * Always check subscription status first before allowing any setup routing
+ */
+export function deriveSetupState(business: Business | null | undefined): SetupState {
+  console.log('[deriveSetupState] Calculating setup state:', {
+    businessId: business?.stripe_customer_id,
+    subscription_status: business?.subscription_status,
+    twilio_phone_number: business?.twilio_phone_number,
+    forwarding_verified: business?.forwarding_verified,
+    provisioning_status: business?.provisioning_status,
+    messaging_status: business?.messaging_status,
+    a2p_status: business?.a2p_status,
+  })
+
+  // If no business data, assume loading
+  if (!business) {
+    console.log('[deriveSetupState] No business data - returning loading')
+    return 'loading'
+  }
+
+  // Check if subscription is active - this is the FIRST check
+  if (!hasActiveAccess(business)) {
+    console.log('[deriveSetupState] No active subscription - returning needs_trial')
+    return 'needs_trial'
+  }
+
+  // Check if provisioning is in progress or number not ready
+  const isProvisioning = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
+  const hasNumber = Boolean(business.twilio_phone_number)
+  const isMessagingReady = business.messaging_status === 'active' || business.a2p_status === 'verified' || business.a2p_status === 'approved'
+
+  if (isProvisioning || !hasNumber || !isMessagingReady) {
+    console.log('[deriveSetupState] Provisioning or number pending - returning provisioning_or_number_pending')
+    return 'provisioning_or_number_pending'
+  }
+
+  // Check if forwarding is verified
+  if (!business.forwarding_verified) {
+    console.log('[deriveSetupState] Forwarding not verified - returning needs_forwarding')
+    return 'needs_forwarding'
+  }
+
+  // Check if final test is needed
+  // For now, if forwarding is verified, we consider it complete
+  console.log('[deriveSetupState] All checks passed - returning complete')
+  return 'complete'
 }

@@ -748,13 +748,14 @@ export default function DashboardContent() {
                 {onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
-                      console.log('[SECTION RENDER]', {
+                      console.log('[Dashboard Routing] Rendering GettingStarted section', {
                         section: 'SetupProgress',
-                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
                         hasBusiness: !!business,
                         subscriptionStatus: business?.subscription_status,
                         onboardingStatus: business?.onboarding_status,
-                        derivedOnboardingState: onboardingState.state
+                        derivedOnboardingState: onboardingState.state,
+                        shouldShowLoadingState,
                       })
                       console.log('[Render Child] SetupProgress')
                       return null
@@ -767,12 +768,14 @@ export default function DashboardContent() {
                 {onboardingState.state === 'PRE_TRIAL' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="OnboardingGuide">
                     {(() => {
-                      console.log('[SECTION RENDER]', {
+                      console.log('[Dashboard Routing] Rendering OnboardingGuide section', {
                         section: 'OnboardingGuide',
-                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
                         hasBusiness: !!business,
                         subscriptionStatus: business?.subscription_status,
-                        derivedOnboardingState: onboardingState.state
+                        onboardingStatus: business?.onboarding_status,
+                        derivedOnboardingState: onboardingState.state,
+                        shouldShowLoadingState,
                       })
                       console.log('[Render Child] OnboardingGuide')
                       return null
