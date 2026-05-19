@@ -396,12 +396,7 @@ export default function SettingsContent() {
     }
   }, [business])
 
-  // Debug logs
-  useEffect(() => {
-    console.log('[Settings] Business loaded:', business)
-    console.log('[Settings] User loaded:', user)
-    console.log('[Settings] Form business:', formBusiness)
-  }, [business, user, formBusiness])
+  // Load ignored contacts
 
   if (!business || !formBusiness) {
     return (

@@ -934,27 +934,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const conversation = leadData?.conversation || null
   const source = leadData?.source || null
 
-  // Debug info
-  const debugInfo = {
-    leadId: params.id,
-    conversationId: conversation?.id || 'none',
-    messagesCount: messagesArray.length,
-    queryMethod: 'messages.lead_id',
-    latestMessage: latestMessage?.body || 'none',
-    messages: messagesArray
-  }
-
   return (
     <main className="min-h-screen bg-background flex flex-col">
-      {/* Debug Box - Development Only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-900/20 dark:bg-yellow-900/20 border border-yellow-800 dark:border-yellow-800 p-4 m-4 rounded-lg">
-          <h3 className="font-bold text-sm mb-2">Debug Info</h3>
-          <pre className="text-xs overflow-auto">
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-        </div>
-      )}
       {/* Enhanced Header */}
       <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-800/95 border-b border-slate-800 dark:border-slate-700 backdrop-blur-sm shadow-lg">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
