@@ -223,8 +223,8 @@ export default function LeadsPage() {
             <AppHeader title="Leads" showBackLink={true} showNavigation={false} />
 
           {/* Main Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-            <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
+            <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -365,7 +365,10 @@ export default function LeadsPage() {
 
             {/* Empty State */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
-              <div className="bg-card rounded-xl shadow-sm border border-border p-6 sm:p-10 text-center animate-fadeIn">
+              <div className="bg-white dark:bg-card/80 backdrop-blur rounded-2xl shadow-sm border border-slate-100 dark:border-border/40 p-8 sm:p-12 text-center animate-fadeIn relative overflow-hidden">
+                {/* Subtle background gradient for depth */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-transparent to-blue-50/30 dark:from-slate-900/20 dark:via-transparent dark:to-blue-900/10 pointer-events-none"></div>
+                <div className="relative z-10">
                 {(() => {
                   // Determine actual onboarding state
                   const hasActiveSubscription = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
@@ -461,6 +464,7 @@ export default function LeadsPage() {
                     </>
                   )
                 })()}
+                </div>
               </div>
             )}
 
@@ -500,7 +504,7 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length > 0 && (
-              <div className="bg-white dark:bg-card rounded-xl shadow-md hover:shadow-lg border border-slate-200 dark:border-border overflow-hidden">
+              <div className="bg-white dark:bg-card/80 backdrop-blur rounded-2xl shadow-sm hover:shadow-md border border-slate-100 dark:border-border/40 overflow-hidden transition-all duration-300">
                 <div className="divide-y divide-slate-100 dark:divide-border">
                   {sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed').map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0
