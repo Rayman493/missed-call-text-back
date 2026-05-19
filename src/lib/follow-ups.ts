@@ -1,5 +1,38 @@
 import { db } from '@/lib/supabase/admin'
 
+// Helper function to check if a date is during business hours
+function isDuringBusinessHours(date: Date, timezone: string): boolean {
+  const localTime = new Date(date.toLocaleString('en-US', { timeZone: timezone }))
+  const localHour = localTime.getHours()
+  const localDay = localTime.getDay() // 0 = Sunday, 6 = Saturday
+  
+  // Business hours: 9 AM - 6 PM, Mon-Fri
+  const isWeekday = localDay >= 1 && localDay <= 5 // Monday = 1, Friday = 5
+  const isBusinessHour = localHour >= 9 && localHour < 18 // 9 AM - 6 PM (exclusive of 6 PM)
+  
+  return isWeekday && isBusinessHour
+}
+
+// Helper function to find next business hours slot
+function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
+  let candidate = new Date(date)
+  const maxIterations = 14 * 24 // prevent infinite loops (max 2 weeks ahead)
+  let iterations = 0
+  
+  while (iterations < maxIterations) {
+    iterations++
+    if (isDuringBusinessHours(candidate, timezone)) {
+      return candidate
+    }
+    // Move to next hour
+    candidate = new Date(candidate.getTime() + 60 * 60 * 1000)
+  }
+  
+  // Fallback: return original date if we can't find a slot
+  console.warn('[QA - Follow Ups] Could not find business hours slot within 2 weeks, using original time')
+  return date
+}
+
 // Follow-up configuration
 export const FOLLOW_UP_SCHEDULE = [
   {
@@ -24,11 +57,15 @@ export async function createFollowUpJobs(params: {
   
   console.log('[FollowUps] Creating follow-up jobs for lead:', leadId)
   
-  // QA LOGGING: Fetch business settings for timezone and business hours
+  // Fetch business settings for timezone and business hours
   const business = await db.getBusiness(businessId)
-  const businessTimezone = business?.business_hours_timezone || 'America/New_York'
-  const businessHoursEnabled = business?.business_hours_enabled || false
-  const now = new Date()
+  if (!business) {
+    console.error('[QA - Follow Ups] Business not found, cannot create follow-ups:', businessId)
+    return []
+  }
+  
+  const businessTimezone = business.business_hours_timezone || 'America/New_York'
+  const businessHoursEnabled = business.business_hours_enabled || false
   
   console.log('[QA - Follow Ups] Initial evaluation:', {
     businessId,
@@ -36,24 +73,15 @@ export async function createFollowUpJobs(params: {
     conversationId,
     businessTimezone,
     businessHoursEnabled,
-    currentTimeUTC: now.toISOString(),
-    currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
+    currentTimeUTC: new Date().toISOString(),
+    currentTimeLocal: new Date().toLocaleString('en-US', { timeZone: businessTimezone })
   })
   
   const jobs = []
+  const now = new Date()
   
   for (const followUp of FOLLOW_UP_SCHEDULE) {
-    const scheduledFor = new Date(now.getTime() + followUp.delayMinutes * 60 * 1000)
     const idempotencyKey = `${leadId}-${followUp.step}`
-    
-    console.log('[QA - Follow Ups] Scheduling follow-up:', {
-      step: followUp.step,
-      delayMinutes: followUp.delayMinutes,
-      scheduledForUTC: scheduledFor.toISOString(),
-      scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-      businessHoursConsidered: false, // CRITICAL: Business hours NOT currently enforced
-      timezoneConsidered: false // CRITICAL: Timezone NOT currently used for scheduling
-    })
     
     try {
       // Check if follow-up already exists to prevent duplicates
@@ -62,6 +90,40 @@ export async function createFollowUpJobs(params: {
       if (existingJob) {
         console.log(`[QA - Follow Ups] Duplicate prevented for lead ${leadId}, step ${followUp.step}`)
         continue
+      }
+      
+      // Calculate initial scheduled time
+      let scheduledFor = new Date(now.getTime() + followUp.delayMinutes * 60 * 1000)
+      let action = 'CREATE'
+      let reason = 'Normal scheduling'
+      
+      // Enforce business hours if enabled
+      if (businessHoursEnabled) {
+        const isDuringHours = isDuringBusinessHours(scheduledFor, businessTimezone)
+        
+        console.log('[QA - Follow Ups] Business hours check:', {
+          step: followUp.step,
+          delayMinutes: followUp.delayMinutes,
+          originalScheduledUTC: scheduledFor.toISOString(),
+          originalScheduledLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
+          isDuringHours,
+          businessHoursEnabled
+        })
+        
+        if (!isDuringHours) {
+          // Reschedule to next business hours slot
+          const adjustedTime = getNextBusinessHoursSlot(scheduledFor, businessTimezone)
+          scheduledFor = adjustedTime
+          action = 'RESCHEDULE'
+          reason = 'Outside business hours, rescheduled to next valid slot'
+          
+          console.log('[QA - Follow Ups] Rescheduled:', {
+            step: followUp.step,
+            adjustedScheduledUTC: scheduledFor.toISOString(),
+            adjustedScheduledLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
+            reason
+          })
+        }
       }
       
       const messageBody = followUp.message(businessName || 'My Business')
@@ -79,7 +141,7 @@ export async function createFollowUpJobs(params: {
       })
       
       if (job) {
-        console.log(`[QA - Follow Ups] Job created: ${job.id}, step ${followUp.step}, scheduled for ${scheduledFor.toISOString()}`)
+        console.log(`[QA - Follow Ups] Job created: ${job.id}, step ${followUp.step}, action: ${action}, reason: ${reason}`)
         jobs.push(job)
       } else {
         console.error(`[QA - Follow Ups] Failed to create job for lead ${leadId}, step ${followUp.step}`)
@@ -90,7 +152,8 @@ export async function createFollowUpJobs(params: {
   }
   
   console.log(`[QA - Follow Ups] Summary: Created ${jobs.length} jobs for lead ${leadId}`)
-  console.log(`[QA - Follow Ups] CRITICAL WARNING: Follow-ups do NOT respect business timezone or business hours`)
+  console.log(`[QA - Follow Ups] Business hours enforcement: ${businessHoursEnabled ? 'ENABLED' : 'DISABLED'}`)
+  console.log(`[QA - Follow Ups] Timezone: ${businessTimezone}`)
   return jobs
 }
 

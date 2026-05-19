@@ -4,6 +4,39 @@ import { sendSms } from '@/lib/twilio'
 import { db } from '@/lib/supabase/admin'
 import { checkCronRateLimit } from '@/lib/rate-limit'
 
+// Helper function to check if a date is during business hours
+function isDuringBusinessHours(date: Date, timezone: string): boolean {
+  const localTime = new Date(date.toLocaleString('en-US', { timeZone: timezone }))
+  const localHour = localTime.getHours()
+  const localDay = localTime.getDay() // 0 = Sunday, 6 = Saturday
+  
+  // Business hours: 9 AM - 6 PM, Mon-Fri
+  const isWeekday = localDay >= 1 && localDay <= 5 // Monday = 1, Friday = 5
+  const isBusinessHour = localHour >= 9 && localHour < 18 // 9 AM - 6 PM (exclusive of 6 PM)
+  
+  return isWeekday && isBusinessHour
+}
+
+// Helper function to find next business hours slot
+function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
+  let candidate = new Date(date)
+  const maxIterations = 14 * 24 // prevent infinite loops (max 2 weeks ahead)
+  let iterations = 0
+  
+  while (iterations < maxIterations) {
+    iterations++
+    if (isDuringBusinessHours(candidate, timezone)) {
+      return candidate
+    }
+    // Move to next hour
+    candidate = new Date(candidate.getTime() + 60 * 60 * 1000)
+  }
+  
+  // Fallback: return original date if we can't find a slot
+  console.warn('[QA - Follow Ups] Could not find business hours slot within 2 weeks, using original time')
+  return date
+}
+
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
   const value = process.env[name]
@@ -277,10 +310,43 @@ export async function POST(req: NextRequest) {
           currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
           scheduledForUTC: scheduledFor.toISOString(),
           scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-          businessHoursEnforced: false, // CRITICAL: Business hours NOT currently enforced for follow-ups
-          timezoneRespected: false, // CRITICAL: Timezone NOT used for scheduling adjustments
-          decision: 'SEND' // Will send regardless of business hours
+          isDuringBusinessHours: isDuringBusinessHours(now, businessTimezone)
         })
+        
+        // Enforce business hours if enabled
+        if (businessHoursEnabled) {
+          const isDuringHours = isDuringBusinessHours(now, businessTimezone)
+          
+          if (!isDuringHours) {
+            // Reschedule to next business hours slot
+            const nextSlot = getNextBusinessHoursSlot(now, businessTimezone)
+            
+            console.log('[QA - Follow Ups] Rescheduling due to business hours:', {
+              followUpId: followUp.id,
+              currentUTC: now.toISOString(),
+              currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
+              nextSlotUTC: nextSlot.toISOString(),
+              nextSlotLocal: nextSlot.toLocaleString('en-US', { timeZone: businessTimezone }),
+              reason: 'Outside business hours'
+            })
+            
+            // Update job with new scheduled time
+            const { error: updateError } = await supabase
+              .from('follow_up_jobs')
+              .update({
+                scheduled_for: nextSlot.toISOString()
+              })
+              .eq('id', followUp.id)
+            
+            if (updateError) {
+              console.error('[QA - Follow Ups] Error rescheduling follow-up:', updateError)
+              errors++
+            } else {
+              console.log('[QA - Follow Ups] Successfully rescheduled follow-up:', followUp.id)
+            }
+            continue
+          }
+        }
         
         // Check if lead has opted out
         if (lead.opted_out) {
@@ -644,10 +710,43 @@ export async function GET(req: NextRequest) {
           currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
           scheduledForUTC: scheduledFor.toISOString(),
           scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-          businessHoursEnforced: false, // CRITICAL: Business hours NOT currently enforced for follow-ups
-          timezoneRespected: false, // CRITICAL: Timezone NOT used for scheduling adjustments
-          decision: 'SEND' // Will send regardless of business hours
+          isDuringBusinessHours: isDuringBusinessHours(now, businessTimezone)
         })
+        
+        // Enforce business hours if enabled
+        if (businessHoursEnabled) {
+          const isDuringHours = isDuringBusinessHours(now, businessTimezone)
+          
+          if (!isDuringHours) {
+            // Reschedule to next business hours slot
+            const nextSlot = getNextBusinessHoursSlot(now, businessTimezone)
+            
+            console.log('[QA - Follow Ups] Rescheduling due to business hours:', {
+              followUpId: followUp.id,
+              currentUTC: now.toISOString(),
+              currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
+              nextSlotUTC: nextSlot.toISOString(),
+              nextSlotLocal: nextSlot.toLocaleString('en-US', { timeZone: businessTimezone }),
+              reason: 'Outside business hours'
+            })
+            
+            // Update job with new scheduled time
+            const { error: updateError } = await supabase
+              .from('follow_up_jobs')
+              .update({
+                scheduled_for: nextSlot.toISOString()
+              })
+              .eq('id', followUp.id)
+            
+            if (updateError) {
+              console.error('[QA - Follow Ups] Error rescheduling follow-up:', updateError)
+              errors++
+            } else {
+              console.log('[QA - Follow Ups] Successfully rescheduled follow-up:', followUp.id)
+            }
+            continue
+          }
+        }
         
         // Check if lead has opted out
         if (lead.opted_out) {
