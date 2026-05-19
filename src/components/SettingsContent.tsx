@@ -631,7 +631,15 @@ export default function SettingsContent() {
               <>
               {/* Messaging Settings */}
               <div id="messaging" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Messaging Settings</h2>
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">Messaging Settings</h2>
+                  {hasActiveSubscription(business) && (
+                    <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                      <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                      Operational
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Customize the automatic text customers receive after missed calls.</p>
                 <div className="space-y-2.5 sm:space-y-3">
                   <div>
@@ -662,7 +670,15 @@ export default function SettingsContent() {
               {/* Automation Settings */}
               <div id="automation" className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3.5 sm:p-5">
                 <div className="mb-3 sm:mb-4">
-                  <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">Automation Settings</h2>
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <h2 className="text-base sm:text-lg font-semibold text-foreground">Automation Settings</h2>
+                    {spamFilteringEnabled && (
+                      <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                        <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                        Active
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     Control when ReplyFlow automatically responds to missed calls.
                   </p>
@@ -846,13 +862,14 @@ export default function SettingsContent() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-medium text-foreground">Business Hours Only</h3>
                           {formBusiness.business_hours_enabled && (
-                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
+                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                               Active
                             </span>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-1">
-                          Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
+                          Only send automated texts during your business hours.
                         </p>
                         <div className="text-xs text-muted-foreground">
                           🕐 Prevents late-night texts and respects customer communication preferences.
