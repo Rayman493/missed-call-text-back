@@ -209,7 +209,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Missed Calls Recovered</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-amber-600 dark:text-amber-400 mb-2 tracking-tight">{missedCallsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
+            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">
               {missedCallsCount === 0 
                 ? (isOnboardingComplete ? 'Customers automatically contacted after missed calls' : 'Complete setup to begin capturing missed calls') 
                 : 'Customers automatically contacted'}
@@ -225,7 +225,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Leads Captured</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">{leadsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">
+            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">
               {leadsCount === 0 
                 ? (isOnboardingComplete ? 'New opportunities captured by ReplyFlow' : 'Complete setup to begin capturing leads') 
                 : 'New opportunities captured'}
@@ -241,7 +241,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Customer Replies</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-green-600 dark:text-green-400 mb-2 tracking-tight">{conversationsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}</p>
+            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">{conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}</p>
           </div>
         </Link>
 
@@ -253,7 +253,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 group-hover:text-slate-900 dark:group-hover:text-foreground transition-colors uppercase tracking-wide">Automatic Check-ins Scheduled</h3>
             </div>
             <p className="text-5xl sm:text-6xl font-extrabold text-purple-600 dark:text-purple-400 mb-2 tracking-tight">{followUpsCount}</p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground/80">{followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}</p>
+            <p className="text-xs text-slate-700 dark:text-muted-foreground/80 font-medium">{followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}</p>
           </div>
         </Link>
       </div>

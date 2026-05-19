@@ -18,7 +18,7 @@ export default function Footer() {
               </div>
               <span className="text-xl font-bold text-slate-900 dark:text-foreground">ReplyFlowHQ</span>
             </div>
-            <p className="text-slate-700 dark:text-muted-foreground mb-4 max-w-md leading-relaxed">
+            <p className="text-slate-800 dark:text-muted-foreground mb-4 max-w-md leading-relaxed font-medium">
               Conversational missed-call response automation for modern businesses. 
               Capture leads and provide exceptional customer service.
             </p>
@@ -41,7 +41,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/dashboard" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Dashboard
                 </Link>
@@ -49,7 +49,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/dashboard/leads" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Leads
                 </Link>
@@ -57,7 +57,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/dashboard/settings" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Settings
                 </Link>
@@ -65,7 +65,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/demo" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Demo
                 </Link>
@@ -82,7 +82,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/privacy" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -90,7 +90,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/terms" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Terms of Service
                 </Link>
@@ -98,7 +98,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/compliance" 
-                  className="text-slate-700 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm transition-colors"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Compliance
                 </Link>
@@ -110,11 +110,11 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-slate-300 dark:border-border">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-slate-600 dark:text-muted-foreground text-sm">
-              &copy; {currentYear} ReplyFlowHQ. All rights reserved.
+            <p className="text-slate-700 dark:text-muted-foreground text-sm font-medium">
+              © {currentYear} ReplyFlowHQ. All rights reserved.
             </p>
             <div className="flex items-center gap-6 mt-4 md:mt-0">
-              <span className="text-slate-600 dark:text-muted-foreground text-sm">
+              <span className="text-slate-700 dark:text-muted-foreground text-sm font-medium">
                 Built for service businesses
               </span>
             </div>

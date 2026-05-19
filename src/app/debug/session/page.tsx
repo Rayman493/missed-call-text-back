@@ -83,7 +83,7 @@ export default function SessionDebugPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Session Debug</h1>
+        <h1 className="text-3xl font-bold mb-8 text-foreground">Session Debug</h1>
         
         <div className="mb-6">
           <button
@@ -93,33 +93,33 @@ export default function SessionDebugPage() {
             Clear ReplyFlow Local State
           </button>
           {clearedKeys.length > 0 && (
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mt-2 text-sm text-slate-700 dark:text-gray-400 font-medium">
               Cleared {clearedKeys.length} keys: {clearedKeys.join(', ')}
             </div>
           )}
         </div>
         
         <div className="space-y-6">
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">URL & User Agent</h2>
-            <div className="space-y-2 font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">URL & User Agent</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
               <p><strong>Current URL:</strong> {debugInfo.currentUrl}</p>
               <p><strong>User Agent:</strong> {debugInfo.userAgent}</p>
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Auth Provider & Email Confirmation</h2>
-            <div className="space-y-2 font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Auth Provider & Email Confirmation</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
               <p><strong>Auth Provider:</strong> {debugInfo.authProvider}</p>
               <p><strong>Email Confirmed:</strong> {debugInfo.emailConfirmed ? '✅ YES' : '❌ NO'}</p>
               <p><strong>Email Confirmed At:</strong> {debugInfo.userData?.email_confirmed_at || 'N/A'}</p>
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Session Status</h2>
-            <div className="space-y-2 font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Session Status</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
               <p><strong>Session Exists:</strong> {debugInfo.sessionExists ? '✅ YES' : '❌ NO'}</p>
               <p><strong>User ID:</strong> {debugInfo.userId || 'N/A'}</p>
               <p><strong>User Email:</strong> {debugInfo.userEmail || 'N/A'}</p>
@@ -128,9 +128,9 @@ export default function SessionDebugPage() {
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Session Data</h2>
-            <div className="space-y-2 font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Session Data</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
               <p><strong>Access Token:</strong> {debugInfo.sessionData.access_token}</p>
               <p><strong>Refresh Token:</strong> {debugInfo.sessionData.refresh_token}</p>
               <p><strong>Expires At:</strong> {debugInfo.sessionData.expires_at}</p>
@@ -138,9 +138,9 @@ export default function SessionDebugPage() {
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">User Data</h2>
-            <div className="space-y-2 font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">User Data</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
               <p><strong>ID:</strong> {debugInfo.userData.id || 'N/A'}</p>
               <p><strong>Email:</strong> {debugInfo.userData.email || 'N/A'}</p>
               <p><strong>Email Confirmed At:</strong> {debugInfo.userData.email_confirmed_at || 'N/A'}</p>
@@ -148,9 +148,9 @@ export default function SessionDebugPage() {
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">LocalStorage Keys (Auth Related)</h2>
-            <div className="font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">LocalStorage Keys (Auth Related)</h2>
+            <div className="font-mono text-sm text-slate-700 dark:text-muted-foreground">
               {debugInfo.localStorageKeys.length > 0 ? (
                 <ul className="list-disc list-inside space-y-1">
                   {debugInfo.localStorageKeys.map((key: string) => (
@@ -163,9 +163,9 @@ export default function SessionDebugPage() {
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Cookie Names</h2>
-            <div className="font-mono text-sm">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Cookie Names</h2>
+            <div className="font-mono text-sm text-slate-700 dark:text-muted-foreground">
               {debugInfo.cookieNames.length > 0 ? (
                 <ul className="list-disc list-inside space-y-1">
                   {debugInfo.cookieNames.map((name: string) => (
