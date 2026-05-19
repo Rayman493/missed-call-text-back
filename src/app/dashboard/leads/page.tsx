@@ -93,6 +93,9 @@ export default function LeadsPage() {
 
   const supabase = createBrowserClient()
 
+  // Determine if onboarding is fully complete
+  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+
   // Fetch leads
   const fetchLeads = useCallback(async () => {
     if (!business?.id) return
@@ -239,7 +242,7 @@ export default function LeadsPage() {
 
             {/* Getting Started - made more compact on Leads page to reduce prominence */}
             <div className="mb-2">
-              <GettingStarted />
+              <GettingStarted isOnboardingComplete={isOnboardingComplete} />
             </div>
 
             {/* Lifecycle Summary Cards - reduced visual dominance on Leads page */}
