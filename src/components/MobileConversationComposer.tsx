@@ -45,7 +45,7 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4 sm:p-6">
+    <div className="border-t border-border bg-card/90 backdrop-blur-md p-3 sm:p-6 sticky bottom-0 z-20 pb-safe">
       <div className="max-w-4xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
@@ -55,17 +55,17 @@ export default function MobileConversationComposer({
               <textarea
                 ref={textareaRef}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your reply here..."
                 disabled={sending}
-                className="w-full px-4 py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base leading-relaxed min-h-[48px] max-h-[120px]"
+                className="w-full px-4 py-3 sm:py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base leading-relaxed min-h-[48px] max-h-[120px]"
                 rows={1}
               />
               
               {/* Character Count (optional) */}
               {message.length > 1000 && (
-                <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
                   {message.length}/1600
                 </div>
               )}
@@ -75,19 +75,19 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-2 min-w-[100px] justify-center"
+              className="flex-shrink-0 px-4 py-3 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-2 min-w-[90px] sm:min-w-[100px] justify-center"
             >
               {sending ? (
                 <>
                   <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span className="text-sm font-medium">Sending</span>
+                  <span className="text-sm font-medium hidden sm:inline">Sending</span>
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  <span className="text-sm font-medium">Send</span>
+                  <span className="text-sm font-medium hidden sm:inline">Send</span>
                 </>
               )}
             </button>
@@ -106,13 +106,13 @@ export default function MobileConversationComposer({
           )}
         </div>
         
-        {/* Helper Text */}
-        <div className="mt-3 flex items-center justify-between">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">Shift+Enter</kbd> for new line
+        {/* Helper Text - hide on mobile to save space */}
+        <div className="mt-3 flex items-center justify-between hidden sm:flex">
+          <div className="text-xs text-muted-foreground">
+            Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Shift+Enter</kbd> for new line
           </div>
           {message.trim() && (
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-xs text-muted-foreground">
               {message.trim().length} characters
             </div>
           )}
