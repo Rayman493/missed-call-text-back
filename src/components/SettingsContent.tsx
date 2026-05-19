@@ -577,7 +577,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-4 sm:space-y-5">
               {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account</h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account details and preferences.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -601,7 +601,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Billing Section */}
-              <div id="billing" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4">
+              <div id="billing" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-2 sm:mb-2.5">Billing</h2>
                 <div className="space-y-2">
                   <div>
@@ -616,7 +616,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Business Info</h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage the phone number and business identity customers interact with.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -662,7 +662,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                   <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                   {hasActiveSubscription(business) && (
@@ -700,7 +700,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <div className="mb-3 sm:mb-4">
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                     <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1024,7 +1024,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6 scroll-mt-24">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
