@@ -25,7 +25,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-5 sm:space-y-7">
       {messagesArray.map((msg: any, index: number) => {
         const errorMessage = getErrorMessage(msg.error_code)
         const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -43,42 +43,42 @@ export default function MobileConversationMessageList({
             style={{ animationDelay: `${index * 0.05}s` }}
           >
             {/* Avatar */}
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium shadow-sm ${
               isInbound 
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm'
-                : 'bg-gradient-to-br from-gray-400 to-gray-500 text-white shadow-sm'
+                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                : 'bg-gradient-to-br from-slate-400 to-slate-500 text-white'
             }`}>
               {isInbound ? '👤' : '🤖'}
             </div>
             
             {/* Message Content */}
-            <div className={`max-w-[65%] sm:max-w-[60%] ${isOutbound ? 'text-right' : ''}`}>
+            <div className={`max-w-[70%] sm:max-w-[65%] ${isOutbound ? 'text-right' : ''}`}>
               {/* Message Header */}
-              <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
-                <span className="text-xs text-gray-500 dark:text-gray-400" title={new Date(msg.created_at).toLocaleString()}>
+              <div className="flex items-center gap-2 mb-1.5 justify-end flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
                 {isInbound && (
-                  <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-md font-medium">
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium border border-blue-100 dark:border-blue-800/30">
                     Customer
                   </span>
                 )}
                 {isOutbound && !isOptimistic && (
                   <>
                     {msg.status === 'delivered' && (
-                      <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs rounded-md font-medium animate-fadeIn">
+                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium border border-emerald-100 dark:border-emerald-800/30 animate-fadeIn">
                         ✓ Delivered
                       </span>
                     )}
                     {msg.status === 'failed' && (
-                      <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-md font-medium animate-shake">
+                      <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-full font-medium animate-shake border border-red-100 dark:border-red-800/30">
                         ✗ Failed
                       </span>
                     )}
                   </>
                 )}
                 {isOptimistic && (
-                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium animate-pulse">
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium animate-pulse border border-blue-100 dark:border-blue-800/30">
                     ⏳ Sending...
                   </span>
                 )}
@@ -86,12 +86,12 @@ export default function MobileConversationMessageList({
               
               {/* Message Bubble */}
               <div
-                className={`rounded-2xl px-3 py-2 relative transition-all duration-300 ease-out ${
+                className={`rounded-2xl px-4 py-2.5 relative transition-all duration-300 ease-out shadow-sm ${
                   isInbound
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none hover:shadow-sm border border-gray-200 dark:border-gray-700'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none hover:shadow-md border border-slate-100 dark:border-slate-700/50'
                     : isOptimistic && isSending
-                    ? 'bg-blue-500 text-white rounded-tr-none animate-pulse shadow-sm border border-blue-600'
-                    : 'bg-blue-600 text-white rounded-tr-none hover:shadow-sm hover:bg-blue-700 border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-tr-none animate-pulse shadow-md border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-tr-none hover:bg-blue-700 hover:shadow-md border border-blue-700'
                 }`}
               >
                 {isOptimistic && isSending && (
@@ -108,7 +108,7 @@ export default function MobileConversationMessageList({
               {/* Error State */}
               {(hasError || (isOptimistic && msg.status === 'failed')) && (
                 <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
+                  <span className="text-muted-foreground">
                     Couldn't send.
                   </span>
                   <button
