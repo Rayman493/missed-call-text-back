@@ -337,14 +337,14 @@ export default function Home() {
               Never lose another lead from a missed call.
             </motion.p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-8 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {/* Card 1 */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative md:col-span-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">1</span>
@@ -353,20 +353,13 @@ export default function Home() {
               <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">A potential customer calls your business number</p>
             </motion.div>
             
-            {/* Arrow between step 1 and 2 (desktop) */}
-            <div className="hidden md:flex items-center justify-center text-slate-300 dark:text-slate-600">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </div>
-            
             {/* Card 2 */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative md:col-span-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
               <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">2</span>
@@ -375,20 +368,13 @@ export default function Home() {
               <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">If you miss the call, we automatically send a personalized text response</p>
             </motion.div>
             
-            {/* Arrow between step 2 and 3 (desktop) */}
-            <div className="hidden md:flex items-center justify-center text-slate-300 dark:text-slate-600">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </div>
-            
             {/* Card 3 */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative md:col-span-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">3</span>
