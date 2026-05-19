@@ -472,7 +472,7 @@ export default function SettingsContent() {
               <div className="max-w-7xl mx-auto">
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-900 py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="sticky top-0 z-20 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
               <nav className="flex items-center gap-1 overflow-x-auto pb-1">
                 <button
                   onClick={() => handleSectionClick('general')}
@@ -551,10 +551,10 @@ export default function SettingsContent() {
                 {onboardingState.state === 'ACTIVATING' && (
                   <>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Preparing system
+                      Getting started
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Activating texting
+                      Setting up texting
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
@@ -568,10 +568,10 @@ export default function SettingsContent() {
                 {onboardingState.state === 'MESSAGING_SETUP' && (
                   <>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Activating messaging
+                      Setting up phone line
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Finalizing ReplyFlow line
+                      Configuring texting
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
@@ -585,13 +585,13 @@ export default function SettingsContent() {
                 {onboardingState.state === 'AWAITING_FORWARDING' && (
                   <>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      ReplyFlow line ready
+                      Phone line ready
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Waiting for connection
+                      Waiting for call forwarding
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Not watching for calls
+                      Not watching for calls yet
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                       Trial active
