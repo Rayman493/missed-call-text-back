@@ -61,7 +61,7 @@ export default function SetupHealth() {
 
   if (loading || !business) {
     return (
-      <div className="bg-card rounded-xl shadow-lg p-6">
+      <div className="bg-white dark:bg-card rounded-xl shadow-sm border border-slate-200/60 dark:border-border/40 p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Connection Status</h2>
         <div className="animate-pulse">
           <div className="h-4 bg-muted rounded mb-3"></div>
@@ -241,7 +241,7 @@ const handleCloseModal = () => {
 }
 
 return (
-  <div className="bg-card rounded-xl shadow-lg overflow-hidden">
+  <div className="bg-white dark:bg-card rounded-xl shadow-sm border border-slate-200/60 dark:border-border/40 overflow-hidden">
     {/* Header - Clickable to toggle collapse */}
     <button
       onClick={handleHeaderClick}
