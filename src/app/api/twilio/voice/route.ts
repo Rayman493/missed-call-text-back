@@ -439,6 +439,50 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('[Twilio Voice] SMS allowed by smart filtering:', filteringResult.reason);
       }
+      
+      // BUSINESS HOURS ENFORCEMENT
+      if (businessHoursEnabled && shouldSendSms) {
+        console.log('[QA - Business Hours] Business hours enabled, checking current time...');
+        
+        // Get current time in business timezone
+        const localTime = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }));
+        const localHour = localTime.getHours();
+        const localDay = localTime.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        // Business hours: 9 AM - 6 PM, Mon-Fri
+        const isWeekday = localDay >= 1 && localDay <= 5; // Monday = 1, Friday = 5
+        const isBusinessHour = localHour >= 9 && localHour < 18; // 9 AM - 6 PM (exclusive of 6 PM)
+        
+        const isDuringBusinessHours = isWeekday && isBusinessHour;
+        
+        console.log('[QA - Business Hours] Time evaluation:', {
+          localHour,
+          localDay,
+          isWeekday,
+          isBusinessHour,
+          isDuringBusinessHours,
+          decision: isDuringBusinessHours ? 'SEND AUTO-REPLY' : 'SEND AFTER-HOURS MESSAGE'
+        });
+        
+        // Use appropriate message based on business hours
+        if (!isDuringBusinessHours) {
+          // Outside business hours - use after-hours message if available
+          if (afterHoursMessage && afterHoursMessage.trim()) {
+            console.log('[QA - Business Hours] Using after-hours message');
+            // Store decision for later when preparing message
+            (business as any)._useAfterHoursMessage = true;
+          } else {
+            console.log('[QA - Business Hours] No after-hours message configured, skipping SMS');
+            shouldSendSms = false;
+          }
+        } else {
+          console.log('[QA - Business Hours] During business hours, using auto-reply message');
+          (business as any)._useAfterHoursMessage = false;
+        }
+      } else {
+        console.log('[QA - Business Hours] Business hours disabled, always send auto-reply');
+        (business as any)._useAfterHoursMessage = false;
+      }
     }
     
     // Send auto-reply SMS if appropriate and not blocked
@@ -488,11 +532,17 @@ export async function POST(request: NextRequest) {
         }
         
         // Prepare auto-reply message
-        const autoReplyMessage = business.auto_reply_message || 
+        let messageToSend = business.auto_reply_message || 
           `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call-how can we help? Reply STOP to opt out.`;
         
+        // Use after-hours message if outside business hours
+        if ((business as any)._useAfterHoursMessage && business.after_hours_message && business.after_hours_message.trim()) {
+          messageToSend = business.after_hours_message;
+          console.log('[QA - Business Hours] Using after-hours message for SMS');
+        }
+        
         // Replace business name placeholder if present
-        const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'My Business');
+        const personalizedMessage = messageToSend.replace('{{business_name}}', business.name || 'My Business');
         
         console.log('[Voice] Sending SMS:', {
           to: From,
