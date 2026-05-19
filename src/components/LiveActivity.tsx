@@ -211,7 +211,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
                       <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {getActivityText(item)}
                       </p>
-                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
                         {getActivityTime(item)}
                       </p>
                     </div>
@@ -254,7 +254,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
                       <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         Reply from {formatLeadPhone(lead.caller_phone)}
                       </p>
-                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
                         {formatRelativeTime(lead.last_message_at || lead.first_contact_at)}
                       </p>
                     </div>

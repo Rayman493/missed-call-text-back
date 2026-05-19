@@ -288,7 +288,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                     : 'Missed callers and customer conversations will appear here automatically.'}
                 </p>
                 {!isOnboardingComplete && provisioningStatus === 'pending' && (
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground mt-2">
+                  <p className="text-xs text-slate-600 dark:text-muted-foreground mt-2">
                     Your customer leads will appear here after setup is complete.
                   </p>
                 )}
@@ -302,13 +302,13 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-muted/50 rounded-lg hover:bg-slate-100 dark:hover:bg-muted/80 hover:border-slate-300 dark:hover:border-border/60 border border-slate-200 dark:border-transparent transition-all duration-300 hover:scale-[1.01] cursor-pointer">
                   <div className="flex-1">
                     <p className="font-medium text-slate-900 dark:text-foreground">{getLeadDisplayName(lead)}</p>
-                    <p className="text-xs text-slate-500 dark:text-muted-foreground">
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground">
                       {lead.last_message_at
                         ? new Date(lead.last_message_at).toLocaleDateString()
                         : new Date(lead.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-muted-foreground">
+                  <div className="text-xs text-slate-600 dark:text-muted-foreground">
                     {lead.messages?.length || 0} message{lead.messages?.length !== 1 ? 's' : ''}
                   </div>
                 </div>

@@ -153,7 +153,7 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
             </svg>
           </div>
           <p className="text-sm text-slate-600 dark:text-muted-foreground">No recent activity</p>
-          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Activity will appear here as you use ReplyFlow</p>
+          <p className="text-xs text-slate-600 dark:text-slate-600 mt-1">Activity will appear here as you use ReplyFlow</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -166,7 +166,7 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
                 <p className="text-sm text-slate-900 dark:text-foreground leading-relaxed">
                   {activity.message}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                <p className="text-xs text-slate-600 dark:text-slate-600 mt-1">
                   {formatRelativeTime(activity.created_at)}
                 </p>
               </div>
