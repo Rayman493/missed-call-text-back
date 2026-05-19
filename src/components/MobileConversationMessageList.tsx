@@ -120,7 +120,7 @@ export default function MobileConversationMessageList({
                     disabled={sending}
                     className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                   >
-                    {sending ? 'Retrying...' : 'Retry'}
+                    {sending ? 'Sending again...' : 'Try again'}
                   </button>
                 </div>
               )}
