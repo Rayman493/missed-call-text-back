@@ -272,7 +272,7 @@ export default function OnboardingPage() {
       console.log('[Onboarding] Sending business data to get-or-create API:', {
         name: businessName,
         business_phone_number: normalizedPhone,
-        onboarding_status: 'completed'
+        onboarding_status: 'profile_created'
       })
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
       const response = await fetch('/api/business/get-or-create', {
@@ -287,7 +287,7 @@ export default function OnboardingPage() {
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'local_a2p',
             messaging_status: 'active',
-            onboarding_status: 'completed',
+            onboarding_status: 'profile_created', // Safe status before trial activation
             // subscription_status is NOT set here - Stripe webhook will set it to trialing after successful checkout
             // This prevents incorrect trial activation before Stripe payment is completed
           }

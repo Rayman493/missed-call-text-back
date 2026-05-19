@@ -1198,9 +1198,32 @@ export const db = {
           updates.auto_reply_message = businessData.auto_reply_message.trim()
         }
         
-        // Update onboarding_status if provided
+        // Update onboarding_status if provided - with server-side validation
         if (businessData.onboarding_status) {
-          updates.onboarding_status = businessData.onboarding_status
+          // Block premature onboarding_status: "completed" if subscription is not active
+          if (businessData.onboarding_status === 'completed') {
+            const subscriptionActive = existingBusiness.subscription_status === 'active' || existingBusiness.subscription_status === 'trialing'
+            
+            if (!subscriptionActive) {
+              console.log('[getOrCreateBusiness] BLOCKED premature onboarding_status completed', {
+                reason: 'Subscription is not active',
+                subscription_status: existingBusiness.subscription_status,
+                twilio_phone_number: existingBusiness.twilio_phone_number,
+                requested_onboarding_status: businessData.onboarding_status
+              })
+              console.log('[getOrCreateBusiness] Using safe status "started" instead')
+              updates.onboarding_status = 'started'
+            } else {
+              console.log('[getOrCreateBusiness] Allowing onboarding_status completed - subscription is active', {
+                subscription_status: existingBusiness.subscription_status,
+                twilio_phone_number: existingBusiness.twilio_phone_number
+              })
+              updates.onboarding_status = businessData.onboarding_status
+            }
+          } else {
+            // Allow other onboarding_status values
+            updates.onboarding_status = businessData.onboarding_status
+          }
         }
         
         // Preserve existing twilio_phone_number if not in update payload
@@ -1250,7 +1273,20 @@ export const db = {
       stripe_customer_id: businessData?.stripe_customer_id || null,
       sms_type: businessData?.sms_type || 'local_a2p', // Default to local_a2p for dedicated numbers
       messaging_status: businessData?.messaging_status || 'active',
-      onboarding_status: businessData?.onboarding_status || 'started',
+      onboarding_status: (() => {
+        // Block premature onboarding_status: "completed" when creating new business
+        if (businessData?.onboarding_status === 'completed') {
+          console.log('[getOrCreateBusiness] BLOCKED premature onboarding_status completed during business creation', {
+            reason: 'New business cannot have completed onboarding before trial activation',
+            subscription_status: null,
+            twilio_phone_number: null,
+            requested_onboarding_status: businessData.onboarding_status
+          })
+          console.log('[getOrCreateBusiness] Using safe status "started" instead')
+          return 'started'
+        }
+        return businessData?.onboarding_status || 'started'
+      })(),
       twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
       a2p_status: 'approved', // Using approved ReplyFlowHQ Messaging Service
       provisioning_status: 'pending', // Start with pending status
