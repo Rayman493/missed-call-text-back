@@ -5,19 +5,14 @@ import Navigation from './Navigation'
 import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
 import BrandIcon from './BrandIcon'
-import { ChevronLeft } from 'lucide-react'
 
 interface AppHeaderProps {
   title?: string
-  showBackLink?: boolean
-  backLinkHref?: string
   showNavigation?: boolean
 }
 
 export default function AppHeader({
   title,
-  showBackLink = false,
-  backLinkHref = '/dashboard',
   showNavigation = true
 }: AppHeaderProps) {
   return (
@@ -43,15 +38,6 @@ export default function AppHeader({
             {/* Desktop navigation - only visible on desktop */}
             <div className="hidden md:flex items-center gap-3">
               {showNavigation && <Navigation />}
-              {showBackLink && (
-                <Link 
-                  href={backLinkHref} 
-                  className="group flex items-center gap-2 px-2.5 py-1.25 rounded-md bg-slate-800/30 dark:bg-slate-700/30 border border-slate-700/30 dark:border-slate-600/30 text-sm font-normal text-slate-400 hover:text-slate-300 hover:bg-slate-800/50 dark:hover:bg-slate-700/50 hover:border-slate-600/30 dark:hover:border-slate-500/30 transition-all duration-200 ease-in-out"
-                >
-                  <ChevronLeft className="w-4 h-4 -ml-0.5" />
-                  <span>Dashboard</span>
-                </Link>
-              )}
               {title && <h1 className="text-lg font-semibold text-white">{title}</h1>}
             </div>
           </div>
