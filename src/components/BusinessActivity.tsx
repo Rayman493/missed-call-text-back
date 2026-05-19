@@ -171,10 +171,10 @@ export default function BusinessActivity({
         )}
 
         {/* Business Activity Stat Cards */}
-        <div className="bg-white dark:bg-card/50 border border-slate-200 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
+        <div className="bg-white dark:bg-card/50 border border-slate-200/70 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {/* Missed Calls Recovered */}
-            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base sm:text-lg">📞</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
@@ -190,7 +190,7 @@ export default function BusinessActivity({
             </div>
 
             {/* Leads Captured */}
-            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base sm:text-lg">👥</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
@@ -206,7 +206,7 @@ export default function BusinessActivity({
             </div>
 
             {/* Customer Replies */}
-            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base sm:text-lg">💬</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
@@ -222,7 +222,7 @@ export default function BusinessActivity({
             </div>
 
             {/* Automatic Check-ins Scheduled */}
-            <div className="bg-slate-50 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base sm:text-lg">💡</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
