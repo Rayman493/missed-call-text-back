@@ -239,10 +239,10 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center text-center"
           >
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight text-slate-900 dark:text-foreground">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
               Missed Calls Automatically Get a Text Reply
             </h1>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed mt-5 sm:mt-6">
               ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
             </p>
             
