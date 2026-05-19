@@ -238,12 +238,12 @@ export default function LeadsPage() {
             )}
 
             {/* Getting Started - made more compact on Leads page to reduce prominence */}
-            <div className="mb-3">
+            <div className="mb-2">
               <GettingStarted />
             </div>
 
             {/* Lifecycle Summary Cards - reduced visual dominance on Leads page */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
                 <p className="text-lg sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
@@ -271,7 +271,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Leads Header - dominant focus on Leads page */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-3 sm:mb-5">
               <div>
                 <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
@@ -365,7 +365,7 @@ export default function LeadsPage() {
 
             {/* Empty State */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
-              <div className="bg-white dark:bg-card/80 backdrop-blur rounded-2xl shadow-sm border border-slate-100 dark:border-border/40 p-8 sm:p-12 text-center animate-fadeIn relative overflow-hidden">
+              <div className="bg-white dark:bg-card/80 backdrop-blur rounded-2xl shadow-sm border border-slate-100 dark:border-border/40 p-5 sm:p-8 text-center animate-fadeIn relative overflow-hidden">
                 {/* Subtle background gradient for depth */}
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-transparent to-blue-50/30 dark:from-slate-900/20 dark:via-transparent dark:to-blue-900/10 pointer-events-none"></div>
                 <div className="relative z-10">
@@ -379,17 +379,16 @@ export default function LeadsPage() {
                   if (!hasActiveSubscription || provisioningStatus === 'pending') {
                     return (
                       <>
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                          <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          Customer conversations will appear here
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">
+                          Your first leads will appear here automatically
                         </h3>
-                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Your recovered leads and conversations will populate here in real time.</p>
-                          <p className="text-sm text-muted-foreground">Activate your free trial to begin setting up ReplyFlow.</p>
+                        <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm">
+                          <p>Activate your free trial to begin setting up ReplyFlow.</p>
                         </div>
                       </>
                     )
@@ -399,18 +398,17 @@ export default function LeadsPage() {
                   if (!isOnboardingComplete) {
                     return (
                       <>
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                          <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          Your lead pipeline is ready
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">
+                          Your first leads will appear here automatically
                         </h3>
-                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                          <p>Customer opportunities will appear here automatically.</p>
-                          <p className="text-sm text-muted-foreground">Run your final test call to activate missed-call monitoring.</p>
+                        <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm">
+                          <p>Run your final missed-call test to activate live monitoring.</p>
                         </div>
                       </>
                     )
@@ -419,17 +417,17 @@ export default function LeadsPage() {
                   // STATE 3: FULLY ACTIVE
                   return (
                     <>
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                        <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                        Your lead pipeline is live
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 sm:mb-2">
+                        Your first leads will appear here automatically
                       </h3>
                       
                       {/* Operational Status Indicators */}
-                      <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-5 text-xs">
+                      <div className="flex flex-wrap items-center justify-center gap-2 mb-3 sm:mb-4 text-xs">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full border border-green-200 dark:border-green-800/30">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                           Monitoring Active
@@ -442,14 +440,10 @@ export default function LeadsPage() {
                             Forwarding Connected
                           </span>
                         )}
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full border border-slate-200 dark:border-border/50">
-                          Waiting for first missed call
-                        </span>
                       </div>
 
-                      <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm space-y-2">
-                        <p>Missed-call conversations will appear here in real time.</p>
-                        <p className="text-sm text-muted-foreground">Customer opportunities will appear here automatically.</p>
+                      <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm">
+                        <p>Live monitoring is active and waiting for missed calls.</p>
                         {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length > 0 && (
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mt-2">
                             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
