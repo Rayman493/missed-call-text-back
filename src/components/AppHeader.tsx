@@ -38,7 +38,6 @@ export default function AppHeader({
             {/* Desktop navigation - only visible on desktop */}
             <div className="hidden md:flex items-center gap-3">
               {showNavigation && <Navigation />}
-              {title && <h1 className="text-lg font-semibold text-white">{title}</h1>}
             </div>
           </div>
           
