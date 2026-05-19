@@ -873,27 +873,53 @@ export default function SettingsContent() {
                       </button>
                     </div>
                     
-                    {/* Timezone Selector */}
+                    {/* Timezone and Hours Selector */}
                     {formBusiness.business_hours_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <label className="block text-xs font-medium text-foreground mb-1.5">
-                          Timezone
-                        </label>
-                        <select
-                          value={formBusiness.business_hours_timezone || 'America/New_York'}
-                          onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground text-sm"
-                        >
-                          <option value="America/New_York">Eastern Time (ET)</option>
-                          <option value="America/Chicago">Central Time (CT)</option>
-                          <option value="America/Denver">Mountain Time (MT)</option>
-                          <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                          <option value="America/Anchorage">Alaska Time (AKT)</option>
-                          <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                          <option value="America/Phoenix">Arizona Time (MST)</option>
-                        </select>
-                        <p className="text-xs text-muted-foreground mt-1.5">
-                          Select your business timezone to ensure accurate business hours enforcement
+                      <div className="mt-3 pt-3 border-t border-border space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-foreground mb-1.5">
+                            Timezone
+                          </label>
+                          <select
+                            value={formBusiness.business_hours_timezone || 'America/New_York'}
+                            onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground text-sm"
+                          >
+                            <option value="America/New_York">Eastern Time (ET)</option>
+                            <option value="America/Chicago">Central Time (CT)</option>
+                            <option value="America/Denver">Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                            <option value="America/Anchorage">Alaska Time (AKT)</option>
+                            <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                            <option value="America/Phoenix">Arizona Time (MST)</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-foreground mb-1.5">
+                              Start Time
+                            </label>
+                            <input
+                              type="time"
+                              value={formBusiness.business_hours_start || '09:00'}
+                              onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
+                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-foreground mb-1.5">
+                              End Time
+                            </label>
+                            <input
+                              type="time"
+                              value={formBusiness.business_hours_end || '18:00'}
+                              onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
+                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground text-sm"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Automated texts will only be sent during these hours, Monday through Friday.
                         </p>
                       </div>
                     )}
