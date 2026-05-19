@@ -825,26 +825,23 @@ export default function SettingsContent() {
                         <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
                           <div className="mb-2.5">
                             <div className="flex items-center gap-2 mb-1.5">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Blocked phone numbers</h4>
-                              <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full font-medium">
-                                Optional
-                              </span>
+                              <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Blocked Numbers</h4>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-muted-foreground mb-2.5">
-                              ReplyFlow will ignore calls from these numbers and will not create leads or send texts.
+                              Prevent ReplyFlow from responding to specific phone numbers.
                             </p>
                           </div>
                           <textarea
                             value={getBlockedNumbersText()}
                             onChange={(e) => updateBlockedNumbers(e.target.value)}
                             rows={3}
-                            placeholder="+14125551234&#10;+14125559876"
+                            placeholder="+14125551234"
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground text-sm font-mono"
                           />
                           <div className="text-xs text-slate-600 dark:text-muted-foreground mt-2">
-                            Enter one phone number per line. Example:
+                            Add one phone number per line.
                             <br />
-                            <span className="font-mono">+14125551234</span>
+                            Example: <span className="font-mono">+14125551234</span>
                           </div>
                         </div>
                       </div>
