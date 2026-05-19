@@ -60,6 +60,7 @@ export const metadata: Metadata = {
     icon: '/favicon.svg',
     apple: '/apple-touch-icon.svg',
   },
+  manifest: '/site.webmanifest',
   verification: {
     google: 'google9f3f4231ba864d62.html',
   },
