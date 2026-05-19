@@ -158,7 +158,7 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
       ) : (
         <div className="space-y-3">
           {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${getActivityColor(activity.event_type)}`}>
                 {getActivityIcon(activity.event_type)}
               </div>

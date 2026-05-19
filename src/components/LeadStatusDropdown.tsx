@@ -119,7 +119,7 @@ export default function LeadStatusDropdown({
                 key={status}
                 onClick={() => handleStatusSelect(status)}
                 disabled={isUpdating}
-                className="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="text-sm">{getStatusIcon(status)}</span>
                 <div className="flex-1">
