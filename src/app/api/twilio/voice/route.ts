@@ -404,6 +404,23 @@ export async function POST(request: NextRequest) {
     if (shouldSendSms && lead) {
       console.log('[Twilio Voice] Preparing auto-reply SMS for lead:', lead.id);
       
+      // QA LOGGING: Business hours evaluation
+      const now = new Date();
+      const businessHoursEnabled = business.business_hours_enabled || false;
+      const businessTimezone = business.business_hours_timezone || 'America/New_York';
+      const autoReplyMessage = business.auto_reply_message || '';
+      const afterHoursMessage = business.after_hours_message || '';
+      
+      console.log('[QA - Business Hours] Evaluation:', {
+        businessId: business.id,
+        businessHoursEnabled,
+        businessTimezone,
+        autoReplyMessageLength: autoReplyMessage.length,
+        afterHoursMessageLength: afterHoursMessage.length,
+        currentTimeUTC: now.toISOString(),
+        currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
+      });
+      
       // Run smart filtering before sending SMS
       console.log('[Twilio Voice] Running smart filtering for caller:', From);
       const filteringResult = await shouldSendAutoText({
