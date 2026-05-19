@@ -59,3 +59,22 @@ export const isPhoneSetupStateFresh = (state: PhoneSetupState, maxAgeMinutes: nu
   
   return diffMinutes <= maxAgeMinutes
 }
+
+/**
+ * Clear phone setup state if subscription is not active
+ * This prevents stale state from causing routing issues
+ */
+export const clearPhoneSetupStateIfSubscriptionInactive = (subscriptionStatus: string | null | undefined) => {
+  const isSubscriptionActive = subscriptionStatus === 'active' || subscriptionStatus === 'trialing'
+  
+  if (!isSubscriptionActive) {
+    console.log('[Phone Setup Persistence] Clearing stale state - subscription not active', {
+      subscriptionStatus,
+      isSubscriptionActive
+    })
+    clearPhoneSetupState()
+    return true
+  }
+  
+  return false
+}

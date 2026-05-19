@@ -472,11 +472,35 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
         // Always show button when number is ready and forwarding is not complete
         buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
-        buttonHref: numberDone && !forwardingDone ? '/setup/phone-forwarding' : undefined,
+        buttonHref: (() => {
+          const wouldNavigate = numberDone && !forwardingDone
+          console.log('[GettingStarted] Forwarding buttonHref calculation', {
+            source: 'GettingStarted.tsx',
+            subscription_status: business?.subscription_status,
+            twilio_phone_number: business?.twilio_phone_number,
+            numberDone,
+            forwardingDone,
+            wouldNavigate,
+            targetRoute: wouldNavigate ? '/setup/phone-forwarding' : undefined,
+            allowed: wouldNavigate ? 'Yes (subscription check via numberDone/trialDone)' : 'No'
+          })
+          return wouldNavigate ? '/setup/phone-forwarding' : undefined
+        })(),
         // Secondary button for users who have already enabled forwarding
         secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'Review Forwarding Setup' : undefined),
         secondaryButtonOnClick: numberDone && !forwardingDone ? handleCompleteForwarding : undefined,
-        secondaryButtonHref: forwardingDone ? '/setup/phone-forwarding' : undefined,
+        secondaryButtonHref: (() => {
+          const wouldNavigate = forwardingDone
+          console.log('[GettingStarted] Forwarding secondaryButtonHref calculation', {
+            source: 'GettingStarted.tsx',
+            subscription_status: business?.subscription_status,
+            forwardingDone,
+            wouldNavigate,
+            targetRoute: wouldNavigate ? '/setup/phone-forwarding' : undefined,
+            allowed: wouldNavigate ? 'Yes (forwarding already complete)' : 'No'
+          })
+          return wouldNavigate ? '/setup/phone-forwarding' : undefined
+        })(),
       },
       {
         id: 'test',

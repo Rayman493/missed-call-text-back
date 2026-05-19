@@ -218,8 +218,23 @@ export default function SetupHealth() {
   }
 
   const handleViewInstructions = () => {
+    console.log('[SetupHealth] handleViewInstructions called', {
+      source: 'SetupHealth.tsx',
+      subscription_status: business?.subscription_status,
+      stripe_customer_id: business?.stripe_customer_id,
+      stripe_subscription_id: business?.stripe_subscription_id,
+      twilio_phone_number: business?.twilio_phone_number,
+    })
+
     // Only allow phone setup if subscription is active
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    
+    console.log('[SetupHealth] Navigation decision', {
+      subscriptionValid,
+      targetRoute: subscriptionValid ? '/setup/phone-forwarding' : '/dashboard',
+      allowed: subscriptionValid
+    })
+
     if (subscriptionValid) {
       router.push('/setup/phone-forwarding')
     } else {
