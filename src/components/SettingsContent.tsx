@@ -840,36 +840,63 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="flex items-start justify-between p-3 sm:p-4 bg-muted rounded-lg border border-border">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-medium text-foreground">Business Hours Only</h3>
-                        {formBusiness.business_hours_enabled && (
-                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
-                            Active
-                          </span>
-                        )}
+                  <div className="p-3 sm:p-4 bg-muted rounded-lg border border-border">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-medium text-foreground">Business Hours Only</h3>
+                          {formBusiness.business_hours_enabled && (
+                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
+                        </p>
+                        <div className="text-xs text-muted-foreground">
+                          🕐 Prevents late-night texts and respects customer communication preferences.
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Only send automated texts during your business hours (9 AM - 6 PM, Mon-Fri).
-                      </p>
-                      <div className="text-xs text-muted-foreground">
-                        🕐 Prevents late-night texts and respects customer communication preferences.
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                        formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-600'
-                      }`}
-                      aria-label={formBusiness.business_hours_enabled ? 'Disable business hours' : 'Enable business hours'}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formBusiness.business_hours_enabled ? 'translate-x-6' : 'translate-x-1'
+                      <button
+                        onClick={() => updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                          formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-600'
                         }`}
-                      />
-                    </button>
+                        aria-label={formBusiness.business_hours_enabled ? 'Disable business hours' : 'Enable business hours'}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            formBusiness.business_hours_enabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    
+                    {/* Timezone Selector */}
+                    {formBusiness.business_hours_enabled && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <label className="block text-xs font-medium text-foreground mb-1.5">
+                          Timezone
+                        </label>
+                        <select
+                          value={formBusiness.business_hours_timezone || 'America/New_York'}
+                          onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
+                          className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm"
+                        >
+                          <option value="America/New_York">Eastern Time (ET)</option>
+                          <option value="America/Chicago">Central Time (CT)</option>
+                          <option value="America/Denver">Mountain Time (MT)</option>
+                          <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                          <option value="America/Anchorage">Alaska Time (AKT)</option>
+                          <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                          <option value="America/Phoenix">Arizona Time (MST)</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          Select your business timezone to ensure accurate business hours enforcement
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Automation Status Summary */}
