@@ -735,9 +735,9 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-slate-900/30 dark:to-background flex flex-col">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50/95 to-white dark:from-background dark:via-slate-900/40 dark:to-background flex flex-col">
             {/* Subtle overlay gradient for depth */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-100/30 to-transparent dark:from-transparent dark:via-slate-900/10 dark:to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-100/20 to-slate-50/40 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
             {/* App Header */}
             <AppHeader showNavigation={true} />
 

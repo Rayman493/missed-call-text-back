@@ -171,7 +171,7 @@ export default function BusinessActivity({
         )}
 
         {/* Business Activity Stat Cards */}
-        <div className="bg-white dark:bg-card/50 border border-slate-200/70 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
+        <div className="bg-white dark:bg-card/50 border border-slate-200/80 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {/* Missed Calls Recovered */}
             <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-2 sm:p-2.5">

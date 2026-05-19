@@ -114,7 +114,7 @@ export default function LiveActivity({ leads = [], followUpJobs = [], missedCall
     }
 
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200/70 dark:border-slate-700 p-3 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center gap-3">
           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isOnboardingComplete ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50' : 'bg-amber-500 shadow-sm'}`}></div>
           <div className="flex-1 min-w-0">
