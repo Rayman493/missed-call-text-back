@@ -29,6 +29,8 @@ export default function PhoneForwardingPage() {
   const [saveError, setSaveError] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
   const [ctaHighlighted, setCtaHighlighted] = useState(false)
+  const [forwardingCompleted, setForwardingCompleted] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -111,13 +113,18 @@ export default function PhoneForwardingPage() {
     setLoading(true)
 
     try {
-      console.log('[Phone Forwarding] Starting setup completion...')
+      console.log('[Phone Forwarding] User marking forwarding as completed')
+      console.log('[Phone Forwarding] Business ID:', business.id)
+      console.log('[Phone Forwarding] User ID:', business.user_id)
+      console.log('[Phone Forwarding] Selected carrier:', selectedCarrier)
       console.log('[Phone Forwarding] Update payload:', {
         business_id: business.id,
         call_forwarding_enabled: true,
+        call_forwarding_status: "enabled",
         business_phone_carrier: selectedCarrier,
         phone_setup_completed_at: new Date().toISOString(),
-        onboarding_status: 'pending_test'
+        onboarding_status: "pending_test",
+        onboarding_step: "phone_setup_completed"
       })
 
       // Update Supabase with forwarding enabled and business_phone_carrier
@@ -150,10 +157,22 @@ export default function PhoneForwardingPage() {
         })
         setSaveError(`Failed to save. ${error.message || 'Unknown error'} (Code: ${error.code || 'N/A'})`)
       } else {
-        console.log('[Phone Forwarding] Setup completed successfully')
-
-        // Redirect immediately to test setup
-        router.push('/dashboard/test-setup')
+        console.log('[Phone Forwarding] Forwarding step marked complete successfully')
+        console.log('[Phone Forwarding] Updated onboarding status:', 'pending_test')
+        console.log('[Phone Forwarding] Updated phone_setup_completed_at:', new Date().toISOString())
+        
+        // Show success state
+        setForwardingCompleted(true)
+        setShowSuccess(true)
+        
+        // Refresh business context to update state
+        await refreshBusiness()
+        
+        // Redirect to test setup after showing success confirmation
+        setTimeout(() => {
+          console.log('[Phone Forwarding] Navigating to final test step')
+          router.push('/dashboard/test-setup')
+        }, 1500)
       }
     } catch (error) {
       console.error('[Phone Forwarding] Failed to complete setup:', error)
@@ -377,13 +396,30 @@ export default function PhoneForwardingPage() {
                 </div>
               )}
 
+              {/* Success Confirmation */}
+              {showSuccess && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-green-700 dark:text-green-300">
+                        Forwarding enabled successfully!
+                      </p>
+                      <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                        Redirecting to final test step...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Button */}
               <div className="mt-8 space-y-3">
                 <button
                   onClick={handleCompleteSetup}
-                  disabled={loading}
+                  disabled={loading || forwardingCompleted}
                   className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
+                    loading ? 'opacity-70 cursor-not-allowed' : forwardingCompleted ? 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600' : 'hover:shadow-lg'
                   } ${ctaHighlighted ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-white dark:ring-offset-card' : ''}`}
                 >
                   {loading ? (
@@ -392,12 +428,21 @@ export default function PhoneForwardingPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Checking setup...
+                      Saving...
                     </>
-                  ) : 'Continue to Test Setup'}
+                  ) : forwardingCompleted ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      Forwarding enabled
+                    </>
+                  ) : (
+                    <>
+                      I've enabled call forwarding
+                    </>
+                  )}
                 </button>
                 <p className="text-xs text-center text-muted-foreground">
-                  Usually takes less than 30 seconds.
+                  {forwardingCompleted ? 'Proceeding to final test step...' : 'Only click after you\'ve dialed the code on your phone'}
                 </p>
               </div>
             </div>
