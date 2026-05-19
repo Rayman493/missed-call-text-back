@@ -250,7 +250,12 @@ export default function Home() {
             <div className="flex flex-col items-center gap-2 mt-4">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
               <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
-              <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts, cancel anytime</span>
+            </div>
+            
+            {/* Trust Copy */}
+            <div className="flex flex-col items-center gap-1 mt-3">
+              <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
+              <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
@@ -267,6 +272,44 @@ export default function Home() {
                 View Demo
               </Link>
             </div>
+
+            {/* Trust/Simplicity Bar */}
+            <div className="mt-12 pt-8 border-t border-slate-200/60 dark:border-slate-700/60">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                <div className="flex flex-col items-center text-center">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Works with your existing number
+                  </span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Setup in under 5 minutes
+                  </span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                    No app download required
+                  </span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Built for local businesses
+                  </span>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -274,62 +317,150 @@ export default function Home() {
       {/* How It Works Section */}
       <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground text-center mb-16"
-          >
-            How It Works
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center mb-16">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true }}
+              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
+            >
+              How ReplyFlow Works
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              viewport={{ once: true }}
+              className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
+            >
+              Never lose another lead from a missed call.
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+            {/* Arrow between step 1 and 2 (desktop) */}
+            <div className="hidden md:block absolute top-16 left-[33%] transform -translate-x-1/2 text-slate-300 dark:text-slate-600">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </div>
+            {/* Arrow between step 2 and 3 (desktop) */}
+            <div className="hidden md:block absolute top-16 left-[66%] transform -translate-x-1/2 text-slate-300 dark:text-slate-600">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </div>
+            
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center hover:-translate-y-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">1</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Missed call comes in</h3>
-              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">Customer calls your business but you can't answer</p>
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Customer calls your business</h3>
+              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">A potential customer calls your business number</p>
             </motion.div>
+            
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center hover:-translate-y-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 border border-emerald-100 dark:border-emerald-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">2</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">ReplyFlow texts them instantly</h3>
-              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">Automatic personalized text response within seconds</p>
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">ReplyFlow instantly texts them back</h3>
+              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">If you miss the call, we automatically send a personalized text response</p>
             </motion.div>
+            
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
               viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center hover:-translate-y-1"
+              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 border border-purple-100 dark:border-purple-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">3</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Lead captured</h3>
-              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">Customer appears in your dashboard ready to follow up</p>
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">The customer replies and becomes a lead</h3>
+              <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">They reply to your text and you've captured a new lead</p>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Example Conversation Section */}
+      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true }}
+              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
+            >
+              Example Conversation
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              viewport={{ once: true }}
+              className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
+            >
+              See how ReplyFlow helps you capture leads automatically
+            </motion.p>
+          </div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
+              {/* Customer Message 1 */}
+              <div className="flex justify-start mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+                  <p className="text-sm text-slate-800 dark:text-slate-200">Hi, do you install water heaters?</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:34 PM</p>
+                </div>
+              </div>
+              
+              {/* Business Message 1 */}
+              <div className="flex justify-end mb-4">
+                <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+                  <p className="text-sm text-white">Hi! Thanks for calling Wolfie Plumbing. Sorry we missed your call — how can we help?</p>
+                  <p className="text-xs text-blue-200 mt-1">2:35 PM</p>
+                </div>
+              </div>
+              
+              {/* Customer Message 2 */}
+              <div className="flex justify-start mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+                  <p className="text-sm text-slate-800 dark:text-slate-200">50 gallon gas</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:36 PM</p>
+                </div>
+              </div>
+              
+              {/* Business Message 2 */}
+              <div className="flex justify-end mb-4">
+                <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+                  <p className="text-sm text-white">Perfect — we can help with that. What zip code are you located in?</p>
+                  <p className="text-xs text-blue-200 mt-1">2:37 PM</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
