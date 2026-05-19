@@ -257,6 +257,17 @@ export default function DashboardContent() {
     })
   }, [business, processedLeads])
 
+  // HARD RENDER GUARD: Single source of truth for subscription status
+  // This prevents setup/onboarding UI from rendering for users who have not started trial
+  const isSubscriptionActive = business?.subscription_status === 'trialing' || business?.subscription_status === 'active'
+  
+  console.log('[Render Guard] DashboardContent subscription check', {
+    subscription_status: business?.subscription_status,
+    isSubscriptionActive,
+    loading: businessLoading,
+    fetchComplete: businessFetchComplete
+  })
+
   // Add state resolving flag - wait for business fetch to complete AND subscription state to be stable
   // This prevents flicker by not rendering onboarding UI until state is fully resolved
   const isStateResolving = businessLoading || webhookConfirming
@@ -745,9 +756,14 @@ export default function DashboardContent() {
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
-                {onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
+                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
+                      console.log('[Render Guard] GettingStarted rendered', {
+                        subscription_status: business?.subscription_status,
+                        isSubscriptionActive,
+                        allowed: true
+                      })
                       console.log('[Dashboard Routing] Rendering GettingStarted section', {
                         section: 'SetupProgress',
                         pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
@@ -784,22 +800,46 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Provisioning Success Banner - Show after checkout success */}
-                <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+                {/* HARD RENDER GUARD: Only show OnboardingGuide if subscription is active */}
+                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && !shouldShowLoadingState && (
+                  <SectionErrorBoundary sectionName="OnboardingGuide">
                     {(() => {
-                      console.log('[SECTION RENDER]', {
-                        section: 'ProvisioningSuccessBanner',
-                        mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                        hasBusiness: !!business,
-                        subscriptionStatus: business?.subscription_status,
-                        onboardingStatus: business?.onboarding_status,
-                        checkoutStatus
+                      console.log('[Render Guard] OnboardingGuide rendered', {
+                        subscription_status: business?.subscription_status,
+                        isSubscriptionActive,
+                        allowed: true
                       })
-                      console.log('[Render Child] ProvisioningSuccessBanner')
+                      console.log('[Render Child] OnboardingGuide')
                       return null
                     })()}
-                    <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+                    <OnboardingGuide isTrialActive={true} />
                   </SectionErrorBoundary>
+                )}
+
+                {/* HARD RENDER GUARD: Only show ProvisioningSuccessBanner if subscription is active */}
+                {isSubscriptionActive && (
+                  <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
+                      {(() => {
+                        console.log('[Render Guard] ProvisioningSuccessBanner rendered', {
+                          subscription_status: business?.subscription_status,
+                          isSubscriptionActive,
+                          checkoutStatus,
+                          allowed: true
+                        })
+                        console.log('[SECTION RENDER]', {
+                          section: 'ProvisioningSuccessBanner',
+                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+                          hasBusiness: !!business,
+                          subscriptionStatus: business?.subscription_status,
+                          onboardingStatus: business?.onboarding_status,
+                          checkoutStatus
+                        })
+                        console.log('[Render Child] ProvisioningSuccessBanner')
+                        return null
+                      })()}
+                      <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
+                    </SectionErrorBoundary>
+                )}
 
                 {/* Subscription Alerts - Only show when action needed */}
                 {/* Payment Issue Warning - High Priority */}
