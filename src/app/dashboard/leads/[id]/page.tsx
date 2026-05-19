@@ -1239,22 +1239,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : messagesArray.length === 0 ? (
-              <div className="text-center py-16 animate-fadeIn">
-                <div className="text-5xl mb-4 animate-bounce">💬</div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
-                  No messages yet
-                </h3>
-                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                  Messages will appear here after missed calls, replies, or manual sends.
-                </p>
-                <div className="inline-flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <div className="text-center py-16 sm:py-20 animate-fadeIn">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                    Start the conversation by sending a message below
-                  </p>
                 </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
+                  Ready to connect
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto">
+                  Send a message to reach this customer. Conversation history will appear here automatically.
+                </p>
               </div>
             ) : (
               <MobileConversationMessageList
