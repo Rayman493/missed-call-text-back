@@ -73,7 +73,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                   >
                     Dashboard
                   </Link>
@@ -89,13 +89,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/dashboard/leads"
-                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
                   >
                     Leads
                   </Link>
