@@ -8,8 +8,13 @@ export const metadata: Metadata = {
   title: 'ReplyFlow - $49/month | 14-day Free Trial',
   description: 'Automatically respond to missed calls with ReplyFlow. 14-day free trial, then $49/month. No contracts. Capture leads and grow your business.',
   icons: {
-    icon: '/favicon.svg',
-    apple: '/apple-touch-icon.svg',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
   },
 }
 
