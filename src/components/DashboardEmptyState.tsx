@@ -32,25 +32,25 @@ export default function DashboardEmptyState() {
   const hasTwilioNumber = !!business?.twilio_phone_number
 
   return (
-    <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-6">
+    <div className="flex flex-col items-center justify-center py-6 sm:py-10 px-6">
       {/* Empty State Icon */}
-      <div className="w-16 h-16 sm:w-24 sm:h-24 bg-slate-100 dark:bg-muted rounded-full flex items-center justify-center mb-4 sm:mb-6 shadow-sm">
-        <svg className="w-8 h-8 sm:w-12 sm:h-12 text-slate-600 dark:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="w-20 h-20 sm:w-28 sm:h-28 bg-slate-100 dark:bg-muted rounded-full flex items-center justify-center mb-5 sm:mb-7 shadow-sm">
+        <svg className="w-10 h-10 sm:w-14 sm:h-14 text-slate-600 dark:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
         </svg>
       </div>
 
       {/* Empty State Message */}
-      <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3 text-center">
+      <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2.5 sm:mb-3 text-center">
         No missed-call leads yet
       </h2>
-      <p className="text-sm sm:text-base text-slate-600 dark:text-muted-foreground text-center mb-6 sm:mb-8 max-w-md">
+      <p className="text-base sm:text-lg text-slate-600 dark:text-muted-foreground text-center mb-5 sm:mb-7 max-w-md leading-relaxed">
         Call your ReplyFlow number to test your setup. Missed calls and replies will appear here.
       </p>
 
       {/* SMS Status */}
       {!hasTwilioNumber && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-8 max-w-md">
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6 sm:mb-7 max-w-md">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
