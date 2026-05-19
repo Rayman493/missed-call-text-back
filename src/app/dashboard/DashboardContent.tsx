@@ -735,13 +735,15 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-slate-900/30 dark:to-background flex flex-col">
+            {/* Subtle overlay gradient for depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-100/30 to-transparent dark:from-transparent dark:via-slate-900/10 dark:to-transparent pointer-events-none"></div>
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
-              <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
+              <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8">
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}

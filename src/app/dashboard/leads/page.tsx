@@ -216,9 +216,11 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col">
-          {/* App Header */}
-          <AppHeader title="Leads" showBackLink={true} showNavigation={false} />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-slate-900/30 dark:to-background flex flex-col relative">
+            {/* Subtle overlay gradient for depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-100/30 to-transparent dark:from-transparent dark:via-slate-900/10 dark:to-transparent pointer-events-none"></div>
+            {/* App Header */}
+            <AppHeader title="Leads" showBackLink={true} showNavigation={false} />
 
           {/* Main Content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
