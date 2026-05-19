@@ -780,10 +780,15 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Only show Start Free Trial when state is PRE_TRIAL AND fully resolved */}
-                {onboardingState.state === 'PRE_TRIAL' && !shouldShowLoadingState && (
+                {/* HARD RENDER GUARD: OnboardingGuide only renders when subscription is active */}
+                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="OnboardingGuide">
                     {(() => {
+                      console.log('[Render Guard] OnboardingGuide rendered', {
+                        subscription_status: business?.subscription_status,
+                        isSubscriptionActive,
+                        allowed: true
+                      })
                       console.log('[Dashboard Routing] Rendering OnboardingGuide section', {
                         section: 'OnboardingGuide',
                         pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
@@ -796,23 +801,21 @@ export default function DashboardContent() {
                       console.log('[Render Child] OnboardingGuide')
                       return null
                     })()}
-                    <OnboardingGuide isTrialActive={false} />
+                    <OnboardingGuide isTrialActive={true} />
                   </SectionErrorBoundary>
                 )}
 
-                {/* HARD RENDER GUARD: Only show OnboardingGuide if subscription is active */}
-                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && !shouldShowLoadingState && (
-                  <SectionErrorBoundary sectionName="OnboardingGuide">
+                {/* Log when OnboardingGuide is skipped due to inactive subscription */}
+                {!isSubscriptionActive && (
+                  <SectionErrorBoundary sectionName="OnboardingGuardLog">
                     {(() => {
-                      console.log('[Render Guard] OnboardingGuide rendered', {
+                      console.log('[Dashboard Routing] Skipping OnboardingGuide - subscription inactive', {
                         subscription_status: business?.subscription_status,
                         isSubscriptionActive,
-                        allowed: true
+                        reason: 'Subscription is not active (trialing or active)'
                       })
-                      console.log('[Render Child] OnboardingGuide')
                       return null
                     })()}
-                    <OnboardingGuide isTrialActive={true} />
                   </SectionErrorBoundary>
                 )}
 
