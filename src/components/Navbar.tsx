@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
 import UserDropdown from '@/components/UserDropdown'
+import BrandIcon from '@/components/BrandIcon'
 
 interface NavbarProps {
   forceDark?: boolean
@@ -34,7 +35,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     return (
       <header className="w-full bg-slate-800/90 border-b border-slate-700">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="w-32 h-7 bg-gray-600 rounded animate-pulse"></div>
+          <BrandIcon size={32} className="animate-pulse" />
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="w-20 h-5 bg-gray-600 rounded animate-pulse hidden sm:block"></div>
             <div className="w-16 h-5 bg-gray-600 rounded animate-pulse"></div>
@@ -53,8 +54,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         {/* Logo */}
         <Link 
           href={isLoggedIn ? '/dashboard' : '/'} 
-          className="flex items-center hover:opacity-90 transition"
+          className="flex items-center gap-2 hover:opacity-90 transition"
         >
+          <BrandIcon size={32} />
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
             <span className="text-blue-400">Flow</span>

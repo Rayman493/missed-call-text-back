@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
   <rect width="180" height="180" rx="40" fill="#0f172a"/>
-  <text x="30" y="128" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="82" font-weight="700" fill="#f8fafc">R</text>
-  <text x="96" y="128" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="82" font-weight="700" fill="#2563eb">F</text>
+  <path
+    d="M56 45V135H79V80H103C115.15 80 125 69.75 125 56C125 42.25 115.15 32 103 32H56ZM79 65V50H103C107.418 50 111 53.582 111 58C111 62.418 107.418 66 103 66H79Z"
+    fill="#3b82f6"
+  />
 </svg>

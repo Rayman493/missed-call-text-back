@@ -7,6 +7,7 @@ import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { hasValidSubscription } from '@/lib/subscription'
 import CallForwardingInstructions from './CallForwardingInstructions'
+import BrandIcon from './BrandIcon'
 
 export default function DashboardEmptyState() {
   const router = useRouter()
@@ -34,10 +35,8 @@ export default function DashboardEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-6 sm:py-10 px-6">
       {/* Empty State Icon */}
-      <div className="w-20 h-20 sm:w-28 sm:h-28 bg-slate-100 dark:bg-muted rounded-full flex items-center justify-center mb-5 sm:mb-7 shadow-sm">
-        <svg className="w-10 h-10 sm:w-14 sm:h-14 text-slate-600 dark:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-        </svg>
+      <div className="inline-flex items-center justify-center mb-5 sm:mb-7">
+        <BrandIcon size={112} />
       </div>
 
       {/* Empty State Message */}

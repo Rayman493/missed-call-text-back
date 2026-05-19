@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navigation from './Navigation'
 import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
+import BrandIcon from './BrandIcon'
 import { ChevronLeft } from 'lucide-react'
 
 interface AppHeaderProps {
@@ -31,7 +32,8 @@ export default function AppHeader({
             </div>
             
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
+            <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90 transition">
+              <BrandIcon size={32} />
               <span className="text-xl md:text-2xl font-semibold tracking-tight">
                 <span className="text-white">Reply</span>
                 <span className="text-blue-400">Flow</span>

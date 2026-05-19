@@ -7,6 +7,7 @@ import Link from 'next/link'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
+import BrandIcon from '@/components/BrandIcon'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -436,8 +437,8 @@ function AuthContent() {
         
         <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
           <div className="text-center mb-5 sm:mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-900/40 to-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/30 mb-3 sm:mb-4 shadow-lg shadow-blue-900/20">
-              <span className="text-lg sm:text-xl font-bold text-blue-400 dark:text-blue-400">RF</span>
+            <div className="inline-flex items-center justify-center mb-3 sm:mb-4">
+              <BrandIcon size={56} />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}
