@@ -1174,25 +1174,55 @@ export const db = {
       // If businessData is provided, update existing business
       if (businessData && Object.keys(businessData).length > 0) {
         console.log('[getOrCreateBusiness] Updating existing business with data:', Object.keys(businessData))
+        console.log('[getOrCreateBusiness] Received business_phone_number:', businessData.business_phone_number)
+        console.log('[getOrCreateBusiness] Existing business_phone_number:', existingBusiness.business_phone_number)
         
-        // Preserve existing twilio_phone_number if not in update payload
-        const updates = {
-          ...businessData,
-          // Only update twilio_phone_number if it's explicitly provided in updates AND not null
-          twilio_phone_number: (businessData.twilio_phone_number !== undefined && businessData.twilio_phone_number !== null)
-            ? businessData.twilio_phone_number 
-            : businessForUpdate.twilio_phone_number
+        // Build updates object, only including fields that are provided and should be updated
+        const updates: Partial<Business> = {}
+        
+        // Update name if provided
+        if (businessData.name && businessData.name.trim()) {
+          updates.name = businessData.name.trim()
         }
         
-        console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
+        // Update business_phone_number if provided and missing on existing business
+        if (businessData.business_phone_number && businessData.business_phone_number.trim()) {
+          console.log('[getOrCreateBusiness] Updating business_phone_number:', businessData.business_phone_number.trim())
+          updates.business_phone_number = businessData.business_phone_number.trim()
+        } else if (!existingBusiness.business_phone_number && !businessData.business_phone_number) {
+          console.log('[getOrCreateBusiness] WARNING: No business_phone_number provided and existing business is missing it')
+        }
         
-        const updatedBusiness = await this.updateBusiness(businessForUpdate.id, updates)
-        if (updatedBusiness) {
-          console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
-          console.log('[getOrCreateBusiness] Updated twilio_phone_number:', updatedBusiness.twilio_phone_number)
-          return updatedBusiness
+        // Update auto_reply_message if provided
+        if (businessData.auto_reply_message && businessData.auto_reply_message.trim()) {
+          updates.auto_reply_message = businessData.auto_reply_message.trim()
+        }
+        
+        // Update onboarding_status if provided
+        if (businessData.onboarding_status) {
+          updates.onboarding_status = businessData.onboarding_status
+        }
+        
+        // Preserve existing twilio_phone_number if not in update payload
+        updates.twilio_phone_number = (businessData.twilio_phone_number !== undefined && businessData.twilio_phone_number !== null)
+          ? businessData.twilio_phone_number 
+          : businessForUpdate.twilio_phone_number
+        
+        console.log('[getOrCreateBusiness] Final update payload:', Object.keys(updates))
+        console.log('[getOrCreateBusiness] Final update payload business_phone_number:', updates.business_phone_number)
+        
+        if (Object.keys(updates).length > 0) {
+          const updatedBusiness = await this.updateBusiness(businessForUpdate.id, updates)
+          if (updatedBusiness) {
+            console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
+            console.log('[getOrCreateBusiness] Updated business_phone_number:', updatedBusiness.business_phone_number)
+            return updatedBusiness
+          } else {
+            console.error('[getOrCreateBusiness] Failed to update business, returning existing')
+            return businessForUpdate
+          }
         } else {
-          console.error('[getOrCreateBusiness] Failed to update business, returning existing')
+          console.log('[getOrCreateBusiness] No updates needed (all fields already set), returning existing business')
           return businessForUpdate
         }
       }

@@ -70,6 +70,9 @@ export async function POST(request: Request) {
 
     console.log('[stripe-checkout] Business resolved successfully:', { 
       businessId: business.id,
+      businessName: business.name,
+      businessPhoneNumber: business.business_phone_number,
+      twilioPhoneNumber: business.twilio_phone_number,
       onboardingStatus: business.onboarding_status,
       subscriptionStatus: business.subscription_status
     });
@@ -80,6 +83,24 @@ export async function POST(request: Request) {
     // Check trial eligibility before creating checkout session
     console.log('[stripe-checkout] Checking trial eligibility');
     
+    // Use business_phone_number for eligibility check (not twilio_phone_number)
+    // business_phone_number is the user's actual business phone number collected during onboarding
+    const phoneNumberForEligibility = business.business_phone_number || business.twilio_phone_number || business.forwarding_phone_number
+    
+    console.log('[stripe-checkout] Using phone number for eligibility check:', phoneNumberForEligibility)
+    console.log('[stripe-checkout] Eligibility check input values:', {
+      business_phone_number: phoneNumberForEligibility,
+      business_email: user.email,
+      business_id: business.id
+    })
+    
+    if (!phoneNumberForEligibility) {
+      console.error('[stripe-checkout] No phone number available for eligibility check')
+      return NextResponse.json({ 
+        error: 'Business phone number is required for trial eligibility. Please complete onboarding first.' 
+      }, { status: 400 })
+    }
+    
     const eligibilityCheck = await fetch(`${siteUrl}/api/trial/check-eligibility`, {
       method: 'POST',
       headers: {
@@ -87,7 +108,7 @@ export async function POST(request: Request) {
         'Cookie': request.headers.get('cookie') || '',
       },
       body: JSON.stringify({
-        business_phone_number: business.twilio_phone_number || business.forwarding_phone_number,
+        business_phone_number: phoneNumberForEligibility,
         business_email: user.email,
       }),
     });

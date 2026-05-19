@@ -224,7 +224,10 @@ export default function OnboardingPage() {
       }
 
       // Normalize phone number
+      console.log('[Onboarding] Received business phone number:', businessPhone)
       const normalizedPhone = normalizePhoneNumber(businessPhone)
+      console.log('[Onboarding] Normalized business phone number (E.164):', normalizedPhone)
+      
       if (!normalizedPhone) {
         console.error('[Onboarding] Invalid phone number:', businessPhone)
         setError('Please enter a valid phone number.')
@@ -233,6 +236,11 @@ export default function OnboardingPage() {
 
       console.log('[Onboarding] Saving business for user:', user.id)
       console.log('[Onboarding] IMPORTANT: NOT setting subscription_status to trialing - Stripe webhook should be the source of truth')
+      console.log('[Onboarding] Sending business data to get-or-create API:', {
+        name: businessName,
+        business_phone_number: normalizedPhone,
+        onboarding_status: 'completed'
+      })
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
