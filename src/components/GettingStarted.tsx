@@ -756,12 +756,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border p-2.5 sm:p-4 ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'}`}>
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2' : 'p-2.5 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h2 className="text-base sm:text-lg font-semibold text-foreground">
+            <h2 className={`text-base sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
             {/* System Status - subtle indicator */}
@@ -778,22 +778,26 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-3">
-            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
-          </p>
-          {!complete && incompleteItems.length === 1 && (
-            <div className="mt-3">
-              <Link
-                href="/dashboard/test-setup"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
-              >
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Complete Final Test
-              </Link>
-            </div>
+          {(!isOnboardingComplete || isExpanded) && (
+            <>
+              <p className={`text-sm text-muted-foreground mt-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
+                {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
+              </p>
+              {!complete && incompleteItems.length === 1 && (
+                <div className="mt-3">
+                  <Link
+                    href="/dashboard/test-setup"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
+                  >
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Complete Final Test
+                  </Link>
+                </div>
+              )}
+            </>
           )}
         </div>
         {complete && (
@@ -833,17 +837,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         )}
       </div>
 
-      {/* Slim progress bar */}
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-1.5">
-        <div
-          className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
-          style={{ width: `${progressPct}%` }}
-          aria-valuenow={progressPct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          role="progressbar"
-        />
-      </div>
+      {/* Slim progress bar - hide when collapsed and complete */}
+      {(!isOnboardingComplete || isExpanded) && (
+        <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-1.5">
+          <div
+            className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
+            style={{ width: `${progressPct}%` }}
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            role="progressbar"
+          />
+        </div>
+      )}
 
       {isExpanded && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
