@@ -438,7 +438,7 @@ function AuthContent() {
         <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
           <div className="text-center mb-5 sm:mb-6">
             <div className="inline-flex items-center justify-center mb-3 sm:mb-4">
-              <BrandIcon size={56} />
+              <BrandIcon size={72} />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
               {isSignIn ? 'Sign In' : 'Sign Up'}

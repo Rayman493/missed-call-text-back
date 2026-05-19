@@ -1,7 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0f172a"/>
+  <defs>
+    <linearGradient id="r-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#r-gradient)" />
   <path
-    d="M10 8V24H14V18H18C20.2091 18 22 16.2091 22 14C22 11.7909 20.2091 10 18 10H10ZM14 14V12H18C18.5523 12 19 12.4477 19 13C19 13.5523 18.5523 14 18 14H14Z"
-    fill="#3b82f6"
+    d="M10 10V22H13V17H16C18.2091 17 20 15.2091 20 13C20 10.7909 18.2091 9 16 9H10ZM13 13V11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H13Z"
+    fill="white"
   />
 </svg>

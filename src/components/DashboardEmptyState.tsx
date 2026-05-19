@@ -36,7 +36,7 @@ export default function DashboardEmptyState() {
     <div className="flex flex-col items-center justify-center py-6 sm:py-10 px-6">
       {/* Empty State Icon */}
       <div className="inline-flex items-center justify-center mb-5 sm:mb-7">
-        <BrandIcon size={112} />
+        <BrandIcon size={128} />
       </div>
 
       {/* Empty State Message */}
