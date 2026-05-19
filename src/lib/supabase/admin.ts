@@ -552,11 +552,11 @@ export const db = {
     return data
   },
 
-  async getBusinessByUserId(userId: string): Promise<{ business: Business | null, errorType: 'none' | 'not_found' | 'schema_error' | 'other' }> {
+  async getBusinessByUserId(userId: string): Promise<{ found: boolean, business: Business | null, reason: 'found' | 'not_found' | 'db_error', error?: any }> {
     // Guard: Check for invalid userId before querying Supabase
     if (!userId || userId === '' || userId === 'undefined' || userId === 'null') {
       console.error('[getBusinessByUserId] Invalid userId provided:', userId)
-      return { business: null, errorType: 'other' }
+      return { found: false, business: null, reason: 'db_error', error: 'Invalid userId' }
     }
 
     const { data, error } = await supabaseAdmin
@@ -566,22 +566,27 @@ export const db = {
       .limit(1)
       .maybeSingle()
     
+    // Handle actual database/schema/query errors
     if (error) {
-      if (error.code === 'PGRST116') {
-        // Not found error - this is expected when business doesn't exist
-        console.log('[getBusinessByUserId] No business found for user:', userId)
-        return { business: null, errorType: 'not_found' }
-      } else {
-        // Actual error (schema error, network error, etc.)
-        console.error('[getBusinessByUserId] Error fetching business:', error)
-        console.error('[getBusinessByUserId] Error code:', error.code)
-        console.error('[getBusinessByUserId] Error message:', error.message)
-        return { business: null, errorType: 'schema_error' }
-      }
+      console.error('[getBusinessByUserId] Database error fetching business:', error)
+      console.error('[getBusinessByUserId] Error code:', error.code)
+      console.error('[getBusinessByUserId] Error message:', error.message)
+      return { found: false, business: null, reason: 'db_error', error }
     }
     
-    console.log('[getBusinessByUserId] Business found successfully:', data?.id)
-    return { business: data, errorType: 'none' }
+    // If data is null, no business exists (not an error, just not found)
+    if (!data) {
+      console.log('[getBusinessByUserId] No business found for user:', userId)
+      return { found: false, business: null, reason: 'not_found' }
+    }
+    
+    // Business found successfully
+    console.log('[getBusinessByUserId] Business found successfully:', {
+      id: data.id,
+      name: data.name,
+      userId: userId
+    })
+    return { found: true, business: data, reason: 'found' }
   },
 
   // Lead operations
@@ -1087,17 +1092,25 @@ export const db = {
     // First, try to find existing business
     const lookupResult = await this.getBusinessByUserId(userId)
     
-    // Handle schema error - don't assume business doesn't exist
-    if (lookupResult.errorType === 'schema_error') {
-      console.error('[getOrCreateBusiness] Schema error during business lookup - cannot safely determine if business exists')
+    // Handle database error - don't assume business doesn't exist
+    if (lookupResult.reason === 'db_error') {
+      console.error('[getOrCreateBusiness] Database error during business lookup - cannot safely determine if business exists')
+      console.error('[getOrCreateBusiness] Error:', lookupResult.error)
       console.error('[getOrCreateBusiness] Returning null to prevent duplicate insert attempt')
       return null
     }
     
-    // Handle other errors
-    if (lookupResult.errorType === 'other') {
-      console.error('[getOrCreateBusiness] Other error during business lookup')
-      console.error('[getOrCreateBusiness] Returning null to prevent duplicate insert attempt')
+    // Handle not found - business doesn't exist yet
+    if (lookupResult.reason === 'not_found') {
+      console.log('[getOrCreateBusiness] Lookup success - no existing business found for user:', userId)
+      console.log('[getOrCreateBusiness] Proceeding with business creation')
+    } else if (lookupResult.reason === 'found') {
+      // Business found successfully
+      console.log('[getOrCreateBusiness] Lookup success - existing business found:', lookupResult.business?.id)
+      console.log('[getOrCreateBusiness] Existing twilio_phone_number:', lookupResult.business?.twilio_phone_number)
+      console.log('[getOrCreateBusiness] Existing twilio_phone_number_sid:', (lookupResult.business as any).twilio_phone_number_sid || 'null')
+    } else {
+      console.error('[getOrCreateBusiness] Unexpected reason:', lookupResult.reason)
       return null
     }
     
@@ -1189,11 +1202,10 @@ export const db = {
     }
     
     // Only create business if lookup succeeded and returned no row
-    if (lookupResult.errorType === 'not_found') {
-      console.log('[getOrCreateBusiness] Lookup success - no existing business found for user:', userId)
-      console.log('[getOrCreateBusiness] Proceeding with business creation')
+    if (lookupResult.reason === 'not_found') {
+      console.log('[getOrCreateBusiness] Proceeding with business creation (no existing business)')
     } else {
-      console.error('[getOrCreateBusiness] Unexpected errorType:', lookupResult.errorType)
+      console.error('[getOrCreateBusiness] Unexpected reason for business creation attempt:', lookupResult.reason)
       return null
     }
     

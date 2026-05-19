@@ -38,9 +38,9 @@ export async function GET(request: Request) {
 
     // Get business for user
     const lookupResult = await db.getBusinessByUserId(user.id)
-    if (!lookupResult.business || lookupResult.errorType !== 'none') {
+    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       return NextResponse.json(
-        { error: 'Business not found', errorType: lookupResult.errorType },
+        { error: 'Business not found', reason: lookupResult.reason },
         { status: 404 }
       )
     }
