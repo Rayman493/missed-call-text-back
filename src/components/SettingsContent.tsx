@@ -427,6 +427,42 @@ export default function SettingsContent() {
             <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
               <div className="max-w-7xl mx-auto">
 
+            {/* Settings Navigation Tabs */}
+            <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-50 via-slate-50 to-transparent dark:from-background dark:via-background dark:to-transparent py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <nav className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-slate-200/60 dark:border-slate-700/50">
+                <a
+                  href="#general"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                >
+                  General
+                </a>
+                <a
+                  href="#automation"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Automation
+                </a>
+                <a
+                  href="#contacts"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Contacts
+                </a>
+                <a
+                  href="#billing"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Billing
+                </a>
+                <a
+                  href="#account"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Account
+                </a>
+              </nav>
+            </div>
+
             {/* System Status Section */}
             <div className={`rounded-xl p-2.5 sm:p-3 mb-4 sm:mb-6 bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/50 shadow-sm`}>
               <div className="flex flex-wrap items-center gap-2">
@@ -580,7 +616,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="business" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Business Info</h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage the phone number and business identity customers interact with.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -626,7 +662,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                   <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                   {hasActiveSubscription(business) && (
@@ -988,7 +1024,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="ignored-contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
