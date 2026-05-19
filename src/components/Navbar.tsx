@@ -116,7 +116,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               </Link>
               <Link
                 href="/auth?mode=signin"
-                className={`px-3 py-1.5 text-xs font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} rounded-lg transition-colors`}
+                className={`px-3 py-1.5 text-xs font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} rounded-lg transition-colors hidden sm:block`}
               >
                 Sign In
               </Link>
