@@ -220,7 +220,7 @@ export default function LeadsPage() {
             {/* Subtle overlay gradient for depth */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-100/30 to-transparent dark:from-transparent dark:via-slate-900/10 dark:to-transparent pointer-events-none"></div>
             {/* App Header */}
-            <AppHeader title="Leads" showNavigation={false} />
+            <AppHeader title="Leads" />
 
           {/* Main Content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 relative z-10">

@@ -403,7 +403,7 @@ export default function SettingsContent() {
       <AuthGuard>
         <BusinessGuard>
           <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col">
-            <AppHeader title="Settings" showNavigation={false} />
+            <AppHeader title="Settings" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -421,7 +421,7 @@ export default function SettingsContent() {
       <BusinessGuard>
           <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col">
             {/* Header */}
-            <AppHeader title="Settings" showNavigation={false} />
+            <AppHeader title="Settings" />
 
             {/* Main Content */}
             <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24">
