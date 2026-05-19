@@ -575,7 +575,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-4 sm:space-y-5 pb-40">
               {/* Business Info Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Business Info</h2>
@@ -1058,7 +1058,7 @@ export default function SettingsContent() {
               )}
 
               {/* Billing Section */}
-              <div id="billing" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6">
+              <div id="billing" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border p-4 sm:p-6 scroll-mt-24">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Billing</h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-4 sm:mb-5">Manage your subscription and trial.</p>
                 <div className="space-y-4 sm:space-y-5">
