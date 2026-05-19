@@ -260,6 +260,28 @@ export async function POST(req: NextRequest) {
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
         
+        // QA LOGGING: Track timezone and business hours for follow-up execution
+        const businessTimezone = business.business_hours_timezone || 'America/New_York'
+        const businessHoursEnabled = business.business_hours_enabled || false
+        const now = new Date()
+        const scheduledFor = new Date(followUp.scheduled_for)
+        
+        console.log('[QA - Follow Ups] Execution evaluation:', {
+          followUpId: followUp.id,
+          businessId: business.id,
+          leadId: lead.id,
+          conversationId: conversation?.id,
+          businessTimezone,
+          businessHoursEnabled,
+          currentTimeUTC: now.toISOString(),
+          currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
+          scheduledForUTC: scheduledFor.toISOString(),
+          scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
+          businessHoursEnforced: false, // CRITICAL: Business hours NOT currently enforced for follow-ups
+          timezoneRespected: false, // CRITICAL: Timezone NOT used for scheduling adjustments
+          decision: 'SEND' // Will send regardless of business hours
+        })
+        
         // Check if lead has opted out
         if (lead.opted_out) {
           console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
@@ -604,6 +626,28 @@ export async function GET(req: NextRequest) {
         }
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
+        
+        // QA LOGGING: Track timezone and business hours for follow-up execution
+        const businessTimezone = business.business_hours_timezone || 'America/New_York'
+        const businessHoursEnabled = business.business_hours_enabled || false
+        const now = new Date()
+        const scheduledFor = new Date(followUp.scheduled_for)
+        
+        console.log('[QA - Follow Ups] Execution evaluation:', {
+          followUpId: followUp.id,
+          businessId: business.id,
+          leadId: lead.id,
+          conversationId: conversation?.id,
+          businessTimezone,
+          businessHoursEnabled,
+          currentTimeUTC: now.toISOString(),
+          currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
+          scheduledForUTC: scheduledFor.toISOString(),
+          scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
+          businessHoursEnforced: false, // CRITICAL: Business hours NOT currently enforced for follow-ups
+          timezoneRespected: false, // CRITICAL: Timezone NOT used for scheduling adjustments
+          decision: 'SEND' // Will send regardless of business hours
+        })
         
         // Check if lead has opted out
         if (lead.opted_out) {

@@ -24,19 +24,43 @@ export async function createFollowUpJobs(params: {
   
   console.log('[FollowUps] Creating follow-up jobs for lead:', leadId)
   
-  const jobs = []
+  // QA LOGGING: Fetch business settings for timezone and business hours
+  const business = await db.getBusiness(businessId)
+  const businessTimezone = business?.business_hours_timezone || 'America/New_York'
+  const businessHoursEnabled = business?.business_hours_enabled || false
   const now = new Date()
+  
+  console.log('[QA - Follow Ups] Initial evaluation:', {
+    businessId,
+    leadId,
+    conversationId,
+    businessTimezone,
+    businessHoursEnabled,
+    currentTimeUTC: now.toISOString(),
+    currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
+  })
+  
+  const jobs = []
   
   for (const followUp of FOLLOW_UP_SCHEDULE) {
     const scheduledFor = new Date(now.getTime() + followUp.delayMinutes * 60 * 1000)
     const idempotencyKey = `${leadId}-${followUp.step}`
+    
+    console.log('[QA - Follow Ups] Scheduling follow-up:', {
+      step: followUp.step,
+      delayMinutes: followUp.delayMinutes,
+      scheduledForUTC: scheduledFor.toISOString(),
+      scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
+      businessHoursConsidered: false, // CRITICAL: Business hours NOT currently enforced
+      timezoneConsidered: false // CRITICAL: Timezone NOT currently used for scheduling
+    })
     
     try {
       // Check if follow-up already exists to prevent duplicates
       const existingJob = await db.getFollowUpJobByIdempotencyKey(idempotencyKey)
       
       if (existingJob) {
-        console.log(`[FollowUps] Follow-up already exists for lead ${leadId}, step ${followUp.step}, skipping`)
+        console.log(`[QA - Follow Ups] Duplicate prevented for lead ${leadId}, step ${followUp.step}`)
         continue
       }
       
@@ -55,17 +79,18 @@ export async function createFollowUpJobs(params: {
       })
       
       if (job) {
-        console.log(`[FollowUps] Created follow-up job: ${job.id}, step ${followUp.step}, scheduled for ${scheduledFor.toISOString()}`)
+        console.log(`[QA - Follow Ups] Job created: ${job.id}, step ${followUp.step}, scheduled for ${scheduledFor.toISOString()}`)
         jobs.push(job)
       } else {
-        console.error(`[FollowUps] Failed to create follow-up job for lead ${leadId}, step ${followUp.step}`)
+        console.error(`[QA - Follow Ups] Failed to create job for lead ${leadId}, step ${followUp.step}`)
       }
     } catch (error) {
-      console.error(`[FollowUps] Error creating follow-up job for lead ${leadId}, step ${followUp.step}:`, error)
+      console.error(`[QA - Follow Ups] Error creating job for lead ${leadId}, step ${followUp.step}:`, error)
     }
   }
   
-  console.log(`[FollowUps] Created ${jobs.length} follow-up jobs for lead: ${leadId}`)
+  console.log(`[QA - Follow Ups] Summary: Created ${jobs.length} jobs for lead ${leadId}`)
+  console.log(`[QA - Follow Ups] CRITICAL WARNING: Follow-ups do NOT respect business timezone or business hours`)
   return jobs
 }
 
