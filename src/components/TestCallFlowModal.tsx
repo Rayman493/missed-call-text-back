@@ -22,22 +22,22 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
   }
 
   const getForwardingStatusText = () => {
-    // Not Configured (Red) - Only if no business phone, no setup completion, or forwarding disabled
+    // Not Set Up (Red) - Only if no business phone, no setup completion, or forwarding disabled
     if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
-      return 'Not Configured'
+      return 'Not Set Up'
     } 
     // Verified Working (Green) - If forwarding_verified is true
     else if (business.forwarding_verified) {
       return 'Forwarding Verified'
     } 
-    // Configured / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
+    // Set Up / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
     else {
-      return 'Configured (Awaiting Test)'
+      return 'Ready for Test'
     }
   }
 
   const getForwardingStatusColor = () => {
-    // Not Configured (Red)
+    // Not Set Up (Red)
     if (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled) {
       return 'text-red-400'
     } 

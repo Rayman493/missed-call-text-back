@@ -47,8 +47,8 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       label: 'SMS Working',
       status: smsWorking ? 'healthy' : 'error',
       details: smsWorking 
-        ? 'SMS service is ready' 
-        : 'Not configured yet'
+        ? 'Text messaging is ready' 
+        : 'Not set up yet'
     })
 
     // Subscription Active
