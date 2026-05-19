@@ -257,6 +257,29 @@ export default function DashboardContent() {
     })
   }, [business, processedLeads])
 
+  // Add state resolving flag - wait for business fetch to complete AND subscription state to be stable
+  // This prevents flicker by not rendering onboarding UI until state is fully resolved
+  const isStateResolving = businessLoading || webhookConfirming
+  const isSubscriptionStateResolved = businessFetchComplete && (business?.subscription_status !== null || business?.subscription_status !== undefined)
+  const shouldShowLoadingState = isStateResolving || (!isSubscriptionStateResolved && !loadingTimeout)
+
+  // Log state resolution for debugging
+  useEffect(() => {
+    console.log('[Dashboard State Resolution]', {
+      businessLoading,
+      businessFetchComplete,
+      webhookConfirming,
+      isStateResolving,
+      isSubscriptionStateResolved,
+      shouldShowLoadingState,
+      loadingTimeout,
+      subscription_status: business?.subscription_status,
+      twilio_phone_number: business?.twilio_phone_number,
+      provisioning_status: business?.provisioning_status,
+      derivedOnboardingState: onboardingState?.state
+    })
+  }, [businessLoading, businessFetchComplete, webhookConfirming, isStateResolving, isSubscriptionStateResolved, shouldShowLoadingState, loadingTimeout, business?.subscription_status, business?.twilio_phone_number, business?.provisioning_status, onboardingState?.state])
+
   // Initialize setup banner dismissal state from sessionStorage
   useEffect(() => {
     const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
@@ -620,13 +643,9 @@ export default function DashboardContent() {
     return () => clearTimeout(timeout)
   }, [businessLoading, webhookConfirming])
 
-  // Show loading state while business is loading or webhook is confirming
-  // Only require business fetch to complete, not subscription resolution
-  // Null subscription_status is valid (means not activated yet)
-  const shouldShowLoading = businessLoading || webhookConfirming
-  
-  // Hard no-blank fallback: always render something
-  if (shouldShowLoading && !loadingTimeout) {
+  // Show loading state while business is loading, webhook is confirming, or subscription state is not yet resolved
+  // This prevents flicker by not rendering onboarding UI until state is fully resolved
+  if (shouldShowLoadingState && !loadingTimeout) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -641,29 +660,6 @@ export default function DashboardContent() {
       </div>
     )
   }
-
-  // If loading timeout reached, show dashboard anyway (don't render blank)
-  if (loadingTimeout) {
-    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
-  }
-
-  // Real branch logging for loading state
-  console.log('[DASHBOARD RENDER BRANCH]', {
-    sessionExists: !!business, // business exists only if session exists
-    businessLoading,
-    businessFetchComplete,
-    businessExists: !!business,
-    businessError: business ? 'none' : 'no business',
-    subscription_status: business?.subscription_status,
-    loadingTimeout,
-    webhookConfirming,
-    shouldShowLoading,
-    finalRenderBranch: 'determining...'
-  })
-  
-  // Determine if we should show loading state
-  const shouldShowLoadingState = shouldShowLoading && !loadingTimeout
-  const shouldShowNoBusinessLoading = !business && !businessLoading && !businessFetchComplete
 
   // If loading timeout reached, show dashboard anyway (don't render blank)
   if (loadingTimeout) {
@@ -748,8 +744,8 @@ export default function DashboardContent() {
               <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8">
                         
                 {/* Determine if onboarding is fully complete */}
-                {/* Only show setup progress and test banner when user has active subscription AND has provisioned number */}
-                {!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number && (
+                {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
+                {onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
                       console.log('[SECTION RENDER]', {
@@ -757,7 +753,8 @@ export default function DashboardContent() {
                         mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
                         hasBusiness: !!business,
                         subscriptionStatus: business?.subscription_status,
-                        onboardingStatus: business?.onboarding_status
+                        onboardingStatus: business?.onboarding_status,
+                        derivedOnboardingState: onboardingState.state
                       })
                       console.log('[Render Child] SetupProgress')
                       return null
@@ -766,7 +763,8 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {!hasActiveSubscription(business) && (
+                {/* Only show Start Free Trial when state is PRE_TRIAL AND fully resolved */}
+                {onboardingState.state === 'PRE_TRIAL' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="OnboardingGuide">
                     {(() => {
                       console.log('[SECTION RENDER]', {
@@ -774,11 +772,12 @@ export default function DashboardContent() {
                         mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
                         hasBusiness: !!business,
                         subscriptionStatus: business?.subscription_status,
+                        derivedOnboardingState: onboardingState.state
                       })
                       console.log('[Render Child] OnboardingGuide')
                       return null
                     })()}
-                    <OnboardingGuide isTrialActive={hasActiveSubscription(business)} />
+                    <OnboardingGuide isTrialActive={false} />
                   </SectionErrorBoundary>
                 )}
 

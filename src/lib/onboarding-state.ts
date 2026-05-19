@@ -59,8 +59,26 @@ export function getBusinessOnboardingState(
     hasSuccessfulSms = false
   } = relatedData
 
+  // Log raw business data for debugging
+  console.log('[getBusinessOnboardingState] Raw business data:', {
+    subscription_status: business?.subscription_status,
+    stripe_customer_id: business?.stripe_customer_id,
+    stripe_subscription_id: business?.stripe_subscription_id,
+    twilio_phone_number: business?.twilio_phone_number,
+    twilio_phone_number_sid: business?.twilio_phone_number_sid,
+    provisioning_status: business?.provisioning_status,
+    phone_setup_completed_at: business?.phone_setup_completed_at,
+    call_forwarding_enabled: business?.call_forwarding_enabled,
+    forwarding_verified: business?.forwarding_verified,
+    onboarding_status: business?.onboarding_status,
+    messaging_status: business?.messaging_status,
+    a2p_status: business?.a2p_status,
+    relatedData
+  })
+
   // If no business data, assume pre-trial
   if (!business) {
+    console.log('[getBusinessOnboardingState] No business data - returning PRE_TRIAL')
     return {
       state: 'PRE_TRIAL',
       label: 'Start your free trial',
@@ -83,9 +101,11 @@ export function getBusinessOnboardingState(
   }
 
   const hasActiveSubscription = hasActiveAccess(subscriptionBusiness)
+  console.log('[getBusinessOnboardingState] hasActiveSubscription:', hasActiveSubscription)
 
   // STATE 1: PRE_TRIAL - User has not activated trial/subscription
   if (!hasActiveSubscription) {
+    console.log('[getBusinessOnboardingState] No active subscription - returning PRE_TRIAL')
     return {
       state: 'PRE_TRIAL',
       label: 'Start your free trial',
@@ -100,6 +120,7 @@ export function getBusinessOnboardingState(
 
   // STATE 2: ACTIVATING - Stripe completed, provisioning beginning
   if (business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning') {
+    console.log('[getBusinessOnboardingState] Provisioning in progress - returning ACTIVATING')
     return {
       state: 'ACTIVATING',
       label: 'Preparing your ReplyFlow system',
@@ -117,7 +138,10 @@ export function getBusinessOnboardingState(
   const hasNumber = Boolean(business.twilio_phone_number)
   const isMessagingReady = business.messaging_status === 'active' || business.a2p_status === 'verified' || business.a2p_status === 'approved'
   
+  console.log('[getBusinessOnboardingState] Messaging setup check:', { hasNumber, isMessagingReady })
+  
   if (hasNumber && !isMessagingReady) {
+    console.log('[getBusinessOnboardingState] Has number but messaging not ready - returning MESSAGING_SETUP')
     return {
       state: 'MESSAGING_SETUP',
       label: 'Activating business texting',
@@ -134,7 +158,10 @@ export function getBusinessOnboardingState(
   const forwardingEnabled = business.call_forwarding_enabled === true
   const phoneSetupComplete = Boolean(business.phone_setup_completed_at)
   
+  console.log('[getBusinessOnboardingState] Forwarding check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete })
+  
   if (hasNumber && isMessagingReady && (!forwardingEnabled || !phoneSetupComplete)) {
+    console.log('[getBusinessOnboardingState] Ready but forwarding not enabled - returning AWAITING_FORWARDING')
     return {
       state: 'AWAITING_FORWARDING',
       label: 'Connect your business line',
@@ -150,7 +177,10 @@ export function getBusinessOnboardingState(
   // STATE 5: VERIFICATION_PENDING - Forwarding enabled, no successful test call yet
   const forwardingVerified = business.forwarding_verified === true
   
+  console.log('[getBusinessOnboardingState] Verification check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified })
+  
   if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified) {
+    console.log('[getBusinessOnboardingState] Forwarding enabled but not verified - returning VERIFICATION_PENDING')
     return {
       state: 'VERIFICATION_PENDING',
       label: 'Confirm everything is working',
@@ -167,7 +197,10 @@ export function getBusinessOnboardingState(
   // - business has a Twilio/ReplyFlow number
   // - forwarding has been confirmed/tested
   // - at least one missed call created a lead/conversation OR at least one auto-reply SMS was successfully sent
+  console.log('[getBusinessOnboardingState] LIVE check:', { hasNumber, isMessagingReady, forwardingVerified, hasLeads, hasConversations, hasSuccessfulSms })
+  
   if (hasNumber && isMessagingReady && forwardingVerified && (hasLeads || hasConversations || hasSuccessfulSms)) {
+    console.log('[getBusinessOnboardingState] All conditions met - returning LIVE')
     return {
       state: 'LIVE',
       label: 'ReplyFlow is live',
@@ -183,6 +216,7 @@ export function getBusinessOnboardingState(
   // Fallback: If forwarding is verified but no leads/SMS yet, still show as verification pending
   // This is the final state before LIVE
   if (hasNumber && isMessagingReady && forwardingVerified) {
+    console.log('[getBusinessOnboardingState] Forwarding verified but no activity yet - returning VERIFICATION_PENDING (fallback)')
     return {
       state: 'VERIFICATION_PENDING',
       label: 'Confirm everything is working',
@@ -196,6 +230,7 @@ export function getBusinessOnboardingState(
   }
 
   // Default fallback
+  console.log('[getBusinessOnboardingState] Default fallback - returning PRE_TRIAL')
   return {
     state: 'PRE_TRIAL',
     label: 'Start your free trial',
