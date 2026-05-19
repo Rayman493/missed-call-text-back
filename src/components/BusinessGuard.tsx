@@ -118,16 +118,41 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       // Redirect if onboarding is not completed AND forwarding is not verified
       // Only allow access if onboarding is completed OR user has active subscription
       // Note: forwarding_verified can be false if user hasn't tested yet, but they can still access dashboard
+      
+      // NEW LOGIC: Allow dashboard access if business profile exists, even if subscription is not active
+      // This prevents redirecting users who have created a profile but haven't started trial yet
       const isOnboardingComplete = business.onboarding_status === 'completed'
       const hasActiveSubscription = isActiveSubscription(business.subscription_status)
       
-      if (!isOnboardingComplete && !hasActiveSubscription) {
-        console.log('[Routing] Onboarding incomplete, redirecting to onboarding')
-        console.log('[Routing] Reason:', {
-          onboarding_status: business.onboarding_status,
-          forwarding_verified: business.forwarding_verified,
-          isOnboardingComplete,
-          hasActiveSubscription
+      // Check if user has basic business profile data
+      const hasBasicProfile = business.name && business.business_phone_number
+      
+      // Derived state for routing decision
+      const derivedState = (() => {
+        if (!business) return 'no_business'
+        if (!hasBasicProfile) return 'no_profile'
+        if (hasActiveSubscription) return 'subscription_active'
+        if (business.subscription_status === null) return 'trial_pending'
+        return 'subscription_inactive'
+      })()
+      
+      console.log('[BusinessGuard] Derived routing state:', {
+        derivedState,
+        hasBasicProfile,
+        isOnboardingComplete,
+        hasActiveSubscription,
+        subscription_status: business.subscription_status,
+        business_name: business.name,
+        business_phone_number: business.business_phone_number,
+      })
+      
+      // Only redirect to onboarding if user truly has no business or no basic profile
+      // Users with profile but no subscription (trial_pending) should be allowed to access dashboard
+      if (!hasBasicProfile && !hasActiveSubscription) {
+        console.log('[BusinessGuard] Redirecting to onboarding - no basic profile', {
+          reason: 'Missing basic profile data (name or business_phone_number)',
+          derivedState,
+          redirectAllowed: true
         })
         
         // Verify session exists before redirecting to onboarding
@@ -147,7 +172,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         console.log('[REDIRECT]', {
           from: pathname,
           to: '/onboarding',
-          reason: 'Onboarding incomplete',
+          reason: 'No basic business profile',
           hasSession: !!session,
           component: 'BusinessGuard',
         })
@@ -155,7 +180,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         return
       }
       
-      console.log('[Routing] Onboarding complete or has active subscription, allowing access')
+      console.log('[BusinessGuard] Allowing access - user has business profile', {
+        reason: derivedState === 'trial_pending' ? 'Profile exists, trial pending' : 
+               derivedState === 'subscription_active' ? 'Subscription active' : 
+               'Profile exists',
+        derivedState,
+        redirectAllowed: false
+      })
     } else {
       console.log('[Routing] Business still loading or not initialized, waiting...')
     }
@@ -203,8 +234,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   // Show friendly message if onboarding is not completed and user tries to access dashboard
   const isOnboardingComplete = business.onboarding_status === 'completed'
   const hasActiveSubscription = isActiveSubscription(business.subscription_status)
+  const hasBasicProfile = business.name && business.business_phone_number
   
-  if (!isOnboardingComplete && !hasActiveSubscription && pathname?.startsWith('/dashboard')) {
+  // Only show the "finish setup" message if user has no basic profile
+  // Users with a profile but no subscription should see the dashboard with Start Free Trial state
+  if (!hasBasicProfile && !hasActiveSubscription && pathname?.startsWith('/dashboard')) {
+    console.log('[BusinessGuard] Showing setup required message - no basic profile', {
+      reason: 'Missing basic profile data (name or business_phone_number)',
+      hasBasicProfile,
+      hasActiveSubscription
+    })
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
