@@ -57,7 +57,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           className="flex items-center gap-3 hover:opacity-90 transition"
         >
           <BrandIcon size={40} />
-          <span className="text-xl md:text-2xl font-semibold tracking-tight">
+          <span className="text-xl md:text-2xl font-bold tracking-tighter">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
             <span className="text-blue-400">Flow</span>
           </span>
