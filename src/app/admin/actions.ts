@@ -8,7 +8,7 @@ import { getProvisioningStatus, retryProvisioning } from '@/lib/twilio-provision
  * Keeps the admin secret server-side, never exposed to browser
  */
 export async function reconcileWarmNumbers() {
-  const adminSecret = process.env.ADMIN_API_SECRET
+  const adminSecret = process.env.ADMIN_SECRET
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
 
   if (!adminSecret) {

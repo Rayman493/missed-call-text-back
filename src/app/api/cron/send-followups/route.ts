@@ -33,7 +33,7 @@ function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
   }
   
   // Fallback: return original date if we can't find a slot
-  console.warn('[QA - Follow Ups] Could not find business hours slot within 2 weeks, using original time')
+  console.warn('[Cron] Could not find business hours slot within 2 weeks, using original time')
   return date
 }
 

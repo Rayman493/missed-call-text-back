@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // SECURITY: This is a development-only utility for resetting demo data
 // Never expose this endpoint to production customers
-// Requires DEV_RESET_SECRET environment variable
+// Requires ADMIN_SECRET environment variable
 // Requires ALLOW_DEMO_RESET_EMAILS environment variable for production access
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     // Environment validation
     const isDevelopment = process.env.NODE_ENV === 'development'
-    const resetSecret = process.env.DEV_RESET_SECRET
+    const resetSecret = process.env.ADMIN_SECRET
     const allowedEmails = process.env.ALLOW_DEMO_RESET_EMAILS?.split(',').map(e => e.trim()) || []
     
     if (!isDevelopment && !resetSecret) {
@@ -67,15 +67,6 @@ export async function POST(req: NextRequest) {
         )
       }
       console.log('[DEV] Reset demo data allowed for admin email:', user.email)
-    }
-
-    // Always check for specific admin email (wolfieemail@gmail.com)
-    if (user.email !== 'wolfieemail@gmail.com') {
-      console.error('[DEV] Reset demo data blocked - user not authorized:', user.email)
-      return NextResponse.json(
-        { error: 'You do not have permission to reset demo data' },
-        { status: 403 }
-      )
     }
 
     // Get business for this user

@@ -13,7 +13,7 @@ export default function ReplenishWarmNumbersPage() {
     setError(null)
 
     try {
-      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_API_SECRET || prompt('Enter admin secret:')
+      const adminSecret = prompt('Enter admin secret:')
       
       if (!adminSecret) {
         setError('Admin secret is required')

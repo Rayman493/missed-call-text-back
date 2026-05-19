@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify admin secret
     const adminSecret = request.headers.get('x-admin-secret');
-    const expectedSecret = process.env.ADMIN_API_SECRET;
+    const expectedSecret = process.env.ADMIN_SECRET;
 
     if (!adminSecret || adminSecret !== expectedSecret) {
       return NextResponse.json(
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   try {
     // Verify admin secret
     const adminSecret = request.headers.get('x-admin-secret');
-    const expectedSecret = process.env.ADMIN_API_SECRET;
+    const expectedSecret = process.env.ADMIN_SECRET;
 
     if (!adminSecret || adminSecret !== expectedSecret) {
       return NextResponse.json(

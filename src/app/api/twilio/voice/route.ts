@@ -14,17 +14,6 @@ function generateVoiceGreeting(businessName?: string): string {
   // Simplest TwiML to test if recent changes caused silence
   const greetingText = "Sorry we missed your call. We'll text you shortly.";
   
-  // DEBUG LOGS
-  console.log('[Twilio Voice] DEBUG: Generating voice greeting');
-  console.log('[Twilio Voice] DEBUG: Business Name:', businessName);
-  console.log('[Twilio Voice] DEBUG: Greeting Text:', greetingText);
-  console.log('VOICE TEXT:', greetingText);
-  
-  // Log production voice selection
-  console.log('VOICE WEBHOOK HIT - PRODUCTION - Greeting Mode: simple tts');
-  console.log('ACTIVE TWILIO GREETING:', greetingText);
-  console.log('ACTIVE TWILIO VOICE: default (no specific voice)');
-  
   // Simplest TwiML for troubleshooting
   const simpleTwiml = `
     <Say>${greetingText}</Say>
@@ -54,19 +43,6 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
   <Hangup/>
 </Response>
 `.trim();
-  
-  console.log('[Twilio Voice] DEBUG: Generated complete TwiML');
-  console.log('[Twilio Voice] DEBUG: Final TwiML:', twiml);
-  
-  // Log production final TwiML with greeting mode info
-  const greetingMode = twiml.includes('<Play>') ? 'audio' : 'tts';
-  console.log('VOICE WEBHOOK HIT - PRODUCTION - Final TwiML:', {
-    twimlLength: twiml.length,
-    twimlPreview: twiml.substring(0, 200) + (twiml.length > 200 ? '...' : ''),
-    greetingMode: greetingMode,
-    containsPlayTag: twiml.includes('<Play>'),
-    containsSayTag: twiml.includes('<Say')
-  });
   
   return twiml;
 }

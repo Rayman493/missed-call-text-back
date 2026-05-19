@@ -29,7 +29,7 @@ function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
   }
   
   // Fallback: return original date if we can't find a slot
-  console.warn('[QA - Follow Ups] Could not find business hours slot within 2 weeks, using original time')
+  console.warn('[FollowUps] Could not find business hours slot within 2 weeks, using original time')
   return date
 }
 
@@ -60,22 +60,12 @@ export async function createFollowUpJobs(params: {
   // Fetch business settings for timezone and business hours
   const business = await db.getBusiness(businessId)
   if (!business) {
-    console.error('[QA - Follow Ups] Business not found, cannot create follow-ups:', businessId)
+    console.error('[FollowUps] Business not found, cannot create follow-ups:', businessId)
     return []
   }
   
   const businessTimezone = business.business_hours_timezone || 'America/New_York'
   const businessHoursEnabled = business.business_hours_enabled || false
-  
-  console.log('[QA - Follow Ups] Initial evaluation:', {
-    businessId,
-    leadId,
-    conversationId,
-    businessTimezone,
-    businessHoursEnabled,
-    currentTimeUTC: new Date().toISOString(),
-    currentTimeLocal: new Date().toLocaleString('en-US', { timeZone: businessTimezone })
-  })
   
   const jobs = []
   const now = new Date()
@@ -88,7 +78,7 @@ export async function createFollowUpJobs(params: {
       const existingJob = await db.getFollowUpJobByIdempotencyKey(idempotencyKey)
       
       if (existingJob) {
-        console.log(`[QA - Follow Ups] Duplicate prevented for lead ${leadId}, step ${followUp.step}`)
+        console.log(`[FollowUps] Duplicate prevented for lead ${leadId}, step ${followUp.step}`)
         continue
       }
       
@@ -101,28 +91,13 @@ export async function createFollowUpJobs(params: {
       if (businessHoursEnabled) {
         const isDuringHours = isDuringBusinessHours(scheduledFor, businessTimezone)
         
-        console.log('[QA - Follow Ups] Business hours check:', {
-          step: followUp.step,
-          delayMinutes: followUp.delayMinutes,
-          originalScheduledUTC: scheduledFor.toISOString(),
-          originalScheduledLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-          isDuringHours,
-          businessHoursEnabled
-        })
-        
         if (!isDuringHours) {
           // Reschedule to next business hours slot
           const adjustedTime = getNextBusinessHoursSlot(scheduledFor, businessTimezone)
           scheduledFor = adjustedTime
           action = 'RESCHEDULE'
           reason = 'Outside business hours, rescheduled to next valid slot'
-          
-          console.log('[QA - Follow Ups] Rescheduled:', {
-            step: followUp.step,
-            adjustedScheduledUTC: scheduledFor.toISOString(),
-            adjustedScheduledLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-            reason
-          })
+          console.log(`[FollowUps] Rescheduled step ${followUp.step} to business hours`)
         }
       }
       
@@ -141,19 +116,16 @@ export async function createFollowUpJobs(params: {
       })
       
       if (job) {
-        console.log(`[QA - Follow Ups] Job created: ${job.id}, step ${followUp.step}, action: ${action}, reason: ${reason}`)
         jobs.push(job)
       } else {
-        console.error(`[QA - Follow Ups] Failed to create job for lead ${leadId}, step ${followUp.step}`)
+        console.error(`[FollowUps] Failed to create job for lead ${leadId}, step ${followUp.step}`)
       }
     } catch (error) {
-      console.error(`[QA - Follow Ups] Error creating job for lead ${leadId}, step ${followUp.step}:`, error)
+      console.error(`[FollowUps] Error creating job for lead ${leadId}, step ${followUp.step}:`, error)
     }
   }
   
-  console.log(`[QA - Follow Ups] Summary: Created ${jobs.length} jobs for lead ${leadId}`)
-  console.log(`[QA - Follow Ups] Business hours enforcement: ${businessHoursEnabled ? 'ENABLED' : 'DISABLED'}`)
-  console.log(`[QA - Follow Ups] Timezone: ${businessTimezone}`)
+  console.log(`[FollowUps] Created ${jobs.length} jobs for lead ${leadId}`)
   return jobs
 }
 
