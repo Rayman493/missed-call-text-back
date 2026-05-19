@@ -65,13 +65,19 @@ export async function middleware(req: NextRequest) {
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-  if (isProtectedRoute && !session) {
+  // Allow users returning from Stripe Billing Portal without immediate redirect
+  // Give session restoration a chance to complete
+  const url = new URL(req.url)
+  const billingReturned = url.searchParams.get('billing') === 'returned'
+
+  if (isProtectedRoute && !session && !billingReturned) {
     console.log('[Middleware] Protected route without session, redirecting to sign-in')
     console.log('[Middleware REDIRECT]', {
       from: pathname,
       to: '/auth/signin',
       reason: 'Protected route without session',
       hasSession: false,
+      billingReturned,
       component: 'Middleware',
     })
     return NextResponse.redirect(new URL('/auth/signin', req.url))

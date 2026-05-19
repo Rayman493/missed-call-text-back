@@ -73,8 +73,8 @@ export async function POST(request: Request) {
       })
     }
 
-    // Create billing portal session with canonical URL
-    const returnUrl = getDashboardUrl()
+    // Create billing portal session with canonical URL and billing return parameter
+    const returnUrl = `${getDashboardUrl()}?billing=returned`
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
     
     const session = await stripe.billingPortal.sessions.create({

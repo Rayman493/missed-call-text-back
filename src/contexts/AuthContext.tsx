@@ -43,7 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
-      console.log('[Auth] Restoring session...')
+      console.log('[Auth] Restoring session...', {
+        pathname,
+        isClient,
+        billingReturned: pathname?.includes('billing=returned')
+      })
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         
@@ -131,12 +135,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const searchParams = new URLSearchParams(window.location.search)
     const checkoutStatus = searchParams.get('checkout')
     const sessionId = searchParams.get('session_id')
+    const billingReturned = searchParams.get('billing') === 'returned'
     
     const isCheckoutSuccess = checkoutStatus === 'success' || sessionId?.startsWith('cs_')
     
-    console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, isCheckoutSuccess })
+    console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, billingReturned, isCheckoutSuccess })
     
-    if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess) {
+    // Allow users returning from Stripe Billing Portal without immediate redirect
+    // Give session restoration a chance to complete
+    if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess && !billingReturned) {
       console.log('[Auth] Redirecting to login (unauthenticated user on protected route)')
       router.push('/auth/signin')
     }
