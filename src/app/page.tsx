@@ -339,13 +339,13 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
             {/* Arrow between step 1 and 2 (desktop) */}
-            <div className="hidden md:block absolute top-16 left-[33%] transform -translate-x-1/2 text-slate-300 dark:text-slate-600">
+            <div className="hidden md:block absolute top-1/2 left-[33%] transform -translate-x-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
             {/* Arrow between step 2 and 3 (desktop) */}
-            <div className="hidden md:block absolute top-16 left-[66%] transform -translate-x-1/2 text-slate-300 dark:text-slate-600">
+            <div className="hidden md:block absolute top-1/2 left-[66%] transform -translate-x-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
