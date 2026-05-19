@@ -46,12 +46,14 @@ export async function POST(request: Request) {
     console.log('[api/business/update-phone] Updating business phone for user:', user.id, 'to:', business_phone_number)
 
     // Get existing business to ensure we don't create duplicates
-    const existingBusiness = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessByUserId(user.id)
     
-    if (!existingBusiness) {
-      console.error('[api/business/update-phone] No business found for user:', user.id)
+    if (!lookupResult.business || lookupResult.errorType !== 'none') {
+      console.error('[api/business/update-phone] No business found for user:', user.id, 'errorType:', lookupResult.errorType)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+
+    const existingBusiness = lookupResult.business
 
     // Update business with business phone number
     const updatedBusiness = await db.updateBusiness(existingBusiness.id, {

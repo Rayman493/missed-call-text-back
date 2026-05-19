@@ -82,15 +82,16 @@ export async function POST(request: Request) {
     console.log('[demo-send-text] demoPhone:', demoPhone ? demoPhone.substring(0, 3) + '***' : 'null', 'businessName:', businessName || 'null')
 
     // Get or create business for user
-    const business = await db.getBusinessByUserId(user.id)
-    if (!business) {
-      console.error('[demo-send-text] No business found for user:', user.id)
+    const lookupResult = await db.getBusinessByUserId(user.id)
+    if (!lookupResult.business || lookupResult.errorType !== 'none') {
+      console.error('[demo-send-text] No business found for user:', user.id, 'errorType:', lookupResult.errorType)
       return NextResponse.json(
         { error: 'Business not found. Please complete onboarding first.' },
         { status: 404 }
       )
     }
 
+    const business = lookupResult.business
     console.log('[demo-send-text] business:', business.id)
 
     // Check for existing demo lead with same phone number for this business

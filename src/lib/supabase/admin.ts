@@ -26,7 +26,6 @@ export const db = {
       .from('businesses')
       .select('*')
       .eq('twilio_phone_number', phone)
-      .is('deleted_at', null) // Filter out soft-deleted records
       .limit(1) // Get first business if multiple exist
       .single()
     
@@ -48,7 +47,6 @@ export const db = {
     let query = supabaseAdmin
       .from('businesses')
       .select('*')
-      .is('deleted_at', null) // Filter out soft-deleted records
     
     if (phone === sharedTollFreeNumber) {
       // If the phone is the shared toll-free number, return all businesses
@@ -481,7 +479,6 @@ export const db = {
 
   async updateBusinessSafe(businessId: string, updates: Partial<Omit<Business, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<Business | null> {
     // Get current business to preserve twilio_phone_number if not explicitly being updated
-    const currentBusiness = await this.getBusinessByUserId((await supabaseAdmin.auth.getUser()).data.user?.id || '')
     const actualBusiness = await supabaseAdmin
       .from('businesses')
       .select('*')
@@ -555,27 +552,36 @@ export const db = {
     return data
   },
 
-  async getBusinessByUserId(userId: string): Promise<Business | null> {
+  async getBusinessByUserId(userId: string): Promise<{ business: Business | null, errorType: 'none' | 'not_found' | 'schema_error' | 'other' }> {
     // Guard: Check for invalid userId before querying Supabase
     if (!userId || userId === '' || userId === 'undefined' || userId === 'null') {
       console.error('[getBusinessByUserId] Invalid userId provided:', userId)
-      return null
+      return { business: null, errorType: 'other' }
     }
 
     const { data, error } = await supabaseAdmin
       .from('businesses')
       .select('*')
       .eq('user_id', userId)
-      .is('deleted_at', null) // Filter out soft-deleted records
       .limit(1)
-      .single()
+      .maybeSingle()
     
     if (error) {
-      console.error('[getBusinessByUserId] Error fetching business:', error)
-      return null
+      if (error.code === 'PGRST116') {
+        // Not found error - this is expected when business doesn't exist
+        console.log('[getBusinessByUserId] No business found for user:', userId)
+        return { business: null, errorType: 'not_found' }
+      } else {
+        // Actual error (schema error, network error, etc.)
+        console.error('[getBusinessByUserId] Error fetching business:', error)
+        console.error('[getBusinessByUserId] Error code:', error.code)
+        console.error('[getBusinessByUserId] Error message:', error.message)
+        return { business: null, errorType: 'schema_error' }
+      }
     }
     
-    return data
+    console.log('[getBusinessByUserId] Business found successfully:', data?.id)
+    return { business: data, errorType: 'none' }
   },
 
   // Lead operations
@@ -1079,10 +1085,26 @@ export const db = {
     }
     
     // First, try to find existing business
-    let existingBusiness = await this.getBusinessByUserId(userId)
+    const lookupResult = await this.getBusinessByUserId(userId)
+    
+    // Handle schema error - don't assume business doesn't exist
+    if (lookupResult.errorType === 'schema_error') {
+      console.error('[getOrCreateBusiness] Schema error during business lookup - cannot safely determine if business exists')
+      console.error('[getOrCreateBusiness] Returning null to prevent duplicate insert attempt')
+      return null
+    }
+    
+    // Handle other errors
+    if (lookupResult.errorType === 'other') {
+      console.error('[getOrCreateBusiness] Other error during business lookup')
+      console.error('[getOrCreateBusiness] Returning null to prevent duplicate insert attempt')
+      return null
+    }
+    
+    const existingBusiness = lookupResult.business
     
     if (existingBusiness) {
-      console.log('[getOrCreateBusiness] Existing business found:', existingBusiness.id)
+      console.log('[getOrCreateBusiness] Lookup success - existing business found:', existingBusiness.id)
       console.log('[getOrCreateBusiness] Existing twilio_phone_number:', existingBusiness.twilio_phone_number)
       console.log('[getOrCreateBusiness] Existing twilio_phone_number_sid:', (existingBusiness as any).twilio_phone_number_sid || 'null')
       
@@ -1111,6 +1133,7 @@ export const db = {
       }
       
       // Self-healing: Promote pending status to active if business has valid numbers
+      let businessForUpdate = existingBusiness
       if (existingBusiness.provisioning_status === 'pending' && 
           existingBusiness.twilio_phone_number && 
           existingBusiness.twilio_phone_number_sid &&
@@ -1125,7 +1148,7 @@ export const db = {
           })
           console.log('[Provisioning] Marked provisioning_status=active')
           console.log('[Provisioning] Set provisioned_at timestamp')
-          existingBusiness = { ...existingBusiness, provisioning_status: 'active', provisioned_at: existingBusiness.provisioned_at || new Date().toISOString() }
+          businessForUpdate = { ...existingBusiness, provisioning_status: 'active', provisioned_at: existingBusiness.provisioned_at || new Date().toISOString() }
         } catch (healingError) {
           console.error('[Provisioning] Error during status promotion:', healingError)
         }
@@ -1145,27 +1168,34 @@ export const db = {
           // Only update twilio_phone_number if it's explicitly provided in updates AND not null
           twilio_phone_number: (businessData.twilio_phone_number !== undefined && businessData.twilio_phone_number !== null)
             ? businessData.twilio_phone_number 
-            : existingBusiness.twilio_phone_number
+            : businessForUpdate.twilio_phone_number
         }
         
         console.log('[getOrCreateBusiness] Final update payload includes twilio_phone_number:', updates.twilio_phone_number)
         
-        const updatedBusiness = await this.updateBusiness(existingBusiness.id, updates)
+        const updatedBusiness = await this.updateBusiness(businessForUpdate.id, updates)
         if (updatedBusiness) {
           console.log('[getOrCreateBusiness] Business updated successfully:', updatedBusiness.id)
           console.log('[getOrCreateBusiness] Updated twilio_phone_number:', updatedBusiness.twilio_phone_number)
           return updatedBusiness
         } else {
           console.error('[getOrCreateBusiness] Failed to update business, returning existing')
-          return existingBusiness
+          return businessForUpdate
         }
       }
       
       console.log('[getOrCreateBusiness] No updates needed, returning existing business')
-      return existingBusiness
+      return businessForUpdate
     }
     
-    console.log('[getOrCreateBusiness] No existing business found, creating new business for user:', userId)
+    // Only create business if lookup succeeded and returned no row
+    if (lookupResult.errorType === 'not_found') {
+      console.log('[getOrCreateBusiness] Lookup success - no existing business found for user:', userId)
+      console.log('[getOrCreateBusiness] Proceeding with business creation')
+    } else {
+      console.error('[getOrCreateBusiness] Unexpected errorType:', lookupResult.errorType)
+      return null
+    }
     
     // Create new business with provided data or defaults
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
@@ -1217,12 +1247,29 @@ export const db = {
       } else {
         console.error('[getOrCreateBusiness] createBusiness returned null for user:', userId)
       }
-    } catch (createError) {
+    } catch (createError: any) {
       console.error('[getOrCreateBusiness] Error during business creation:', createError)
       console.error('[getOrCreateBusiness] Create error details:', {
-        message: createError instanceof Error ? createError.message : 'Unknown error',
-        stack: createError instanceof Error ? createError.stack : undefined
+        message: createError.message,
+        code: createError.code,
+        stack: createError.stack
       })
+      
+      // Handle duplicate key error (unique_user_business constraint)
+      if (createError.code === '23505' || createError.message?.includes('unique_user_business')) {
+        console.log('[getOrCreateBusiness] Duplicate key error detected - business may have been created concurrently')
+        console.log('[getOrCreateBusiness] Attempting to fetch existing business to recover')
+        
+        // Re-fetch the existing business
+        const retryLookup = await this.getBusinessByUserId(userId)
+        if (retryLookup.business) {
+          console.log('[getOrCreateBusiness] Successfully recovered existing business after duplicate key error:', retryLookup.business.id)
+          return retryLookup.business
+        } else {
+          console.error('[getOrCreateBusiness] Failed to recover business after duplicate key error')
+          return null
+        }
+      }
     }
     
     return createdBusiness

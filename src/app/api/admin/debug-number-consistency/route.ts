@@ -37,14 +37,15 @@ export async function GET(request: Request) {
     }
 
     // Get business for user
-    const business = await db.getBusinessByUserId(user.id)
-    if (!business) {
+    const lookupResult = await db.getBusinessByUserId(user.id)
+    if (!lookupResult.business || lookupResult.errorType !== 'none') {
       return NextResponse.json(
-        { error: 'Business not found' },
+        { error: 'Business not found', errorType: lookupResult.errorType },
         { status: 404 }
       )
     }
 
+    const business = lookupResult.business
     console.log('[Debug Number Consistency] business_id:', business.id)
     console.log('[Debug Number Consistency] DB twilio_phone_number:', business.twilio_phone_number)
     console.log('[Debug Number Consistency] DB twilio_phone_number_sid:', business.twilio_phone_number_sid)
