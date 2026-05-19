@@ -65,6 +65,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    const siteUrl = getAppBaseUrl()
+    const origin = request.headers.get('origin') || siteUrl
+
     // Check trial eligibility before creating checkout session
     console.log('[stripe-checkout] Checking trial eligibility');
     
@@ -116,8 +119,6 @@ export async function POST(request: Request) {
         .eq('id', business.id)
     }
 
-    const siteUrl = getAppBaseUrl()
-    const origin = request.headers.get('origin') || siteUrl
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
     
     logUrlResolution('stripe-checkout-site-url', siteUrl, user.id, business.id)
