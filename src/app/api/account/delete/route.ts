@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, business_email, name')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, name, trial_ends_at, created_at')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -192,36 +192,97 @@ export async function POST(request: NextRequest) {
       }
       console.log('[delete-account] Step 5 completed: deleted conversations')
 
-      // Step 6: Delete leads linked to businesses
-      console.log('[delete-account] Step 6: delete leads')
+      // Step 6: Delete follow_ups linked to businesses
+      console.log('[delete-account] Step 6: delete follow_ups')
+      const { error: followUpsError } = await supabaseAdmin
+        .from('follow_ups')
+        .delete()
+        .in('business_id', businessIds)
+
+      if (followUpsError) {
+        console.error('[delete-account] Step 6 failed:', followUpsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_follow_ups', error: 'Failed to delete account data. Please try again or contact support.', details: followUpsError.message },
+          { status: 500 }
+        )
+      }
+      console.log('[delete-account] Step 6 completed: deleted follow_ups')
+
+      // Step 7: Delete call_events linked to businesses
+      console.log('[delete-account] Step 7: delete call_events')
+      const { error: callEventsError } = await supabaseAdmin
+        .from('call_events')
+        .delete()
+        .in('business_id', businessIds)
+
+      if (callEventsError) {
+        console.error('[delete-account] Step 7 failed:', callEventsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_call_events', error: 'Failed to delete account data. Please try again or contact support.', details: callEventsError.message },
+          { status: 500 }
+        )
+      }
+      console.log('[delete-account] Step 7 completed: deleted call_events')
+
+      // Step 8: Delete ignored_contacts linked to businesses
+      console.log('[delete-account] Step 8: delete ignored_contacts')
+      const { error: ignoredContactsError } = await supabaseAdmin
+        .from('ignored_contacts')
+        .delete()
+        .in('business_id', businessIds)
+
+      if (ignoredContactsError) {
+        console.error('[delete-account] Step 8 failed:', ignoredContactsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_ignored_contacts', error: 'Failed to delete account data. Please try again or contact support.', details: ignoredContactsError.message },
+          { status: 500 }
+        )
+      }
+      console.log('[delete-account] Step 8 completed: deleted ignored_contacts')
+
+      // Step 9: Delete twilio_numbers linked to businesses
+      console.log('[delete-account] Step 9: delete twilio_numbers')
+      const { error: twilioNumbersError } = await supabaseAdmin
+        .from('twilio_numbers')
+        .delete()
+        .in('business_id', businessIds)
+
+      if (twilioNumbersError) {
+        console.error('[delete-account] Step 9 failed:', twilioNumbersError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_twilio_numbers', error: 'Failed to delete account data. Please try again or contact support.', details: twilioNumbersError.message },
+          { status: 500 }
+        )
+      }
+      console.log('[delete-account] Step 9 completed: deleted twilio_numbers')
+
+      // Step 10: Delete leads linked to businesses
+      console.log('[delete-account] Step 10: delete leads')
       const { error: leadsDeleteError } = await supabaseAdmin
         .from('leads')
         .delete()
         .in('business_id', businessIds)
 
       if (leadsDeleteError) {
-        console.error('[delete-account] Step 6 failed:', leadsDeleteError)
+        console.error('[delete-account] Step 10 failed:', leadsDeleteError)
         return NextResponse.json(
-          { ok: false, step: 'delete_leads', error: leadsDeleteError.message, details: leadsDeleteError },
+          { ok: false, step: 'delete_leads', error: 'Failed to delete account data. Please try again or contact support.', details: leadsDeleteError.message },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 6 completed: deleted leads')
+      console.log('[delete-account] Step 10 completed: deleted leads')
 
-      // Step 7: Soft-delete businesses and record trial history
-      console.log('[delete-account] Step 7: soft-delete businesses and record trial history')
+      // Step 11: Soft-delete businesses and record trial history
+      console.log('[delete-account] Step 11: soft-delete businesses and record trial history')
       
       for (const business of businesses as any[]) {
         // Record trial history before soft-deleting
         if (business.stripe_customer_id || business.trial_ends_at) {
-          // Extract domain from business_email if available
-          const businessDomain = business.business_email ? business.business_email.split('@')[1]?.toLowerCase() : null
-          
           const trialHistoryData = {
             business_id: business.id,
             business_phone_number: business.twilio_phone_number,
-            business_email: business.business_email || null,
-            business_domain: businessDomain,
+            business_email: null, // business_email column doesn't exist in schema
+            business_domain: null, // derived from business_email which doesn't exist
             stripe_customer_id: business.stripe_customer_id,
             stripe_subscription_id: business.stripe_subscription_id,
             trial_started_at: business.created_at,
@@ -241,7 +302,7 @@ export async function POST(request: NextRequest) {
             .insert(trialHistoryData)
           
           if (trialHistoryError) {
-            console.error('[delete-account] Failed to record trial history:', trialHistoryError)
+            console.error('[delete-account] Failed to record trial history for business:', business.id, trialHistoryError)
             // Don't fail the deletion if trial history recording fails, but log it
           } else {
             console.log('[delete-account] Recorded trial history for business:', business.id)
@@ -259,36 +320,36 @@ export async function POST(request: NextRequest) {
           .eq('id', business.id)
 
         if (businessesSoftDeleteError) {
-          console.error('[delete-account] Step 7 soft-delete failed:', businessesSoftDeleteError)
+          console.error('[delete-account] Step 11 soft-delete failed:', businessesSoftDeleteError)
           return NextResponse.json(
-            { ok: false, step: 'soft_delete_businesses', error: businessesSoftDeleteError.message, details: businessesSoftDeleteError },
+            { ok: false, step: 'soft_delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesSoftDeleteError.message },
             { status: 500 }
           )
         }
       }
-      console.log('[delete-account] Step 7 completed: soft-deleted businesses and recorded trial history')
+      console.log('[delete-account] Step 11 completed: soft-deleted businesses and recorded trial history')
     }
 
-    // Step 8: Delete the Supabase Auth user last
-    console.log('[delete-account] Step 8: delete auth user')
+    // Step 12: Delete the Supabase Auth user last
+    console.log('[delete-account] Step 12: delete auth user')
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
 
     if (deleteUserError) {
-      console.error('[delete-account] Step 8 failed:', deleteUserError)
+      console.error('[delete-account] Step 12 failed:', deleteUserError)
       return NextResponse.json(
-        { ok: false, step: 'delete_auth_user', error: deleteUserError.message, details: deleteUserError },
+        { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: deleteUserError.message },
         { status: 500 }
       )
     }
 
-    console.log('[delete-account] Step 8 completed: deleted auth user')
+    console.log('[delete-account] Step 12 completed: deleted auth user')
     console.log('[delete-account] Successfully deleted user and all data')
 
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('[delete-account] Unexpected error:', error)
     return NextResponse.json(
-      { ok: false, step: 'unexpected', error: error instanceof Error ? error.message : 'Unknown error', details: error },
+      { ok: false, step: 'unexpected', error: 'An unexpected error occurred. Please try again or contact support.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
