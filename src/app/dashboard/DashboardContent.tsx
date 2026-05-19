@@ -210,14 +210,15 @@ export default function DashboardContent() {
   // ALL hooks must be called before any conditional returns to prevent React #310
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
   const [testSmsMessage, setTestSmsMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [billingError, setBillingError] = useState('')
-  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
+  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
   const [adminPanelCollapsed, setAdminPanelCollapsed] = useState(true)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
   const [stats, setStats] = useState<any>(null)
@@ -520,7 +521,7 @@ export default function DashboardContent() {
     // Do not redirect to Stripe if session is missing - block checkout
     if (!session) {
       console.error('[checkout] No session found, blocking checkout')
-      alert('Please sign in to start your trial. Your session may have expired.')
+      setCheckoutError('Please sign in to start your trial. Your session may have expired.')
       setCheckoutLoading(false)
       router.push('/auth/signin?redirect=/dashboard')
       return
@@ -536,7 +537,13 @@ export default function DashboardContent() {
       
       if (!response.ok) {
         console.error('[checkout] API error:', data)
-        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`)
+        // Set inline error instead of browser alert
+        if (data.error === 'Business has already used a free trial') {
+          setCheckoutError('This business has already used a free trial.')
+        } else {
+          setCheckoutError(data.error || 'Failed to create checkout session')
+        }
+        setCheckoutLoading(false)
         return
       }
       
@@ -548,12 +555,12 @@ export default function DashboardContent() {
         }, 500)
       } else {
         console.error('[checkout] No URL returned:', data)
-        alert(`No checkout URL returned: ${JSON.stringify(data)}`)
+        setCheckoutError('Failed to create checkout session: No URL returned')
+        setCheckoutLoading(false)
       }
     } catch (error) {
       console.error('[checkout] Network error:', error)
-      alert('Network error creating checkout session. Please try again.')
-    } finally {
+      setCheckoutError('Network error creating checkout session. Please try again.')
       setCheckoutLoading(false)
     }
   }
@@ -963,18 +970,31 @@ export default function DashboardContent() {
                 {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                          <h3 className="text-base font-semibold text-foreground mb-1">Start your free trial</h3>
-                          <p className="text-sm text-muted-foreground">Activate ReplyFlow to begin capturing missed calls automatically.</p>
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                            <h3 className="text-base font-semibold text-foreground mb-1">Start your free trial</h3>
+                            <p className="text-sm text-muted-foreground">Activate ReplyFlow to begin capturing missed calls automatically.</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setCheckoutError(null)
+                              handleStartSubscription()
+                            }}
+                            disabled={checkoutLoading}
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            {checkoutLoading ? 'Starting…' : 'Start Free Trial'}
+                          </button>
                         </div>
-                        <button
-                          onClick={handleStartSubscription}
-                          disabled={checkoutLoading}
-                          className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                          {checkoutLoading ? 'Starting…' : 'Start Free Trial'}
-                        </button>
+                        {checkoutError && (
+                          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                            <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-1">{checkoutError}</p>
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                              Need help? Contact <a href="mailto:support@replyflowhq.com" className="underline hover:no-underline">support@replyflowhq.com</a> and we'll take a look.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </SectionErrorBoundary>
