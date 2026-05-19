@@ -35,7 +35,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     return (
       <header className="w-full bg-slate-800/90 border-b border-slate-700">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-3 flex items-center justify-between">
-          <BrandIcon size={36} className="animate-pulse" />
+          <BrandIcon size={40} className="animate-pulse" />
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="w-20 h-5 bg-gray-600 rounded animate-pulse hidden sm:block"></div>
             <div className="w-16 h-5 bg-gray-600 rounded animate-pulse"></div>
@@ -56,7 +56,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           href={isLoggedIn ? '/dashboard' : '/'} 
           className="flex items-center gap-3 hover:opacity-90 transition"
         >
-          <BrandIcon size={36} />
+          <BrandIcon size={40} />
           <span className="text-xl md:text-2xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>Reply</span>
             <span className="text-blue-400">Flow</span>

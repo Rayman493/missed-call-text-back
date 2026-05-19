@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     siteName: 'ReplyFlowHQ',
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/replyflow-r-logo.png',
+        width: 512,
+        height: 512,
         alt: 'ReplyFlowHQ - Missed-Call Text Back Automation',
       },
     ],
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
     description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
-    images: ['/og-image.png'],
+    images: ['/replyflow-r-logo.png'],
     creator: '@replyflowhq',
   },
   robots: {
