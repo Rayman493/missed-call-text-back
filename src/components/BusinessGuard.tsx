@@ -56,7 +56,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     
     // Don't redirect if checkout=success is present (waiting for webhook)
     if (checkoutStatus === 'success') {
-      console.log('[Routing] Checkout success mode active, skipping redirect')
+      console.log('[BusinessGuard] ===== CHECKOUT SUCCESS MODE ACTIVE =====')
+      console.log('[BusinessGuard] Skipping all redirects to allow session recovery')
+      console.log('[BusinessGuard] Waiting for AuthGuard to recover session via getUser/getSession')
       return
     }
     
