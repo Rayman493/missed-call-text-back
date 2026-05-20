@@ -191,13 +191,13 @@ export default function CheckoutReturnPage() {
               Your trial is active!
             </h2>
             <p className="text-muted-foreground mb-6">
-              We just need to reconnect your session.
+              Sign in once to continue to your dashboard.
             </p>
             <button
-              onClick={() => router.push('/auth/signin?redirect=/dashboard&checkout=success')}
+              onClick={() => router.push('/auth/signin?redirect=/dashboard%3Fcheckout%3Dsuccess')}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
             >
-              Continue to Dashboard
+              Sign In to Continue
             </button>
           </>
         )}
