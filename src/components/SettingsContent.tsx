@@ -469,7 +469,7 @@ export default function SettingsContent() {
 
             {/* Main Content */}
             <div className="flex-1 pt-2 sm:pt-3 lg:pt-3 px-3 sm:px-4 lg:px-6 pb-20">
-              <div className="max-w-[1400px] mx-auto">
+              <div className="max-w-[1600px] mx-auto">
 
             {/* Settings Navigation Tabs */}
             <div className="sticky top-0 z-20 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
