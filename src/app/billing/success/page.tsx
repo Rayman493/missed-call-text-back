@@ -27,7 +27,7 @@ const PROGRESS_STEPS = [
   { id: 'activating', label: 'Activating your ReplyFlow account...', duration: 3000 },
   { id: 'confirming', label: 'Confirming your trial', duration: 5000 },
   { id: 'provisioning', label: 'Setting up your ReplyFlow number', duration: 10000 },
-  { id: 'preparing', label: 'Preparing your dashboard', duration: 5000 },
+  { id: 'finalizing', label: 'Finalizing your account setup...', duration: 5000 },
 ]
 
 const TIMEOUT_DURATION = 45000 // 45 seconds
@@ -244,30 +244,32 @@ export default function BillingSuccessPage() {
     )
   }
 
+  // Timeout state
   if (isTimeout) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-md w-full mx-auto p-6 text-center">
-          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-4">Setup Taking Longer</h1>
           <p className="text-muted-foreground mb-6">
-            Your trial is active, but setup is still finishing. You can continue to your dashboard.
+            Your trial is active, but setup is still finishing. Please sign in to access your account.
           </p>
           <Link 
-            href="/dashboard"
+            href="/auth/signin?redirect=/dashboard&reason=post_checkout"
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            Continue to Dashboard
+            Sign In to Continue
           </Link>
         </div>
       </div>
     )
   }
 
+  // Loading state
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="max-w-md w-full mx-auto p-6 text-center">
@@ -309,7 +311,7 @@ export default function BillingSuccessPage() {
           {status ? (
             <>
               {status.checkoutStatus === 'complete' ? (
-                <>Setup complete! Redirecting to dashboard...</>
+                <>Setup complete! Your account is ready.</>
               ) : status.checkoutStatus === 'subscription_active' ? (
                 <>Your trial is active! Setting up your ReplyFlow number...</>
               ) : (
@@ -321,17 +323,10 @@ export default function BillingSuccessPage() {
           )}
         </p>
 
-        {/* Debug Info (only in development) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-left text-xs">
-            <p><strong>Session ID:</strong> {sessionId}</p>
-            <p><strong>Poll Count:</strong> {pollCount}</p>
-            <p><strong>Current Step:</strong> {currentStep}</p>
-            {status && (
-              <>
-                <p><strong>Status:</strong> {JSON.stringify(status, null, 2)}</p>
-              </>
-            )}
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && status && (
+          <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded text-left">
+            <p><strong>Status:</strong> {JSON.stringify(status, null, 2)}</p>
           </div>
         )}
       </div>
