@@ -468,7 +468,7 @@ export default function SettingsContent() {
             <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 pt-6 sm:pt-8 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20">
+            <div className="flex-1 pt-3 sm:pt-4 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Navigation Tabs */}
