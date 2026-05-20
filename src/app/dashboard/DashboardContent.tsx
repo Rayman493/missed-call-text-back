@@ -760,18 +760,18 @@ export default function DashboardContent() {
     console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
   }
 
-  // DASHBOARD GATE: Redirect users without complete business profile to onboarding
+  // DASHBOARD GATE: Redirect users without complete business profile to onboarding/profile
   if (businessFetchComplete && !businessLoading) {
-    // User has no business at all - redirect to onboarding
+    // User has no business at all - redirect to onboarding/profile
     if (!business) {
-      console.log('[Dashboard Gate] No business found, redirecting to onboarding')
+      console.log('[Dashboard Gate] No business found, redirecting to onboarding/profile')
       router.push('/onboarding')
       return <AppLoadingScreen />
     }
     
-    // User has business but missing required fields - redirect to onboarding
+    // User has business but missing required fields - redirect to onboarding/profile
     if (!business.name || !business.business_phone_number) {
-      console.log('[Dashboard Gate] Business missing name or phone, redirecting to onboarding', {
+      console.log('[Dashboard Gate] Business missing name or phone, redirecting to onboarding/profile', {
         hasName: !!business.name,
         hasPhone: !!business.business_phone_number
       })

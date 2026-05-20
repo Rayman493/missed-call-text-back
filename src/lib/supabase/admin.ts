@@ -1261,14 +1261,26 @@ export const db = {
       console.error('[getOrCreateBusiness] Unexpected reason for business creation attempt:', lookupResult.reason)
       return null
     }
-    
-    // Create new business with provided data or defaults
+
+    // VALIDATION: Do not create placeholder business if businessData lacks valid name and phone
+    // Only create business when user has provided real profile information
+    if (!businessData?.name || !businessData?.business_phone_number) {
+      console.log('[getOrCreateBusiness] Business profile incomplete - not creating placeholder business')
+      console.log('[getOrCreateBusiness] Missing fields:', {
+        hasName: !!businessData?.name,
+        hasPhone: !!businessData?.business_phone_number
+      })
+      console.log('[getOrCreateBusiness] User must complete onboarding profile form first')
+      return null
+    }
+
+    // Create new business with provided data (no defaults since validation above ensures data exists)
     const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
-      name: businessData?.name || 'My Business',
+      name: businessData.name,
       twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
-      business_phone_number: businessData?.business_phone_number || null,
-      auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData?.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+      business_phone_number: businessData.business_phone_number,
+      auto_reply_message: businessData?.auto_reply_message || `Hi, this is ${businessData.name}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
       subscription_status: null, // Don't set subscription status during business creation - Stripe webhook should be the source of truth
       stripe_customer_id: businessData?.stripe_customer_id || null,
       sms_type: businessData?.sms_type || 'local_a2p', // Default to local_a2p for dedicated numbers
@@ -1285,7 +1297,7 @@ export const db = {
           console.log('[getOrCreateBusiness] Using safe status "started" instead')
           return 'started'
         }
-        return businessData?.onboarding_status || 'started'
+        return businessData?.onboarding_status || 'profile_created'
       })(),
       twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
       a2p_status: 'approved', // Using approved ReplyFlowHQ Messaging Service
