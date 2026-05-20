@@ -20,12 +20,38 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const checkoutSuccess = searchParams?.get('checkout') === 'success'
     
     if (checkoutSuccess && !user && !loading && !recoveryAttempted) {
+      // Detect mobile device for extended recovery
+      const isMobile = typeof window !== 'undefined' && (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth < 768
+      )
+      
       console.log('[AuthGuard] ===== CHECKOUT SUCCESS DETECTED, STARTING AUTH RECOVERY =====')
+      console.log('[AuthGuard] Mobile-specific debug info:', {
+        userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'unknown',
+        isMobile,
+        screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
+        screenHeight: typeof window !== 'undefined' ? window.innerHeight : 'unknown',
+        checkoutSuccess,
+        userExists: !!user,
+        loading,
+        recoveryAttempted
+      })
+      
       setIsRecovering(true)
       setRecoveryAttempted(true)
 
+      // Extend recovery attempts for mobile (5 retries with 1.5s delays = 7.5s total)
+      // Mobile browsers may restore localStorage/session slower after external redirect
+      const maxRetries = isMobile ? 5 : 3
+      const retryDelay = isMobile ? 1500 : 1000
+
       const attemptSessionRecovery = async () => {
-        console.log('[AuthGuard] Attempting session recovery for checkout success')
+        console.log('[AuthGuard] Attempting session recovery for checkout success', {
+          isMobile,
+          maxRetries,
+          retryDelay
+        })
         
         // First try getUser() to recover from refresh token
         try {
@@ -46,14 +72,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           console.log('[AuthGuard] getUser() recovery failed:', error)
         }
         
-        // Then try getSession() with retries
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          console.log(`[AuthGuard] getSession() recovery attempt ${attempt}/3`)
+        // Then try getSession() with retries (extended for mobile)
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          console.log(`[AuthGuard] getSession() recovery attempt ${attempt}/${maxRetries}`, {
+            isMobile,
+            retryDelay,
+            timestamp: new Date().toISOString()
+          })
+          
           const sessionResult = await supabase.auth.getSession()
           console.log('[AuthGuard] getSession() result:', {
             sessionExists: !!sessionResult.data.session,
             userId: sessionResult.data.session?.user?.id,
-            error: sessionResult.error?.message
+            error: sessionResult.error?.message,
+            accessTokenPresent: !!sessionResult.data.session?.access_token,
+            refreshTokenPresent: !!sessionResult.data.session?.refresh_token
           })
           
           if (sessionResult.data.session) {
@@ -62,12 +95,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             return true
           }
           
-          if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
+          if (attempt < maxRetries) {
+            console.log(`[AuthGuard] Waiting ${retryDelay}ms before next attempt...`)
+            await new Promise(resolve => setTimeout(resolve, retryDelay))
           }
         }
         
-        console.log('[AuthGuard] Session recovery failed after all attempts')
+        console.log('[AuthGuard] Session recovery failed after all attempts', {
+          maxRetries,
+          isMobile,
+          totalWaitTime: (maxRetries - 1) * retryDelay
+        })
         setIsRecovering(false)
         return false
       }
@@ -79,6 +117,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           const encodedRedirect = encodeURIComponent(currentUrl)
           console.log('[AuthGuard] Redirecting to signin with redirect:', encodedRedirect)
           router.push(`/signin?redirect=${encodedRedirect}`)
+        } else {
+          console.log('[AuthGuard] Session recovery successful, remaining on dashboard')
         }
       })
     }
