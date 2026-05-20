@@ -696,7 +696,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1.5">
                           <h3 className={`font-semibold text-sm sm:text-base ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/70' : 'text-foreground'}`}>{item.title}</h3>
                           <span
                             className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
@@ -721,39 +721,43 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             </div>
                           )}
                         </div>
-                        <p className={`text-sm mb-2 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
+                        <p className={`text-sm mb-2.5 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
                         {item.details && (
-                          <p className="text-xs text-muted-foreground mb-3">{item.details}</p>
+                          <p className="text-xs text-muted-foreground mb-3.5">{item.details}</p>
                         )}
-                        {item.buttonText && item.buttonHref && (
-                          <Link
-                            href={item.buttonHref}
-                            className={`inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              isActionNeeded
-                                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
-                                : isCurrent
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                                  : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-                            }`}
-                          >
-                            {item.buttonText}
-                          </Link>
-                        )}
-                        {item.secondaryButtonText && item.secondaryButtonHref && (
-                          <Link
-                            href={item.secondaryButtonHref}
-                            className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors mt-2 sm:mt-0"
-                          >
-                            {item.secondaryButtonText}
-                          </Link>
-                        )}
-                        {item.secondaryButtonText && item.secondaryButtonOnClick && (
-                          <button
-                            onClick={item.secondaryButtonOnClick}
-                            className="inline-flex items-center px-3 sm:px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors mt-2 sm:mt-0"
-                          >
-                            {item.secondaryButtonText}
-                          </button>
+                        {(item.buttonText || item.secondaryButtonText) && (
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            {item.buttonText && item.buttonHref && (
+                              <Link
+                                href={item.buttonHref}
+                                className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                                  isActionNeeded
+                                    ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:shadow'
+                                    : isCurrent
+                                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow'
+                                      : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                                }`}
+                              >
+                                {item.buttonText}
+                              </Link>
+                            )}
+                            {item.secondaryButtonText && item.secondaryButtonHref && (
+                              <Link
+                                href={item.secondaryButtonHref}
+                                className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all border border-border/50"
+                              >
+                                {item.secondaryButtonText}
+                              </Link>
+                            )}
+                            {item.secondaryButtonText && item.secondaryButtonOnClick && (
+                              <button
+                                onClick={item.secondaryButtonOnClick}
+                                className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all border border-border/50"
+                              >
+                                {item.secondaryButtonText}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </li>
