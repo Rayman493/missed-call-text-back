@@ -96,6 +96,9 @@ function AuthContent() {
   const emailParam = searchParams?.get('email')
   const redirectParam = searchParams?.get('redirect') || '/dashboard'
   
+  // Detect if this is a return from Stripe checkout
+  const isCheckoutReturn = redirectParam?.includes('checkout=success')
+  
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -528,18 +531,22 @@ function AuthContent() {
               <BrandIcon size={64} />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
-              {isSignIn ? 'Sign In' : 'Sign Up'}
+              {isCheckoutReturn ? 'Sign In' : (isSignIn ? 'Sign In' : 'Sign Up')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400">
-              Automatically text back missed calls.
+              {isCheckoutReturn ? 'Sign in to finish your trial setup' : 'Automatically text back missed calls.'}
             </p>
           </div>
           
-          {isSignIn && emailParam && (
+          {isSignIn && emailParam && !isCheckoutReturn && (
             <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Welcome back — please sign in</p>
           )}
           
-          {!isSignIn && (
+          {isCheckoutReturn && (
+            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Complete your trial setup by signing in</p>
+          )}
+          
+          {!isSignIn && !isCheckoutReturn && (
             <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Create your account to get started</p>
           )}
           
