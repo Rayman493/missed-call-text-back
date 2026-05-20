@@ -306,12 +306,22 @@ export default function Home() {
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href={isAuthenticated ? (hasActiveAccount ? "/dashboard" : "/onboarding") : "/signup"}
-                className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-              >
-                {isAuthenticated ? (hasActiveAccount ? "Go to Dashboard" : "Complete Setup") : "Start Your Free Trial"}
-              </Link>
+              {/* Show Dashboard CTA on desktop for authenticated users, hide on mobile to avoid navbar duplication */}
+              {isAuthenticated && hasActiveAccount ? (
+                <Link
+                  href="/dashboard"
+                  className="hidden sm:block h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href={isAuthenticated ? "/onboarding" : "/signup"}
+                  className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                >
+                  {isAuthenticated ? "Complete Setup" : "Start Your Free Trial"}
+                </Link>
+              )}
               <Link
                 href="/demo"
                 className="h-12 px-8 bg-white dark:bg-secondary text-slate-700 dark:text-secondary-foreground font-semibold rounded-xl border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-secondary/80 hover:border-slate-300 dark:hover:border-border transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
