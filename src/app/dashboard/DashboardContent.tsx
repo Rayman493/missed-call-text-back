@@ -724,12 +724,14 @@ export default function DashboardContent() {
 
   // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
   // This prevents flash of previous setup/onboarding screens during dashboard load
-  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete || onboardingState?.state === 'unknown') {
+  // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
+  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
     console.log('[Dashboard Gate] loading - waiting for auth/business/subscription/state to resolve', {
       authLoading,
       businessLoading,
       webhookConfirming,
       businessFetchComplete,
+      hasBusiness: !!business,
       onboardingState: onboardingState?.state,
       subscription_status: business?.subscription_status
     })
@@ -752,7 +754,8 @@ export default function DashboardContent() {
   console.log('[Dashboard Gate] resolved - state fully loaded', {
     subscription_status: business?.subscription_status,
     isSubscriptionActive,
-    onboardingState: onboardingState.state
+    onboardingState: onboardingState.state,
+    hasBusiness: !!business
   })
 
   // If loading timeout reached, show dashboard anyway (don't render blank)

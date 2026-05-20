@@ -73,6 +73,13 @@ export async function POST(request: Request) {
 
     if (!business) {
       console.error('[get-or-create] Failed to resolve business for user:', user.id)
+      // Check if this is due to incomplete business profile
+      if (!businessData?.name || !businessData?.business_phone_number) {
+        return NextResponse.json(
+          { ok: false, step: 'incomplete_profile', reason: 'no_business_profile', error: 'Business profile incomplete - name and phone required' },
+          { status: 200 } // 200 not 400 - this is expected for new users
+        )
+      }
       return NextResponse.json(
         { ok: false, step: 'resolve_business', error: 'Failed to create or find business' },
         { status: 500 }
