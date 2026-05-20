@@ -12,6 +12,12 @@ export async function POST(request: Request) {
   try {
     console.log('[stripe-checkout] Starting checkout session creation');
     
+    // Parse request body to get checkout mode
+    const body = await request.json().catch(() => ({}))
+    const checkoutMode = body.checkout_mode || 'trial' // Default to trial for backward compatibility
+    
+    console.log('[stripe-checkout] Checkout mode:', checkoutMode);
+    
     const stripe = getStripe()
     console.log('[stripe-checkout] Stripe client initialized:', !!stripe);
     
@@ -215,10 +221,12 @@ export async function POST(request: Request) {
         onboarding_status: business.onboarding_status || 'unknown'
       },
       subscription_data: {
-        trial_period_days: 14,
+        // Only include trial period for trial mode
+        ...(checkoutMode === 'trial' && { trial_period_days: 14 }),
         metadata: {
           business_id: business.id,
           user_id: user.id,
+          checkout_mode: checkoutMode,
         },
       },
     })
