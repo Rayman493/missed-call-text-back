@@ -142,17 +142,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, billingReturned, isCheckoutSuccess })
     
     // Allow users returning from Stripe checkout to have time to recover session
-    // Add a brief delay before redirect to allow session to load from cookies
+    // Do NOT redirect to signin when checkout=success - let AuthGuard handle recovery flow
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess && !billingReturned) {
-      console.log('[Auth] Auth routing redirect decision:', {
-        pathname,
-        hasUser: !!user,
-        userId: user?.id,
-        isCheckoutSuccess,
-        billingReturned,
-        redirectDecision: 'to_signin'
+      console.log('[Redirect Decision]', {
+        reason: 'unauthenticated_protected_route',
+        from: pathname,
+        to: '/auth/signin',
+        checkoutSuccess: false
       })
       router.push('/auth/signin')
+    } else if (isCheckoutSuccess) {
+      console.log('[Redirect Decision]', {
+        reason: 'checkout_success_allow_recovery',
+        from: pathname,
+        to: 'stay',
+        checkoutSuccess: true
+      })
     }
   }, [user, loading, pathname, router, isClient])
 

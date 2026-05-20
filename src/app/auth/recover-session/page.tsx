@@ -25,8 +25,13 @@ export default function RecoverSessionPage() {
 
   const handleContinue = () => {
     setIsRedirecting(true)
-    console.log('[Session Recovery] User clicked continue, redirecting to signin')
-    router.push('/auth/signin?redirect=/dashboard&recovery=true')
+    console.log('[Redirect Decision]', {
+      reason: 'recovery_cta_clicked',
+      from: '/auth/recover-session',
+      to: '/auth/signin?redirect=/dashboard?checkout=success',
+      checkoutSuccess: true
+    })
+    router.push('/auth/signin?redirect=/dashboard?checkout=success')
   }
 
   return (

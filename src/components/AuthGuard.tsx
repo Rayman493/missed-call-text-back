@@ -31,10 +31,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       // Check if session exists
       supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
         if (!session) {
+          console.log('[Redirect Decision]', {
+            reason: 'checkout_recovery_timeout_no_session',
+            from: '/dashboard',
+            to: '/auth/recover-session?checkout=success',
+            checkoutSuccess: true
+          })
           console.log('[Checkout Recovery] No session available, routing to recovery page')
           setRecoveryTimeoutElapsed(true)
           router.push('/auth/recover-session?checkout=success')
         } else {
+          console.log('[Redirect Decision]', {
+            reason: 'checkout_recovery_session_restored',
+            from: '/dashboard',
+            to: 'stay',
+            checkoutSuccess: true
+          })
           console.log('[Checkout Recovery] Session recovered successfully')
         }
       })
