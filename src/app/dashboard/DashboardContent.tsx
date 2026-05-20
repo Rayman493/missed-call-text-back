@@ -535,39 +535,65 @@ export default function DashboardContent() {
 
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
-    console.log('[checkout] Starting subscription flow')
+    console.log('[checkout] ===== STARTING SUBSCRIPTION FLOW =====')
+    
+    // Detect mobile device
+    const isMobile = typeof window !== 'undefined' && (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth < 768
+    )
+    
+    console.log('[checkout] Mobile device detection:', {
+      isMobile,
+      userAgent: navigator.userAgent,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight
+    })
     
     // Pre-checkout diagnostics
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('[checkout] Pre-checkout session check:', {
+    console.log('[checkout] ===== PRE-CHECKOUT SESSION CHECK =====')
+    console.log('[checkout] Session state before Stripe redirect:', {
       sessionExists: !!session,
       userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      accessTokenPresent: !!session?.access_token,
+      refreshTokenPresent: !!session?.refresh_token,
+      expiresAt: session?.expires_at,
       sessionError: sessionError?.message,
-      domain: window.location.hostname,
-      userAgent: navigator.userAgent
+      isMobile
     })
     
     // Check for auth-related localStorage keys
     const localStorageKeys: string[] = []
+    const localStorageTokenKeys: string[] = []
     if (typeof window !== 'undefined') {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
         if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
           localStorageKeys.push(key)
+          // Check for specific token keys
+          if (key.includes('access_token') || key.includes('refresh_token')) {
+            localStorageTokenKeys.push(key)
+          }
         }
       }
     }
     console.log('[checkout] Auth-related localStorage keys:', localStorageKeys)
+    console.log('[checkout] Token-specific localStorage keys:', localStorageTokenKeys)
+    console.log('[checkout] localStorage key count:', localStorageKeys.length)
     
-    // Do not redirect to Stripe if session is missing - block checkout
+    // Verify session exists before allowing Stripe redirect
     if (!session) {
-      console.error('[checkout] No session found, blocking checkout')
+      console.error('[checkout] ===== SESSION MISSING - BLOCKING CHECKOUT =====')
+      console.error('[checkout] No session found before Stripe redirect, blocking checkout')
       setCheckoutError('Please sign in to start your trial. Your session may have expired.')
       setCheckoutLoading(false)
       router.push('/auth/signin?redirect=/dashboard')
       return
     }
     
+    console.log('[checkout] ===== SESSION VERIFIED - PROCEEDING WITH STRIPE =====')
     console.log('[checkout] Session confirmed, proceeding with checkout')
     
     try {
