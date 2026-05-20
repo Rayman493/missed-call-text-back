@@ -44,7 +44,6 @@ import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
-import OnboardingGuide from '@/components/OnboardingGuide'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -869,46 +868,7 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* HARD RENDER GUARD: OnboardingGuide only renders when subscription is active */}
-                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && (onboardingState.state as string) !== 'unknown' && !shouldShowLoadingState && (
-                  <SectionErrorBoundary sectionName="OnboardingGuide">
-                    {(() => {
-                      console.log('[Render Guard] OnboardingGuide rendered', {
-                        subscription_status: business?.subscription_status,
-                        isSubscriptionActive,
-                        allowed: true
-                      })
-                      console.log('[Dashboard Routing] Rendering OnboardingGuide section', {
-                        section: 'OnboardingGuide',
-                        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
-                        hasBusiness: !!business,
-                        subscriptionStatus: business?.subscription_status,
-                        onboardingStatus: business?.onboarding_status,
-                        derivedOnboardingState: onboardingState.state,
-                        shouldShowLoadingState,
-                      })
-                      console.log('[Render Child] OnboardingGuide')
-                      return null
-                    })()}
-                    <OnboardingGuide isTrialActive={true} />
-                  </SectionErrorBoundary>
-                )}
-
-                {/* Log when OnboardingGuide is skipped due to inactive subscription */}
-                {!isSubscriptionActive && (
-                  <SectionErrorBoundary sectionName="OnboardingGuardLog">
-                    {(() => {
-                      console.log('[Dashboard Routing] Skipping OnboardingGuide - subscription inactive', {
-                        subscription_status: business?.subscription_status,
-                        isSubscriptionActive,
-                        reason: 'Subscription is not active (trialing or active)'
-                      })
-                      return null
-                    })()}
-                  </SectionErrorBoundary>
-                )}
-
-                {/* HARD RENDER GUARD: Only show ProvisioningSuccessBanner if subscription is active */}
+                {/* HARD RENDER GUARD: ProvisioningSuccessBanner if subscription is active */}
                 {isSubscriptionActive && (
                   <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
                       {(() => {

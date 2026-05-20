@@ -76,21 +76,22 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     // Calculate current incomplete step from business data
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+    const replyFlowReadyDone = subscriptionActive && twilioReady
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    const testComplete = business?.forwarding_verified || realCallDataExists || realCallDataExists
+    const testComplete = business?.forwarding_verified || realCallDataExists
     
     // Determine which step should be expanded
     if (!subscriptionActive) {
-      // Step 1: Trial - don't auto-expand
+      // Step 1: ReplyFlow ready - don't auto-expand
       return
-    } else if (!twilioReady) {
-      // Step 2: Number - auto-expand on mobile
-      setExpandedCardId('number')
+    } else if (!replyFlowReadyDone) {
+      // Step 1: ReplyFlow ready - auto-expand on mobile
+      setExpandedCardId('ready')
     } else if (!forwardingSetupComplete) {
-      // Step 3: Forwarding - auto-expand on mobile
+      // Step 2: Forwarding - auto-expand on mobile
       setExpandedCardId('forwarding')
     } else if (!testComplete) {
-      // Step 4: Test - auto-expand on mobile
+      // Step 3: Test - auto-expand on mobile
       setExpandedCardId('test')
     }
   }, [isMobile, business, realCallDataExists])
@@ -409,7 +410,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     }
   }
 
-  // Always emit all 4 onboarding steps with a per-step status. This gives users a
+  // Always emit all 3 onboarding steps with a per-step status. This gives users a
   // consistent, intentional progression instead of a checklist that grows
   // step-by-step as state changes.
   const getChecklistItems = (): ChecklistItem[] => {
@@ -423,6 +424,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const forwardingDone = Boolean(forwardingSetupComplete)
     const testDone = Boolean(testComplete)
 
+    // Merged step 1: ReplyFlow is ready (trial + number combined)
+    const replyFlowReadyDone = trialDone && numberDone
+
     // Check if subscription was previously active but now inactive (ACTION NEEDED)
     const subscriptionActionNeeded = !subscriptionActive && business.stripe_customer_id
     // Check if number was provisioned but now has issues (ACTION NEEDED)
@@ -434,31 +438,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
     return [
       {
-        id: 'trial',
-        title: 'Start your free trial',
-        description: 'Activate ReplyFlow so your missed-call system can run.',
-        status: subscriptionActionNeeded ? 'action-needed' : (trialDone ? 'complete' : 'needs-action'),
-        details: subscriptionActionNeeded
-          ? 'Subscription inactive - reactivate to continue'
-          : trialDone
-            ? (isTrialing ? '14-day free trial active' : 'Subscription active')
+        id: 'ready',
+        title: 'ReplyFlow is ready',
+        description: 'Your trial is active and your dedicated ReplyFlow number has been prepared automatically.',
+        status: (subscriptionActionNeeded || numberActionNeeded) ? 'action-needed' : (replyFlowReadyDone ? 'complete' : 'needs-action'),
+        details: (subscriptionActionNeeded || numberActionNeeded)
+          ? (subscriptionActionNeeded ? 'Subscription inactive - reactivate to continue' : 'Number setup has issues - check status')
+          : replyFlowReadyDone
+            ? (isTrialing ? '14-day free trial active' : 'Subscription active') + (numberDone ? ` • ${formatPhoneNumber(business.twilio_phone_number || '')}` : '')
             : 'No charge today. Cancel anytime.',
-        buttonText: trialDone
-          ? 'Manage Billing'
-          : (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial'),
-        buttonOnClick: isAuthenticated ? handleStartTrial : undefined,
-        buttonHref: isAuthenticated ? undefined : '/auth/signup',
-      },
-      {
-        id: 'number',
-        title: 'Prepare your ReplyFlow line',
-        description: 'Your dedicated local number is being set up automatically.',
-        status: numberActionNeeded ? 'action-needed' : (numberDone ? 'complete' : (trialDone ? 'needs-action' : 'needs-action')),
-        details: numberActionNeeded
-          ? 'Number setup has issues - check status'
-          : numberDone
-            ? `Your ReplyFlow number: ${formatPhoneNumber(business.twilio_phone_number || '')}`
-            : (trialDone ? 'Setting up your dedicated number…' : 'Available after trial activation'),
+        buttonText: !replyFlowReadyDone && !subscriptionActionNeeded && !numberActionNeeded
+          ? (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial')
+          : (replyFlowReadyDone ? 'Manage Billing' : 'Reactivate'),
+        buttonOnClick: !replyFlowReadyDone && !subscriptionActionNeeded && !numberActionNeeded && isAuthenticated ? handleStartTrial : undefined,
+        buttonHref: (!replyFlowReadyDone && !subscriptionActionNeeded && !numberActionNeeded && !isAuthenticated) ? '/auth/signup' : undefined,
       },
       {
         id: 'forwarding',
@@ -469,26 +462,26 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           ? 'Forwarding disabled - re-enable to continue'
           : forwardingDone
             ? 'Your business phone is connected to ReplyFlow. You can review your forwarding instructions anytime.'
-            : (numberDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once your number is ready'),
+            : (replyFlowReadyDone ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once ReplyFlow is ready'),
         // Always show button when number is ready and forwarding is not complete
-        buttonText: numberDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
+        buttonText: replyFlowReadyDone && !forwardingDone ? 'Set Up Call Forwarding' : undefined,
         buttonHref: (() => {
-          const wouldNavigate = numberDone && !forwardingDone
+          const wouldNavigate = replyFlowReadyDone && !forwardingDone
           console.log('[GettingStarted] Forwarding buttonHref calculation', {
             source: 'GettingStarted.tsx',
             subscription_status: business?.subscription_status,
             twilio_phone_number: business?.twilio_phone_number,
-            numberDone,
+            replyFlowReadyDone,
             forwardingDone,
             wouldNavigate,
             targetRoute: wouldNavigate ? '/setup/phone-forwarding' : undefined,
-            allowed: wouldNavigate ? 'Yes (subscription check via numberDone/trialDone)' : 'No'
+            allowed: wouldNavigate ? 'Yes (subscription check via replyFlowReadyDone)' : 'No'
           })
           return wouldNavigate ? '/setup/phone-forwarding' : undefined
         })(),
         // Secondary button for users who have already enabled forwarding
-        secondaryButtonText: numberDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'Review Forwarding Setup' : undefined),
-        secondaryButtonOnClick: numberDone && !forwardingDone ? handleCompleteForwarding : undefined,
+        secondaryButtonText: replyFlowReadyDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'Review Forwarding Setup' : undefined),
+        secondaryButtonOnClick: replyFlowReadyDone && !forwardingDone ? handleCompleteForwarding : undefined,
         secondaryButtonHref: (() => {
           const wouldNavigate = forwardingDone
           console.log('[GettingStarted] Forwarding secondaryButtonHref calculation', {
@@ -504,7 +497,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Final test',
+        title: 'Complete final test',
         description: 'Place a test call to confirm ReplyFlow is live.',
         status: testActionNeeded ? 'action-needed' : (testDone ? 'complete' : 'needs-action'),
         details: testActionNeeded
