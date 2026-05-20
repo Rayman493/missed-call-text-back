@@ -14,63 +14,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryAttempted, setRecoveryAttempted] = useState(false)
-  
-  // ========================================================================
-  // TEMP MOBILE STRIPE AUTH DEBUG PANEL
-  // ========================================================================
-  // This is temporary debugging code to diagnose why mobile loses auth
-  // after returning from Stripe checkout. Remove once issue is resolved.
-  // ========================================================================
-  const checkoutSuccess = searchParams?.get('checkout') === 'success'
-  const isProduction = process.env.NODE_ENV === 'production'
-  const isMobile = typeof window !== 'undefined' && (
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    window.innerWidth < 768
-  )
-  
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-  
-  useEffect(() => {
-    if (checkoutSuccess && isProduction && isMobile) {
-      const collectDebugInfo = async () => {
-        const sessionResult = await supabase.auth.getSession()
-        const session = sessionResult.data.session
-        
-        // Collect localStorage keys
-        const localStorageKeys: string[] = []
-        if (typeof window !== 'undefined') {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (key && (key.includes('supabase') || key.includes('sb-') || key.includes('auth'))) {
-              localStorageKeys.push(key)
-            }
-          }
-        }
-        
-        const info = {
-          pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
-          search: typeof window !== 'undefined' ? window.location.search : 'unknown',
-          userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'unknown',
-          sessionExists: !!session,
-          userExists: !!user,
-          userId: user?.id || session?.user?.id || 'none',
-          localStorageKeys,
-          accessTokenExists: !!session?.access_token,
-          refreshTokenExists: !!session?.refresh_token,
-        }
-        
-        setDebugInfo(info)
-        
-        console.log('[MOBILE DEBUG]', info)
-      }
-      
-      collectDebugInfo()
-      // Update debug info every 2 seconds to capture state changes
-      const interval = setInterval(collectDebugInfo, 2000)
-      return () => clearInterval(interval)
-    }
-  }, [checkoutSuccess, isProduction, isMobile, user])
-  
+
   // Detect checkout success and attempt session recovery
   useEffect(() => {
     const checkoutSuccess = searchParams?.get('checkout') === 'success'
@@ -212,31 +156,5 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   console.log('[AuthGuard] User authenticated, rendering children')
-  
-  const showDebugPanel = checkoutSuccess && isProduction && isMobile && debugInfo
-  
-  return (
-    <>
-      {children}
-      {showDebugPanel && (
-        <div className="fixed bottom-2 left-2 right-2 z-[9999] bg-black/90 border border-red-500 rounded p-3 text-xs text-white font-mono max-h-64 overflow-y-auto">
-          <div className="text-red-400 font-bold mb-2">TEMP MOBILE STRIPE AUTH DEBUG PANEL</div>
-          <div className="space-y-1">
-            <div><span className="text-red-400">userAgent:</span> {debugInfo.userAgent.substring(0, 50)}...</div>
-            <div><span className="text-red-400">sessionExists:</span> {debugInfo.sessionExists ? 'YES' : 'NO'}</div>
-            <div><span className="text-red-400">userExists:</span> {debugInfo.userExists ? 'YES' : 'NO'}</div>
-            <div><span className="text-red-400">userId:</span> {debugInfo.userId}</div>
-            <div><span className="text-red-400">pathname:</span> {debugInfo.pathname}</div>
-            <div><span className="text-red-400">search:</span> {debugInfo.search}</div>
-            <div><span className="text-red-400">accessTokenExists:</span> {debugInfo.accessTokenExists ? 'YES' : 'NO'}</div>
-            <div><span className="text-red-400">refreshTokenExists:</span> {debugInfo.refreshTokenExists ? 'YES' : 'NO'}</div>
-            <div className="mt-2 text-red-400 font-bold">localStorage keys ({debugInfo.localStorageKeys.length}):</div>
-            {debugInfo.localStorageKeys.map((key: string, idx: number) => (
-              <div key={idx} className="text-gray-300">  - {key}</div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
-  )
+  return <>{children}</>
 }

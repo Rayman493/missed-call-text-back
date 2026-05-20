@@ -229,6 +229,59 @@ export default function DashboardContent() {
   
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
+  
+  // ========================================================================
+  // TEMP MOBILE STRIPE AUTH DEBUG PANEL
+  // ========================================================================
+  // This is temporary debugging code to diagnose why mobile loses auth
+  // after returning from Stripe checkout. Remove once issue is resolved.
+  // ========================================================================
+  const [debugOverlayInfo, setDebugOverlayInfo] = useState<any>(null)
+  
+  useEffect(() => {
+    const checkoutSuccess = searchParams?.get('checkout') === 'success'
+    
+    if (checkoutSuccess) {
+      const collectDebugInfo = async () => {
+        const sessionResult = await supabase.auth.getSession()
+        const session = sessionResult.data.session
+        
+        // Collect localStorage keys
+        const localStorageKeys: string[] = []
+        if (typeof window !== 'undefined') {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key && (key.includes('supabase') || key.includes('sb-') || key.includes('auth'))) {
+              localStorageKeys.push(key)
+            }
+          }
+        }
+        
+        const info = {
+          pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+          search: typeof window !== 'undefined' ? window.location.search : 'unknown',
+          userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'unknown',
+          sessionExists: !!session,
+          userExists: !!user,
+          userId: user?.id || session?.user?.id || 'none',
+          localStorageKeys,
+          accessTokenExists: !!session?.access_token,
+          refreshTokenExists: !!session?.refresh_token,
+        }
+        
+        setDebugOverlayInfo(info)
+        
+        console.log('[MOBILE DEBUG]', info)
+      }
+      
+      collectDebugInfo()
+      // Update debug info every 2 seconds to capture state changes
+      const interval = setInterval(collectDebugInfo, 2000)
+      return () => clearInterval(interval)
+    }
+  }, [searchParams, user])
+  
+  const showDebugOverlay = searchParams?.get('checkout') === 'success' && debugOverlayInfo
 
   // Determine if onboarding is fully complete
   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
@@ -838,6 +891,26 @@ export default function DashboardContent() {
   // Step 14: Footer (final section)
   return (
     <DashboardErrorBoundary debugInfo={debugInfo}>
+      {showDebugOverlay && (
+        <div className="fixed bottom-2 left-2 right-2 z-[9999] bg-black/90 border border-red-500 rounded p-3 text-xs text-white font-mono max-h-64 overflow-y-auto">
+          <div className="text-red-400 font-bold mb-2">DEBUG OVERLAY ACTIVE</div>
+          <div className="text-red-400 font-bold mb-2">TEMP MOBILE STRIPE AUTH DEBUG PANEL</div>
+          <div className="space-y-1">
+            <div><span className="text-red-400">userAgent:</span> {debugOverlayInfo.userAgent.substring(0, 50)}...</div>
+            <div><span className="text-red-400">sessionExists:</span> {debugOverlayInfo.sessionExists ? 'YES' : 'NO'}</div>
+            <div><span className="text-red-400">userExists:</span> {debugOverlayInfo.userExists ? 'YES' : 'NO'}</div>
+            <div><span className="text-red-400">userId:</span> {debugOverlayInfo.userId}</div>
+            <div><span className="text-red-400">pathname:</span> {debugOverlayInfo.pathname}</div>
+            <div><span className="text-red-400">search:</span> {debugOverlayInfo.search}</div>
+            <div><span className="text-red-400">accessTokenExists:</span> {debugOverlayInfo.accessTokenExists ? 'YES' : 'NO'}</div>
+            <div><span className="text-red-400">refreshTokenExists:</span> {debugOverlayInfo.refreshTokenExists ? 'YES' : 'NO'}</div>
+            <div className="mt-2 text-red-400 font-bold">localStorage keys ({debugOverlayInfo.localStorageKeys.length}):</div>
+            {debugOverlayInfo.localStorageKeys.map((key: string, idx: number) => (
+              <div key={idx} className="text-gray-300">  - {key}</div>
+            ))}
+          </div>
+        </div>
+      )}
       <AuthGuard>
         <BusinessGuard>
           <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50/95 to-white dark:from-background dark:via-slate-900/40 dark:to-background flex flex-col">
