@@ -10,14 +10,21 @@ export async function middleware(req: NextRequest) {
   const url = new URL(req.url)
   const checkoutParam = url.searchParams.get('checkout')
   const sessionId = url.searchParams.get('session_id')
+  const billingReturnParam = url.searchParams.get('billing_return')
   const hasCheckoutSuccess =
     checkoutParam === 'success' ||
     Boolean(sessionId?.startsWith('cs_'))
+
+  // Check for billing return requests - these should bypass auth redirects
+  const isBillingReturn = billingReturnParam === 'success'
+  const hasStripeSession = Boolean(sessionId?.startsWith('cs_'))
 
   console.log('[TRACE Middleware Entry]', {
     pathname,
     search,
     hasCheckoutSuccess,
+    isBillingReturn,
+    hasStripeSession,
     hasSession: false // Will be updated after session check
   })
 
@@ -91,11 +98,32 @@ export async function middleware(req: NextRequest) {
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
+  // Bypass auth redirects for billing return requests - let client-side grace mode handle auth restoration
+  if (isBillingReturn || hasStripeSession) {
+    console.log('[TRACE Middleware Billing Return Allow]', {
+      pathname,
+      search,
+      isBillingReturn,
+      hasStripeSession,
+      hasSession: !!session
+    })
+    return NextResponse.next()
+  }
+
   // Allow users returning from Stripe Billing Portal without immediate redirect
   // Give session restoration a chance to complete
   const billingReturned = url.searchParams.get('billing') === 'returned'
 
   if (isProtectedRoute && !session && !billingReturned && !hasCheckoutSuccess) {
+    console.log('[TRACE Middleware Protected Redirect]', {
+      pathname,
+      search,
+      hasSession: !!session,
+      isBillingReturn,
+      hasStripeSession,
+      hasCheckoutSuccess,
+      billingReturned
+    })
     console.log('[Middleware] Protected route without session, redirecting to sign-in')
     console.log('[Middleware REDIRECT]', {
       from: pathname,
