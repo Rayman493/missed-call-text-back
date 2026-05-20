@@ -27,7 +27,11 @@ export async function middleware(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   const url = new URL(req.url)
-  const hasCheckoutSuccess = url.searchParams.get('checkout') === 'success'
+  const checkoutParam = url.searchParams.get('checkout')
+  const sessionId = url.searchParams.get('session_id')
+  const hasCheckoutSuccess =
+    checkoutParam === 'success' ||
+    Boolean(sessionId?.startsWith('cs_'))
 
   console.log('[TRACE Middleware]', {
     from: pathname + search,
@@ -83,7 +87,7 @@ export async function middleware(req: NextRequest) {
   // Give session restoration a chance to complete
   const billingReturned = url.searchParams.get('billing') === 'returned'
 
-  if (isProtectedRoute && !session && !billingReturned) {
+  if (isProtectedRoute && !session && !billingReturned && !hasCheckoutSuccess) {
     console.log('[Middleware] Protected route without session, redirecting to sign-in')
     console.log('[Middleware REDIRECT]', {
       from: pathname,
@@ -94,6 +98,17 @@ export async function middleware(req: NextRequest) {
       component: 'Middleware',
     })
     return NextResponse.redirect(new URL('/auth/signin', req.url))
+  }
+
+  // Allow checkout success requests through for client-side recovery
+  if (isProtectedRoute && !session && hasCheckoutSuccess) {
+    console.log('[TRACE Middleware Checkout Recovery Allow]', {
+      pathname,
+      search,
+      hasSession: false,
+      hasCheckoutSuccess: true,
+      billingReturned
+    })
   }
 
   console.log('[Middleware] Protected route with session, allowing access')
