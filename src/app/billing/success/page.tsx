@@ -13,6 +13,7 @@ interface CheckoutStatus {
   hasTwilioNumber: boolean
   redirectTo: string
   error?: string
+  readyForReauth?: boolean
   business?: {
     id: string
     subscriptionStatus: string
@@ -90,18 +91,20 @@ export default function BillingSuccessPage() {
         setStatus(data)
         setPollCount(prev => prev + 1)
 
-        // Check if we can redirect to dashboard
+        // Check if subscription is ready for reauth
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
-          const redirectUrl = sessionId 
-            ? `${data.redirectTo}?billing_return=success&session_id=${sessionId}`
-            : `${data.redirectTo}?billing_return=success`
-          
-          console.log('[Billing Success Redirect Dashboard]', {
-            reason: 'subscription_active',
+          console.log('[Billing Success Ready For Reauth]', {
+            sessionId,
             subscriptionStatus: data.subscriptionStatus,
-            redirectTo: redirectUrl
+            provisioningStatus: data.provisioningStatus,
+            hasTwilioNumber: data.hasTwilioNumber
           })
-          router.push(redirectUrl)
+          
+          // Show success state instead of auto-redirecting
+          setStatus({
+            ...data,
+            readyForReauth: true
+          })
           return
         }
 
@@ -147,6 +150,77 @@ export default function BillingSuccessPage() {
 
     return () => clearTimeout(timer)
   }, [sessionId, status, pollCount])
+
+  // Show success state when subscription is ready
+  if (status?.readyForReauth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="max-w-md w-full mx-auto p-6 text-center">
+          {/* Success Icon */}
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-8">
+            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          {/* Success Message */}
+          <h1 className="text-2xl font-bold text-foreground mb-4">Your ReplyFlow account is ready</h1>
+          
+          <div className="space-y-3 mb-8">
+            <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium">Payment confirmed</span>
+            </div>
+            
+            <div className="flex items-center justify-center space-x-2 text-blue-600 dark:text-blue-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium">Trial activated</span>
+            </div>
+            
+            <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="font-medium">Dashboard ready</span>
+            </div>
+          </div>
+
+          {/* Provisioning Notice */}
+          {!status.hasTwilioNumber && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-8">
+              <p className="text-blue-800 dark:text-blue-200 text-sm">
+                Your ReplyFlow number may still be finishing setup in the background.
+              </p>
+            </div>
+          )}
+
+          {/* Reauth Button */}
+          <Link 
+            href="/auth/signin?redirect=/dashboard&reason=post_checkout"
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
+            onClick={() => {
+              console.log('[Billing Success Continue Signin]', {
+                sessionId,
+                subscriptionStatus: status.subscriptionStatus,
+                destination: '/auth/signin?redirect=/dashboard&reason=post_checkout'
+              })
+            }}
+          >
+            Continue to Dashboard
+          </Link>
+
+          {/* Security Notice */}
+          <p className="text-muted-foreground text-sm mt-4">
+            Please sign in again to securely access your dashboard.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (
