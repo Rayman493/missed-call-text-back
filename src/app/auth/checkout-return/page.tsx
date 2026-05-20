@@ -13,13 +13,21 @@ export default function CheckoutReturnPage() {
   useEffect(() => {
     const processCheckoutReturn = async () => {
       const sessionId = searchParams?.get('session_id')
+      const checkoutStatus = searchParams?.get('checkout')
       
-      console.log('[CheckoutReturn] Processing checkout return')
-      console.log('[CheckoutReturn] Session ID:', sessionId)
-      console.log('[CheckoutReturn] Current URL:', window.location.href)
+      console.log('[CheckoutReturn] ===== PROCESSING CHECKOUT RETURN =====')
+      console.log('[CheckoutReturn] Query params:', {
+        sessionId,
+        checkoutStatus,
+        fullUrl: window.location.href,
+        pathname: window.location.pathname,
+        userAgent: navigator.userAgent,
+        isMobile: /Mobile|Android|iPhone/i.test(navigator.userAgent)
+      })
       
       if (!sessionId) {
-        console.error('[CheckoutReturn] No session_id in URL')
+        console.error('[CheckoutReturn] ERROR: No session_id in URL')
+        console.log('[CheckoutReturn] Redirect decision: error (no session_id)')
         setStatus('error')
         setError('No session ID found in URL')
         return
@@ -35,35 +43,48 @@ export default function CheckoutReturnPage() {
 
         const data = await response.json()
         
-        console.log('[CheckoutReturn] Checkout recovery response:', data)
+        console.log('[CheckoutReturn] Checkout recovery API response:', {
+          ok: response.ok,
+          status: response.status,
+          success: data.success,
+          error: data.error,
+          subscriptionStatus: data.subscriptionStatus,
+          businessId: data.businessId
+        })
 
         if (!response.ok || !data.success) {
-          console.error('[CheckoutReturn] Checkout recovery failed:', data)
+          console.error('[CheckoutReturn] ERROR: Checkout recovery failed:', data)
+          console.log('[CheckoutReturn] Redirect decision: error (checkout recovery failed)')
           setStatus('error')
           setError(data.error || 'Failed to process checkout')
           return
         }
 
         console.log('[CheckoutReturn] Checkout recovery successful')
+        console.log('[CheckoutReturn] Business ID:', data.businessId)
+        console.log('[CheckoutReturn] Subscription status:', data.subscriptionStatus)
         
         // Check if Supabase session exists with recovery attempts
         const supabase = createBrowserClient()
         if (!supabase) {
-          console.error('[CheckoutReturn] Failed to create Supabase client')
+          console.error('[CheckoutReturn] ERROR: Failed to create Supabase client')
+          console.log('[CheckoutReturn] Redirect decision: needs_signin (no supabase client)')
           setStatus('needs_signin')
           return
         }
 
-        // Attempt session recovery with multiple tries for mobile browsers
+        console.log('[CheckoutReturn] Supabase client created successfully')
         console.log('[CheckoutReturn] Attempting session recovery with retries')
+        
         let session = null
         let sessionError = null
         
         for (let attempt = 1; attempt <= 3; attempt++) {
-          console.log(`[CheckoutReturn] Session recovery attempt ${attempt}/3`)
+          console.log(`[CheckoutReturn] ===== SESSION RECOVERY ATTEMPT ${attempt}/3 =====`)
           
           // Wait a bit between attempts to allow cookies to load
           if (attempt > 1) {
+            console.log('[CheckoutReturn] Waiting 1 second before retry...')
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
           
@@ -75,31 +96,47 @@ export default function CheckoutReturnPage() {
             attempt,
             sessionExists: !!session,
             userId: session?.user?.id,
-            sessionError: sessionError?.message
+            userEmail: session?.user?.email,
+            sessionError: sessionError?.message,
+            accessTokenPresent: !!session?.access_token,
+            refreshTokenPresent: !!session?.refresh_token
           })
           
           if (session) {
-            console.log('[CheckoutReturn] Session recovered on attempt', attempt)
+            console.log('[CheckoutReturn] SUCCESS: Session recovered on attempt', attempt)
+            console.log('[CheckoutReturn] User:', {
+              id: session.user.id,
+              email: session.user.email,
+              createdAt: session.user.created_at
+            })
             break
+          } else {
+            console.log('[CheckoutReturn] Session not found on attempt', attempt)
           }
         }
 
         if (!session) {
-          console.log('[CheckoutReturn] Session recovery failed after 3 attempts, showing sign-in prompt')
-          console.log('[CheckoutReturn] Session error:', sessionError)
+          console.log('[CheckoutReturn] ===== SESSION RECOVERY FAILED =====')
+          console.log('[CheckoutReturn] Final session error:', sessionError)
+          console.log('[CheckoutReturn] Redirect decision: needs_signin (session recovery failed after 3 attempts)')
+          console.log('[CheckoutReturn] Redirect target: /auth/signin?redirect=/dashboard&checkout=success')
           setStatus('needs_signin')
           return
         }
 
-        console.log('[CheckoutReturn] Supabase session exists, redirecting to dashboard')
+        console.log('[CheckoutReturn] ===== SESSION RECOVERY SUCCESSFUL =====')
+        console.log('[CheckoutReturn] Redirecting to dashboard with checkout success')
+        console.log('[CheckoutReturn] Redirect decision: success (session recovered)')
         setStatus('success')
         
         // Redirect to dashboard with checkout success
         setTimeout(() => {
+          console.log('[CheckoutReturn] Executing redirect to /dashboard?checkout=success')
           router.replace('/dashboard?checkout=success')
         }, 500)
       } catch (error) {
-        console.error('[CheckoutReturn] Error processing checkout return:', error)
+        console.error('[CheckoutReturn] ERROR: Network error processing checkout return:', error)
+        console.log('[CheckoutReturn] Redirect decision: error (network error)')
         setStatus('error')
         setError('Network error processing checkout')
       }
@@ -154,13 +191,13 @@ export default function CheckoutReturnPage() {
               Your trial is active!
             </h2>
             <p className="text-muted-foreground mb-6">
-              Please sign in to continue to your dashboard.
+              We just need to reconnect your session.
             </p>
             <button
-              onClick={handleSignIn}
+              onClick={() => router.push('/auth/signin?redirect=/dashboard&checkout=success')}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
             >
-              Sign In
+              Continue to Dashboard
             </button>
           </>
         )}
