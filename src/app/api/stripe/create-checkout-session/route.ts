@@ -179,8 +179,8 @@ export async function POST(request: Request) {
       action: 'checkout'
     });
     
-    // Route directly to dashboard to avoid interstitial page
-    const successUrl = `${siteUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`
+    // Route to dedicated billing success page for smoother post-checkout flow
+    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[TRACE Stripe Success URL]', {
