@@ -39,7 +39,7 @@ export default function Navigation() {
     <nav className="flex items-center gap-0.5">
       <Link
         href="/dashboard"
-        className={`min-w-[80px] px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[90px] px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ease-in-out text-center ${
           pathname === '/dashboard'
             ? 'text-white bg-white/10 shadow-sm'
             : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -49,7 +49,7 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`min-w-[80px] px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[85px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/leads')
             ? 'text-white bg-white/10 shadow-sm'
             : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -59,7 +59,7 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/settings"
-        className={`min-w-[80px] px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[90px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/settings')
             ? 'text-white bg-white/10 shadow-sm'
             : 'text-gray-400 hover:text-white hover:bg-white/5'

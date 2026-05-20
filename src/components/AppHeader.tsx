@@ -27,9 +27,9 @@ export default function AppHeader({
             </div>
             
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 hover:opacity-90 transition">
-              <BrandIcon size={24} className="sm:size-32" />
-              <span className="text-base md:text-xl lg:text-2xl font-semibold tracking-tight">
+            <Link href="/dashboard" className="flex items-center gap-2.5 md:gap-3.5 hover:opacity-90 transition">
+              <BrandIcon size={26} className="sm:size-36" />
+              <span className="text-lg md:text-2xl lg:text-3xl font-bold tracking-tight">
                 <span className="text-white">ReplyFlow</span>
                 <span className="text-blue-400">HQ</span>
               </span>
