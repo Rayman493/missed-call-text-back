@@ -444,7 +444,34 @@ function AuthContent() {
         reason: 'Signup successful with verified session',
         hasSession: true,
         component: 'Auth',
+        userId: verifiedSession?.user?.id,
+        email: verifiedSession?.user?.email,
+        emailConfirmed: !!verifiedSession?.user?.email_confirmed_at
       })
+      
+      // Log final session state for debugging
+      console.log('[SIGNUP FINAL SESSION STATE]', {
+        sessionExists: !!verifiedSession,
+        userId: verifiedSession?.user?.id,
+        email: verifiedSession?.user?.email,
+        accessTokenExists: !!verifiedSession?.access_token,
+        refreshTokenExists: !!verifiedSession?.refresh_token,
+        expiresAt: verifiedSession?.expires_at,
+        emailConfirmedAt: verifiedSession?.user?.email_confirmed_at
+      })
+      
+      // Log localStorage state
+      const localStorageKeys: string[] = []
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
+            localStorageKeys.push(key)
+          }
+        }
+      }
+      console.log('[SIGNUP AUTH STORAGE] localStorage keys:', localStorageKeys)
+      
       setLoading(false)
       isSubmittingRef.current = false
       

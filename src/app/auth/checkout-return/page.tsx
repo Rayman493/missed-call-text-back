@@ -78,6 +78,51 @@ export default function CheckoutReturnPage() {
         
         let session = null
         let sessionError = null
+        let user = null
+        let userError = null
+        
+        // First, try to refresh session using getUser() which uses refresh token
+        console.log('[CheckoutReturn] ===== ATTEMPTING SESSION REFRESH FROM REFRESH TOKEN =====')
+        try {
+          const userResult = await supabase.auth.getUser()
+          user = userResult.data.user
+          userError = userResult.error
+          
+          console.log('[CheckoutReturn] getUser() result:', {
+            userExists: !!user,
+            userId: user?.id,
+            userEmail: user?.email,
+            userError: userError?.message
+          })
+          
+          if (user) {
+            console.log('[CheckoutReturn] User recovered via refresh token, now getting session')
+            const sessionResult = await supabase.auth.getSession()
+            session = sessionResult.data.session
+            sessionError = sessionResult.error
+            
+            console.log('[CheckoutReturn] Session after getUser():', {
+              sessionExists: !!session,
+              userId: session?.user?.id,
+              sessionError: sessionError?.message
+            })
+            
+            if (session) {
+              console.log('[CheckoutReturn] ===== SESSION RECOVERY SUCCESSFUL VIA REFRESH TOKEN =====')
+              setStatus('success')
+              setTimeout(() => {
+                console.log('[CheckoutReturn] Executing redirect to /dashboard?checkout=success')
+                router.replace('/dashboard?checkout=success')
+              }, 500)
+              return
+            }
+          }
+        } catch (refreshError) {
+          console.error('[CheckoutReturn] Error during session refresh:', refreshError)
+        }
+        
+        // If refresh token failed, try direct session recovery with retries
+        console.log('[CheckoutReturn] Refresh token recovery failed, attempting direct session recovery')
         
         for (let attempt = 1; attempt <= 3; attempt++) {
           console.log(`[CheckoutReturn] ===== SESSION RECOVERY ATTEMPT ${attempt}/3 =====`)
