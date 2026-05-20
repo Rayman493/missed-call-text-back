@@ -14,6 +14,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryAttempted, setRecoveryAttempted] = useState(false)
+  
+  console.log('[AUTH GUARD] ===== RENDER =====', {
+    pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+    search: searchParams?.toString(),
+    userExists: !!user,
+    userId: user?.id,
+    loading,
+    isRecovering,
+    recoveryAttempted
+  })
 
   // Detect checkout success and attempt session recovery
   useEffect(() => {
@@ -112,13 +122,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       attemptSessionRecovery().then((recovered) => {
         if (!recovered) {
-          console.log('[AuthGuard] Session recovery failed, redirecting to signin with preserved URL')
+          console.log('[AUTH GUARD] ===== REDIRECTING TO SIGNIN =====')
+          console.log('[AUTH GUARD] Session recovery failed, redirecting to signin with preserved URL')
           const currentUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard'
           const encodedRedirect = encodeURIComponent(currentUrl)
-          console.log('[AuthGuard] Redirecting to signin with redirect:', encodedRedirect)
+          console.log('[AUTH GUARD] Redirecting to signin with redirect:', encodedRedirect)
           router.push(`/signin?redirect=${encodedRedirect}`)
         } else {
-          console.log('[AuthGuard] Session recovery successful, remaining on dashboard')
+          console.log('[AUTH GUARD] ===== SESSION RECOVERY SUCCESSFUL =====')
+          console.log('[AUTH GUARD] Session recovery successful, remaining on dashboard')
         }
       })
     }

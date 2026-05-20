@@ -96,6 +96,15 @@ function AuthContent() {
   const emailParam = searchParams?.get('email')
   const redirectParam = searchParams?.get('redirect') || '/dashboard'
   
+  console.log('[SIGNIN PAGE] ===== RENDER =====', {
+    pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+    search: searchParams?.toString(),
+    mode,
+    emailParam,
+    redirectParam,
+    fullUrl: typeof window !== 'undefined' ? window.location.href : 'unknown'
+  })
+  
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
