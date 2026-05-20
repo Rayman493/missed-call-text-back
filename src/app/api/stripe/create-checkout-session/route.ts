@@ -123,6 +123,7 @@ export async function POST(request: Request) {
           error: eligibilityResult.message || 'Trial eligibility check failed',
           reasons: eligibilityResult.reasons,
           support_email: eligibilityResult.support_email,
+          cooldown_end_date: eligibilityResult.checks?.cooldown_end_date,
         },
         { status: 403 }
       );

@@ -191,6 +191,7 @@ export async function POST(request: Request) {
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             trial_ends_at: checkoutTrialEndsAt,
+            trial_started_at: new Date().toISOString(),
             current_period_end: checkoutCurrentPeriodEnd,
             cancel_at: checkoutCancelAt,
             cancel_at_period_end: subscription?.cancel_at_period_end ?? false,

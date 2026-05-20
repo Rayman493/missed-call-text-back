@@ -671,7 +671,10 @@ export default function DashboardContent() {
       if (!response.ok) {
         console.error('[checkout] API error:', data)
         // Set inline error instead of browser alert
-        if (data.error === 'Business has already used a free trial') {
+        if (data.cooldown_end_date) {
+          const cooldownDate = new Date(data.cooldown_end_date)
+          setCheckoutError(`You can start another free trial after ${cooldownDate.toLocaleDateString()}.`)
+        } else if (data.error === 'Business has already used a free trial') {
           setCheckoutError('This business has already used a free trial.')
         } else {
           setCheckoutError(data.error || 'Failed to create checkout session')

@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       email_domain_reason: null as string | null,
       admin_override: false,
       override_reason: null as string | null,
+      cooldown_end_date: null as string | null,
     }
 
     // Check 1: Admin override (takes precedence)
@@ -71,19 +72,38 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Check 2: Business phone number uniqueness (one trial per phone number)
+    // Check 2: Business phone number uniqueness with 30-day cooldown
     // Check both active businesses and trial_history
     const { data: existingBusiness } = await supabaseAdmin
       .from('businesses')
-      .select('id, twilio_phone_number, subscription_status, trial_ends_at')
+      .select('id, twilio_phone_number, subscription_status, trial_ends_at, trial_started_at')
       .eq('twilio_phone_number', business_phone_number)
       .is('deleted_at', null)
       .maybeSingle()
 
     if (existingBusiness) {
-      console.log('[trial-eligibility] Active business found with this phone number')
-      checks.phone_number_eligible = false
-      checks.phone_number_reason = 'This business phone number is already associated with an active account'
+      console.log('[trial-eligibility] Active business found with this phone number:', existingBusiness)
+      
+      // If subscription is active or trialing, block trial
+      if (existingBusiness.subscription_status === 'trialing' || existingBusiness.subscription_status === 'active') {
+        checks.phone_number_eligible = false
+        checks.phone_number_reason = 'This business phone number is already associated with an active account'
+      } 
+      // If subscription is canceled, check 30-day cooldown
+      else if (existingBusiness.subscription_status === 'canceled' && existingBusiness.trial_started_at) {
+        const trialStartDate = new Date(existingBusiness.trial_started_at)
+        const cooldownEndDate = new Date(trialStartDate)
+        cooldownEndDate.setDate(cooldownEndDate.getDate() + 30)
+        const now = new Date()
+        
+        if (now < cooldownEndDate) {
+          checks.phone_number_eligible = false
+          checks.phone_number_reason = `You can start another free trial after ${cooldownEndDate.toLocaleDateString()}`
+          checks.cooldown_end_date = cooldownEndDate.toISOString()
+        } else {
+          console.log('[trial-eligibility] 30-day cooldown has passed, allowing trial')
+        }
+      }
     }
 
     // Check trial_history for deleted accounts with this phone number
@@ -91,12 +111,33 @@ export async function POST(request: NextRequest) {
       .from('trial_history')
       .select('*')
       .eq('business_phone_number', business_phone_number)
+      .order('account_deleted_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
-    if (trialHistory) {
+    if (trialHistory && trialHistory.trial_started_at) {
       console.log('[trial-eligibility] Trial history found for this phone number:', trialHistory)
-      checks.phone_number_eligible = false
-      checks.phone_number_reason = 'This business phone number has already used a free trial'
+      
+      // Check 30-day cooldown
+      const trialStartDate = new Date(trialHistory.trial_started_at)
+      const cooldownEndDate = new Date(trialStartDate)
+      cooldownEndDate.setDate(cooldownEndDate.getDate() + 30)
+      const now = new Date()
+      
+      console.log('[trial-eligibility] Cooldown check:', {
+        trialStarted: trialStartDate.toISOString(),
+        cooldownEnd: cooldownEndDate.toISOString(),
+        now: now.toISOString(),
+        isEligible: now >= cooldownEndDate
+      })
+      
+      if (now < cooldownEndDate) {
+        checks.phone_number_eligible = false
+        checks.phone_number_reason = `You can start another free trial after ${cooldownEndDate.toLocaleDateString()}`
+        checks.cooldown_end_date = cooldownEndDate.toISOString()
+      } else {
+        console.log('[trial-eligibility] 30-day cooldown has passed, allowing trial')
+      }
     }
 
     // Check 3: Stripe-based protection (check for existing Stripe customer with trials)
