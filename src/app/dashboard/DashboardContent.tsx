@@ -799,12 +799,13 @@ export default function DashboardContent() {
 
   // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
   // This prevents flash of previous setup/onboarding screens during dashboard load
-  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
-    console.log('[Dashboard Gate] loading - waiting for auth/business/subscription state to resolve', {
+  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete || onboardingState?.state === 'unknown') {
+    console.log('[Dashboard Gate] loading - waiting for auth/business/subscription/state to resolve', {
       authLoading,
       businessLoading,
       webhookConfirming,
       businessFetchComplete,
+      onboardingState: onboardingState?.state,
       subscription_status: business?.subscription_status
     })
     return <AppLoadingScreen />
@@ -913,7 +914,7 @@ export default function DashboardContent() {
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
-                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
+                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && (onboardingState.state as string) !== 'unknown' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="SetupProgress">
                     {(() => {
                       console.log('[Render Guard] GettingStarted rendered', {
@@ -938,7 +939,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* HARD RENDER GUARD: OnboardingGuide only renders when subscription is active */}
-                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && !shouldShowLoadingState && (
+                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && (onboardingState.state as string) !== 'unknown' && !shouldShowLoadingState && (
                   <SectionErrorBoundary sectionName="OnboardingGuide">
                     {(() => {
                       console.log('[Render Guard] OnboardingGuide rendered', {

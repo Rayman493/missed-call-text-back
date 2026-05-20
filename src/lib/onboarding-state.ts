@@ -1,6 +1,7 @@
 import { hasActiveAccess, Business as SubscriptionBusiness } from './subscription-utils'
 
 export type OnboardingState = 
+  | 'unknown'
   | 'PRE_TRIAL'
   | 'ACTIVATING'
   | 'MESSAGING_SETUP'
@@ -76,17 +77,18 @@ export function getBusinessOnboardingState(
     relatedData
   })
 
-  // If no business data, assume pre-trial
-  if (!business) {
-    console.log('[getBusinessOnboardingState] No business data - returning PRE_TRIAL')
+  // If no business data or subscription_status is null, return unknown to prevent render flash
+  // This ensures the loading gate stays active until state is fully resolved
+  if (!business || business.subscription_status === null || business.subscription_status === undefined) {
+    console.log('[getBusinessOnboardingState] Business data not fully loaded - returning unknown')
     return {
-      state: 'PRE_TRIAL',
-      label: 'Start your free trial',
-      description: 'Activate ReplyFlow to begin setting up your missed-call text-back system.',
+      state: 'unknown',
+      label: 'Loading...',
+      description: 'Determining your account setup state.',
       tone: 'neutral',
       canShowLiveIndicators: false,
-      currentStep: 1,
-      lockedSteps: [2, 3, 4, 5],
+      currentStep: 0,
+      lockedSteps: [1, 2, 3, 4, 5],
       completedSteps: []
     }
   }
