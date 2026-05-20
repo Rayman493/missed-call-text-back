@@ -976,8 +976,8 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 relative z-10">
-              <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">
+            <div className="flex-1 pt-6 sm:pt-8 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
+              <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-6">
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}

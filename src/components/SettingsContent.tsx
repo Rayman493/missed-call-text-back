@@ -468,8 +468,8 @@ export default function SettingsContent() {
             <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 p-3 sm:p-4 lg:p-6 pb-20">
-              <div className="max-w-7xl mx-auto">
+            <div className="flex-1 pt-6 sm:pt-8 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20">
+              <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Navigation Tabs */}
             <div className="sticky top-0 z-20 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
