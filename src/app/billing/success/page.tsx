@@ -92,12 +92,16 @@ export default function BillingSuccessPage() {
 
         // Check if we can redirect to dashboard
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
+          const redirectUrl = sessionId 
+            ? `${data.redirectTo}?billing_return=success&session_id=${sessionId}`
+            : `${data.redirectTo}?billing_return=success`
+          
           console.log('[Billing Success Redirect Dashboard]', {
             reason: 'subscription_active',
             subscriptionStatus: data.subscriptionStatus,
-            redirectTo: data.redirectTo
+            redirectTo: redirectUrl
           })
-          router.push(data.redirectTo)
+          router.push(redirectUrl)
           return
         }
 
