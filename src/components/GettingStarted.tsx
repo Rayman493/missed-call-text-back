@@ -69,9 +69,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Auto-expand current step on mobile (must be before early return)
+  // Auto-expand current step on mobile when setup is expanded (must be before early return)
   useEffect(() => {
-    if (!isMobile || !business) return
+    if (!isMobile || !business || !isExpanded) return
     
     // Calculate current incomplete step from business data
     const subscriptionActive = hasActiveAccess(business)
@@ -82,8 +82,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     
     // Determine which step should be expanded
     if (!subscriptionActive) {
-      // Step 1: ReplyFlow ready - don't auto-expand
-      return
+      // Step 1: ReplyFlow ready - auto-expand on mobile
+      setExpandedCardId('ready')
     } else if (!replyFlowReadyDone) {
       // Step 1: ReplyFlow ready - auto-expand on mobile
       setExpandedCardId('ready')
@@ -94,7 +94,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       // Step 3: Test - auto-expand on mobile
       setExpandedCardId('test')
     }
-  }, [isMobile, business, realCallDataExists])
+  }, [isMobile, business, realCallDataExists, isExpanded])
 
   // When onboarding is complete, collapse by default
   useEffect(() => {
@@ -777,41 +777,41 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2' : 'p-2.5 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2 sm:p-2.5' : 'p-2 sm:p-3.5'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Horizontal layout: left text, right CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h2 className={`text-base sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
+            <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
-            {/* System Status - subtle indicator */}
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-              <span className={`text-[10px] font-medium ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                {complete ? 'System Status: Live' : 'Ready for Final Test'}
+            {/* System Status - subtle indicator - compact on mobile */}
+            <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
+              <div className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+              <span className={`text-[9px] sm:text-[10px] font-medium ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                {complete ? 'Live' : incompleteItems.length === 1 ? 'Next: Complete Final Test' : 'Ready for Final Test'}
               </span>
             </span>
-            {/* Trial badge - only show when in trial and onboarding incomplete */}
+            {/* Trial badge - only show when in trial and onboarding incomplete - compact on mobile */}
             {!complete && isInTrial && trialDaysRemaining !== null && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-[10px] sm:text-[11px] font-medium text-blue-700 dark:text-blue-300">
-                Free Trial • {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'} left
+              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-[9px] sm:text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'}
               </span>
             )}
           </div>
           {(!isOnboardingComplete || isExpanded) && (
             <>
-              <p className={`text-sm text-muted-foreground mt-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
+              <p className={`text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
                 {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
               </p>
               {!complete && incompleteItems.length === 1 && (
-                <div className="mt-3">
+                <div className="mt-2 sm:mt-3">
                   <Link
                     href="/dashboard/test-setup"
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
+                    className="inline-flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     Complete Final Test
@@ -821,6 +821,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             </>
           )}
         </div>
+        {/* Toggle button - desktop only in header, mobile moves below progress bar */}
         {complete && (
           <button
             onClick={handleToggle}
@@ -830,24 +831,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           >
             <svg
               className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        )}
-        {!complete && (
-          <button
-            onClick={handleToggle}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
-            aria-expanded={isExpanded}
-            aria-label="Toggle setup checklist"
-          >
-            <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
-            <svg
-              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -870,6 +853,26 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             role="progressbar"
           />
         </div>
+      )}
+
+      {/* View steps button - mobile only, below progress bar */}
+      {!complete && (
+        <button
+          onClick={handleToggle}
+          className="sm:hidden inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
+          aria-expanded={isExpanded}
+          aria-label="Toggle setup checklist"
+        >
+          <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
+          <svg
+            className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       )}
 
       {isExpanded && (
