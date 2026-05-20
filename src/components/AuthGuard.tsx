@@ -17,7 +17,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [recoveryTimeoutElapsed, setRecoveryTimeoutElapsed] = useState(false)
 
   // Check if we're in checkout recovery mode
-  const isCheckoutRecovery = searchParams?.get('checkout') === 'success'
+  const checkoutParam = searchParams?.get('checkout')
+  const sessionId = searchParams?.get('session_id')
+  const isCheckoutRecovery = 
+    checkoutParam === 'success' ||
+    Boolean(sessionId?.startsWith('cs_'))
 
   // Trace log on every AuthGuard render
   useEffect(() => {
@@ -35,6 +39,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, isCheckoutRecovery])
 
+  // Trace log when checkout recovery is active
+  useEffect(() => {
+    if (isCheckoutRecovery && typeof window !== 'undefined') {
+      console.log('[TRACE AuthGuard Checkout Recovery Active]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hasCheckoutSuccess: true,
+        hasSession: !!user,
+        loading,
+        recoveryElapsedMs: recoveryTimeoutElapsed ? 3000 : 0
+      })
+    }
+  }, [isCheckoutRecovery, user, loading, recoveryTimeoutElapsed])
+
   // Set recovery timeout - after 3 seconds, if still no session, route to recovery page
   useEffect(() => {
     if (!isCheckoutRecovery || user) return
@@ -42,7 +60,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     console.log('[Checkout Recovery] Starting 3-second session recovery timeout')
 
     const timeout = setTimeout(() => {
-      console.log('[Checkout Recovery] Session recovery timeout elapsed, checking session')
+      console.log('[TRACE AuthGuard Checkout Recovery Timeout]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hasCheckoutSuccess: true,
+        hasSession: false,
+        loading,
+        recoveryElapsedMs: 3000
+      })
       
       // Check if session exists
       supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
@@ -55,7 +80,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           })
           console.log('[Checkout Recovery] No session available, routing to recovery page')
           setRecoveryTimeoutElapsed(true)
-          router.push('/auth/recover-session?checkout=success')
+          
+          // Preserve session_id if available
+          const recoveryUrl = sessionId 
+            ? `/auth/recover-session?checkout=success&session_id=${sessionId}`
+            : `/auth/recover-session?checkout=success`
+          
+          router.push(recoveryUrl)
         } else {
           console.log('[Redirect Decision]', {
             reason: 'checkout_recovery_session_restored',
@@ -69,7 +100,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }, 3000)
 
     return () => clearTimeout(timeout)
-  }, [isCheckoutRecovery, user, router])
+  }, [isCheckoutRecovery, user, router, sessionId])
 
   // Show setup error if env vars are missing
   if (!supabase) {
@@ -83,6 +114,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       console.log('[AuthGuard] Recovery timeout elapsed, showing loading while redirecting to recovery page')
       return <AppLoadingScreen />
     }
+    console.log('[TRACE AuthGuard Prevent Homepage Fallback]', {
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hasCheckoutSuccess: true,
+      hasSession: !!user,
+      loading,
+      action: 'showing_loading_instead_of_homepage'
+    })
     console.log('[AuthGuard] Recovery mode active - waiting for session restoration')
     return <AppLoadingScreen />
   }

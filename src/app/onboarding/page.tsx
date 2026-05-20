@@ -60,6 +60,21 @@ export default function OnboardingPage() {
 
   // Get current user and validate session
   useEffect(() => {
+    // Check if we're in checkout recovery mode - if so, delay validation
+    const url = typeof window !== 'undefined' ? new URL(window.location.href) : null
+    const checkoutParam = url?.searchParams.get('checkout')
+    const sessionId = url?.searchParams.get('session_id')
+    const isCheckoutRecovery = 
+      checkoutParam === 'success' ||
+      Boolean(sessionId?.startsWith('cs_'))
+
+    if (isCheckoutRecovery) {
+      console.log('[Onboarding] Checkout recovery detected, delaying session validation')
+      // Don't validate session immediately during checkout recovery
+      // Let AuthGuard handle recovery first
+      return
+    }
+
     // Get current user and validate session
     const getUser = async () => {
       console.log('[Onboarding] Validating session and user...')
