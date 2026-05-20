@@ -154,15 +154,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       router.push('/auth/signin')
     } else if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && isCheckoutSuccess) {
-      console.log('[Auth] User returning from checkout success, allowing session recovery time')
-      console.log('[Auth] Checkout success detected, delaying redirect to allow session recovery')
+      console.log('[Auth] ===== CHECKOUT SUCCESS DETECTED, ALLOWING SESSION RECOVERY =====')
+      console.log('[Auth] Checkout success params:', {
+        checkoutStatus,
+        sessionId,
+        billingReturned,
+        isCheckoutSuccess,
+        pathname,
+        hasUser: !!user,
+        userId: user?.id
+      })
+      console.log('[Auth] Delaying redirect to allow session recovery from cookies after Stripe redirect')
+      
       // Delay redirect to allow session to load from cookies after Stripe redirect
+      // Mobile browsers may take longer to restore localStorage/session
       setTimeout(() => {
         if (!user) {
-          console.log('[Auth] Session still missing after delay, redirecting to signin')
-          router.push('/auth/signin?redirect=/dashboard')
+          console.log('[Auth] ===== SESSION RECOVERY FAILED, REDIRECTING TO SIGNIN =====')
+          console.log('[Auth] Session still missing after delay, redirecting to signin with preserved checkout success')
+          
+          // Preserve the exact URL with checkout=success parameter
+          const currentUrl = window.location.pathname + window.location.search
+          const encodedRedirect = encodeURIComponent(currentUrl)
+          
+          console.log('[Auth] Redirect decision:', {
+            attemptedRedirectTarget: '/auth/signin',
+            redirectParam: currentUrl,
+            encodedRedirect,
+            reason: 'Session recovery failed after checkout success',
+            finalRedirectPath: `/auth/signin?redirect=${encodedRedirect}`
+          })
+          
+          router.push(`/auth/signin?redirect=${encodedRedirect}`)
         } else {
+          console.log('[Auth] ===== SESSION RECOVERY SUCCESSFUL =====')
           console.log('[Auth] Session recovered, staying on dashboard')
+          console.log('[Auth] User authenticated:', {
+            userId: user.id,
+            email: user.email
+          })
         }
       }, 2000)
     }
