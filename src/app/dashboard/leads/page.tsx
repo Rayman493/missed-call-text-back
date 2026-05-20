@@ -226,7 +226,7 @@ export default function LeadsPage() {
             <AppHeader title="Leads" />
 
           {/* Main Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 relative z-10">
             <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
