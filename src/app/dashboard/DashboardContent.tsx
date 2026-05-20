@@ -200,7 +200,7 @@ export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
 
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -303,51 +303,89 @@ export default function DashboardContent() {
     const sessionId = searchParams?.get('session_id')
     
     if (checkoutStatus === 'success') {
-      console.log('[Dashboard] ===== CHECKOUT SUCCESS DETECTED =====')
-      console.log('[Dashboard] Session ID:', sessionId)
-      console.log('[Dashboard] Attempting session recovery before business refresh')
+      console.log('[checkout-recovery] ===== CHECKOUT SUCCESS DETECTED =====')
+      console.log('[checkout-recovery] Session ID:', sessionId)
+      console.log('[checkout-recovery] Starting checkout recovery mode with 8s timeout')
+      
+      // Clean up localStorage markers
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('replyflow_checkout_in_progress')
+        localStorage.removeItem('replyflow_checkout_return')
+        console.log('[checkout-recovery] Cleaned up localStorage markers')
+      }
       
       // Attempt session recovery for mobile browsers that may have cleared cookies
       const attemptSessionRecovery = async () => {
-        if (!supabase) {
-          console.log('[Dashboard] No supabase client available')
-          return false
+        console.log('[checkout-recovery] ===== SESSION RESTORE ATTEMPT STARTED =====')
+        
+        // Wait for auth loading to finish
+        if (authLoading) {
+          console.log('[checkout-recovery] Auth still loading, waiting...')
+          await new Promise(resolve => setTimeout(resolve, 500))
         }
         
-        // First try to refresh using getUser()
+        // Call getUser() to attempt refresh token recovery
+        console.log('[checkout-recovery] Calling getUser() to restore session from refresh token...')
         try {
           const userResult = await supabase.auth.getUser()
+          console.log('[checkout-recovery] getUser() result:', {
+            userExists: !!userResult.data.user,
+            userId: userResult.data.user?.id,
+            error: userResult.error?.message
+          })
+          
           if (userResult.data.user) {
-            console.log('[Dashboard] Session recovered via getUser() refresh token')
+            console.log('[checkout-recovery] Session restored via getUser() refresh token')
             return true
           }
         } catch (error) {
-          console.log('[Dashboard] getUser() refresh failed:', error)
+          console.log('[checkout-recovery] getUser() failed:', error)
         }
         
-        // Then try direct session recovery with retries
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const sessionResult = await supabase.auth.getSession()
-          if (sessionResult.data.session) {
-            console.log('[Dashboard] Session recovered via getSession() attempt', attempt)
-            return true
-          }
-          if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          }
+        // Call getSession() to attempt session recovery
+        console.log('[checkout-recovery] Calling getSession() to restore session...')
+        const sessionResult = await supabase.auth.getSession()
+        console.log('[checkout-recovery] getSession() result:', {
+          sessionExists: !!sessionResult.data.session,
+          userId: sessionResult.data.session?.user?.id,
+          accessTokenPresent: !!sessionResult.data.session?.access_token,
+          refreshTokenPresent: !!sessionResult.data.session?.refresh_token,
+          error: sessionResult.error?.message
+        })
+        
+        if (sessionResult.data.session) {
+          console.log('[checkout-recovery] Session restored via getSession()')
+          return true
         }
         
-        console.log('[Dashboard] Session recovery failed after all attempts')
+        console.log('[checkout-recovery] Session restore failed after all attempts')
         return false
       }
       
-      // Attempt session recovery, then proceed with business refresh
-      attemptSessionRecovery().then((recovered) => {
-        console.log('[Dashboard] Session recovery result:', recovered)
+      // Attempt session recovery with 8s timeout, then proceed with business refresh
+      const RECOVERY_TIMEOUT_MS = 8000
+      const startTime = Date.now()
+      
+      Promise.race([
+        attemptSessionRecovery(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Recovery timeout')), RECOVERY_TIMEOUT_MS))
+      ]).then((recovered: any) => {
+        const elapsed = Date.now() - startTime
+        console.log('[checkout-recovery] ===== SESSION RESTORE RESULT =====')
+        console.log('[checkout-recovery] Recovered:', recovered)
+        console.log('[checkout-recovery] Time elapsed:', elapsed, 'ms')
+        console.log('[checkout-recovery] Proceeding with business refresh')
+        proceedWithCheckout(sessionId || null)
+      }).catch((error) => {
+        const elapsed = Date.now() - startTime
+        console.log('[checkout-recovery] ===== SESSION RESTORE TIMEOUT =====')
+        console.log('[checkout-recovery] Error:', error.message)
+        console.log('[checkout-recovery] Time elapsed:', elapsed, 'ms')
+        console.log('[checkout-recovery] Proceeding with business refresh anyway')
         proceedWithCheckout(sessionId || null)
       })
     }
-  }, [checkoutStatus, searchParams, supabase])
+  }, [checkoutStatus, searchParams, supabase, authLoading])
   
   // Separate effect for checkout business refresh to avoid dependency issues
   const proceedWithCheckout = (sessionId: string | null) => {
@@ -593,8 +631,35 @@ export default function DashboardContent() {
       return
     }
     
-    console.log('[checkout] ===== SESSION VERIFIED - PROCEEDING WITH STRIPE =====')
-    console.log('[checkout] Session confirmed, proceeding with checkout')
+    // Verify user exists
+    if (!session.user) {
+      console.error('[checkout] ===== USER MISSING - BLOCKING CHECKOUT =====')
+      console.error('[checkout] Session exists but user is missing before Stripe redirect, blocking checkout')
+      setCheckoutError('Please sign in to start your trial. Your session may be invalid.')
+      setCheckoutLoading(false)
+      router.push('/auth/signin?redirect=/dashboard')
+      return
+    }
+    
+    // Verify refresh token exists
+    if (!session.refresh_token) {
+      console.error('[checkout] ===== REFRESH TOKEN MISSING - BLOCKING CHECKOUT =====')
+      console.error('[checkout] Session and user exist but refresh token is missing before Stripe redirect, blocking checkout')
+      setCheckoutError('Please sign in to start your trial. Your session may be incomplete.')
+      setCheckoutLoading(false)
+      router.push('/auth/signin?redirect=/dashboard')
+      return
+    }
+    
+    console.log('[checkout] ===== SESSION/USER/TOKEN VERIFIED - PROCEEDING WITH STRIPE =====')
+    console.log('[checkout] Session, user, and refresh token confirmed, proceeding with checkout')
+    
+    // Persist temporary checkout markers in localStorage for recovery
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('replyflow_checkout_in_progress', 'true')
+      localStorage.setItem('replyflow_checkout_return', '/dashboard?checkout=success')
+      console.log('[checkout] Set localStorage markers for checkout recovery')
+    }
     
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {
