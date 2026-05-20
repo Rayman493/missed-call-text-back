@@ -141,11 +141,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, billingReturned, isCheckoutSuccess })
     
-    // Allow users returning from Stripe Billing Portal without immediate redirect
-    // Give session restoration a chance to complete
+    // Allow users returning from Stripe checkout to have time to recover session
+    // Add a brief delay before redirect to allow session to load from cookies
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess && !billingReturned) {
-      console.log('[Auth] Redirecting to login (unauthenticated user on protected route)')
+      console.log('[Auth] Auth routing redirect decision:', {
+        pathname,
+        hasUser: !!user,
+        userId: user?.id,
+        isCheckoutSuccess,
+        billingReturned,
+        redirectDecision: 'to_signin'
+      })
       router.push('/auth/signin')
+    } else if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && isCheckoutSuccess) {
+      console.log('[Auth] User returning from checkout success, allowing session recovery time')
+      console.log('[Auth] Checkout success detected, delaying redirect to allow session recovery')
+      // Delay redirect to allow session to load from cookies after Stripe redirect
+      setTimeout(() => {
+        if (!user) {
+          console.log('[Auth] Session still missing after delay, redirecting to signin')
+          router.push('/auth/signin?redirect=/dashboard')
+        } else {
+          console.log('[Auth] Session recovered, staying on dashboard')
+        }
+      }, 2000)
     }
   }, [user, loading, pathname, router, isClient])
 

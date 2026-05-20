@@ -46,7 +46,7 @@ export default function CheckoutReturnPage() {
 
         console.log('[CheckoutReturn] Checkout recovery successful')
         
-        // Check if Supabase session exists
+        // Check if Supabase session exists with recovery attempts
         const supabase = createBrowserClient()
         if (!supabase) {
           console.error('[CheckoutReturn] Failed to create Supabase client')
@@ -54,16 +54,39 @@ export default function CheckoutReturnPage() {
           return
         }
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        // Attempt session recovery with multiple tries for mobile browsers
+        console.log('[CheckoutReturn] Attempting session recovery with retries')
+        let session = null
+        let sessionError = null
         
-        console.log('[CheckoutReturn] Supabase session check:', {
-          sessionExists: !!session,
-          userId: session?.user?.id,
-          sessionError: sessionError?.message
-        })
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          console.log(`[CheckoutReturn] Session recovery attempt ${attempt}/3`)
+          
+          // Wait a bit between attempts to allow cookies to load
+          if (attempt > 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+          
+          const result = await supabase.auth.getSession()
+          session = result.data.session
+          sessionError = result.error
+          
+          console.log('[CheckoutReturn] Session check result:', {
+            attempt,
+            sessionExists: !!session,
+            userId: session?.user?.id,
+            sessionError: sessionError?.message
+          })
+          
+          if (session) {
+            console.log('[CheckoutReturn] Session recovered on attempt', attempt)
+            break
+          }
+        }
 
         if (!session) {
-          console.log('[CheckoutReturn] No Supabase session, showing sign-in prompt')
+          console.log('[CheckoutReturn] Session recovery failed after 3 attempts, showing sign-in prompt')
+          console.log('[CheckoutReturn] Session error:', sessionError)
           setStatus('needs_signin')
           return
         }
