@@ -112,9 +112,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       attemptSessionRecovery().then((recovered) => {
         if (!recovered) {
-          const currentUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard'
-          const encodedRedirect = encodeURIComponent(currentUrl)
-          router.push(`/signin?redirect=${encodedRedirect}`)
+          // Redirect to dedicated checkout recovery page instead of generic signin
+          router.push('/auth/checkout-recovery')
         }
       })
     }

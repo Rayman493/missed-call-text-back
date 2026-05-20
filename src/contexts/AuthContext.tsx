@@ -170,22 +170,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Mobile browsers may take longer to restore localStorage/session
       setTimeout(() => {
         if (!user) {
-          console.log('[Auth] ===== SESSION RECOVERY FAILED, REDIRECTING TO SIGNIN =====')
-          console.log('[Auth] Session still missing after delay, redirecting to signin with preserved checkout success')
+          console.log('[Auth] ===== SESSION RECOVERY FAILED, REDIRECTING TO CHECKOUT RECOVERY =====')
+          console.log('[Auth] Session still missing after delay, redirecting to checkout recovery page')
           
-          // Preserve the exact URL with checkout=success parameter
-          const currentUrl = window.location.pathname + window.location.search
-          const encodedRedirect = encodeURIComponent(currentUrl)
-          
+          // Redirect to dedicated checkout recovery page instead of generic signin
           console.log('[Auth] Redirect decision:', {
-            attemptedRedirectTarget: '/auth/signin',
-            redirectParam: currentUrl,
-            encodedRedirect,
+            attemptedRedirectTarget: '/auth/checkout-recovery',
             reason: 'Session recovery failed after checkout success',
-            finalRedirectPath: `/auth/signin?redirect=${encodedRedirect}`
+            finalRedirectPath: '/auth/checkout-recovery'
           })
           
-          router.push(`/auth/signin?redirect=${encodedRedirect}`)
+          router.push('/auth/checkout-recovery')
         } else {
           console.log('[Auth] ===== SESSION RECOVERY SUCCESSFUL =====')
           console.log('[Auth] Session recovered, staying on dashboard')
