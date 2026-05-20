@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { isAdminUser } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
@@ -795,23 +796,15 @@ export default function DashboardContent() {
 
   // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
   // This prevents flash of previous setup/onboarding screens during dashboard load
-  if (businessLoading || webhookConfirming || !businessFetchComplete) {
+  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
     console.log('[Dashboard Gate] loading - waiting for auth/business/subscription state to resolve', {
+      authLoading,
       businessLoading,
       webhookConfirming,
       businessFetchComplete,
       subscription_status: business?.subscription_status
     })
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">
-            {webhookConfirming ? 'Finishing setup...' : 'Loading...'}
-          </p>
-        </div>
-      </div>
-    )
+    return <AppLoadingScreen />
   }
 
   // State is resolved - log which dashboard state we're rendering

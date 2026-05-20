@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
+import AppLoadingScreen from '@/components/AppLoadingScreen'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading, fetchComplete } = useBusiness()
@@ -196,15 +197,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Show loading state while business is loading or not yet initialized
   if (loading || !initialized) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Setting up your account...</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Please wait while we prepare your workspace</p>
-        </div>
-      </div>
-    )
+    return <AppLoadingScreen />
   }
 
   if (!business) {

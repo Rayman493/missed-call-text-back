@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import SetupError from '@/components/SetupError'
+import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 const supabase = createBrowserClient()
@@ -124,25 +125,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return <SetupError />
   }
 
-  // Show loading during auth recovery
-  if (isRecovering) {
-    console.log('[AuthGuard] Showing recovery loading state')
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Finishing your trial setup…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-200">Loading...</div>
-      </div>
-    )
+  // Show loading during auth recovery or initial auth loading
+  if (isRecovering || loading) {
+    console.log('[AuthGuard] Showing loading state', { isRecovering, loading })
+    return <AppLoadingScreen />
   }
 
   if (!user) {
