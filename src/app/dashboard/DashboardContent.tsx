@@ -302,17 +302,66 @@ export default function DashboardContent() {
   useEffect(() => {
     const sessionId = searchParams?.get('session_id')
     
-    if (checkoutStatus === 'success' && sessionId) {
-      console.log('[Dashboard] Checkout success with session_id:', sessionId)
-      console.log('[Dashboard] Business ID:', business?.id)
-      console.log('[Dashboard] Business user_id:', business?.user_id)
-      console.log('[Dashboard] Current onboarding_status:', business?.onboarding_status)
-      console.log('[Dashboard] Current subscription_status:', business?.subscription_status)
-      setWebhookConfirming(true)
-
-      const checkSubscription = async (attempt: number) => {
-        console.log('[Dashboard] Checkout status check attempt:', attempt)
+    if (checkoutStatus === 'success') {
+      console.log('[Dashboard] ===== CHECKOUT SUCCESS DETECTED =====')
+      console.log('[Dashboard] Session ID:', sessionId)
+      console.log('[Dashboard] Attempting session recovery before business refresh')
+      
+      // Attempt session recovery for mobile browsers that may have cleared cookies
+      const attemptSessionRecovery = async () => {
+        if (!supabase) {
+          console.log('[Dashboard] No supabase client available')
+          return false
+        }
         
+        // First try to refresh using getUser()
+        try {
+          const userResult = await supabase.auth.getUser()
+          if (userResult.data.user) {
+            console.log('[Dashboard] Session recovered via getUser() refresh token')
+            return true
+          }
+        } catch (error) {
+          console.log('[Dashboard] getUser() refresh failed:', error)
+        }
+        
+        // Then try direct session recovery with retries
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const sessionResult = await supabase.auth.getSession()
+          if (sessionResult.data.session) {
+            console.log('[Dashboard] Session recovered via getSession() attempt', attempt)
+            return true
+          }
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+        
+        console.log('[Dashboard] Session recovery failed after all attempts')
+        return false
+      }
+      
+      // Attempt session recovery, then proceed with business refresh
+      attemptSessionRecovery().then((recovered) => {
+        console.log('[Dashboard] Session recovery result:', recovered)
+        proceedWithCheckout(sessionId || null)
+      })
+    }
+  }, [checkoutStatus, searchParams, supabase])
+  
+  // Separate effect for checkout business refresh to avoid dependency issues
+  const proceedWithCheckout = (sessionId: string | null) => {
+    console.log('[Dashboard] Proceeding with checkout business refresh')
+    console.log('[Dashboard] Business ID:', business?.id)
+    console.log('[Dashboard] Business user_id:', business?.user_id)
+    console.log('[Dashboard] Current onboarding_status:', business?.onboarding_status)
+    console.log('[Dashboard] Current subscription_status:', business?.subscription_status)
+    setWebhookConfirming(true)
+
+    const checkSubscription = async (attempt: number) => {
+      console.log('[Dashboard] Checkout status check attempt:', attempt)
+      
+      if (sessionId) {
         try {
           // Use server-side checkout status API for reliable recovery
           const response = await fetch(`/api/stripe/checkout-status?session_id=${sessionId}`)
@@ -347,18 +396,9 @@ export default function DashboardContent() {
             router.replace('/dashboard')
           }
         }
-      }
-
-      // Start checking
-      checkSubscription(1)
-    } else if (checkoutStatus === 'success' && !sessionId) {
-      console.log('[Dashboard] Checkout success without session_id, using fallback')
-      // Fallback to client-side refresh if no session_id
-      setWebhookConfirming(true)
-
-      const checkSubscription = async (attempt: number) => {
-        console.log('[Dashboard] Business row refetch attempt:', attempt)
-        
+      } else {
+        // Fallback to client-side refresh if no session_id
+        console.log('[Dashboard] Checkout success without session_id, using fallback')
         await refreshBusiness()
         
         const isActive = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
@@ -381,10 +421,11 @@ export default function DashboardContent() {
           router.replace('/dashboard')
         }
       }
-
-      checkSubscription(1)
     }
-  }, [checkoutStatus, searchParams, refreshBusiness, supabase, router, business])
+
+    // Start checking
+    checkSubscription(1)
+  }
 
   // Add timeout fallback for loading state - 8 seconds max
   useEffect(() => {

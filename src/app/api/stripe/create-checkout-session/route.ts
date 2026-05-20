@@ -178,8 +178,8 @@ export async function POST(request: Request) {
       action: 'checkout'
     });
     
-    // Use dedicated checkout return route for mobile-safe session recovery
-    const successUrl = `${siteUrl}/auth/checkout-return?session_id={CHECKOUT_SESSION_ID}`
+    // Route directly to dashboard to avoid interstitial page
+    const successUrl = `${siteUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[stripe-checkout] Final URLs configured:', { 
