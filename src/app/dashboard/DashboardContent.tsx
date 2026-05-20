@@ -790,22 +790,60 @@ export default function DashboardContent() {
   }
 
   // DASHBOARD GATE: Redirect users without complete business profile to onboarding/profile
+  // IMPORTANT: Users with trialing/active subscription should NEVER be redirected to onboarding
   if (businessFetchComplete && !businessLoading) {
     // User has no business at all - redirect to onboarding/profile
     if (!business) {
+      console.log('[Post Trial Routing Decision]', {
+        pathname: '/dashboard',
+        destination: '/onboarding',
+        subscriptionStatus: null,
+        onboardingStatus: null,
+        hasBusiness: false,
+        reason: 'No business exists'
+      })
       console.log('[Dashboard Gate] No business found, redirecting to onboarding/profile')
       router.push('/onboarding')
       return <AppLoadingScreen />
     }
     
-    // User has business but missing required fields - redirect to onboarding/profile
+    // Check if user has active subscription (trialing or active)
+    const hasActiveSubscription = isActiveSubscription(business.subscription_status)
+    
+    // User has business but missing required fields - ONLY redirect if NO active subscription
     if (!business.name || !business.business_phone_number) {
-      console.log('[Dashboard Gate] Business missing name or phone, redirecting to onboarding/profile', {
-        hasName: !!business.name,
-        hasPhone: !!business.business_phone_number
-      })
-      router.push('/onboarding')
-      return <AppLoadingScreen />
+      if (hasActiveSubscription) {
+        console.log('[Post Trial Routing Decision]', {
+          pathname: '/dashboard',
+          destination: 'dashboard',
+          subscriptionStatus: business.subscription_status,
+          onboardingStatus: business.onboarding_status,
+          hasBusiness: true,
+          reason: 'Active subscription allows dashboard access despite missing profile'
+        })
+        console.log('[Dashboard Gate] User has active subscription, allowing dashboard access despite missing profile', {
+          subscriptionStatus: business.subscription_status,
+          hasName: !!business.name,
+          hasPhone: !!business.business_phone_number
+        })
+        // Allow dashboard access - Setup Progress component will handle incomplete profile
+      } else {
+        console.log('[Post Trial Routing Decision]', {
+          pathname: '/dashboard',
+          destination: '/onboarding',
+          subscriptionStatus: business.subscription_status,
+          onboardingStatus: business.onboarding_status,
+          hasBusiness: true,
+          reason: 'No active subscription AND missing profile'
+        })
+        console.log('[Dashboard Gate] Business missing name or phone AND no active subscription, redirecting to onboarding/profile', {
+          hasName: !!business.name,
+          hasPhone: !!business.business_phone_number,
+          subscriptionStatus: business.subscription_status
+        })
+        router.push('/onboarding')
+        return <AppLoadingScreen />
+      }
     }
   }
 

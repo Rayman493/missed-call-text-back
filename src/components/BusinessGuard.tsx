@@ -150,10 +150,20 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       })
       
       // Only redirect to onboarding if user truly has no business or no basic profile
-      // Users with profile but no subscription (trial_pending) should be allowed to access dashboard
+      // IMPORTANT: Users with trialing/active subscription should NEVER be redirected to onboarding
+      // Only send to onboarding if subscription is not trialing/active AND profile is missing
       if (!hasBasicProfile && !hasActiveSubscription) {
+        console.log('[Post Trial Routing Decision]', {
+          pathname,
+          destination: '/onboarding',
+          subscriptionStatus: business.subscription_status,
+          onboardingStatus: business.onboarding_status,
+          hasBusiness: !!business,
+          reason: 'No basic profile AND no active subscription'
+        })
+        
         console.log('[BusinessGuard] Redirecting to onboarding - no basic profile', {
-          reason: 'Missing basic profile data (name or business_phone_number)',
+          reason: 'Missing basic profile data (name or business_phone_number) AND no active subscription',
           derivedState,
           redirectAllowed: true
         })
@@ -175,13 +185,22 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         console.log('[REDIRECT]', {
           from: pathname,
           to: '/onboarding',
-          reason: 'No basic business profile',
+          reason: 'No basic business profile AND no active subscription',
           hasSession: !!session,
           component: 'BusinessGuard',
         })
         router.push('/onboarding')
         return
       }
+      
+      console.log('[Post Trial Routing Decision]', {
+        pathname,
+        destination: 'dashboard',
+        subscriptionStatus: business.subscription_status,
+        onboardingStatus: business.onboarding_status,
+        hasBusiness: !!business,
+        reason: hasActiveSubscription ? 'Active subscription allows dashboard access' : 'Profile exists, allowing dashboard access'
+      })
       
       console.log('[BusinessGuard] Allowing access - user has business profile', {
         reason: derivedState === 'trial_pending' ? 'Profile exists, trial pending' : 
