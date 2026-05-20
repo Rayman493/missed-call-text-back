@@ -781,20 +781,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
+          <div className="flex items-center gap-2 sm:gap-2 mb-0.5">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
             {/* System Status - subtle indicator - compact on mobile */}
-            <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
-              <div className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-              <span className={`text-[9px] sm:text-[10px] font-medium ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+              <span className={`text-[9px] sm:text-[10px] font-medium leading-none ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
                 {complete ? 'Live' : incompleteItems.length === 1 ? 'Next: Complete Final Test' : 'Ready for Final Test'}
               </span>
             </span>
             {/* Trial badge - only show when in trial and onboarding incomplete - compact on mobile */}
             {!complete && isInTrial && trialDaysRemaining !== null && (
-              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-[9px] sm:text-[11px] font-medium text-blue-700 dark:text-blue-300">
+              <span className="inline-flex items-center px-2 sm:px-2 py-1 rounded-full bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-[9px] sm:text-[11px] font-medium leading-none text-blue-700 dark:text-blue-300">
                 {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'}
               </span>
             )}
