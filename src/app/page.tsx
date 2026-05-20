@@ -305,26 +305,26 @@ export default function Home() {
               <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
             </div>
             
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
               {/* Show Dashboard CTA on desktop for authenticated users, hide on mobile to avoid navbar duplication */}
               {isAuthenticated && hasActiveAccount ? (
                 <Link
                   href="/dashboard"
-                  className="hidden sm:block h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                  className="hidden sm:inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
                 >
                   Go to Dashboard
                 </Link>
               ) : (
                 <Link
                   href={isAuthenticated ? "/onboarding" : "/signup"}
-                  className="h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                  className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
                 >
                   {isAuthenticated ? "Complete Setup" : "Start Your Free Trial"}
                 </Link>
               )}
               <Link
                 href="/demo"
-                className="h-12 px-8 bg-white dark:bg-secondary text-slate-700 dark:text-secondary-foreground font-semibold rounded-xl border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-secondary/80 hover:border-slate-300 dark:hover:border-border transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-white dark:bg-secondary text-slate-700 dark:text-secondary-foreground font-semibold rounded-xl border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-secondary/80 hover:border-slate-300 dark:hover:border-border transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 View Demo
               </Link>
