@@ -251,7 +251,7 @@ export default function PhoneForwardingPage() {
             </div>
 
             {/* Main card */}
-            <div className="bg-card rounded-xl shadow-lg p-6 sm:p-8 mb-8 border border-border">
+            <div className="bg-card rounded-xl shadow-lg p-6 sm:p-8 mb-8 border border-border min-h-[600px]">
               {/* Error message */}
               {carrierError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
@@ -429,11 +429,11 @@ export default function PhoneForwardingPage() {
 
               {/* Success Confirmation */}
               {showSuccess && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 mb-6 mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-green-700 dark:text-green-300">
+                      <p className="font-semibold text-green-700 dark:text-green-300 text-base">
                         Forwarding enabled successfully!
                       </p>
                       <p className="text-sm text-green-600/80 dark:text-green-400/80">
