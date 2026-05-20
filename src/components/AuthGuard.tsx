@@ -2,6 +2,8 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import SetupError from '@/components/SetupError'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -11,20 +13,49 @@ const supabase = createBrowserClient()
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const [recoveryTimeoutElapsed, setRecoveryTimeoutElapsed] = useState(false)
 
   // Check if we're in checkout recovery mode
   const isCheckoutRecovery = searchParams?.get('checkout') === 'success'
+
+  // Set recovery timeout - after 3 seconds, if still no session, route to recovery page
+  useEffect(() => {
+    if (!isCheckoutRecovery || user) return
+
+    console.log('[Checkout Recovery] Starting 3-second session recovery timeout')
+
+    const timeout = setTimeout(() => {
+      console.log('[Checkout Recovery] Session recovery timeout elapsed, checking session')
+      
+      // Check if session exists
+      supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
+        if (!session) {
+          console.log('[Checkout Recovery] No session available, routing to recovery page')
+          setRecoveryTimeoutElapsed(true)
+          router.push('/auth/recover-session?checkout=success')
+        } else {
+          console.log('[Checkout Recovery] Session recovered successfully')
+        }
+      })
+    }, 3000)
+
+    return () => clearTimeout(timeout)
+  }, [isCheckoutRecovery, user, router])
 
   // Show setup error if env vars are missing
   if (!supabase) {
     return <SetupError />
   }
 
-  // RECOVERY MODE: When checkout=success, suppress all redirects
-  // The centralized recovery flow in DashboardContent handles session restoration
-  // AuthGuard simply shows loading during this time
+  // RECOVERY MODE: When checkout=success, suppress all redirects initially
+  // After timeout, route to recovery page if session still unavailable
   if (isCheckoutRecovery) {
-    console.log('[AuthGuard] Recovery mode active - suppressing redirects, showing loading')
+    if (recoveryTimeoutElapsed) {
+      console.log('[AuthGuard] Recovery timeout elapsed, showing loading while redirecting to recovery page')
+      return <AppLoadingScreen />
+    }
+    console.log('[AuthGuard] Recovery mode active - waiting for session restoration')
     return <AppLoadingScreen />
   }
 
