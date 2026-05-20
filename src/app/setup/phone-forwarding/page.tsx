@@ -29,7 +29,6 @@ export default function PhoneForwardingPage() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [carrierError, setCarrierError] = useState('')
   const [saveError, setSaveError] = useState('')
-  const [isExpanded, setIsExpanded] = useState(false)
   const [ctaHighlighted, setCtaHighlighted] = useState(false)
   const [forwardingCompleted, setForwardingCompleted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -332,11 +331,7 @@ export default function PhoneForwardingPage() {
 
               {/* Connection Instructions */}
               {selectedCarrier && (
-                <div 
-                  className={`space-y-6 transition-all duration-300 ease-out ${
-                    isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-                  }`}
-                >
+                <div className="space-y-6">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                       Step 2
