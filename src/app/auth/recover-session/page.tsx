@@ -49,12 +49,12 @@ export default function RecoverSessionPage() {
 
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-3">
-            Your ReplyFlow setup is complete
+            Your free trial is active
           </h1>
 
           {/* Body */}
           <p className="text-muted-foreground text-center mb-6">
-            For security, please confirm your session to continue.
+            To continue setup, sign in to your ReplyFlow dashboard.
           </p>
 
           {/* Supporting text */}
@@ -64,7 +64,7 @@ export default function RecoverSessionPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm text-slate-700 dark:text-slate-300">
-                Your trial, phone number, and onboarding progress have already been saved.
+                Your trial, ReplyFlow number, and setup progress have been saved.
               </p>
             </div>
           </div>
