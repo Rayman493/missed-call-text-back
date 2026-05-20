@@ -42,7 +42,7 @@ export default function AppHeader({
           </div>
           
           {/* Right side - User dropdown */}
-          <div className="flex items-center gap-4 md:gap-4 pr-2">
+          <div className="flex items-center gap-4 md:gap-4 pr-4">
             <UserDropdown />
             {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
             <div className="hidden md:block w-10"></div>
