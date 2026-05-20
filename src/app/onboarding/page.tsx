@@ -174,23 +174,60 @@ export default function OnboardingPage() {
         // User already has a business, check if they should be redirected
         // Only redirect to dashboard if onboarding is completed AND subscription is active
         if (existingBusiness.onboarding_status === 'completed' && isActiveSubscription(existingBusiness.subscription_status)) {
+          console.log('[Pre Checkout Routing Decision]', {
+            pathname: '/onboarding',
+            destination: '/dashboard',
+            subscriptionStatus: existingBusiness.subscription_status,
+            onboardingStatus: existingBusiness.onboarding_status,
+            hasBusiness: !!existingBusiness,
+            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
+            reason: 'Onboarding completed AND subscription active'
+          })
           console.log('[Onboarding Routing Decision] Derived setup route decision: /dashboard')
           console.log('[Onboarding Routing Decision] Redirect allowed: Onboarding completed AND subscription active')
           router.push('/dashboard')
           return
         } else {
+          console.log('[Pre Checkout Routing Decision]', {
+            pathname: '/onboarding',
+            destination: '/onboarding',
+            subscriptionStatus: existingBusiness.subscription_status,
+            onboardingStatus: existingBusiness.onboarding_status,
+            hasBusiness: !!existingBusiness,
+            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
+            reason: existingBusiness.onboarding_status !== 'completed' ? 'Onboarding not completed' : 'Subscription not active'
+          })
           console.log('[Onboarding Routing Decision] Redirect blocked: Onboarding not completed OR inactive subscription')
           console.log('[Onboarding Routing Decision] Onboarding completed:', existingBusiness.onboarding_status === 'completed')
           console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
         }
         
-        // If user has active/trialing subscription, don't restart onboarding
+        // IMPORTANT: Do NOT redirect to dashboard just because subscription is active
+        // Users with active subscription but incomplete onboarding should stay on onboarding
+        // This prevents dashboard redirects during business info entry
         if (isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[Onboarding Routing Decision] Derived setup route decision: /dashboard')
-          console.log('[Onboarding Routing Decision] Redirect allowed: Subscription active')
-          router.push('/dashboard')
-          return
+          console.log('[Pre Checkout Routing Decision]', {
+            pathname: '/onboarding',
+            destination: '/onboarding',
+            subscriptionStatus: existingBusiness.subscription_status,
+            onboardingStatus: existingBusiness.onboarding_status,
+            hasBusiness: !!existingBusiness,
+            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
+            reason: 'Active subscription but onboarding incomplete - stay on onboarding'
+          })
+          console.log('[Onboarding Routing Decision] Keeping user on onboarding - active subscription but incomplete setup')
+          console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
+          // Stay on onboarding page - do not redirect
         } else {
+          console.log('[Pre Checkout Routing Decision]', {
+            pathname: '/onboarding',
+            destination: '/onboarding',
+            subscriptionStatus: existingBusiness.subscription_status,
+            onboardingStatus: existingBusiness.onboarding_status,
+            hasBusiness: !!existingBusiness,
+            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
+            reason: 'Inactive subscription - stay on onboarding'
+          })
           console.log('[Onboarding Routing Decision] Redirect blocked: Inactive subscription')
           console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
         }

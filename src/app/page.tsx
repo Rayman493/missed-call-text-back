@@ -164,13 +164,28 @@ export default function Home() {
 
   // Check if user is authenticated and has active trial/subscription
   const isAuthenticated = !!user
-  const hasActiveAccount = isAuthenticated && !!business
+  // Only consider account active if subscription is trialing or active, not just business existence
+  const hasActiveAccount = isAuthenticated && business && business.subscription_status && ['trialing', 'active'].includes(business.subscription_status)
   
   // Trace log on Homepage render
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       const checkoutSuccess = url.searchParams.get('checkout') === 'success'
+      
+      // Log pre-checkout routing decision
+      console.log('[Pre Checkout Routing Decision]', {
+        pathname: window.location.pathname,
+        destination: hasActiveAccount ? '/dashboard' : (isAuthenticated ? '/onboarding' : '/signup'),
+        subscriptionStatus: business?.subscription_status,
+        onboardingStatus: business?.onboarding_status,
+        hasBusiness: !!business,
+        hasBasicProfile: !!(business?.name && business?.business_phone_number),
+        reason: hasActiveAccount ? 'Active subscription allows dashboard' : 
+                isAuthenticated ? 'Authenticated but no active subscription' : 
+                'Not authenticated'
+      })
+      
       console.log('[TRACE Homepage Render]', {
         pathname: window.location.pathname,
         search: window.location.search,
