@@ -39,30 +39,30 @@ export default function Navigation() {
     <nav className="flex items-center gap-0.5">
       <Link
         href="/dashboard"
-        className={`min-w-[90px] px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[95px] px-6 py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out text-center ${
           pathname === '/dashboard'
-            ? 'text-white bg-white/10 shadow-sm'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            ? 'text-white bg-white/15 shadow-md'
+            : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
         Dashboard
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`min-w-[85px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[85px] px-4 py-2.5 text-base font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/leads')
             ? 'text-white bg-white/10 shadow-sm'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
         Leads
       </Link>
       <Link
         href="/dashboard/settings"
-        className={`min-w-[90px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[90px] px-4 py-2.5 text-base font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/settings')
             ? 'text-white bg-white/10 shadow-sm'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
         Settings
