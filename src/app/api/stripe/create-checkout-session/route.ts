@@ -16,6 +16,12 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const checkoutMode = body.checkout_mode || 'trial' // Default to trial for backward compatibility
     
+    console.log('[stripe-checkout] Request body parsed:', {
+      rawBody: body,
+      checkout_mode_from_body: body.checkout_mode,
+      finalCheckoutMode: checkoutMode,
+    })
+    
     console.log('[stripe-checkout] Checkout mode:', checkoutMode);
     
     const stripe = getStripe()
@@ -121,9 +127,11 @@ export async function POST(request: Request) {
 
     const eligibilityResult = await eligibilityCheck.json();
     console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
+    console.log('[stripe-checkout] About to check eligibility with mode:', checkoutMode);
 
     if (!eligibilityResult.ok || !eligibilityResult.eligible) {
       console.log('[stripe-checkout] Trial eligibility check result:', eligibilityResult);
+      console.log('[stripe-checkout] Checkout mode at eligibility check:', checkoutMode);
       
       // Only block checkout if this is a trial checkout
       // Paid checkouts should be allowed even if trial is not eligible
@@ -141,6 +149,8 @@ export async function POST(request: Request) {
       } else {
         console.log('[stripe-checkout] Paid checkout allowed despite trial ineligibility');
       }
+    } else {
+      console.log('[stripe-checkout] Trial eligible - proceeding with checkout');
     }
 
     console.log('[stripe-checkout] Proceeding with checkout - mode:', checkoutMode);

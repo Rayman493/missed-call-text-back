@@ -676,6 +676,10 @@ export default function DashboardContent() {
     }
     
     try {
+      console.log('[Checkout Request Payload]', {
+        checkoutMode,
+      })
+      
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
