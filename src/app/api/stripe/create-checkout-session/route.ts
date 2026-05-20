@@ -123,19 +123,27 @@ export async function POST(request: Request) {
     console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
 
     if (!eligibilityResult.ok || !eligibilityResult.eligible) {
-      console.error('[stripe-checkout] Trial eligibility check failed:', eligibilityResult);
-      return NextResponse.json(
-        { 
-          error: eligibilityResult.message || 'Trial eligibility check failed',
-          reasons: eligibilityResult.reasons,
-          support_email: eligibilityResult.support_email,
-          cooldown_end_date: eligibilityResult.checks?.cooldown_end_date,
-        },
-        { status: 403 }
-      );
+      console.log('[stripe-checkout] Trial eligibility check result:', eligibilityResult);
+      
+      // Only block checkout if this is a trial checkout
+      // Paid checkouts should be allowed even if trial is not eligible
+      if (checkoutMode === 'trial') {
+        console.error('[stripe-checkout] Trial checkout blocked - not eligible:', eligibilityResult);
+        return NextResponse.json(
+          { 
+            error: eligibilityResult.message || 'Trial eligibility check failed',
+            reasons: eligibilityResult.reasons,
+            support_email: eligibilityResult.support_email,
+            cooldown_end_date: eligibilityResult.checks?.cooldown_end_date,
+          },
+          { status: 403 }
+        );
+      } else {
+        console.log('[stripe-checkout] Paid checkout allowed despite trial ineligibility');
+      }
     }
 
-    console.log('[stripe-checkout] Trial eligibility confirmed, proceeding with checkout');
+    console.log('[stripe-checkout] Proceeding with checkout - mode:', checkoutMode);
 
     // Create or retrieve Stripe customer
     let customerId = business.stripe_customer_id
