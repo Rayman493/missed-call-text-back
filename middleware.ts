@@ -6,6 +6,21 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const search = req.nextUrl.search
 
+  // Trace log at middleware entry
+  const url = new URL(req.url)
+  const checkoutParam = url.searchParams.get('checkout')
+  const sessionId = url.searchParams.get('session_id')
+  const hasCheckoutSuccess =
+    checkoutParam === 'success' ||
+    Boolean(sessionId?.startsWith('cs_'))
+
+  console.log('[TRACE Middleware Entry]', {
+    pathname,
+    search,
+    hasCheckoutSuccess,
+    hasSession: false // Will be updated after session check
+  })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,13 +40,6 @@ export async function middleware(req: NextRequest) {
 
   // Refresh session if expired
   const { data: { session } } = await supabase.auth.getSession()
-
-  const url = new URL(req.url)
-  const checkoutParam = url.searchParams.get('checkout')
-  const sessionId = url.searchParams.get('session_id')
-  const hasCheckoutSuccess =
-    checkoutParam === 'success' ||
-    Boolean(sessionId?.startsWith('cs_'))
 
   console.log('[TRACE Middleware]', {
     from: pathname + search,

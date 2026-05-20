@@ -16,6 +16,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [recoveryTimeoutElapsed, setRecoveryTimeoutElapsed] = useState(false)
 
+  // Trace log at AuthGuard first render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      const checkoutParam = url.searchParams.get('checkout')
+      const sessionId = url.searchParams.get('session_id')
+      const hasCheckoutSuccess = 
+        checkoutParam === 'success' ||
+        Boolean(sessionId?.startsWith('cs_'))
+      
+      console.log('[TRACE AuthGuard Render]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hasCheckoutSuccess
+      })
+    }
+  }, [])
+
   // Check if we're in checkout recovery mode
   const checkoutParam = searchParams?.get('checkout')
   const sessionId = searchParams?.get('session_id')

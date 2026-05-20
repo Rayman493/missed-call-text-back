@@ -151,6 +151,17 @@ export default function Home() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const supabase = createBrowserClient()
   
+  // Trace log at homepage mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[TRACE Homepage Mounted]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        referrer: document.referrer
+      })
+    }
+  }, [])
+
   // Check if user is authenticated and has active trial/subscription
   const isAuthenticated = !!user
   const hasActiveAccount = isAuthenticated && !!business

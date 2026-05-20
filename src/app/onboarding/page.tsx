@@ -29,6 +29,17 @@ export default function OnboardingPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [provisioningComplete, setProvisioningComplete] = useState(false)
 
+  // Trace log at onboarding mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[TRACE Onboarding Mounted]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        referrer: document.referrer
+      })
+    }
+  }, [])
+
   // Check for auth error from callback
   useEffect(() => {
     const authError = searchParams?.get('error')

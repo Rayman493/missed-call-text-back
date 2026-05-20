@@ -198,6 +198,16 @@ const isOnboardingExpanded = (() => {
 
 export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
+  
+  // Trace log at dashboard component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[TRACE Dashboard Mounted]', {
+        pathname: window.location.pathname,
+        search: window.location.search
+      })
+    }
+  }, [])
 
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const { user, loading: authLoading } = useAuth()
