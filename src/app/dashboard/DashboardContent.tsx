@@ -227,6 +227,7 @@ export default function DashboardContent() {
   const [reconciling, setReconciling] = useState(false)
   const [reconciliationResult, setReconciliationResult] = useState<any>(null)
   const [lastRenderedSection, setLastRenderedSection] = useState('')
+  const [isRecoveringSession, setIsRecoveringSession] = useState(false)
   
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
@@ -299,172 +300,96 @@ export default function DashboardContent() {
     setIsSetupBannerDismissed(dismissed)
   }, [])
 
-  // Force refresh business after checkout success with server-side recovery
+  // CENTRALIZED CHECKOUT RECOVERY FLOW
+  // When ?checkout=success is present, wait up to 8 seconds for session restoration
+  // This prevents mobile browsers from redirecting to signin unnecessarily
   useEffect(() => {
-    const sessionId = searchParams?.get('session_id')
+    const isCheckoutSuccess = checkoutStatus === 'success'
     
-    if (checkoutStatus === 'success') {
-      console.log('[checkout-recovery] ===== CHECKOUT SUCCESS DETECTED =====')
-      console.log('[checkout-recovery] Session ID:', sessionId)
-      console.log('[checkout-recovery] Starting checkout recovery mode with 8s timeout')
-      
-      // Clean up localStorage markers
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('replyflow_checkout_in_progress')
-        localStorage.removeItem('replyflow_checkout_return')
-        console.log('[checkout-recovery] Cleaned up localStorage markers')
-      }
-      
-      // Attempt session recovery for mobile browsers that may have cleared cookies
-      const attemptSessionRecovery = async () => {
-        console.log('[checkout-recovery] ===== SESSION RESTORE ATTEMPT STARTED =====')
+    if (!isCheckoutSuccess) {
+      return
+    }
+
+    console.log('[Checkout Recovery] Starting recovery window for checkout=success')
+    setIsRecoveringSession(true)
+
+    const sessionId = searchParams?.get('session_id')
+    console.log('[Checkout Recovery] Session ID:', sessionId)
+
+    // Clean up localStorage markers
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('replyflow_checkout_in_progress')
+      localStorage.removeItem('replyflow_checkout_return')
+      console.log('[Checkout Recovery] Cleaned up localStorage markers')
+    }
+
+    const RECOVERY_TIMEOUT = 8000 // 8 seconds
+    const RETRY_INTERVAL = 500 // 500ms
+    let recoveryAttempts = 0
+    let sessionRestored = false
+
+    const attemptSessionRecovery = async (): Promise<boolean> => {
+      recoveryAttempts++
+      console.log(`[Checkout Recovery] Attempt ${recoveryAttempts} to restore session`)
+
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
         
-        // Wait for auth loading to finish
-        if (authLoading) {
-          console.log('[checkout-recovery] Auth still loading, waiting...')
-          await new Promise(resolve => setTimeout(resolve, 500))
+        if (error) {
+          console.log('[Checkout Recovery] getSession error:', error.message)
+          return false
         }
-        
-        // Call getUser() to attempt refresh token recovery
-        console.log('[checkout-recovery] Calling getUser() to restore session from refresh token...')
-        try {
-          const userResult = await supabase.auth.getUser()
-          console.log('[checkout-recovery] getUser() result:', {
-            userExists: !!userResult.data.user,
-            userId: userResult.data.user?.id,
-            error: userResult.error?.message
+
+        if (session && session.user) {
+          console.log('[Checkout Recovery] Session restored successfully', {
+            userId: session.user.id,
+            email: session.user.email
           })
-          
-          if (userResult.data.user) {
-            console.log('[checkout-recovery] Session restored via getUser() refresh token')
-            return true
-          }
-        } catch (error) {
-          console.log('[checkout-recovery] getUser() failed:', error)
-        }
-        
-        // Call getSession() to attempt session recovery
-        console.log('[checkout-recovery] Calling getSession() to restore session...')
-        const sessionResult = await supabase.auth.getSession()
-        console.log('[checkout-recovery] getSession() result:', {
-          sessionExists: !!sessionResult.data.session,
-          userId: sessionResult.data.session?.user?.id,
-          accessTokenPresent: !!sessionResult.data.session?.access_token,
-          refreshTokenPresent: !!sessionResult.data.session?.refresh_token,
-          error: sessionResult.error?.message
-        })
-        
-        if (sessionResult.data.session) {
-          console.log('[checkout-recovery] Session restored via getSession()')
+          sessionRestored = true
           return true
         }
-        
-        console.log('[checkout-recovery] Session restore failed after all attempts')
+
+        console.log('[Checkout Recovery] Session not yet available')
+        return false
+      } catch (error) {
+        console.log('[Checkout Recovery] getSession exception:', error)
         return false
       }
-      
-      // Attempt session recovery with 8s timeout, then proceed with business refresh
-      const RECOVERY_TIMEOUT_MS = 8000
-      const startTime = Date.now()
-      
-      Promise.race([
-        attemptSessionRecovery(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Recovery timeout')), RECOVERY_TIMEOUT_MS))
-      ]).then((recovered: any) => {
-        const elapsed = Date.now() - startTime
-        console.log('[checkout-recovery] ===== SESSION RESTORE RESULT =====')
-        console.log('[checkout-recovery] Recovered:', recovered)
-        console.log('[checkout-recovery] Time elapsed:', elapsed, 'ms')
-        console.log('[checkout-recovery] Proceeding with business refresh')
-        proceedWithCheckout(sessionId || null)
-      }).catch((error) => {
-        const elapsed = Date.now() - startTime
-        console.log('[checkout-recovery] ===== SESSION RESTORE TIMEOUT =====')
-        console.log('[checkout-recovery] Error:', error.message)
-        console.log('[checkout-recovery] Time elapsed:', elapsed, 'ms')
-        console.log('[checkout-recovery] Proceeding with business refresh anyway')
-        proceedWithCheckout(sessionId || null)
-      })
     }
-  }, [checkoutStatus, searchParams, supabase, authLoading])
-  
-  // Separate effect for checkout business refresh to avoid dependency issues
-  const proceedWithCheckout = (sessionId: string | null) => {
-    console.log('[Dashboard] Proceeding with checkout business refresh')
-    console.log('[Dashboard] Business ID:', business?.id)
-    console.log('[Dashboard] Business user_id:', business?.user_id)
-    console.log('[Dashboard] Current onboarding_status:', business?.onboarding_status)
-    console.log('[Dashboard] Current subscription_status:', business?.subscription_status)
-    setWebhookConfirming(true)
 
-    const checkSubscription = async (attempt: number) => {
-      console.log('[Dashboard] Checkout status check attempt:', attempt)
+    const recoveryInterval = setInterval(async () => {
+      const restored = await attemptSessionRecovery()
       
-      if (sessionId) {
-        try {
-          // Use server-side checkout status API for reliable recovery
-          const response = await fetch(`/api/stripe/checkout-status?session_id=${sessionId}`)
-          const data = await response.json()
-          
-          console.log('[Dashboard] Checkout status API response:', data)
-          
-          if (data.ready || data.subscriptionStatus === 'trialing' || data.subscriptionStatus === 'active') {
-            console.log('[Dashboard] Checkout confirmed ready, refreshing business data')
-            await refreshBusiness()
-            setWebhookConfirming(false)
-            router.replace('/dashboard')
-            return
-          }
-          
-          if (attempt < 10) {
-            console.log('[Dashboard] Checkout not ready yet, retrying in 1 second...')
-            setTimeout(() => checkSubscription(attempt + 1), 1000)
-          } else {
-            console.log('[Dashboard] Checkout not ready after max retries, showing dashboard anyway')
-            setWebhookConfirming(false)
-            // Even if not ready, show dashboard instead of redirecting to homepage
-            router.replace('/dashboard')
-          }
-        } catch (error) {
-          console.error('[Dashboard] Error checking checkout status:', error)
-          if (attempt < 10) {
-            setTimeout(() => checkSubscription(attempt + 1), 1000)
-          } else {
-            console.log('[Dashboard] Checkout status check failed after max retries, showing dashboard anyway')
-            setWebhookConfirming(false)
-            router.replace('/dashboard')
-          }
-        }
-      } else {
-        // Fallback to client-side refresh if no session_id
-        console.log('[Dashboard] Checkout success without session_id, using fallback')
-        await refreshBusiness()
+      if (restored) {
+        clearInterval(recoveryInterval)
+        console.log('[Checkout Recovery] Session restored, ending recovery mode')
+        setIsRecoveringSession(false)
         
-        const isActive = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
-        
-        console.log('[Dashboard] Subscription active check:', isActive)
-        console.log('[Dashboard] Subscription status:', business?.subscription_status)
-        console.log('[Dashboard] Stripe customer ID exists:', !!business?.stripe_customer_id)
-        console.log('[Dashboard] Stripe subscription ID exists:', !!business?.stripe_subscription_id)
-
-        if (isActive) {
-          console.log('[Dashboard] Subscription active confirmed, removing checkout=success from URL')
-          setWebhookConfirming(false)
-          router.replace('/dashboard')
-        } else if (attempt < 10) {
-          console.log('[Dashboard] Subscription not active yet, retrying in 1 second...')
-          setTimeout(() => checkSubscription(attempt + 1), 1000)
-        } else {
-          console.log('[Dashboard] Subscription not active after max retries, showing dashboard anyway')
-          setWebhookConfirming(false)
-          router.replace('/dashboard')
-        }
+        // Clean URL params
+        router.replace('/dashboard')
       }
-    }
+    }, RETRY_INTERVAL)
 
-    // Start checking
-    checkSubscription(1)
-  }
+    // Fallback timeout
+    const recoveryTimeout = setTimeout(() => {
+      clearInterval(recoveryInterval)
+      
+      if (!sessionRestored) {
+        console.log('[Checkout Recovery] Recovery failed after timeout, redirecting to signin')
+        setIsRecoveringSession(false)
+        router.push('/auth/signin?redirect=/dashboard')
+      } else {
+        console.log('[Checkout Recovery] Timeout reached but session was restored')
+        setIsRecoveringSession(false)
+        router.replace('/dashboard')
+      }
+    }, RECOVERY_TIMEOUT)
+
+    return () => {
+      clearInterval(recoveryInterval)
+      clearTimeout(recoveryTimeout)
+    }
+  }, [checkoutStatus, searchParams, supabase, router])
 
   // Add timeout fallback for loading state - 8 seconds max
   useEffect(() => {

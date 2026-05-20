@@ -1,8 +1,7 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import SetupError from '@/components/SetupError'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -12,122 +11,26 @@ const supabase = createBrowserClient()
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const [isRecovering, setIsRecovering] = useState(false)
-  const [recoveryAttempted, setRecoveryAttempted] = useState(false)
 
-  // Detect checkout success and attempt session recovery
-  useEffect(() => {
-    const checkoutSuccess = searchParams?.get('checkout') === 'success'
-    
-    if (checkoutSuccess && !user && !loading && !recoveryAttempted) {
-      // Detect mobile device for extended recovery
-      const isMobile = typeof window !== 'undefined' && (
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        window.innerWidth < 768
-      )
-      
-      console.log('[AuthGuard] ===== CHECKOUT SUCCESS DETECTED, STARTING AUTH RECOVERY =====')
-      console.log('[AuthGuard] Mobile-specific debug info:', {
-        userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'unknown',
-        isMobile,
-        screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
-        screenHeight: typeof window !== 'undefined' ? window.innerHeight : 'unknown',
-        checkoutSuccess,
-        userExists: !!user,
-        loading,
-        recoveryAttempted
-      })
-      
-      setIsRecovering(true)
-      setRecoveryAttempted(true)
-
-      // Extend recovery attempts for mobile (5 retries with 1.5s delays = 7.5s total)
-      // Mobile browsers may restore localStorage/session slower after external redirect
-      const maxRetries = isMobile ? 5 : 3
-      const retryDelay = isMobile ? 1500 : 1000
-
-      const attemptSessionRecovery = async () => {
-        console.log('[AuthGuard] Attempting session recovery for checkout success', {
-          isMobile,
-          maxRetries,
-          retryDelay
-        })
-        
-        // First try getUser() to recover from refresh token
-        try {
-          const userResult = await supabase.auth.getUser()
-          console.log('[AuthGuard] getUser() result:', {
-            userExists: !!userResult.data.user,
-            userId: userResult.data.user?.id,
-            userEmail: userResult.data.user?.email,
-            error: userResult.error?.message
-          })
-          
-          if (userResult.data.user) {
-            console.log('[AuthGuard] Session recovered via getUser() refresh token')
-            setIsRecovering(false)
-            return true
-          }
-        } catch (error) {
-          console.log('[AuthGuard] getUser() recovery failed:', error)
-        }
-        
-        // Then try getSession() with retries (extended for mobile)
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          console.log(`[AuthGuard] getSession() recovery attempt ${attempt}/${maxRetries}`, {
-            isMobile,
-            retryDelay,
-            timestamp: new Date().toISOString()
-          })
-          
-          const sessionResult = await supabase.auth.getSession()
-          console.log('[AuthGuard] getSession() result:', {
-            sessionExists: !!sessionResult.data.session,
-            userId: sessionResult.data.session?.user?.id,
-            error: sessionResult.error?.message,
-            accessTokenPresent: !!sessionResult.data.session?.access_token,
-            refreshTokenPresent: !!sessionResult.data.session?.refresh_token
-          })
-          
-          if (sessionResult.data.session) {
-            console.log('[AuthGuard] Session recovered via getSession() attempt', attempt)
-            setIsRecovering(false)
-            return true
-          }
-          
-          if (attempt < maxRetries) {
-            console.log(`[AuthGuard] Waiting ${retryDelay}ms before next attempt...`)
-            await new Promise(resolve => setTimeout(resolve, retryDelay))
-          }
-        }
-        
-        console.log('[AuthGuard] Session recovery failed after all attempts', {
-          maxRetries,
-          isMobile,
-          totalWaitTime: (maxRetries - 1) * retryDelay
-        })
-        setIsRecovering(false)
-        return false
-      }
-
-      attemptSessionRecovery().then((recovered) => {
-        if (!recovered) {
-          // Redirect to dedicated checkout recovery page instead of generic signin
-          router.push('/auth/checkout-recovery')
-        }
-      })
-    }
-  }, [searchParams, user, loading, recoveryAttempted, router])
+  // Check if we're in checkout recovery mode
+  const isCheckoutRecovery = searchParams?.get('checkout') === 'success'
 
   // Show setup error if env vars are missing
   if (!supabase) {
     return <SetupError />
   }
 
-  // Show loading during auth recovery or initial auth loading
-  if (isRecovering || loading) {
-    console.log('[AuthGuard] Showing loading state', { isRecovering, loading })
+  // RECOVERY MODE: When checkout=success, suppress all redirects
+  // The centralized recovery flow in DashboardContent handles session restoration
+  // AuthGuard simply shows loading during this time
+  if (isCheckoutRecovery) {
+    console.log('[AuthGuard] Recovery mode active - suppressing redirects, showing loading')
+    return <AppLoadingScreen />
+  }
+
+  // Show loading during initial auth loading (not recovery mode)
+  if (loading) {
+    console.log('[AuthGuard] Showing loading state', { loading })
     return <AppLoadingScreen />
   }
 

@@ -153,43 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectDecision: 'to_signin'
       })
       router.push('/auth/signin')
-    } else if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && isCheckoutSuccess) {
-      console.log('[Auth] ===== CHECKOUT SUCCESS DETECTED, ALLOWING SESSION RECOVERY =====')
-      console.log('[Auth] Checkout success params:', {
-        checkoutStatus,
-        sessionId,
-        billingReturned,
-        isCheckoutSuccess,
-        pathname,
-        hasUser: !!user,
-        userId: user?.id
-      })
-      console.log('[Auth] Delaying redirect to allow session recovery from cookies after Stripe redirect')
-      
-      // Delay redirect to allow session to load from cookies after Stripe redirect
-      // Mobile browsers may take longer to restore localStorage/session
-      setTimeout(() => {
-        if (!user) {
-          console.log('[Auth] ===== SESSION RECOVERY FAILED, REDIRECTING TO CHECKOUT RECOVERY =====')
-          console.log('[Auth] Session still missing after delay, redirecting to checkout recovery page')
-          
-          // Redirect to dedicated checkout recovery page instead of generic signin
-          console.log('[Auth] Redirect decision:', {
-            attemptedRedirectTarget: '/auth/checkout-recovery',
-            reason: 'Session recovery failed after checkout success',
-            finalRedirectPath: '/auth/checkout-recovery'
-          })
-          
-          router.push('/auth/checkout-recovery')
-        } else {
-          console.log('[Auth] ===== SESSION RECOVERY SUCCESSFUL =====')
-          console.log('[Auth] Session recovered, staying on dashboard')
-          console.log('[Auth] User authenticated:', {
-            userId: user.id,
-            email: user.email
-          })
-        }
-      }, 2000)
     }
   }, [user, loading, pathname, router, isClient])
 
