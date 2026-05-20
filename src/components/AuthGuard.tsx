@@ -19,6 +19,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Check if we're in checkout recovery mode
   const isCheckoutRecovery = searchParams?.get('checkout') === 'success'
 
+  // Trace log on every AuthGuard render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[TRACE AuthGuard]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        userExists: !!user,
+        sessionExists: !!user,
+        loading,
+        checkoutSuccess: isCheckoutRecovery,
+        redirectingTo: null,
+        reason: 'authguard_render'
+      })
+    }
+  }, [user, loading, isCheckoutRecovery])
+
   // Set recovery timeout - after 3 seconds, if still no session, route to recovery page
   useEffect(() => {
     if (!isCheckoutRecovery || user) return

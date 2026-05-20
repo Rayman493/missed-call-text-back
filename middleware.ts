@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const pathname = req.nextUrl.pathname
+  const search = req.nextUrl.search
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,10 +26,23 @@ export async function middleware(req: NextRequest) {
   // Refresh session if expired
   const { data: { session } } = await supabase.auth.getSession()
 
+  const url = new URL(req.url)
+  const hasCheckoutSuccess = url.searchParams.get('checkout') === 'success'
+
+  console.log('[TRACE Middleware]', {
+    from: pathname + search,
+    to: pathname + search,
+    reason: 'middleware_request',
+    pathname,
+    search,
+    hasCheckoutSuccess
+  })
+
   console.log('[Middleware] Request:', {
     pathname,
     hasSession: !!session,
     method: req.method,
+    hasCheckoutSuccess,
   })
 
   // Public routes - no authentication required
@@ -67,7 +81,6 @@ export async function middleware(req: NextRequest) {
 
   // Allow users returning from Stripe Billing Portal without immediate redirect
   // Give session restoration a chance to complete
-  const url = new URL(req.url)
   const billingReturned = url.searchParams.get('billing') === 'returned'
 
   if (isProtectedRoute && !session && !billingReturned) {

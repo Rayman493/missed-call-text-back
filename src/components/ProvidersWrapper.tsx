@@ -13,6 +13,22 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const [BusinessProvider, setBusinessProvider] = useState<any>(null)
   const [ThemeProvider, setThemeProvider] = useState<any>(null)
 
+  // Trace log on every page load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMobile = window.innerWidth < 768
+      console.log('[TRACE Page Load]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        href: window.location.href,
+        referrer: document.referrer,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        isMobile
+      })
+    }
+  }, [])
+
   useEffect(() => {
     const loadProviders = async () => {
       try {

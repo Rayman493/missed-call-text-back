@@ -183,6 +183,13 @@ export async function POST(request: Request) {
     const successUrl = `${siteUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
+    console.log('[TRACE Stripe Success URL]', {
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      appUrl: siteUrl,
+      sessionIdPlaceholder: '{CHECKOUT_SESSION_ID}'
+    });
+    
     console.log('[stripe-checkout] Final URLs configured:', { 
       successUrl, 
       cancelUrl,

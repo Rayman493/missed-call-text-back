@@ -155,6 +155,27 @@ export default function Home() {
   const isAuthenticated = !!user
   const hasActiveAccount = isAuthenticated && !!business
   
+  // Trace log on Homepage render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      const checkoutSuccess = url.searchParams.get('checkout') === 'success'
+      console.log('[TRACE Homepage Render]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        href: window.location.href,
+        referrer: document.referrer,
+        checkoutSuccess,
+        authState: {
+          isAuthenticated,
+          hasActiveAccount,
+          hasUser: !!user,
+          hasBusiness: !!business
+        }
+      })
+    }
+  }, [isAuthenticated, hasActiveAccount, user, business])
+  
   // Clear anonymous app state for logged-out users
   useEffect(() => {
     if (!isAuthenticated) {

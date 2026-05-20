@@ -204,6 +204,23 @@ export default function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Trace log on Dashboard render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      const checkoutSuccess = url.searchParams.get('checkout') === 'success'
+      console.log('[TRACE Dashboard Render]', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        checkoutSuccess,
+        sessionExists: !!user,
+        userExists: !!user,
+        businessStatus: business?.subscription_status,
+        subscriptionStatus: business?.subscription_status
+      })
+    }
+  }, [user, business])
+
   // Check if user is admin based on email allowlist
   const isAdmin = isAdminUser(user?.email)
   
