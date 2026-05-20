@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,33 +65,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create Supabase client
-    const supabase = createServerClient(
+    // Create Supabase service-role client (bypasses RLS)
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
-        cookies: {
-          getAll() {
-            return []
-          },
-          setAll() {
-            // No-op for API routes
-          },
-        },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
     )
 
-    // Fetch business data
+    // Fetch business data with both business_id and user_id validation
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('*')
       .eq('id', session.metadata.business_id)
+      .eq('user_id', session.metadata.user_id)
       .single()
 
     if (businessError || !business) {
-      console.log('[Billing Success Status] Business not found', { 
+      console.log('[Billing Success Business Lookup Failed]', { 
         businessId: session.metadata.business_id,
-        error: businessError 
+        userId: session.metadata.user_id,
+        queryFields: ['id', 'user_id'],
+        supabaseError: businessError,
+        errorCode: businessError?.code,
+        errorMessage: businessError?.message,
+        details: businessError?.details
       })
       return NextResponse.json(
         { error: 'Business not found' },
@@ -109,11 +111,12 @@ export async function POST(request: NextRequest) {
       stripeSubscriptionId: business.stripe_subscription_id
     })
 
-    // Determine checkout status
+    // Determine checkout status and redirect readiness
     const subscriptionStatus = business.subscription_status
     const hasActiveSubscription = ['trialing', 'active'].includes(subscriptionStatus)
     const hasTwilioNumber = !!business.twilio_phone_number
     const provisioningComplete = business.provisioning_status === 'completed'
+    const redirectReady = hasActiveSubscription // Ready when subscription is trialing or active
 
     let redirectTo = '/dashboard'
     let checkoutStatus = 'processing'
@@ -135,11 +138,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      checkoutCompleted: session.status === 'complete',
       checkoutStatus,
       paymentStatus,
       subscriptionStatus,
       provisioningStatus: business.provisioning_status,
       hasTwilioNumber,
+      businessId: business.id,
+      redirectReady,
       redirectTo,
       business: {
         id: business.id,
