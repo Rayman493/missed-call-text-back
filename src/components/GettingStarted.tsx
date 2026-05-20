@@ -641,9 +641,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
               {/* Progress bar */}
               <div className="mb-3 sm:mb-6">
-                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-green-600 h-2 transition-all duration-500 ease-out"
+                    className="bg-green-600 h-1.5 transition-all duration-500 ease-out"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -777,7 +777,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2 sm:p-2.5' : 'p-2 sm:p-3.5'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-1.5 sm:p-2' : 'p-1.5 sm:p-2.5'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
         <div className="min-w-0">
@@ -843,7 +843,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
       {/* Slim progress bar - hide when collapsed and complete */}
       {(!isOnboardingComplete || isExpanded) && (
-        <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-1.5">
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-1.5">
           <div
             className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
             style={{ width: `${progressPct}%` }}
