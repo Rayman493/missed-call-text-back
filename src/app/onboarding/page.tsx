@@ -318,18 +318,8 @@ export default function OnboardingPage() {
       // Refresh business context to update state
       await refreshBusiness()
       
-      // Refresh the page to ensure all state is updated
-      router.refresh()
-      
-      // Show loading transition before redirecting to new onboarding flow
-      setLoading(true)
-      setProvisioningComplete(true)
-      
-      // Brief delay to show loading state for better UX
-      setTimeout(() => {
-        // Redirect to new onboarding flow for setup
-        router.push('/onboarding/new-onboarding')
-      }, 1000)
+      // Redirect to dashboard to show Start Free Trial
+      router.push('/dashboard')
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'

@@ -760,21 +760,24 @@ export default function DashboardContent() {
     console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
   }
 
-  // Early branch for new users with no business - render NoBusinessSetup instead of redirect
-  // This prevents mobile crash by avoiding /onboarding redirect
-  if (businessFetchComplete && !business && !businessLoading) {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-    console.log('[Mobile New User Branch]', {
-      isMobile,
-      hasSession: true,
-      businessFetchComplete,
-      hasBusiness: !!business,
-      renderTarget: 'NoBusinessSetup',
-      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'server',
-      viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'server'
-    })
-    console.log('[DASHBOARD] Rendering NoBusinessSetup for new user (no business)')
-    return <NoBusinessSetup />
+  // DASHBOARD GATE: Redirect users without complete business profile to onboarding
+  if (businessFetchComplete && !businessLoading) {
+    // User has no business at all - redirect to onboarding
+    if (!business) {
+      console.log('[Dashboard Gate] No business found, redirecting to onboarding')
+      router.push('/onboarding')
+      return <AppLoadingScreen />
+    }
+    
+    // User has business but missing required fields - redirect to onboarding
+    if (!business.name || !business.business_phone_number) {
+      console.log('[Dashboard Gate] Business missing name or phone, redirecting to onboarding', {
+        hasName: !!business.name,
+        hasPhone: !!business.business_phone_number
+      })
+      router.push('/onboarding')
+      return <AppLoadingScreen />
+    }
   }
 
   // Log when rendering active dashboard
