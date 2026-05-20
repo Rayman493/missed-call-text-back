@@ -439,13 +439,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     return [
       {
         id: 'ready',
-        title: 'ReplyFlow is ready',
-        description: 'Your trial is active and your dedicated ReplyFlow number has been prepared automatically.',
+        title: 'Activate ReplyFlow',
+        description: 'Your free trial is active and your dedicated ReplyFlow number is ready.',
         status: (subscriptionActionNeeded || numberActionNeeded) ? 'action-needed' : (replyFlowReadyDone ? 'complete' : 'needs-action'),
         details: (subscriptionActionNeeded || numberActionNeeded)
           ? (subscriptionActionNeeded ? 'Subscription inactive - reactivate to continue' : 'Number setup has issues - check status')
           : replyFlowReadyDone
-            ? (isTrialing ? '14-day free trial active' : 'Subscription active') + (numberDone ? ` • ${formatPhoneNumber(business.twilio_phone_number || '')}` : '')
+            ? (isTrialing ? '14-day free trial active' : 'Subscription active') + (numberDone ? ` • ${formatPhoneNumber(business.twilio_phone_number || '')}` : '') + ' • Completed automatically.'
             : 'No charge today. Cancel anytime.',
         buttonText: !replyFlowReadyDone && !subscriptionActionNeeded && !numberActionNeeded
           ? (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial')
