@@ -976,7 +976,7 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-3 sm:pt-4 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
+            <div className="flex-1 pt-2 sm:pt-3 lg:pt-3 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-6">
                         
                 {/* Determine if onboarding is fully complete */}
