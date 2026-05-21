@@ -929,18 +929,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       </span>
                     )}
                   </div>
-                  {!isComplete && (
+                  {!isComplete && (isCurrent || isActionNeeded) && (
                     <div className="mb-3">
                       <span
                         className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                           isActionNeeded
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                            : isCurrent
-                              ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
-                              : 'bg-muted text-muted-foreground'
+                            : 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
                         }`}
                       >
-                        {isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
+                        {isActionNeeded ? 'Action Needed' : 'IN PROGRESS'}
                       </span>
                     </div>
                   )}
