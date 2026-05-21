@@ -913,9 +913,7 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-br from-[#f5f7fb] via-[#f4f6fa] to-[#f3f5f9] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Dark mode ambient layers only */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
+          <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
@@ -1117,7 +1115,7 @@ export default function DashboardContent() {
                       {/* Dashboard Preview Content */}
                       <div className="space-y-4 sm:space-y-6">
                         {/* Setup Progress Preview */}
-                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                        <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Progress</h3>
                             <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
@@ -1142,28 +1140,28 @@ export default function DashboardContent() {
 
                         {/* Business Activity Stats Preview */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Missed Calls</span>
                             </div>
                             <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
                           </div>
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Leads</span>
                             </div>
                             <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
                           </div>
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Replies</span>
                             </div>
                             <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
                           </div>
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Follow-ups</span>
@@ -1173,7 +1171,7 @@ export default function DashboardContent() {
                         </div>
 
                         {/* Recent Leads Preview */}
-                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                        <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Leads</h3>
                             <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">

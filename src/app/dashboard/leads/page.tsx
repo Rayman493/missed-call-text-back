@@ -272,9 +272,7 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#f3f6fb] to-[#f1f5f9] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Dark mode ambient layers only */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
+        <div className="min-h-screen bg-[#f8fafc] dark:bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader title="Leads" />
 
@@ -305,19 +303,19 @@ export default function LeadsPage() {
                 <div className="space-y-4 sm:space-y-6">
                   {/* Lifecycle Summary Cards Preview */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                       <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
                       <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                       <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
                       <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                       <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
                       <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                       <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
                       <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
@@ -334,7 +332,7 @@ export default function LeadsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
                         <button className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                           All
                         </button>
@@ -354,7 +352,7 @@ export default function LeadsPage() {
                   {/* Sample Leads Preview */}
                   <div className="space-y-2 sm:space-y-3">
                     {/* Sample Lead 1 */}
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
                       <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
                           <span className="text-base sm:text-lg">📱</span>
@@ -378,7 +376,7 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Sample Lead 2 */}
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
                       <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-blue-50 border-blue-200">
                           <span className="text-base sm:text-lg">📞</span>
@@ -401,7 +399,7 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Sample Lead 3 */}
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-green-500">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-green-500">
                       <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
                           <span className="text-base sm:text-lg">📱</span>
@@ -523,7 +521,7 @@ export default function LeadsPage() {
               
               <div className="flex items-center gap-2">
                 {leads.length > 0 && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
+                  <div className="flex items-center gap-1.5 sm:gap-2 bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
                     <button
                       onClick={() => setShowFilters(!showFilters)}
                       className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
@@ -756,7 +754,7 @@ export default function LeadsPage() {
 
             {/* Leads List */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length > 0 && (
-              <div className="bg-white dark:bg-card/80 backdrop-blur rounded-2xl shadow-sm hover:shadow-md border border-slate-100 dark:border-border/40 overflow-hidden transition-all duration-300">
+              <div className="bg-card rounded-2xl shadow-sm hover:shadow-md border border-slate-100 dark:border-border/40 overflow-hidden transition-all duration-300">
                 <div className="divide-y divide-slate-100 dark:divide-border">
                   {sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed').map((lead, index) => {
                     const latestMessage = lead.messages && lead.messages.length > 0

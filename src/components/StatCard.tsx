@@ -26,7 +26,7 @@ export default function StatCard({
 }: StatCardProps) {
   // Unified card foundation
   const baseClasses = `
-    bg-white dark:bg-card 
+    bg-card
     border border-slate-300 dark:border-border/60 
     rounded-xl shadow-sm hover:shadow
     p-3 sm:p-4 
