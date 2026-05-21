@@ -1047,15 +1047,9 @@ export default function SettingsContent() {
                     <div className="text-center py-8 sm:py-10 bg-muted/40 rounded-xl border border-border/50">
                       <div className="text-3xl sm:text-4xl mb-3">📵</div>
                       <h3 className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-2">No ignored contacts yet</h3>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-4 max-w-sm mx-auto">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground max-w-sm mx-auto">
                         Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
                       </p>
-                      <button
-                        onClick={() => setShowAddModal(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
-                      >
-                        + Add Ignored Contact
-                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2.5">
