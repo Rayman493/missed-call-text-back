@@ -171,68 +171,68 @@ export default function BusinessActivity({
         )}
 
         {/* Business Activity Stat Cards */}
-        <div className="bg-white dark:bg-card/50 border border-slate-200/80 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-2 sm:p-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
+        <div className="bg-white dark:bg-card/50 border border-slate-200/80 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-1.5 sm:p-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-3">
             {/* Missed Calls Recovered */}
-            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1.5 sm:p-2.5">
-              <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
-                <span className="text-sm sm:text-lg">📞</span>
-                <span className="text-[9px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                  Missed Calls
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
+              <div className="flex items-center gap-1 mb-0.5 sm:mb-1.5">
+                <span className="text-xs sm:text-lg">📞</span>
+                <span className="text-[8px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide leading-tight">
+                  Calls
                 </span>
               </div>
-              <p className="text-lg sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-0.5 sm:mb-1">
+              <p className="text-base sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-0.5 sm:mb-1 leading-none">
                 {metrics.missedCallsRecovered}
               </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+              <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight line-clamp-2">
                 Customers contacted
               </p>
             </div>
 
             {/* Leads Captured */}
-            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1.5 sm:p-2.5">
-              <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
-                <span className="text-sm sm:text-lg">👥</span>
-                <span className="text-[9px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                  Leads Captured
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
+              <div className="flex items-center gap-1 mb-0.5 sm:mb-1.5">
+                <span className="text-xs sm:text-lg">👥</span>
+                <span className="text-[8px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide leading-tight">
+                  Leads
                 </span>
               </div>
-              <p className="text-lg sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-0.5 sm:mb-1">
+              <p className="text-base sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-0.5 sm:mb-1 leading-none">
                 {metrics.leadsCaptured}
               </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+              <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight line-clamp-2">
                 Opportunities captured
               </p>
             </div>
 
             {/* Customer Replies */}
-            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1.5 sm:p-2.5">
-              <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
-                <span className="text-sm sm:text-lg">💬</span>
-                <span className="text-[9px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
-                  Customer Replies
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
+              <div className="flex items-center gap-1 mb-0.5 sm:mb-1.5">
+                <span className="text-xs sm:text-lg">💬</span>
+                <span className="text-[8px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide leading-tight">
+                  Replies
                 </span>
               </div>
-              <p className="text-lg sm:text-2xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mb-0.5 sm:mb-1">
+              <p className="text-base sm:text-2xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mb-0.5 sm:mb-1 leading-none">
                 {metrics.autoRepliesSent}
               </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+              <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight line-clamp-2">
                 Conversations
               </p>
             </div>
 
             {/* Automatic Check-ins Scheduled */}
-            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1.5 sm:p-2.5">
-              <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
-                <span className="text-sm sm:text-lg">💡</span>
-                <span className="text-[9px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide">
+            <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
+              <div className="flex items-center gap-1 mb-0.5 sm:mb-1.5">
+                <span className="text-xs sm:text-lg">💡</span>
+                <span className="text-[8px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide leading-tight">
                   Check-ins
                 </span>
               </div>
-              <p className="text-lg sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-0.5 sm:mb-1">
+              <p className="text-base sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mb-0.5 sm:mb-1 leading-none">
                 {metrics.conversationsStarted}
               </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60">
+              <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight line-clamp-2">
                 {metrics.responseRate > 0 ? `${Math.round(metrics.responseRate)}% response` : 'Active'}
               </p>
             </div>
