@@ -27,8 +27,8 @@ export default function StatCard({
   // Unified card foundation
   const baseClasses = `
     bg-white dark:bg-card 
-    border border-slate-200 dark:border-border/60 
-    rounded-xl shadow-sm 
+    border border-slate-300 dark:border-border/60 
+    rounded-xl shadow-sm hover:shadow
     p-3 sm:p-4 
     h-full
     transition-all duration-300

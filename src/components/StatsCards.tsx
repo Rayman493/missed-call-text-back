@@ -172,10 +172,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
       <div className="mb-4 sm:mb-6">
         {/* Section Heading with Description */}
         <div className="mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-foreground mb-1">
             Business Activity
           </h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
             <span>This Month</span>
             <span>•</span>
             <span>See how ReplyFlow is helping your business</span>
