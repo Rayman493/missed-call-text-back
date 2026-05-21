@@ -26,12 +26,13 @@ interface PageBackgroundProps {
  */
 export default function PageBackground({ children, className = '' }: PageBackgroundProps) {
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-[#fafbfc] via-[#fafbfc] to-[#f8fafc] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
-      {/* Ultra subtle radial accents - barely perceptible */}
+    <div className={`min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f5f7fb] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
+      {/* Premium layered gradients - Stripe/Vercel/Linear inspired */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: `
-          radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.02), transparent 50%),
-          radial-gradient(circle at 75% 75%, rgba(148, 163, 184, 0.015), transparent 55%)
+          radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.04), transparent 45%),
+          radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.02), transparent 50%),
+          linear-gradient(to bottom, rgba(248, 250, 252, 0.3) 0%, rgba(245, 247, 251, 0.1) 100%)
         `
       }}></div>
       

@@ -13,6 +13,7 @@ import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
+import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
@@ -470,13 +471,7 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-gray-50/60 to-blue-gray-50/40 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Premium light mode ambient layers */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-            <div className="absolute inset-0 opacity-60 pointer-events-none" style={{
-              background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
-            }}></div>
+          <PageBackground>
             <AppHeader title="Settings" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -484,7 +479,7 @@ export default function SettingsContent() {
                 <p className="text-slate-600 dark:text-muted-foreground">Loading settings...</p>
               </div>
             </div>
-          </div>
+          </PageBackground>
         </BusinessGuard>
       </AuthGuard>
     )
@@ -493,15 +488,9 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-gray-50/60 to-blue-gray-50/40 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Premium light mode ambient layers */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-            <div className="absolute inset-0 opacity-60 pointer-events-none" style={{
-              background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
-            }}></div>
-            {/* Header */}
-            <AppHeader title="Settings" />
+        <PageBackground>
+          {/* Header */}
+          <AppHeader title="Settings" />
 
             {/* Main Content */}
             <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
@@ -1284,7 +1273,7 @@ export default function SettingsContent() {
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-        </div>
+        </PageBackground>
       </BusinessGuard>
     </AuthGuard>
   )
