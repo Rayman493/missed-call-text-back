@@ -101,9 +101,18 @@ export default function UserDropdown() {
             onClick={() => setIsOpen(!isOpen)}
             className="group flex items-center gap-2.5 sm:gap-3 px-3 py-3 text-sm font-medium text-gray-300 hover:text-white rounded-md hover:bg-white/10 transition-all duration-200 ease-in-out"
           >
-            <svg className="w-6.5 h-6.5 sm:w-6.5 sm:h-6.5 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Desktop Avatar */}
+            <div className="hidden sm:flex w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/30 border border-blue-400/30 items-center justify-center shadow-sm group-hover:border-blue-400/50 group-hover:shadow-md transition-all duration-200">
+              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            
+            {/* Mobile Icon */}
+            <svg className="w-6.5 h-6.5 sm:w-6.5 sm:h-6.5 sm:hidden transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
+            
             <span className="text-base font-bold hidden sm:inline transition-colors duration-200">Account</span>
             <span className="text-base font-bold sm:hidden transition-colors duration-200">Account</span>
             <ChevronDown size={16} strokeWidth={2.5} className="shrink-0 text-white/80 transition-all duration-200 group-hover:text-white group-hover:rotate-180" />

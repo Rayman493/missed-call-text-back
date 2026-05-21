@@ -16,19 +16,19 @@ interface PageBackgroundProps {
  * - Stripe light mode
  * 
  * Features:
- * - Light mode: Subtle blue-gray gradient with radial glow
+ * - Light mode: Enhanced visible blue-gray gradient with prominent radial glow
  * - Dark mode: Premium dark gradients with depth
  * - Fixed attachment for stable scrolling
  * - Professional SaaS aesthetics
  */
 export default function PageBackground({ children, className = '' }: PageBackgroundProps) {
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50/80 via-gray-50/60 to-blue-gray-50/40 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
-      {/* Premium light mode ambient layers */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-      <div className="absolute inset-0 opacity-60" style={{
-        background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50/90 via-blue-50/70 to-slate-100/80 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
+      {/* Enhanced premium light mode ambient layers */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-slate-50/60 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/30 via-transparent to-indigo-50/20 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
+      <div className="absolute inset-0 opacity-80" style={{
+        background: 'radial-gradient(circle at 30% 25%, rgba(219, 234, 254, 0.5) 0%, transparent 60%), radial-gradient(circle at 70% 75%, rgba(244, 247, 252, 0.6) 0%, transparent 70%)'
       }}></div>
       
       {/* Content */}

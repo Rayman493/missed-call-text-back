@@ -148,34 +148,34 @@ main {
     @apply bg-background text-foreground;
   }
 
-  /* Light mode ambient background - stronger and more visible */
+  /* Light mode ambient background - enhanced for premium visibility */
   html.light body {
     background: 
-      radial-gradient(circle at 30% 20%, rgba(219, 234, 254, 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 70% 80%, rgba(244, 247, 252, 0.4) 0%, transparent 60%),
+      radial-gradient(circle at 30% 25%, rgba(219, 234, 254, 0.4) 0%, transparent 55%),
+      radial-gradient(circle at 70% 75%, rgba(244, 247, 252, 0.5) 0%, transparent 65%),
       linear-gradient(135deg, 
         rgb(248 250 252) 0%, 
-        rgb(244 247 252) 20%, 
-        rgb(234 242 254) 40%, 
-        rgb(224 242 254) 60%, 
-        rgb(219 234 254) 80%, 
+        rgb(244 247 252) 15%, 
+        rgb(234 242 254) 35%, 
+        rgb(224 242 254) 55%, 
+        rgb(219 234 254) 75%, 
         rgb(241 245 249) 100%
       ) !important;
     background-attachment: fixed !important;
   }
 
-  /* System light mode ambient background - stronger and more visible */
+  /* System light mode ambient background - enhanced for premium visibility */
   @media (prefers-color-scheme: light) {
     html:not(.dark):not(.light):not([data-theme]) body {
       background: 
-        radial-gradient(circle at 30% 20%, rgba(219, 234, 254, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 70% 80%, rgba(244, 247, 252, 0.4) 0%, transparent 60%),
+        radial-gradient(circle at 30% 25%, rgba(219, 234, 254, 0.4) 0%, transparent 55%),
+        radial-gradient(circle at 70% 75%, rgba(244, 247, 252, 0.5) 0%, transparent 65%),
         linear-gradient(135deg, 
           rgb(248 250 252) 0%, 
-          rgb(244 247 252) 20%, 
-          rgb(234 242 254) 40%, 
-          rgb(224 242 254) 60%, 
-          rgb(219 234 254) 80%, 
+          rgb(244 247 252) 15%, 
+          rgb(234 242 254) 35%, 
+          rgb(224 242 254) 55%, 
+          rgb(219 234 254) 75%, 
           rgb(241 245 249) 100%
         ) !important;
       background-attachment: fixed !important;
