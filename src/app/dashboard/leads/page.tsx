@@ -511,6 +511,9 @@ export default function LeadsPage() {
               </div>
             )}
 
+            {/* Real Leads content - only show for active users */}
+            {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+              <>
             {/* Lifecycle Summary Cards - improved spacing hierarchy */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
@@ -876,6 +879,8 @@ export default function LeadsPage() {
                   })}
                 </div>
               </div>
+            )}
+            </>
             )}
             </div>
           </main>
