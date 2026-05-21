@@ -30,7 +30,7 @@ html.light {
 }
 
 html.light body {
-  background-color: #fafbfc;
+  background-color: transparent;
   color: #0f172a;
 }
 
@@ -51,7 +51,7 @@ html.dark body {
   }
 
   html:not(.dark):not(.light):not([data-theme]) body {
-    background-color: #ffffff;
+    background-color: transparent;
     color: #0f172a;
   }
 }
@@ -146,6 +146,32 @@ main {
   body {
     min-height: 100vh;
     @apply bg-background text-foreground;
+  }
+
+  /* Light mode ambient background */
+  html.light body {
+    background: linear-gradient(to bottom right, 
+      rgb(248 250 252) 0%, 
+      rgb(241 245 249) 25%, 
+      rgb(219 234 254) 50%, 
+      rgb(224 242 254) 75%, 
+      rgb(241 245 249) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  /* System light mode ambient background */
+  @media (prefers-color-scheme: light) {
+    html:not(.dark):not(.light):not([data-theme]) body {
+      background: linear-gradient(to bottom right, 
+        rgb(248 250 252) 0%, 
+        rgb(241 245 249) 25%, 
+        rgb(219 234 254) 50%, 
+        rgb(224 242 254) 75%, 
+        rgb(241 245 249) 100%
+      );
+      background-attachment: fixed;
+    }
   }
 }
 
