@@ -398,70 +398,97 @@ export default function SettingsContent() {
     }
   }, [business])
 
-  // IntersectionObserver for scroll-aware active section
+  // Scroll-aware active section detection using scroll listener
   useEffect(() => {
     const sections = ['general', 'automation', 'contacts', 'account']
     let timeoutId: NodeJS.Timeout | null = null
     
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Clear any pending timeout
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-        
-        // Debounce section changes to prevent rapid switching
-        timeoutId = setTimeout(() => {
-          const visibleSections = entries
-            .filter(entry => entry.isIntersecting)
-            .sort((a, b) => {
-              // Sort by how much of the section is visible
-              return b.intersectionRatio - a.intersectionRatio
-            })
+    const updateActiveSection = () => {
+      const offset = 180 // Account for sticky header/nav offset
+      let computedActiveSection = 'general' // Default fallback
+      
+      console.log('[Settings] Calculating active section - scrollY:', window.scrollY)
+      
+      for (const sectionId of sections) {
+        const element = document.getElementById(sectionId)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          const top = rect.top + window.scrollY
           
-          if (visibleSections.length > 0) {
-            const mostVisible = visibleSections[0]
-            const newActiveSection = mostVisible.target.id
-            
-            // Only update if the section actually changed to prevent unnecessary re-renders
-            if (newActiveSection !== activeSection) {
-              setActiveSection(newActiveSection)
-              
-              // Update URL hash without scrolling
-              const url = new URL(window.location.href)
-              url.hash = newActiveSection
-              window.history.replaceState({}, '', url.toString())
-              
-              console.log('[Settings] Active section changed to:', newActiveSection)
-            }
+          console.log(`[Settings] Section ${sectionId}:`, {
+            rectTop: rect.top,
+            scrollY: window.scrollY,
+            absoluteTop: top,
+            offset: offset,
+            isActive: top <= offset
+          })
+          
+          // Check if this section is at or above the offset line
+          if (top <= offset) {
+            computedActiveSection = sectionId
+          } else {
+            // Since sections are in order, we can break early
+            break
           }
-        }, 100) // Increased debounce for more stable behavior
-      },
-      {
-        threshold: [0, 0.1, 0.3, 0.5, 0.7, 1],
-        rootMargin: '-80px 0px -60% 0px' // Optimized margins for better section detection
+        }
       }
-    )
-
-    sections.forEach((sectionId) => {
-      const element = document.getElementById(sectionId)
-      if (element) {
-        observer.observe(element)
+      
+      console.log('[Settings] Computed active section:', computedActiveSection)
+      
+      // Only update if the section actually changed
+      if (computedActiveSection !== activeSection) {
+        setActiveSection(computedActiveSection)
+        console.log('[Settings] Active section updated to:', computedActiveSection)
       }
-    })
-
-    return () => {
+    }
+    
+    const handleScroll = () => {
+      // Clear any pending timeout
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
-      sections.forEach((sectionId) => {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          observer.unobserve(element)
-        }
-      })
+      
+      // Debounce scroll events
+      timeoutId = setTimeout(updateActiveSection, 50)
     }
-  }, [])
+    
+    // Handle URL hash for initial navigation only
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      if (sections.includes(hash)) {
+        const element = document.getElementById(hash)
+        if (element) {
+          // Scroll to the section
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // Let the scroll handler update the active section
+        }
+      }
+    }
+    
+    // Initial setup
+    const initialize = () => {
+      // Handle initial hash
+      handleHashChange()
+      
+      // Initial calculation after a short delay
+      setTimeout(updateActiveSection, 100)
+    }
+    
+    // Add event listeners
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('hashchange', handleHashChange)
+    
+    // Initialize
+    initialize()
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('hashchange', handleHashChange)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, []) // No dependencies to prevent stuck state
 
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
@@ -481,37 +508,7 @@ export default function SettingsContent() {
     }
   }
 
-  // Initialize active section from URL hash or scroll position
-  useEffect(() => {
-    const sections = ['general', 'automation', 'contacts', 'account']
-    
-    // Check if there's a hash in the URL
-    const hash = window.location.hash.slice(1)
-    if (sections.includes(hash)) {
-      setActiveSection(hash)
-      return
-    }
-    
-    // Otherwise, determine the active section based on current scroll position
-    const determineActiveSection = () => {
-      for (const sectionId of sections) {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          // Check if the section is in view (considering header offset)
-          if (rect.top <= 100 && rect.bottom > 100) {
-            setActiveSection(sectionId)
-            return
-          }
-        }
-      }
-      // Default to first section if nothing is in view
-      setActiveSection('general')
-    }
-    
-    // Small delay to ensure DOM is ready
-    setTimeout(determineActiveSection, 100)
-  }, [])
+  // Load ignored contacts
 
   if (!business || !formBusiness) {
     return (
