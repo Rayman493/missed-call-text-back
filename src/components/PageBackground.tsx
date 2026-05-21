@@ -10,24 +10,26 @@ interface PageBackgroundProps {
 /**
  * PageBackground - Consistent ambient gradient wrapper for all ReplyFlowHQ pages
  * 
- * Provides premium light and dark mode ambient backgrounds similar to:
- * - Linear light mode (clean, crisp, subtle depth)
- * - Vercel light mode (premium off-white with subtle blue accents)
- * - Stripe light mode (professional SaaS aesthetics)
+ * Provides ultra-subtle light and dark mode ambient backgrounds similar to:
+ * - Linear light mode (barely noticeable depth, subconscious gradients)
+ * - Vercel light mode (off-white base with ultra subtle highlights)
+ * - Stripe light mode (professional SaaS with minimal visual noise)
  * 
  * Features:
- * - Light mode: Clean off-white base with subtle cool blue/slate depth near edges
+ * - Light mode: Off-white/slate base with ultra subtle white highlights
+ * - Light mode: Faint cool blue radial depth only at edges, barely visible
+ * - Light mode: NO fog effect, NO heavy blur overlays
+ * - Light mode: Gradients only noticeable subconsciously
  * - Dark mode: Premium dark gradients with depth
  * - Fixed attachment for stable scrolling
- * - Professional SaaS aesthetics without fogginess
+ * - Professional SaaS aesthetics
  */
 export default function PageBackground({ children, className = '' }: PageBackgroundProps) {
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
-      {/* Clean premium light mode ambient layers - no fogginess */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-50/50 via-transparent to-blue-50/20 dark:from-transparent dark:via-slate-900/5 dark:to-transparent pointer-events-none"></div>
-      <div className="absolute inset-0 opacity-30" style={{
-        background: 'radial-gradient(circle at 20% 20%, rgba(219, 234, 254, 0.3) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(241, 245, 249, 0.4) 0%, transparent 50%)'
+      {/* Ultra-subtle ambient layers - Linear/Vercel style */}
+      <div className="absolute inset-0 opacity-15" style={{
+        background: 'radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.15) 0%, transparent 35%), radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.2) 0%, transparent 45%)'
       }}></div>
       
       {/* Content */}

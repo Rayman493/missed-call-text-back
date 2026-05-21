@@ -148,33 +148,33 @@ main {
     @apply bg-background text-foreground;
   }
 
-  /* Light mode ambient background - clean and premium like Vercel/Linear */
+  /* Light mode ambient background - ultra-subtle Linear/Vercel style */
   html.light body {
     background: 
-      radial-gradient(circle at 20% 20%, rgba(219, 234, 254, 0.2) 0%, transparent 40%),
-      radial-gradient(circle at 80% 80%, rgba(241, 245, 249, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.1) 0%, transparent 35%),
+      radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.15) 0%, transparent 45%),
       linear-gradient(135deg, 
         rgb(248 250 252) 0%, 
-        rgb(255 255 255) 25%, 
-        rgb(248 250 252) 50%, 
-        rgb(244 247 252) 75%, 
-        rgb(241 245 249) 100%
+        rgb(255 255 255) 30%, 
+        rgb(250 251 252) 50%, 
+        rgb(248 250 252) 70%, 
+        rgb(246 248 250) 100%
       ) !important;
     background-attachment: fixed !important;
   }
 
-  /* System light mode ambient background - clean and premium like Vercel/Linear */
+  /* System light mode ambient background - ultra-subtle Linear/Vercel style */
   @media (prefers-color-scheme: light) {
     html:not(.dark):not(.light):not([data-theme]) body {
       background: 
-        radial-gradient(circle at 20% 20%, rgba(219, 234, 254, 0.2) 0%, transparent 40%),
-        radial-gradient(circle at 80% 80%, rgba(241, 245, 249, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.1) 0%, transparent 35%),
+        radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.15) 0%, transparent 45%),
         linear-gradient(135deg, 
           rgb(248 250 252) 0%, 
-          rgb(255 255 255) 25%, 
-          rgb(248 250 252) 50%, 
-          rgb(244 247 252) 75%, 
-          rgb(241 245 249) 100%
+          rgb(255 255 255) 30%, 
+          rgb(250 251 252) 50%, 
+          rgb(248 250 252) 70%, 
+          rgb(246 248 250) 100%
         ) !important;
       background-attachment: fixed !important;
     }
