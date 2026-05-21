@@ -913,9 +913,9 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50/30 via-gray-50/20 to-blue-gray-50/10 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Ultra-subtle ambient layers */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-slate-50/10 dark:from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
+          <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#f3f6fb] to-[#f1f5f9] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
+            {/* Dark mode ambient layers only */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
