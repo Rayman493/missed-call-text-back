@@ -470,7 +470,13 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-gray-50/60 to-blue-gray-50/40 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
+            {/* Premium light mode ambient layers */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 opacity-60" style={{
+              background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
+            }}></div>
             <AppHeader title="Settings" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -487,7 +493,13 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-          <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-gray-50/60 to-blue-gray-50/40 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
+            {/* Premium light mode ambient layers */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 opacity-60" style={{
+              background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
+            }}></div>
             {/* Header */}
             <AppHeader title="Settings" />
 
