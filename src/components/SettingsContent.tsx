@@ -496,61 +496,51 @@ export default function SettingsContent() {
               <div className="max-w-[1600px] mx-auto">
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md py-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-              <nav className="flex items-center gap-1 overflow-x-auto pb-1">
-                <button
-                  onClick={() => handleSectionClick('general')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
-                    activeSection === 'general'
-                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  General
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
-                    activeSection === 'general' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
-                  }`} />
-                </button>
-                <button
-                  onClick={() => handleSectionClick('automation')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
-                    activeSection === 'automation'
-                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Automation
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
-                    activeSection === 'automation' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
-                  }`} />
-                </button>
-                <button
-                  onClick={() => handleSectionClick('contacts')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
-                    activeSection === 'contacts'
-                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Contacts
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
-                    activeSection === 'contacts' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
-                  }`} />
-                </button>
-                <button
-                  onClick={() => handleSectionClick('account')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
-                    activeSection === 'account'
-                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Account
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
-                    activeSection === 'account' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
-                  }`} />
-                </button>
-              </nav>
+            <div className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md py-2 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+              <div className="max-w-4xl mx-auto">
+                <nav className="flex items-center gap-1 overflow-x-auto">
+                  <button
+                    onClick={() => handleSectionClick('general')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                      activeSection === 'general'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    General
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('automation')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                      activeSection === 'automation'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    Automation
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('contacts')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                      activeSection === 'contacts'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    Contacts
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('account')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                      activeSection === 'account'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    Account
+                  </button>
+                </nav>
+              </div>
             </div>
 
             {/* System Status Section */}
