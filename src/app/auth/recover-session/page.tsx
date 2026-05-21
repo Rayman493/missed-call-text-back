@@ -35,7 +35,7 @@ export default function RecoverSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-slate-900/30 dark:to-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50/60 via-gray-50/40 to-blue-gray-50/20 dark:from-background dark:via-slate-900/30 dark:to-background flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white dark:bg-card rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700/50 p-8 sm:p-10">
           {/* Success Icon */}
