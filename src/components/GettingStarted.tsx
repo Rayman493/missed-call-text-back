@@ -381,6 +381,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         .update({
           call_forwarding_enabled: true,
           phone_setup_completed_at: new Date().toISOString(),
+          forwarding_verified: true,
+          forwarding_verified_at: new Date().toISOString(),
           onboarding_status: "pending_test",
           onboarding_step: "phone_setup_completed"
         })
@@ -389,6 +391,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       if (error) {
         console.error('[GettingStarted] Failed to mark forwarding complete:', error)
         setIsCompletingForwarding(false)
+        // Show user-friendly error message
+        alert('Failed to update forwarding status. Please try again or contact support.')
       } else {
         console.log('[GettingStarted] Database update success')
         
@@ -397,6 +401,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           ...currentBusiness,
           call_forwarding_enabled: true,
           phone_setup_completed_at: new Date().toISOString(),
+          forwarding_verified: true,
+          forwarding_verified_at: new Date().toISOString(),
           onboarding_status: "pending_test",
           onboarding_step: "phone_setup_completed"
         }
@@ -425,6 +431,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     } catch (error) {
       console.error('[GettingStarted] Error completing forwarding:', error)
       setIsCompletingForwarding(false)
+      // Show user-friendly error message
+      alert('Failed to update forwarding status. Please try again or contact support.')
     }
   }
 
