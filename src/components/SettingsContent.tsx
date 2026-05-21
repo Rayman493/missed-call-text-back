@@ -412,21 +412,10 @@ export default function SettingsContent() {
       const viewportHeight = window.innerHeight
       const scrollHeight = document.documentElement.scrollHeight
       
-      console.log('[Settings] Scroll position debug:', {
-        scrollTop,
-        viewportHeight,
-        scrollHeight,
-        offset,
-        nearTop: scrollTop <= 50,
-        nearBottom: scrollTop + viewportHeight >= scrollHeight - 50
-      })
-      
       // Edge case: Force General when near top
       if (scrollTop <= 50) {
-        console.log('[Settings] Near top edge, forcing General active')
-        if (computedActiveSection !== 'general') {
+        if (activeSection !== 'general') {
           setActiveSection('general')
-          console.log('[Settings] Active section updated to: general (top edge)')
         }
         return
       }
@@ -434,29 +423,17 @@ export default function SettingsContent() {
       // Edge case: Force Account when near bottom
       const nearBottom = scrollTop + viewportHeight >= scrollHeight - 50
       if (nearBottom) {
-        console.log('[Settings] Near bottom edge, forcing Account active')
-        if (computedActiveSection !== 'account') {
+        if (activeSection !== 'account') {
           setActiveSection('account')
-          console.log('[Settings] Active section updated to: account (bottom edge)')
         }
         return
       }
-      
-      console.log('[Settings] Section positions:')
       
       // Normal section detection for middle scrolling
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId)
         if (element) {
           const rect = element.getBoundingClientRect()
-          
-          console.log(`[Settings] ${sectionId}:`, {
-            id: sectionId,
-            rectTop: rect.top,
-            rectBottom: rect.bottom,
-            offset: offset,
-            isActive: rect.top <= offset
-          })
           
           // Use only getBoundingClientRect().top - no mixing with window.scrollY
           if (rect.top <= offset) {
@@ -465,12 +442,9 @@ export default function SettingsContent() {
         }
       }
       
-      console.log('[Settings] Computed active section:', computedActiveSection)
-      
       // Only update if the section actually changed
       if (computedActiveSection !== activeSection) {
         setActiveSection(computedActiveSection)
-        console.log('[Settings] Active section updated to:', computedActiveSection)
       }
     }
     
