@@ -159,42 +159,71 @@ export default function ResetPasswordPage() {
     setLoading(true)
 
     try {
-      // Extract tokens from URL hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get('access_token')
-      const refreshToken = hashParams.get('refresh_token')
-
-      if (!accessToken) {
-        setError('Invalid or expired reset link')
+      // Get current session before attempting to update password
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      console.log('handleSubmit - hasSession:', !!session)
+      
+      if (sessionError) {
+        console.error('Session check error:', sessionError)
+        setError('Unable to verify your session. Please try again.')
         return
       }
 
-      // Set the session using the tokens from the reset link
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || '',
-      })
-
-      if (sessionError) {
-        console.error('Session setup error:', sessionError)
-        setError('Invalid or expired reset link')
+      if (!session) {
+        console.log('handleSubmit - no session found')
+        setError('Your reset session expired. Please request a new reset link.')
         return
       }
 
       // Update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password,
       })
 
+      console.log('handleSubmit - updateUser success:', !updateError)
+      
       if (updateError) {
         console.error('Password update error:', updateError)
-        setError('Failed to update password. Please try again.')
+        
+        // Show appropriate error message based on the actual error
+        let errorMessage = 'Unable to update password. Please try again.'
+        
+        if (updateError.message.includes('weak')) {
+          errorMessage = 'Password is too weak. Please choose a stronger password.'
+        } else if (updateError.message.includes('same') || updateError.message.includes('old')) {
+          errorMessage = 'New password must be different from your current password.'
+        } else if (updateError.message.includes('length')) {
+          errorMessage = 'Password must be at least 8 characters long.'
+        } else if (updateError.message.includes('Invalid session')) {
+          errorMessage = 'Your reset session expired. Please request a new reset link.'
+        }
+        
+        setError(errorMessage)
         return
       }
 
+      console.log('handleSubmit - password updated successfully')
+      
+      // Success - show success message and redirect
       setSuccess(true)
+      
+      // Optionally sign out user after password update
+      setTimeout(async () => {
+        try {
+          await supabase.auth.signOut()
+        } catch (signOutError) {
+          console.error('Sign out error:', signOutError)
+        }
+        
+        // Redirect to login after 1-2 seconds
+        setTimeout(() => {
+          router.push('/auth')
+        }, 1000)
+      }, 1500)
+      
     } catch (err) {
-      console.error('Password reset error:', err)
+      console.error('Password reset unexpected error:', err)
       setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -289,10 +318,10 @@ export default function ResetPasswordPage() {
               </div>
               
               <h2 className="text-2xl font-bold text-white mb-2">
-                Password reset successful
+                Your password has been updated
               </h2>
               <p className="text-slate-400 mb-8">
-                Your password has been updated successfully. You can now sign in with your new password.
+                Redirecting you to sign in with your new password...
               </p>
             </div>
 
