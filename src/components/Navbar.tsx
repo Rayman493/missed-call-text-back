@@ -34,9 +34,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   if (loading || businessLoading) {
     return (
       <header className="w-full bg-slate-800/90 border-b border-slate-700">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
-          <BrandIcon size={40} className="animate-pulse" />
-          <div className="flex items-center gap-2 sm:gap-4">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-1 sm:py-1.5 flex items-center justify-between">
+          <BrandIcon size={36} className="animate-pulse" />
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-20 h-5 bg-gray-600 rounded animate-pulse hidden sm:block"></div>
             <div className="w-16 h-5 bg-gray-600 rounded animate-pulse"></div>
             <div className="w-24 h-5 bg-gray-600 rounded animate-pulse"></div>
@@ -49,23 +49,23 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Dark theme only - forceDark parameter kept for API compatibility
   
   return (
-    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700' : 'bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
+    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700'}`}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1 sm:py-1.5 flex items-center justify-between">
         {/* Logo */}
         <Link 
           href={isLoggedIn ? '/dashboard' : '/'} 
-          className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition"
+          className="flex items-center gap-1.5 sm:gap-2.5 hover:opacity-90 transition"
         >
-          <BrandIcon size={36} className="sm:hidden" />
-          <BrandIcon size={40} className="hidden sm:block" />
-          <span className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight">
+          <BrandIcon size={32} className="sm:hidden" />
+          <BrandIcon size={36} className="hidden sm:block" />
+          <span className="text-base sm:text-lg md:text-xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
             <span className="text-blue-400">HQ</span>
           </span>
         </Link>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-2 sm:gap-4">
+        <nav className="flex items-center gap-1.5 sm:gap-3">
           {isLoggedIn ? (
             // Logged-in navigation
             <>
@@ -81,7 +81,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   {/* Mobile Dashboard button */}
                   <Link
                     href="/dashboard"
-                    className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-lg ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                    className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
                   >
                     Dashboard
                   </Link>
@@ -130,7 +130,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               </Link>
               <Link
                 href="/auth?mode=signup"
-                className="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
+                className="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
               >
                 Start Free Trial
               </Link>

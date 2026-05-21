@@ -36,12 +36,12 @@ export default function Navigation() {
 
   // Navigation uses fixed colors for dark header (works in both light and dark modes)
   return (
-    <nav className="flex items-center gap-1 sm:gap-2">
+    <nav className="flex items-center gap-1 sm:gap-1.5">
       <Link
         href="/dashboard"
-        className={`min-w-[95px] px-6 py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[85px] px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out text-center ${
           pathname === '/dashboard'
-            ? 'text-white bg-white/15 shadow-md'
+            ? 'text-white bg-white/15 shadow-sm'
             : 'text-gray-300 hover:text-white hover:bg-white/5'
         }`}
       >
@@ -49,7 +49,7 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`min-w-[85px] px-4 py-2.5 text-base font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[75px] px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/leads')
             ? 'text-white bg-white/10 shadow-sm'
             : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -59,7 +59,7 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/settings"
-        className={`min-w-[90px] px-4 py-2.5 text-base font-medium rounded-lg transition-all duration-200 ease-in-out text-center ${
+        className={`min-w-[80px] px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out text-center ${
           isActive('/dashboard/settings')
             ? 'text-white bg-white/10 shadow-sm'
             : 'text-gray-300 hover:text-white hover:bg-white/5'
