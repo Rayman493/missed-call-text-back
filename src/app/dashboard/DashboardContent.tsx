@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { isAdminUser } from '@/lib/admin'
 import { 
@@ -238,8 +239,7 @@ export default function DashboardContent() {
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [trialEligibility, setTrialEligibility] = useState<any>(null)
-  const [checkoutMode, setCheckoutMode] = useState<'trial' | 'paid'>('trial')
+  const { checkoutMode, isLoading: eligibilityLoading, eligibility } = useTrialEligibility()
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
@@ -328,13 +328,7 @@ export default function DashboardContent() {
     setIsSetupBannerDismissed(dismissed)
   }, [])
 
-  // Check trial eligibility when business data is available and user is on unpaid plan
-  useEffect(() => {
-    if (business && user && !hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)) {
-      checkTrialEligibility()
-    }
-  }, [business, user, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id])
-
+  
   // CENTRALIZED CHECKOUT RECOVERY FLOW
   // When ?checkout=success is present, wait up to 8 seconds for session restoration
   // This prevents mobile browsers from redirecting to signin unnecessarily
@@ -532,62 +526,12 @@ export default function DashboardContent() {
     }
   }
 
-  const checkTrialEligibility = async () => {
-    if (!business?.business_phone_number || !user?.email) {
-      console.log('[Checkout Mode Decision] Missing required data for eligibility check')
-      setCheckoutMode('paid')
-      return
-    }
-
-    try {
-      console.log('[Checkout Mode Decision] Checking trial eligibility for:', {
-        businessId: business.id,
-        phoneNumber: business.business_phone_number,
-        email: user.email
-      })
-
-      const response = await fetch('/api/trial/check-eligibility', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          business_phone_number: business.business_phone_number,
-          business_email: user.email,
-        }),
-      })
-
-      const data = await response.json()
-      setTrialEligibility(data)
-
-      const hasUsedTrial = !data.eligible
-      const cooldownActive = !!data.cooldown_end_date
-      
-      const mode = hasUsedTrial || cooldownActive ? 'paid' : 'trial'
-      setCheckoutMode(mode)
-
-      console.log('[Checkout Mode Decision]', {
-        hasUsedTrial,
-        cooldownActive,
-        checkoutMode: mode,
-        businessId: business.id,
-        eligible: data.eligible,
-        reasons: data.reasons || []
-      })
-
-    } catch (error) {
-      console.error('[Checkout Mode Decision] Error checking eligibility:', error)
-      // Default to paid mode if we can't check eligibility
-      setCheckoutMode('paid')
-    }
-  }
-
+  
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
     console.log('[checkout] ===== STARTING SUBSCRIPTION FLOW =====')
     
-    // Check trial eligibility first to determine checkout mode
-    await checkTrialEligibility()
+    // Eligibility is now handled by useTrialEligibility hook
     
     // Detect mobile device
     const isMobile = typeof window !== 'undefined' && (
@@ -1137,24 +1081,24 @@ export default function DashboardContent() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div>
                             <h3 className="text-base font-semibold text-foreground mb-1">
-                              {checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now'}
+                              {eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now')}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {checkoutMode === 'trial' 
-                                ? 'Activate ReplyFlow to begin capturing missed calls automatically.'
-                                : 'Activate ReplyFlow to begin capturing missed calls automatically.'
+                              {eligibilityLoading 
+                                ? 'Determining your subscription options...'
+                                : (checkoutMode === 'trial' 
+                                  ? 'Activate ReplyFlow to begin capturing missed calls automatically.'
+                                  : 'Activate ReplyFlow to begin capturing missed calls automatically.'
+                                )
                               }
                             </p>
                           </div>
                           <button
-                            onClick={() => {
-                              setCheckoutError(null)
-                              handleStartSubscription()
-                            }}
-                            disabled={checkoutLoading}
+                            onClick={handleStartSubscription}
+                            disabled={checkoutLoading || eligibilityLoading}
                             className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           >
-                            {checkoutLoading ? 'Starting…' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now')}
+                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now'))}
                           </button>
                         </div>
                         {checkoutError && (
@@ -1289,10 +1233,10 @@ export default function DashboardContent() {
                               setCheckoutError(null)
                               handleStartSubscription()
                             }}
-                            disabled={checkoutLoading}
+                            disabled={checkoutLoading || eligibilityLoading}
                             className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {checkoutLoading ? 'Starting…' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now')}
+                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now'))}
                           </button>
                         </div>
                       </div>
