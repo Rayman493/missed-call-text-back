@@ -518,26 +518,38 @@ export default function LeadsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
                 <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
-                <p className="text-lg sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+                <p className="text-lg sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight mb-0.5">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 </p>
+                <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'new').length === 0 ? 'awaiting contact' : 'waiting for reply'}
+                </p>
               </div>
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
-                <p className="text-lg sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active Conversations</p>
+                <p className="text-lg sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-0.5">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
                 </p>
-              </div>
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
-                <p className="text-lg sm:text-2xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">
-                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
+                <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'active').length === 0 ? 'no ongoing talks' : 'conversations open'}
                 </p>
               </div>
               <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
-                <p className="text-lg sm:text-2xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed Follow-ups</p>
+                <p className="text-lg sm:text-2xl font-extrabold text-slate-600 dark:text-slate-400 tracking-tight mb-0.5">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
+                </p>
+                <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length === 0 ? 'no follow-ups yet' : 'reminders completed'}
+                </p>
+              </div>
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored Contacts</p>
+                <p className="text-lg sm:text-2xl font-extrabold text-orange-600 dark:text-orange-400 tracking-tight mb-0.5">
                   {leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length}
+                </p>
+                <p className="text-[7px] sm:text-[10px] text-slate-500 dark:text-muted-foreground/60 leading-tight">
+                  {leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length === 0 ? 'no blocked contacts' : 'blocked from automation'}
                 </p>
               </div>
             </div>
