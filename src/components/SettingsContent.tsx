@@ -545,6 +545,29 @@ export default function SettingsContent() {
             <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1600px] mx-auto">
 
+            {/* Back to Dashboard Link */}
+            <div className="mb-4 sm:mb-6">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 rounded-lg transition-all duration-200 group"
+              >
+                <svg 
+                  className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M15 19l-7-7 7-7" 
+                  />
+                </svg>
+                Back to Dashboard
+              </Link>
+            </div>
+
             {/* Settings Navigation Tabs */}
             <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-3 mb-6 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
               <nav className="flex items-center gap-1 overflow-x-auto">
