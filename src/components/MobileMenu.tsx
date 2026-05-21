@@ -52,7 +52,8 @@ export default function MobileMenu() {
 
   // Menu items for logged-out users (public navigation)
   const publicMenuItems = [
-    { href: '/#features', label: 'Features' },
+    { href: '/', label: 'Home' },
+    { href: '/demo', label: 'Demo' },
     { href: '/faq', label: 'FAQ' },
     { href: '/auth?mode=signin', label: 'Sign In' },
     { href: '/auth?mode=signup', label: 'Start Free Trial' },

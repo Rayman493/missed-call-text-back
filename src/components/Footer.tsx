@@ -40,6 +40,30 @@ export default function Footer() {
             <ul className="space-y-2 sm:space-y-3">
               <li>
                 <Link 
+                  href="/" 
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/demo" 
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
+                >
+                  Demo
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/faq" 
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
+                >
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/dashboard" 
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
@@ -60,14 +84,6 @@ export default function Footer() {
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
                 >
                   Settings
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/demo" 
-                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-sm font-medium transition-colors"
-                >
-                  Demo
                 </Link>
               </li>
             </ul>

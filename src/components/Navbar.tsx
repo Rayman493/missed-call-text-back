@@ -53,7 +53,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
         {/* Logo */}
         <Link 
-          href={isLoggedIn ? '/dashboard' : '/'} 
+          href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
           className="flex items-center gap-1.5 sm:gap-2.5 hover:opacity-90 transition"
         >
           <BrandIcon size={32} className="sm:hidden" />
@@ -73,23 +73,29 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 // Public pages: show simplified navigation
                 <>
                   <Link
-                    href="/dashboard"
+                    href="/"
                     className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                   >
-                    Dashboard
+                    Home
                   </Link>
-                  {/* Mobile Dashboard button */}
                   <Link
-                    href="/dashboard"
-                    className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                    href="/demo"
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                   >
-                    Dashboard
+                    Demo
                   </Link>
                   <Link
                     href="/faq"
                     className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                   >
                     FAQ
+                  </Link>
+                  {/* Mobile navigation */}
+                  <Link
+                    href="/dashboard"
+                    className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                  >
+                    Dashboard
                   </Link>
                 </>
               ) : (
@@ -116,6 +122,18 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           ) : (
             // Logged-out navigation
             <>
+              <Link
+                href="/"
+                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+              >
+                Home
+              </Link>
+              <Link
+                href="/demo"
+                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+              >
+                Demo
+              </Link>
               <Link
                 href="/faq"
                 className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
