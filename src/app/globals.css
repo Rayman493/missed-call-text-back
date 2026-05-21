@@ -148,23 +148,15 @@ main {
     @apply bg-background text-foreground;
   }
 
-  /* Light mode ambient background - premium layered gradients */
+  /* Clean stable backgrounds - removed experimental ambient gradients */
   html.light body {
-    background: 
-      radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.04), transparent 45%),
-      radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.02), transparent 50%),
-      linear-gradient(to bottom, #f8fafc 0%, #f5f7fb 100%) !important;
-    background-attachment: fixed !important;
+    background: var(--background) !important;
   }
 
-  /* System light mode ambient background - premium layered gradients */
+  /* System light mode - clean stable backgrounds */
   @media (prefers-color-scheme: light) {
     html:not(.dark):not(.light):not([data-theme]) body {
-      background: 
-        radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.04), transparent 45%),
-        radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.02), transparent 50%),
-        linear-gradient(to bottom, #f8fafc 0%, #f5f7fb 100%) !important;
-      background-attachment: fixed !important;
+      background: var(--background) !important;
     }
   }
 }

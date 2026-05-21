@@ -26,16 +26,7 @@ interface PageBackgroundProps {
  */
 export default function PageBackground({ children, className = '' }: PageBackgroundProps) {
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f5f7fb] dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
-      {/* Premium layered gradients - Stripe/Vercel/Linear inspired */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: `
-          radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.04), transparent 45%),
-          radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.02), transparent 50%),
-          linear-gradient(to bottom, rgba(248, 250, 252, 0.3) 0%, rgba(245, 247, 251, 0.1) 100%)
-        `
-      }}></div>
-      
+    <div className={`min-h-screen bg-background dark:bg-background flex flex-col relative ${className}`}>
       {/* Content */}
       {children}
     </div>

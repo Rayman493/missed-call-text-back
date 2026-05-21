@@ -471,7 +471,7 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <PageBackground>
+          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
             <AppHeader title="Settings" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -479,7 +479,7 @@ export default function SettingsContent() {
                 <p className="text-slate-600 dark:text-muted-foreground">Loading settings...</p>
               </div>
             </div>
-          </PageBackground>
+          </div>
         </BusinessGuard>
       </AuthGuard>
     )
@@ -488,7 +488,7 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <PageBackground>
+        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
           {/* Header */}
           <AppHeader title="Settings" />
 
@@ -1273,7 +1273,7 @@ export default function SettingsContent() {
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-        </PageBackground>
+        </div>
       </BusinessGuard>
     </AuthGuard>
   )
