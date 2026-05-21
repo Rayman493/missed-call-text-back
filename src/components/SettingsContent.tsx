@@ -407,28 +407,32 @@ export default function SettingsContent() {
       const offset = 180 // Account for sticky header/nav offset
       let computedActiveSection = 'general' // Default fallback
       
-      console.log('[Settings] Calculating active section - scrollY:', window.scrollY)
+      // Debug different scroll containers to identify the real one
+      console.log('[Settings] Scroll container debug:', {
+        windowScrollY: window.scrollY,
+        documentScrollTop: document.documentElement.scrollTop,
+        bodyScrollTop: document.body.scrollTop,
+        offset: offset
+      })
+      
+      console.log('[Settings] Section positions:')
       
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId)
         if (element) {
           const rect = element.getBoundingClientRect()
-          const top = rect.top + window.scrollY
           
-          console.log(`[Settings] Section ${sectionId}:`, {
+          console.log(`[Settings] ${sectionId}:`, {
+            id: sectionId,
             rectTop: rect.top,
-            scrollY: window.scrollY,
-            absoluteTop: top,
+            rectBottom: rect.bottom,
             offset: offset,
-            isActive: top <= offset
+            isActive: rect.top <= offset
           })
           
-          // Check if this section is at or above the offset line
-          if (top <= offset) {
+          // Use only getBoundingClientRect().top - no mixing with window.scrollY
+          if (rect.top <= offset) {
             computedActiveSection = sectionId
-          } else {
-            // Since sections are in order, we can break early
-            break
           }
         }
       }
