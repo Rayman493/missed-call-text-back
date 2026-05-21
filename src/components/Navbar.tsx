@@ -34,7 +34,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   if (loading || businessLoading) {
     return (
       <header className="w-full bg-slate-800/90 border-b border-slate-700">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-1 sm:py-1.5 flex items-center justify-between">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
           <BrandIcon size={36} className="animate-pulse" />
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-20 h-5 bg-gray-600 rounded animate-pulse hidden sm:block"></div>
@@ -50,7 +50,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1 sm:py-1.5 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
         {/* Logo */}
         <Link 
           href={isLoggedIn ? '/dashboard' : '/'} 
