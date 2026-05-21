@@ -9,6 +9,7 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
+import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
@@ -59,6 +60,13 @@ export default function SettingsContent() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [label, setLabel] = useState('')
   const [reason, setReason] = useState('')
+
+  // Change password modal state
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   // Spam filtering local state for immediate visual feedback
   const [spamFilteringEnabled, setSpamFilteringEnabled] = useState(false)
@@ -314,6 +322,53 @@ export default function SettingsContent() {
       showToast(error instanceof Error ? error.message : 'Failed to add ignored contact', 'error')
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    setPasswordError('')
+
+    // Validate passwords
+    if (!newPassword.trim()) {
+      setPasswordError('Password is required')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long')
+      return
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Passwords do not match')
+      return
+    }
+
+    setIsChangingPassword(true)
+
+    try {
+      const supabase = createBrowserClient()
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) {
+        console.error('Password update error:', error)
+        setPasswordError('Failed to update password. Please try again.')
+        return
+      }
+
+      // Success
+      showToast('Password updated successfully.', 'success')
+      setShowChangePasswordModal(false)
+      setNewPassword('')
+      setConfirmNewPassword('')
+      setPasswordError('')
+    } catch (err) {
+      console.error('Password update error:', err)
+      setPasswordError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -1091,6 +1146,22 @@ export default function SettingsContent() {
               </>
               )}
 
+              {/* Security Section */}
+              <div id="security" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6 scroll-mt-24">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1">Security</h2>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">Keep your account secure by updating your password.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowChangePasswordModal(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </div>
+
               
               {/* Danger Zone */}
               <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
@@ -1330,6 +1401,89 @@ export default function SettingsContent() {
                       </>
                     ) : (
                       'Add Contact'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change Password Modal */}
+          {showChangePasswordModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                  Change Password
+                </h3>
+                
+                {passwordError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      New Password
+                    </label>
+                    <PasswordInput
+                      id="newPassword"
+                      name="newPassword"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
+                      placeholder="Enter new password"
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Must be at least 8 characters long
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Confirm New Password
+                    </label>
+                    <PasswordInput
+                      id="confirmNewPassword"
+                      name="confirmNewPassword"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowChangePasswordModal(false)
+                      setNewPassword('')
+                      setConfirmNewPassword('')
+                      setPasswordError('')
+                    }}
+                    disabled={isChangingPassword}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      'Update Password'
                     )}
                   </button>
                 </div>

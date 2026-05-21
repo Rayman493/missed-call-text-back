@@ -563,6 +563,17 @@ function AuthContent() {
               />
             </div>
 
+            {isSignIn && (
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading || isSubmitting || redirecting}
