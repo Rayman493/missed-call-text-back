@@ -28,7 +28,7 @@ export default function PageBackground({ children, className = '' }: PageBackgro
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative ${className}`}>
       {/* Ultra-subtle ambient layers - Linear/Vercel style */}
-      <div className="absolute inset-0 opacity-15" style={{
+      <div className="absolute inset-0 opacity-15 pointer-events-none" style={{
         background: 'radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.15) 0%, transparent 35%), radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.2) 0%, transparent 45%)'
       }}></div>
       

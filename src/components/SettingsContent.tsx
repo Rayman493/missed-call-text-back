@@ -474,7 +474,7 @@ export default function SettingsContent() {
             {/* Premium light mode ambient layers */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-            <div className="absolute inset-0 opacity-60" style={{
+            <div className="absolute inset-0 opacity-60 pointer-events-none" style={{
               background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
             }}></div>
             <AppHeader title="Settings" />
@@ -497,7 +497,7 @@ export default function SettingsContent() {
             {/* Premium light mode ambient layers */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50/50 dark:from-transparent dark:via-slate-900/5 dark:to-slate-900/10 pointer-events-none"></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 via-transparent to-indigo-50/10 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-            <div className="absolute inset-0 opacity-60" style={{
+            <div className="absolute inset-0 opacity-60 pointer-events-none" style={{
               background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.3) 0%, transparent 50%)'
             }}></div>
             {/* Header */}
