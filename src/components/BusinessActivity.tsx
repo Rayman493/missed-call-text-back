@@ -121,44 +121,6 @@ export default function BusinessActivity({
     return 'Recently'
   }
 
-  // Show onboarding-focused message when setup is incomplete
-  if (!isOnboardingComplete) {
-    return (
-      <SectionErrorBoundary sectionName="BusinessActivity">
-        <div className="mb-4 sm:mb-6">
-          {/* Section Heading */}
-          <div className="mb-3 sm:mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
-              Business Activity
-            </h2>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-              <span>This Month</span>
-              <span>•</span>
-              <span>See how ReplyFlow is helping your business</span>
-            </div>
-          </div>
-
-          {/* Onboarding-focused empty state */}
-          <div className="bg-muted/30 dark:bg-muted/20 border border-border/50 rounded-xl p-4 sm:p-6 text-center">
-            <div className="w-12 h-12 bg-muted/50 dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">📊</span>
-            </div>
-            <h3 className="text-sm sm:text-base font-medium text-foreground mb-2">
-              Finish setup to begin tracking
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-              Complete setup and place a test call to begin tracking missed calls and recovered leads.
-            </p>
-          </div>
-        </div>
-      </SectionErrorBoundary>
-    )
-  }
-
-  if (loading) {
-    return null
-  }
-
   return (
     <SectionErrorBoundary sectionName="BusinessActivity">
       <div className="mb-4 sm:mb-6">
@@ -174,35 +136,53 @@ export default function BusinessActivity({
           </div>
         </div>
 
-        {/* Operational Status Indicators */}
-        {(provisioningStatus === 'active' || forwardingVerified) && (
-          <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4 text-xs text-muted-foreground bg-muted/30 dark:bg-muted/20 px-3 py-2 rounded-lg border border-border/50">
-            {provisioningStatus === 'active' && (
-              <>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span>Monitoring active</span>
-              </>
-            )}
-            {provisioningStatus === 'active' && forwardingVerified && (
-              <span className="hidden sm:inline">•</span>
-            )}
-            {forwardingVerified && (
-              <>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span>Forwarding connected</span>
-              </>
-            )}
-            {metrics.lastActivityTime && (
-              <>
-                <span className="hidden sm:inline">•</span>
-                <span>Last activity: {getTimeAgo(metrics.lastActivityTime)}</span>
-              </>
-            )}
+        {/* Show onboarding-focused empty state when setup is incomplete */}
+        {!isOnboardingComplete && (
+          <div className="bg-muted/30 dark:bg-muted/20 border border-border/50 rounded-xl p-4 sm:p-6 text-center">
+            <div className="w-12 h-12 bg-muted/50 dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <span className="text-xl sm:text-2xl">📊</span>
+            </div>
+            <h3 className="text-sm sm:text-base font-medium text-foreground mb-2">
+              Finish setup to begin tracking
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+              Complete setup and place a test call to begin tracking missed calls and recovered leads.
+            </p>
           </div>
         )}
 
-        {/* Business Activity Stat Cards */}
-        <div className="bg-white dark:bg-card/50 border border-slate-200/80 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-1.5 sm:p-3">
+        {/* Show metrics when setup is complete and not loading */}
+        {isOnboardingComplete && !loading && (
+          <>
+            {/* Operational Status Indicators */}
+            {(provisioningStatus === 'active' || forwardingVerified) && (
+              <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4 text-xs text-muted-foreground bg-muted/30 dark:bg-muted/20 px-3 py-2 rounded-lg border border-border/50">
+                {provisioningStatus === 'active' && (
+                  <>
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span>Monitoring active</span>
+                  </>
+                )}
+                {provisioningStatus === 'active' && forwardingVerified && (
+                  <span className="hidden sm:inline">•</span>
+                )}
+                {forwardingVerified && (
+                  <>
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span>Forwarding connected</span>
+                  </>
+                )}
+                {metrics.lastActivityTime && (
+                  <>
+                    <span className="hidden sm:inline">•</span>
+                    <span>Last activity: {getTimeAgo(metrics.lastActivityTime)}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Business Activity Stat Cards */}
+            <div className="bg-white dark:bg-card/50 border border-slate-200/80 dark:border-border/60 rounded-xl shadow-sm hover:shadow-md transition-shadow p-1.5 sm:p-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-3">
             {/* Missed Calls Recovered */}
             <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
@@ -269,6 +249,8 @@ export default function BusinessActivity({
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </SectionErrorBoundary>
   )
