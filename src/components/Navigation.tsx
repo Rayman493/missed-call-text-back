@@ -36,7 +36,7 @@ export default function Navigation() {
 
   // Navigation uses fixed colors for dark header (works in both light and dark modes)
   return (
-    <nav className="flex items-center gap-0.5">
+    <nav className="flex items-center gap-1 sm:gap-2">
       <Link
         href="/dashboard"
         className={`min-w-[95px] px-6 py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out text-center ${
