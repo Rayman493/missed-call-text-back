@@ -777,11 +777,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2 sm:p-2.5' : 'p-2 sm:p-3'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
-      {/* Horizontal layout: left text, right CTA */}
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-3 sm:p-3' : 'p-3 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+      {/* Header with title, status, and toggle control */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 sm:gap-2 mb-0.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-0.5">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
@@ -821,16 +821,18 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             </>
           )}
         </div>
-        {/* Toggle button - desktop only in header, mobile moves below progress bar */}
-        {complete && (
+        
+        {/* Toggle control - moved to top-right of header */}
+        <div className="flex-shrink-0">
           <button
             onClick={handleToggle}
-            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-md transition-all duration-200"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >
+            <span>{isExpanded ? 'Hide' : 'View'}</span>
             <svg
-              className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -838,7 +840,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Slim progress bar - hide when collapsed and complete */}
@@ -852,28 +854,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             aria-valuemax={100}
             role="progressbar"
           />
-        </div>
-      )}
-
-      {/* View steps button - visible on both desktop and mobile, below progress bar */}
-      {!complete && (
-        <div className="mt-4 sm:mt-3">
-          <button
-            onClick={handleToggle}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
-            aria-expanded={isExpanded}
-            aria-label="Toggle setup checklist"
-          >
-          <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
-          <svg
-            className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
         </div>
       )}
 
@@ -893,7 +873,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               <li
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
-                onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
                 className={`flex items-start gap-5 sm:gap-4 ${!isCurrent && !isActionNeeded ? 'p-2 sm:p-2' : 'p-3 sm:p-2.5'} rounded-xl border transition-all duration-300 ease-out ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
@@ -902,7 +881,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       : isCurrent
                         ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-300/80 dark:border-blue-600/60 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
                         : 'bg-muted/50 border-border'
-                } ${isForwardingCard && !isComplete && (isCurrent || isActionNeeded) ? 'cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30' : ''}`}
+                } ${isForwardingCard && !isComplete ? 'cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isComplete ? (
@@ -926,7 +905,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3 mb-1">
+                  <div className={`flex items-center justify-between gap-3 mb-1 ${isForwardingCard && !isComplete ? 'cursor-pointer' : ''}`} onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}>
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
@@ -950,7 +929,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       >
                         {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                       </span>
-                      {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
+                      {isForwardingCard && !isComplete && (
                         <div className="flex-shrink-0">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
