@@ -25,8 +25,10 @@ import {
   getPricingDisplay,
   getTrialDisplay,
   SUBSCRIPTION_STATES,
-  hasValidSubscription
+  hasValidSubscription,
+  isActiveSubscription
 } from '@/lib/subscription'
+import { hasActiveAccess, hasActiveTrial, hasActiveSubscription as hasActiveSubscriptionUtil } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import StatusBadge from '@/components/StatusBadge'
@@ -90,6 +92,10 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [trialEligibility, setTrialEligibility] = useState<any>(null)
+  const [checkoutMode, setCheckoutMode] = useState<'trial' | 'paid'>('trial')
 
   const supabase = createBrowserClient()
 
@@ -192,6 +198,108 @@ export default function LeadsPage() {
     return matchesSearch && matchesStatus
   })
 
+  // Check trial eligibility when business data is available and user is on unpaid plan
+  useEffect(() => {
+    if (business && user && !hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)) {
+      checkTrialEligibility()
+    }
+  }, [business, user, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id])
+
+  // Check trial eligibility
+  const checkTrialEligibility = async () => {
+    if (!business?.business_phone_number || !user?.email) {
+      console.log('[Checkout Mode Decision] Missing required data for eligibility check')
+      setCheckoutMode('paid')
+      return
+    }
+
+    try {
+      console.log('[Checkout Mode Decision] Checking trial eligibility for:', {
+        businessId: business.id,
+        phoneNumber: business.business_phone_number,
+        email: user.email
+      })
+
+      const response = await fetch('/api/trial/check-eligibility', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessId: business.id,
+          phoneNumber: business.business_phone_number,
+          email: user.email
+        })
+      })
+
+      const data = await response.json()
+      setTrialEligibility(data)
+
+      const hasUsedTrial = !data.eligible
+      const cooldownActive = !!data.cooldown_end_date
+      
+      const mode = hasUsedTrial || cooldownActive ? 'paid' : 'trial'
+      setCheckoutMode(mode)
+
+      console.log('[Checkout Mode Decision]', {
+        hasUsedTrial,
+        cooldownActive,
+        checkoutMode: mode,
+        businessId: business.id,
+        eligible: data.eligible,
+        cooldownEndDate: data.cooldown_end_date
+      })
+    } catch (error) {
+      console.error('[Checkout Mode Decision] Error checking trial eligibility:', error)
+      setCheckoutMode('paid')
+    }
+  }
+
+  // Handle start subscription
+  const handleStartSubscription = async () => {
+    setCheckoutLoading(true)
+    console.log('[checkout] ===== STARTING SUBSCRIPTION FLOW =====')
+    
+    // Check trial eligibility first to determine checkout mode
+    await checkTrialEligibility()
+    
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessId: business?.id,
+          mode: checkoutMode
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.cooldown_end_date) {
+          const cooldownDate = new Date(data.cooldown_end_date)
+          setCheckoutError(`You can start another free trial after ${cooldownDate.toLocaleDateString()}.`)
+        } else if (data.error === 'Business has already used a free trial') {
+          setCheckoutError('This business has already used a free trial.')
+        } else {
+          setCheckoutError(data.error || 'Failed to create checkout session')
+        }
+        return
+      }
+
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error('[checkout] Error creating checkout session:', error)
+      setCheckoutError('Failed to start checkout. Please try again.')
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
+
   // Sort leads by latest activity
   const sortedLeads = [...filteredLeads].sort((a, b) => {
     const aTime = new Date(getLatestActivity(a)).getTime()
@@ -244,6 +352,164 @@ export default function LeadsPage() {
             <div className="mb-4 sm:mb-6">
               <GettingStarted isOnboardingComplete={isOnboardingComplete} />
             </div>
+
+            {/* Pre-trial locked preview - show what users will unlock */}
+            {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+              <div className="relative mb-6 sm:mb-8">
+                {/* Leads Preview Content */}
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Lifecycle Summary Cards Preview */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    </div>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    </div>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    </div>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
+                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    </div>
+                  </div>
+
+                  {/* Leads Header Preview */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
+                        Customer Leads
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                        No leads yet
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-lg p-1 shadow-sm">
+                        <button className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                          All
+                        </button>
+                        <button className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                          New
+                        </button>
+                        <button className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                          Active
+                        </button>
+                        <button className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-muted-foreground rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                          Completed
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sample Leads Preview */}
+                  <div className="space-y-2 sm:space-y-3">
+                    {/* Sample Lead 1 */}
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
+                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
+                          <span className="text-base sm:text-lg">📱</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
+                              Sarah M.
+                            </p>
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">5 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="ml-11 sm:ml-13">
+                        <p className="text-xs sm:text-sm truncate text-slate-600 dark:text-muted-foreground/80 font-semibold">
+                          Customer: Hi, I'm interested in your services. Can you call me back?
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Sample Lead 2 */}
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
+                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-blue-50 border-blue-200">
+                          <span className="text-base sm:text-lg">📞</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
+                              John's Plumbing
+                            </p>
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">12 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="ml-11 sm:ml-13">
+                        <p className="text-xs sm:text-sm truncate text-slate-600 dark:text-muted-foreground/80 font-semibold">
+                          Customer: We have a pipe emergency at our office. Need help ASAP.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Sample Lead 3 */}
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-green-500">
+                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
+                          <span className="text-base sm:text-lg">📱</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
+                              Mike's Auto Repair
+                            </p>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">1 hour ago</p>
+                        </div>
+                      </div>
+                      <div className="ml-11 sm:ml-13">
+                        <p className="text-xs sm:text-sm truncate text-blue-600 dark:text-blue-400/90">
+                          You: Thanks for reaching out! We'll have someone call you back shortly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lock Overlay */}
+                <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-xl flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-slate-800/80 dark:bg-slate-700/80 rounded-full flex items-center justify-center mb-4 mx-auto">
+                      <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <p className="text-white font-medium mb-4">Unlock your leads inbox</p>
+                    <p className="text-white/80 text-sm mb-6 max-w-md mx-auto">
+                      Start your trial to begin capturing missed-call leads automatically
+                    </p>
+                    <button
+                      onClick={() => {
+                        setCheckoutError(null)
+                        handleStartSubscription()
+                      }}
+                      disabled={checkoutLoading}
+                      className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {checkoutLoading ? 'Starting…' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now')}
+                    </button>
+                    {checkoutError && (
+                      <div className="mt-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 max-w-md mx-auto">
+                        <p className="text-sm text-red-800 dark:text-red-200 font-medium">{checkoutError}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Lifecycle Summary Cards - improved spacing hierarchy */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
