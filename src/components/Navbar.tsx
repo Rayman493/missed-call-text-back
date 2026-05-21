@@ -64,9 +64,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         {/* Logo */}
         <Link 
           href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-          className="flex items-center gap-1.5 sm:gap-2.5 hover:opacity-90 transition"
+          className="flex items-center gap-1 sm:gap-2.5 hover:opacity-90 transition"
         >
-          <BrandIcon size={32} className="sm:hidden" />
+          <BrandIcon size={40} className="sm:hidden" />
           <BrandIcon size={36} className="hidden sm:block" />
           <span className="text-base sm:text-lg md:text-xl font-semibold tracking-tight">
             <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
