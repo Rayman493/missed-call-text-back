@@ -400,17 +400,38 @@ export default function SettingsContent() {
   // IntersectionObserver for scroll-aware active section
   useEffect(() => {
     const sections = ['general', 'automation', 'contacts', 'account']
+    let timeoutId: NodeJS.Timeout | null = null
+    
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id)
+        // Clear any pending timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+        
+        // Debounce section changes to prevent rapid switching
+        timeoutId = setTimeout(() => {
+          const visibleSections = entries
+            .filter(entry => entry.isIntersecting)
+            .sort((a, b) => {
+              // Sort by how much of the section is visible
+              return b.intersectionRatio - a.intersectionRatio
+            })
+          
+          if (visibleSections.length > 0) {
+            const mostVisible = visibleSections[0]
+            setActiveSection(mostVisible.target.id)
+            
+            // Update URL hash without scrolling
+            const url = new URL(window.location.href)
+            url.hash = mostVisible.target.id
+            window.history.replaceState({}, '', url.toString())
           }
-        })
+        }, 50) // 50ms debounce
       },
       {
-        threshold: 0.3,
-        rootMargin: '-80px 0px -60% 0px'
+        threshold: [0, 0.1, 0.3, 0.5, 0.7, 1],
+        rootMargin: '-100px 0px -50% 0px' // Better threshold for section detection
       }
     )
 
@@ -422,6 +443,9 @@ export default function SettingsContent() {
     })
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       sections.forEach((sectionId) => {
         const element = document.getElementById(sectionId)
         if (element) {
@@ -476,55 +500,55 @@ export default function SettingsContent() {
               <nav className="flex items-center gap-1 overflow-x-auto pb-1">
                 <button
                   onClick={() => handleSectionClick('general')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
                     activeSection === 'general'
-                      ? 'text-blue-600 dark:text-blue-400'
+                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   General
-                  {activeSection === 'general' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
-                  )}
+                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
+                    activeSection === 'general' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
+                  }`} />
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
                     activeSection === 'automation'
-                      ? 'text-blue-600 dark:text-blue-400'
+                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Automation
-                  {activeSection === 'automation' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
-                  )}
+                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
+                    activeSection === 'automation' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
+                  }`} />
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
                     activeSection === 'contacts'
-                      ? 'text-blue-600 dark:text-blue-400'
+                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Contacts
-                  {activeSection === 'contacts' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
-                  )}
+                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
+                    activeSection === 'contacts' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
+                  }`} />
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap relative ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
                     activeSection === 'account'
-                      ? 'text-blue-600 dark:text-blue-400'
+                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Account
-                  {activeSection === 'account' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
-                  )}
+                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ease-out ${
+                    activeSection === 'account' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-1'
+                  }`} />
                 </button>
               </nav>
             </div>
