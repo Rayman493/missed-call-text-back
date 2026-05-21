@@ -17,35 +17,33 @@ export default function AppHeader({
 }: AppHeaderProps) {
   return (
     <header className="z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b-0">
-      <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 border-0">
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto pl-4 pr-4 sm:px-6 lg:px-8 py-3 border-0">
+        <div className="flex items-center justify-between h-10">
           {/* Left side - Mobile menu and logo */}
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-4 md:gap-8">
             {/* Mobile menu - only visible on mobile/tablet */}
             <div className="md:hidden">
               <MobileMenu />
             </div>
             
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-1 md:gap-1.5 hover:opacity-90 transition">
-              <BrandIcon size={24} className="sm:size-32" />
-              <span className="text-base md:text-xl lg:text-2xl font-bold tracking-tight">
+            <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90 transition">
+              <BrandIcon size={20} className="sm:size-20" />
+              <span className="text-sm md:text-lg lg:text-xl font-bold tracking-tight">
                 <span className="text-white">ReplyFlow</span>
                 <span className="text-blue-400">HQ</span>
               </span>
             </Link>
 
             {/* Desktop navigation - only visible on desktop */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center">
               {showNavigation && <Navigation />}
             </div>
           </div>
           
           {/* Right side - User dropdown */}
-          <div className="flex items-center gap-4 md:gap-3 pr-3">
+          <div className="flex items-center">
             <UserDropdown />
-            {/* Mobile menu placeholder on desktop (empty div to maintain layout) */}
-            <div className="hidden md:block w-8"></div>
           </div>
         </div>
       </div>

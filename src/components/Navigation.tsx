@@ -36,36 +36,45 @@ export default function Navigation() {
 
   // Navigation uses fixed colors for dark header (works in both light and dark modes)
   return (
-    <nav className="flex items-center gap-1 sm:gap-1.5">
+    <nav className="flex items-center gap-1">
       <Link
         href="/dashboard"
-        className={`min-w-[85px] px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out text-center ${
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
           pathname === '/dashboard'
-            ? 'text-white bg-white/15 shadow-sm'
-            : 'text-gray-300 hover:text-white hover:bg-white/5'
+            ? 'text-white'
+            : 'text-gray-400 hover:text-white'
         }`}
       >
         Dashboard
+        {pathname === '/dashboard' && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+        )}
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`min-w-[75px] px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out text-center ${
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
           isActive('/dashboard/leads')
-            ? 'text-white bg-white/10 shadow-sm'
-            : 'text-gray-300 hover:text-white hover:bg-white/5'
+            ? 'text-white'
+            : 'text-gray-400 hover:text-white'
         }`}
       >
         Leads
+        {isActive('/dashboard/leads') && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+        )}
       </Link>
       <Link
         href="/dashboard/settings"
-        className={`min-w-[80px] px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out text-center ${
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
           isActive('/dashboard/settings')
-            ? 'text-white bg-white/10 shadow-sm'
-            : 'text-gray-300 hover:text-white hover:bg-white/5'
+            ? 'text-white'
+            : 'text-gray-400 hover:text-white'
         }`}
       >
         Settings
+        {isActive('/dashboard/settings') && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+        )}
       </Link>
     </nav>
   )
