@@ -121,10 +121,41 @@ export default function BusinessActivity({
     return 'Recently'
   }
 
-  // Only show if onboarding is complete
-  const shouldShow = isOnboardingComplete
+  // Show onboarding-focused message when setup is incomplete
+  if (!isOnboardingComplete) {
+    return (
+      <SectionErrorBoundary sectionName="BusinessActivity">
+        <div className="mb-4 sm:mb-6">
+          {/* Section Heading */}
+          <div className="mb-3 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
+              Business Activity
+            </h2>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span>This Month</span>
+              <span>•</span>
+              <span>See how ReplyFlow is helping your business</span>
+            </div>
+          </div>
 
-  if (!shouldShow || loading) {
+          {/* Onboarding-focused empty state */}
+          <div className="bg-muted/30 dark:bg-muted/20 border border-border/50 rounded-xl p-4 sm:p-6 text-center">
+            <div className="w-12 h-12 bg-muted/50 dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <span className="text-xl sm:text-2xl">📊</span>
+            </div>
+            <h3 className="text-sm sm:text-base font-medium text-foreground mb-2">
+              Finish setup to begin tracking
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+              Complete setup and place a test call to begin tracking missed calls and recovered leads.
+            </p>
+          </div>
+        </div>
+      </SectionErrorBoundary>
+    )
+  }
+
+  if (loading) {
     return null
   }
 

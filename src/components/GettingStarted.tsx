@@ -456,7 +456,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'forwarding',
         title: 'Connect your business line',
-        description: 'Missed calls from your business number are routed to ReplyFlow.',
+        description: 'Customers still call your normal business number. Missed calls are automatically forwarded to ReplyFlow so you never lose the lead.',
         status: forwardingActionNeeded ? 'action-needed' : (forwardingDone ? 'complete' : 'needs-action'),
         details: forwardingActionNeeded
           ? 'Forwarding disabled - re-enable to continue'
@@ -497,7 +497,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Complete final test',
+        title: 'Test Your Setup',
         description: 'Place a test call to confirm ReplyFlow is live.',
         status: testActionNeeded ? 'action-needed' : (testDone ? 'complete' : 'needs-action'),
         details: testActionNeeded
@@ -505,7 +505,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           : testDone
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
             : (forwardingDone ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
-        buttonText: forwardingDone && !testDone ? 'Complete Final Test' : undefined,
+        buttonText: forwardingDone && !testDone ? 'Test Your Setup' : undefined,
         buttonHref: forwardingDone && !testDone ? '/dashboard/test-setup' : undefined,
         secondaryButtonText: testDone ? 'Run Another Test' : undefined,
         secondaryButtonHref: testDone ? '/dashboard/test-setup' : undefined,
@@ -781,15 +781,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {/* Header with title, status, and toggle control */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-0.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-2 mb-2">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
-              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
+              {complete ? 'Setup Complete ✓' : `Setup Progress ${progressPct}%`}
             </h2>
             {/* System Status - subtle indicator - compact on mobile */}
             <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
               <span className={`text-[9px] sm:text-[10px] font-medium leading-none ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                {complete ? 'Live' : incompleteItems.length === 1 ? 'Next: Complete Final Test' : 'Ready for Final Test'}
+                {complete ? 'Live' : 
+                  incompleteItems.length === 2 ? 'Connect Your Business Line' :
+                  incompleteItems.length === 1 ? 'Call Forwarding Required' :
+                  'Test Your Setup'
+                }
               </span>
             </span>
             {/* Trial badge - only show when in trial and onboarding incomplete - compact on mobile */}
@@ -799,27 +803,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               </span>
             )}
           </div>
-          {(!isOnboardingComplete || isExpanded) && (
-            <>
-              <p className={`text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
-                {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
-              </p>
-              {!complete && incompleteItems.length === 1 && (
-                <div className="mt-2 sm:mt-3">
-                  <Link
-                    href="/dashboard/test-setup"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
-                  >
-                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Complete Final Test
-                  </Link>
-                </div>
-              )}
-            </>
-          )}
         </div>
         
         {/* Toggle control - moved to top-right of header */}
@@ -843,9 +826,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         </div>
       </div>
 
-      {/* Slim progress bar - hide when collapsed and complete */}
+      {/* Progress bar - moved up */}
       {(!isOnboardingComplete || isExpanded) && (
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-1.5">
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-2">
           <div
             className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
             style={{ width: `${progressPct}%` }}
@@ -855,6 +838,29 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             role="progressbar"
           />
         </div>
+      )}
+
+      {/* Status message - moved below progress bar */}
+      {(!isOnboardingComplete || isExpanded) && (
+        <>
+          <p className={`text-xs sm:text-sm text-muted-foreground mb-2 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
+            {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
+          </p>
+          {!complete && incompleteItems.length === 1 && (
+            <div className="mb-2">
+              <Link
+                href="/dashboard/test-setup"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
+              >
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Complete Final Test
+              </Link>
+            </div>
+          )}
+        </>
       )}
 
       {isExpanded && (
@@ -996,7 +1002,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           e.stopPropagation()
                           item.secondaryButtonOnClick!()
                         }}
-                        className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-transparent hover:border-border"
+                        className="w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors text-foreground border-2 border-border bg-background hover:bg-muted hover:border-border/80"
                       >
                         {item.secondaryButtonText}
                       </button>
