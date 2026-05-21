@@ -1044,4 +1044,262 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       )}
     </div>
   )
+
+  // Incomplete setup - show progress with expandable details
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 sm:p-4 mb-6 transition-all duration-300">
+      {/* Header with progress */}
+      <div className="flex items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <div className="flex-shrink-0">
+            <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shadow-sm ${
+              incompleteItems.length === 0 
+                ? 'bg-green-500' 
+                : incompleteItems.some(item => item.status === 'action-needed')
+                  ? 'bg-amber-500' 
+                  : 'bg-blue-500'
+            }`}>
+              {incompleteItems.length === 0 ? (
+                <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : incompleteItems.some(item => item.status === 'action-needed') ? (
+                <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <div className="text-white text-xs sm:text-sm font-bold">{doneSteps}</div>
+              )}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-sm sm:text-base font-semibold text-foreground">
+                Setup Progress
+              </h2>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium ${
+                incompleteItems.length === 0
+                  ? 'bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-green-700 dark:text-green-300'
+                  : incompleteItems.some(item => item.status === 'action-needed')
+                    ? 'bg-amber-900/20 dark:bg-amber-900/30 border border-amber-900/30 dark:border-amber-800/30 text-amber-700 dark:text-amber-300'
+                    : 'bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-blue-700 dark:text-blue-300'
+              }`}>
+                {doneSteps} of {totalSteps} steps complete
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {incompleteItems.length === 0 
+                ? 'ReplyFlow is ready to use!'
+                : incompleteItems.some(item => item.status === 'action-needed')
+                  ? 'Action needed to complete setup'
+                  : 'Complete setup to start capturing missed calls'
+              }
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+          aria-expanded={isExpanded}
+          aria-label="View setup details"
+        >
+          <span className="text-xs sm:text-sm font-medium hover:underline">
+            {isExpanded ? 'Hide steps' : 'View steps'}
+          </span>
+          <svg
+            className={`w-4 h-4 ml-1.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-3 sm:mb-4">
+        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <div
+            className={`h-2 transition-all duration-500 ease-out ${
+              incompleteItems.length === 0 
+                ? 'bg-green-600' 
+                : incompleteItems.some(item => item.status === 'action-needed')
+                  ? 'bg-amber-600' 
+                  : 'bg-blue-600'
+            }`}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Expandable setup details */}
+      {isExpanded && (
+        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
+          <div className="space-y-1.5 sm:space-y-2.5">
+            {checklistItems.map((item, idx) => {
+              const stepNum = idx + 1
+              const isComplete = item.status === 'complete'
+              const isActionNeeded = item.status === 'action-needed'
+              const isCurrent = !complete && !isComplete && !isActionNeeded && checklistItems.findIndex(i => i.status !== 'complete' && i.status !== 'action-needed') === idx
+              const isExpandedCard = expandedCardId === item.id
+              const isForwardingCard = item.id === 'forwarding'
+
+              return (
+                <li
+                  key={item.id}
+                  ref={(el) => { cardRefs.current[item.id] = el }}
+                  onClick={() => isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && handleCardToggle(item.id)}
+                  className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 list-none ${
+                    isComplete
+                      ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
+                      : isActionNeeded
+                        ? 'bg-amber-50/30 dark:bg-amber-900/10 border-amber-200/40 dark:border-amber-800/20'
+                        : isCurrent
+                          ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
+                          : 'bg-muted/50 border-border'
+                  } ${isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {isComplete ? (
+                      <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
+                        <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div
+                        className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
+                          isActionNeeded
+                            ? 'bg-amber-600 text-white shadow-sm'
+                            : isCurrent
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {stepNum}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h3 className={`text-sm sm:text-base font-semibold ${
+                        isComplete
+                          ? 'text-green-800/60 dark:text-green-200/50'
+                          : !isCurrent && !isActionNeeded
+                            ? 'text-muted-foreground/70'
+                            : 'text-foreground'
+                      }`}>
+                        Step {stepNum} — {item.title}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                            isComplete
+                              ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
+                              : isActionNeeded
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                : isCurrent
+                                  ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
+                                  : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
+                        </span>
+                        {isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && (
+                          <div className="flex-shrink-0">
+                            {isExpandedCard ? (
+                              <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <p className={`text-xs sm:text-sm mb-1.5 ${
+                      isComplete
+                        ? 'text-muted-foreground/60'
+                        : !isCurrent && !isActionNeeded
+                          ? 'text-muted-foreground/60'
+                          : 'text-muted-foreground'
+                    }`}>
+                      {item.description}
+                    </p>
+                    {item.details && (
+                      <p className={`text-[11px] mb-2 ${
+                        isComplete
+                          ? 'text-muted-foreground/50'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {item.details}
+                      </p>
+                    )}
+                    {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
+                      <div className="mt-3">
+                        {item.buttonOnClick ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              item.buttonOnClick!()
+                            }}
+                            className={`w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                              isCurrent
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                                : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                            }`}
+                          >
+                            {item.buttonText}
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.buttonHref!}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`inline-block w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                              isCurrent
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                                : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                            }`}
+                          >
+                            {item.buttonText}
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                    {item.secondaryButtonText && item.secondaryButtonOnClick && (
+                      <div className="mt-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            item.secondaryButtonOnClick!()
+                          }}
+                          className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-transparent hover:border-border"
+                        >
+                          {item.secondaryButtonText}
+                        </button>
+                      </div>
+                    )}
+                    {item.secondaryButtonText && item.secondaryButtonHref && (
+                      <div className="mt-2">
+                        <Link
+                          href={item.secondaryButtonHref}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-2.5 px-4 py-2 text-xs font-medium rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-muted/50 hover:border-border/80 cursor-pointer"
+                        >
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                          {item.secondaryButtonText}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
