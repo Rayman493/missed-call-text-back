@@ -105,7 +105,7 @@ export default function UserDropdown() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-base font-bold hidden sm:inline transition-colors duration-200">Account</span>
-            <ChevronDown className="w-4 h-4 sm:w-4 sm:h-4 text-gray-400 transition-all duration-200 group-hover:text-white" />
+            <ChevronDown size={16} strokeWidth={2.25} className="shrink-0 text-white/70 transition-all duration-200 group-hover:text-white" />
           </button>
 
           {isOpen && (
