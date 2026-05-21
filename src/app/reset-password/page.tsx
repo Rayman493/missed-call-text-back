@@ -19,36 +19,104 @@ export default function ResetPasswordPage() {
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null)
   const router = useRouter()
 
-  // Check for valid reset session on mount
+  // Check for valid reset session on mount and listen for auth state changes
   useEffect(() => {
+    let mounted = true
+    let timeoutId: NodeJS.Timeout
+
     const checkSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession()
+        // First check current session
+        const { data, error: sessionError } = await supabase.auth.getSession()
         
-        if (error) {
-          console.error('Session check error:', error)
-          setIsValidSession(false)
+        if (sessionError) {
+          if (mounted) {
+            console.error('Session check error:', sessionError)
+            setIsValidSession(false)
+          }
           return
         }
 
-        // Check if this is a password recovery session
-        const hashParams = new URLSearchParams(window.location.hash)
+        // Check if this is a password recovery session from hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token')
         const refreshToken = hashParams.get('refresh_token')
         const type = hashParams.get('type')
 
         if (type === 'recovery' && accessToken) {
-          setIsValidSession(true)
+          // This is a recovery link, set up the session
+          const { error: setError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
+
+          if (setError) {
+            if (mounted) {
+              console.error('Session setup error:', setError)
+              setIsValidSession(false)
+            }
+            return
+          }
+
+          if (mounted) {
+            setIsValidSession(true)
+          }
+        } else if (data.session) {
+          // User is already signed in, allow password reset
+          if (mounted) {
+            setIsValidSession(true)
+          }
         } else {
-          setIsValidSession(false)
+          // No valid session found
+          if (mounted) {
+            setIsValidSession(false)
+          }
         }
       } catch (err) {
-        console.error('Session check error:', err)
-        setIsValidSession(false)
+        if (mounted) {
+          console.error('Session check error:', err)
+          setIsValidSession(false)
+        }
       }
     }
 
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+      if (!mounted) return
+
+      if (event === 'PASSWORD_RECOVERY') {
+        // Password recovery event
+        setIsValidSession(true)
+      } else if (event === 'SIGNED_IN' && session) {
+        // User signed in, check if this is from a recovery link
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const type = hashParams.get('type')
+        
+        if (type === 'recovery') {
+          setIsValidSession(true)
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsValidSession(false)
+      }
+    })
+
+    // Initial check
     checkSession()
+
+    // Set a timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted && isValidSession === null) {
+        setIsValidSession(false)
+      }
+    }, 5000)
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [])
 
   const validatePassword = (pwd: string): string | null => {
@@ -77,7 +145,7 @@ export default function ResetPasswordPage() {
 
     try {
       // Extract tokens from URL hash
-      const hashParams = new URLSearchParams(window.location.hash)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const accessToken = hashParams.get('access_token')
       const refreshToken = hashParams.get('refresh_token')
 
