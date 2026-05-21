@@ -778,12 +778,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
   return (
     <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-3 sm:p-3' : 'p-3 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
-      {/* Header with title, status, and toggle control */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
+      {/* Header with title and status */}
+      <div className="flex items-center justify-between mb-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
-              {complete ? 'Setup Complete ✓' : `Setup Progress ${progressPct}%`}
+              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
             {/* System Status - subtle indicator - compact on mobile */}
             <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
@@ -805,17 +805,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </div>
         </div>
         
-        {/* Toggle control - moved to top-right of header */}
-        <div className="flex-shrink-0">
+        {/* Simple chevron expand/collapse control */}
+        {!complete && (
           <button
             onClick={handleToggle}
-            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-md transition-all duration-200"
+            className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"
             aria-expanded={isExpanded}
             aria-label="Toggle setup checklist"
           >
-            <span>{isExpanded ? 'Hide' : 'View'}</span>
             <svg
-              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -823,12 +822,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-        </div>
+        )}
       </div>
 
       {/* Progress bar - moved up */}
       {(!isOnboardingComplete || isExpanded) && (
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-2">
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-3">
           <div
             className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
             style={{ width: `${progressPct}%` }}
@@ -843,11 +842,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {/* Status message - moved below progress bar */}
       {(!isOnboardingComplete || isExpanded) && (
         <>
-          <p className={`text-xs sm:text-sm text-muted-foreground mb-2 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
+          <p className={`text-xs sm:text-sm text-muted-foreground mb-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
             {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
           </p>
           {!complete && incompleteItems.length === 1 && (
-            <div className="mb-2">
+            <div className="mb-3">
               <Link
                 href="/dashboard/test-setup"
                 onClick={(e) => e.stopPropagation()}
@@ -911,7 +910,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`flex items-center justify-between gap-3 mb-1 ${isForwardingCard && !isComplete ? 'cursor-pointer' : ''}`} onClick={() => isForwardingCard && !isComplete && handleCardToggle(item.id)}>
+                  <div className="space-y-2 mb-2">
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
@@ -921,7 +920,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     }`}>
                       Step {stepNum} — {item.title}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start">
                       <span
                         className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                           isComplete
@@ -935,15 +934,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       >
                         {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                       </span>
-                      {isForwardingCard && !isComplete && (
-                        <div className="flex-shrink-0">
-                          {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   <p className={`text-xs sm:text-sm mb-1.5 leading-relaxed ${
