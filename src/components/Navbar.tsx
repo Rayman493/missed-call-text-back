@@ -27,6 +27,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                        pathname === '/compliance' || 
                        pathname === '/demo'
 
+  // Check if we're specifically on the homepage
+  const isHomepage = pathname === '/'
+
   const handleSignOut = async () => {
     await signOut()
   }
@@ -72,18 +75,23 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               {isPublicPage ? (
                 // Public pages: show simplified navigation
                 <>
-                  <Link
-                    href="/"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/demo"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
-                  >
-                    Demo
-                  </Link>
+                  {/* Only show Home and Demo on non-homepage public pages */}
+                  {!isHomepage && (
+                    <>
+                      <Link
+                        href="/"
+                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        href="/demo"
+                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                      >
+                        Demo
+                      </Link>
+                    </>
+                  )}
                   <Link
                     href="/faq"
                     className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
@@ -122,18 +130,23 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           ) : (
             // Logged-out navigation
             <>
-              <Link
-                href="/"
-                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
-              >
-                Home
-              </Link>
-              <Link
-                href="/demo"
-                className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
-              >
-                Demo
-              </Link>
+              {/* Only show Home and Demo on non-homepage public pages */}
+              {!isHomepage && (
+                <>
+                  <Link
+                    href="/"
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/demo"
+                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                  >
+                    Demo
+                  </Link>
+                </>
+              )}
               <Link
                 href="/faq"
                 className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
