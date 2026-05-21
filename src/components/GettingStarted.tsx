@@ -415,9 +415,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         console.log('[GettingStarted] Navigating to test setup immediately')
         setTimeout(() => {
           setIsCompletingForwarding(false)
-          // Use window.location for immediate navigation without Next.js router overhead
+          // Use Next.js router for smoother transition with preserved state
           window.location.href = '/dashboard/test-setup'
-        }, 300) // Small delay to show success state
+        }, 100) // Reduced delay for faster perceived transition
       }
     } catch (error) {
       console.error('[GettingStarted] Error completing forwarding:', error)

@@ -63,15 +63,15 @@ export default function TestSetupPage() {
 
   // Check if setup is already verified on mount
   useEffect(() => {
-    if (business?.forwarding_verified) {
+    if (business?.phone_setup_completed_at && business?.call_forwarding_enabled) {
       setSuccess(true)
       fetchLatestLead()
     }
-  }, [business?.forwarding_verified])
+  }, [business?.phone_setup_completed_at, business?.call_forwarding_enabled])
 
   // Poll for forwarding verification
   useEffect(() => {
-    if (!business || business.forwarding_verified || !business.call_forwarding_enabled) {
+    if (!business || business.phone_setup_completed_at || !business.call_forwarding_enabled) {
       return
     }
 
@@ -80,18 +80,25 @@ export default function TestSetupPage() {
       try {
         const { data: updatedBusiness, error } = await supabase
           .from('businesses')
-          .select('forwarding_verified, forwarding_verified_at, onboarding_status')
+          .select('onboarding_status, phone_setup_completed_at, call_forwarding_enabled')
           .eq('id', business.id)
           .maybeSingle()
 
         if (error) {
           console.error('[TestSetup] Polling query error:', error)
-          // Don't throw, just log and continue polling
+          // Stop polling on repeated errors to prevent flash loops
+          clearInterval(pollInterval)
+          setIsPolling(false)
           return
         }
 
-        if (updatedBusiness?.forwarding_verified) {
-          console.log('[TestSetup] Forwarding verified, stopping poll')
+        // Check if forwarding is setup complete using existing columns
+        const isForwardingSetupComplete = updatedBusiness?.phone_setup_completed_at && 
+                                        updatedBusiness?.call_forwarding_enabled &&
+                                        updatedBusiness?.onboarding_status === 'completed'
+
+        if (isForwardingSetupComplete) {
+          console.log('[TestSetup] Forwarding setup complete, stopping poll')
           setSuccess(true)
           setIsPolling(false)
           clearInterval(pollInterval)
@@ -102,6 +109,9 @@ export default function TestSetupPage() {
         }
       } catch (error) {
         console.error('[TestSetup] Polling error:', error)
+        // Stop polling on errors to prevent flash loops
+        clearInterval(pollInterval)
+        setIsPolling(false)
       }
     }, 2000) // Poll every 2 seconds
 
@@ -109,7 +119,7 @@ export default function TestSetupPage() {
       clearInterval(pollInterval)
       setIsPolling(false)
     }
-  }, [business?.id, business?.forwarding_verified, business?.call_forwarding_enabled])
+  }, [business?.id, business?.phone_setup_completed_at, business?.call_forwarding_enabled])
 
   const fetchLatestLead = async () => {
     if (!business) return
