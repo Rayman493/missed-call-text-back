@@ -1138,38 +1138,6 @@ export default function DashboardContent() {
                           </div>
                         </div>
 
-                        {/* Business Activity Stats Preview */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Missed Calls</span>
-                            </div>
-                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
-                          </div>
-                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Leads</span>
-                            </div>
-                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
-                          </div>
-                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Replies</span>
-                            </div>
-                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
-                          </div>
-                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Follow-ups</span>
-                            </div>
-                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
-                          </div>
-                        </div>
-
                         {/* Recent Leads Preview */}
                         <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                           <div className="flex items-center justify-between mb-4">
