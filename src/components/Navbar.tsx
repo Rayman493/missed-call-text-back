@@ -49,7 +49,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Dark theme only - forceDark parameter kept for API compatibility
   
   return (
-    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-slate-900 dark:bg-slate-800/90 border-b border-slate-800 dark:border-slate-700'}`}>
+    <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1 sm:py-1.5 flex items-center justify-between">
         {/* Logo */}
         <Link 
