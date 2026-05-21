@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're Invited to ReplyFlowHQ</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background-color: #f8fafc;
+        }
+        
+        /* Container */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Card */
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0b1220 0%, #1e293b 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .logo-text {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .logo-text span:first-child {
+            color: white;
+        }
+        
+        .logo-text span:last-child {
+            color: #60a5fa;
+        }
+        
+        .title {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        /* Content */
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        
+        .inviter-info {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 32px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .inviter-label {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .inviter-name {
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            transition: background-color 0.2s ease;
+        }
+        
+        .button:hover {
+            background: #1d4ed8;
+        }
+        
+        /* Footer info */
+        .info {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 32px 0;
+        }
+        
+        /* Footer */
+        .footer {
+            padding: 30px;
+            background: #f8fafc;
+            text-align: center;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .footer-link {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-brand {
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .footer-brand a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        
+        .footer-brand a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #0f172a;
+                color: #f1f5f9;
+            }
+            
+            .card {
+                background: #1e293b;
+                border: 1px solid #334155;
+            }
+            
+            .message {
+                color: #cbd5e1;
+            }
+            
+            .inviter-info {
+                background: #334155;
+            }
+            
+            .inviter-label {
+                color: #94a3b8;
+            }
+            
+            .inviter-name {
+                color: #f1f5f9;
+            }
+            
+            .info {
+                color: #94a3b8;
+            }
+            
+            .divider {
+                background: #334155;
+            }
+            
+            .footer {
+                background: #0f172a;
+            }
+            
+            .footer-text {
+                color: #94a3b8;
+            }
+            
+            .footer-brand {
+                color: #cbd5e1;
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .title {
+                font-size: 20px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .button {
+                padding: 12px 24px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">
+                    <div class="logo-icon">RF</div>
+                    <div class="logo-text">
+                        <span>ReplyFlow</span>
+                        <span>HQ</span>
+                    </div>
+                </div>
+                <h1 class="title">You're Invited to ReplyFlowHQ</h1>
+            </div>
+            
+            <!-- Content -->
+            <div class="content">
+                <p class="message">
+                    You've been invited to join ReplyFlowHQ, the conversational missed-call response automation platform for modern businesses.
+                </p>
+                
+                <div class="inviter-info">
+                    <div class="inviter-label">Invited by</div>
+                    <div class="inviter-name">{{ .InviterName || 'Your Team' }}</div>
+                </div>
+                
+                <div class="button-container">
+                    <a href="{{ .ConfirmationURL }}" class="button">
+                        Accept Invitation
+                    </a>
+                </div>
+                
+                <p class="info">
+                    This invitation expires in 7 days for security reasons.
+                </p>
+                
+                <p class="info">
+                    If you weren't expecting this invitation, you can safely ignore this email.
+                </p>
+            </div>
+            
+            <!-- Footer -->
+            <div class="divider"></div>
+            
+            <div class="footer">
+                <p class="footer-text">
+                    Need help? <a href="mailto:support@replyflowhq.com" class="footer-link">support@replyflowhq.com</a>
+                </p>
+                
+                <div class="footer-brand">
+                    <a href="https://replyflowhq.com">ReplyFlowHQ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
