@@ -77,13 +77,20 @@ export default function TestSetupPage() {
     setIsPolling(true)
     const pollInterval = setInterval(async () => {
       try {
-        const { data: updatedBusiness } = await supabase
+        const { data: updatedBusiness, error } = await supabase
           .from('businesses')
           .select('forwarding_verified, forwarding_verified_at, onboarding_status')
           .eq('id', business.id)
-          .single()
+          .maybeSingle()
+
+        if (error) {
+          console.error('[TestSetup] Polling query error:', error)
+          // Don't throw, just log and continue polling
+          return
+        }
 
         if (updatedBusiness?.forwarding_verified) {
+          console.log('[TestSetup] Forwarding verified, stopping poll')
           setSuccess(true)
           setIsPolling(false)
           clearInterval(pollInterval)

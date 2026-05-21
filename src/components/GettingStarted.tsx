@@ -346,7 +346,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   }
 
   // Helper to get current business state (optimistic or actual)
-  const getCurrentBusiness = () => optimisticBusinessState || business
+  const getCurrentBusiness = () => {
+    // During forwarding completion, prefer optimistic state to prevent rollback
+    if (isCompletingForwarding && optimisticBusinessState) {
+      return optimisticBusinessState
+    }
+    return optimisticBusinessState || business
+  }
 
   // Simple onboarding state logic using direct business values
   const currentBusiness = getCurrentBusiness()
@@ -401,12 +407,20 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         // Refresh business data in background without causing UI flash
         setTimeout(() => {
           console.log('[GettingStarted] Background refresh start')
-          refreshBusiness().finally(() => {
+          refreshBusiness().then(() => {
             console.log('[GettingStarted] Background refresh complete')
+            // Clear optimistic state after a short delay to ensure smooth transition
+            setTimeout(() => {
+              setOptimisticBusinessState(null)
+              setIsCompletingForwarding(false)
+            }, 200)
+          }).catch((error) => {
+            console.error('[GettingStarted] Background refresh failed:', error)
+            // Still clear optimistic state even if refresh fails
             setOptimisticBusinessState(null)
             setIsCompletingForwarding(false)
           })
-        }, 100)
+        }, 500)
       }
     } catch (error) {
       console.error('[GettingStarted] Error completing forwarding:', error)
