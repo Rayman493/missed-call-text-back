@@ -99,13 +99,14 @@ export default function UserDropdown() {
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="group flex items-center gap-2 px-3 py-3 text-sm font-medium text-gray-300 hover:text-white rounded-md hover:bg-white/10 transition-all duration-200 ease-in-out"
+            className="group flex items-center gap-2 sm:gap-3 px-3 py-3 text-sm font-medium text-gray-300 hover:text-white rounded-md hover:bg-white/10 transition-all duration-200 ease-in-out"
           >
-            <svg className="w-6.5 h-6.5 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6.5 h-6.5 sm:w-6.5 sm:h-6.5 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-base font-bold hidden sm:inline transition-colors duration-200">Account</span>
-            <ChevronDown size={16} strokeWidth={2.25} className="shrink-0 text-white/70 transition-all duration-200 group-hover:text-white" />
+            <span className="text-base font-bold sm:hidden transition-colors duration-200">Account</span>
+            <ChevronDown size={18} strokeWidth={2.5} className="shrink-0 text-white/80 transition-all duration-200 group-hover:text-white group-hover:rotate-180" />
           </button>
 
           {isOpen && (
