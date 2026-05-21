@@ -218,7 +218,7 @@ export default function ResetPasswordPage() {
         
         // Redirect to login after 1-2 seconds
         setTimeout(() => {
-          router.push('/auth')
+          router.push('/auth?mode=signin')
         }, 1000)
       }, 1500)
       
@@ -283,7 +283,7 @@ export default function ResetPasswordPage() {
               </Link>
               
               <Link
-                href="/auth"
+                href="/auth?mode=signin"
                 className="block w-full h-12 bg-slate-700 text-white py-2 px-4 rounded-xl hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
               >
                 Back to sign in
@@ -326,7 +326,7 @@ export default function ResetPasswordPage() {
             </div>
 
             <Link
-              href="/auth"
+              href="/auth?mode=signin"
               className="block w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
             >
               Sign in with new password
@@ -424,7 +424,7 @@ export default function ResetPasswordPage() {
             {/* Back link */}
             <div className="text-center">
               <Link
-                href="/auth"
+                href="/auth?mode=signin"
                 className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
               >
                 ← Back to sign in
