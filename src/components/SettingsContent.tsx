@@ -496,14 +496,14 @@ export default function SettingsContent() {
               <div className="max-w-[1600px] mx-auto">
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md py-2 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+            <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-3 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
               <div className="max-w-4xl mx-auto">
                 <nav className="flex items-center gap-1 overflow-x-auto">
                   <button
                     onClick={() => handleSectionClick('general')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                       activeSection === 'general'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                     }`}
                   >
@@ -511,9 +511,9 @@ export default function SettingsContent() {
                   </button>
                   <button
                     onClick={() => handleSectionClick('automation')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                       activeSection === 'automation'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                     }`}
                   >
@@ -521,9 +521,9 @@ export default function SettingsContent() {
                   </button>
                   <button
                     onClick={() => handleSectionClick('contacts')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                       activeSection === 'contacts'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                     }`}
                   >
@@ -531,126 +531,15 @@ export default function SettingsContent() {
                   </button>
                   <button
                     onClick={() => handleSectionClick('account')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap relative ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                       activeSection === 'account'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold shadow-sm border border-blue-200/60 dark:border-blue-700/40'
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     Account
                   </button>
                 </nav>
-              </div>
-            </div>
-
-            {/* System Status Section */}
-            <div className={`rounded-xl p-2.5 sm:p-3 mb-4 sm:mb-6 bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/50 shadow-sm`}>
-              <div className="flex flex-wrap items-center gap-2">
-                {onboardingState.state === 'PRE_TRIAL' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Waiting for activation
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Business texting inactive
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Monitoring inactive
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full text-xs">
-                      Trial needed
-                    </span>
-                  </>
-                )}
-                {onboardingState.state === 'ACTIVATING' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Getting started
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Setting up texting
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-                      Setup in progress
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Trial active
-                    </span>
-                  </>
-                )}
-                {onboardingState.state === 'MESSAGING_SETUP' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Setting up phone line
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Configuring texting
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-                      Carrier setup in progress
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Trial active
-                    </span>
-                  </>
-                )}
-                {onboardingState.state === 'AWAITING_FORWARDING' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Phone line ready
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Waiting for call forwarding
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Not watching for calls yet
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Trial active
-                    </span>
-                  </>
-                )}
-                {onboardingState.state === 'VERIFICATION_PENDING' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Waiting for test call
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      ReplyFlow standing by
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-600 dark:text-muted-foreground rounded-full text-xs">
-                      Waiting to start watching
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      Trial active
-                    </span>
-                  </>
-                )}
-                {onboardingState.state === 'LIVE' && (
-                  <>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Watching for missed calls
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                      Instant replies are on
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                      Text messaging working
-                    </span>
-                    {isInTrialPeriod(business?.subscription_status) ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                        Trial active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs">
-                        Subscription active
-                      </span>
-                    )}
-                  </>
-                )}
               </div>
             </div>
 
