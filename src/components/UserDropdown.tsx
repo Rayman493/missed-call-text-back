@@ -99,7 +99,7 @@ export default function UserDropdown() {
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="group flex items-center gap-2 sm:gap-2.5 px-2.5 py-2.5 text-sm font-medium text-gray-300 hover:text-white rounded-md hover:bg-white/10 transition-all duration-200 ease-in-out"
+            className="group flex items-center gap-1.5 sm:gap-2.5 px-2 py-2.5 text-sm font-medium text-gray-300 hover:text-white rounded-md hover:bg-white/10 transition-all duration-200 ease-in-out"
           >
             {/* Minimalist User Icon - Desktop */}
             <User className="hidden sm:block w-4 h-4 text-gray-300 group-hover:text-white transition-colors duration-200" />
@@ -108,7 +108,6 @@ export default function UserDropdown() {
             <User className="sm:hidden w-4 h-4 text-gray-300 group-hover:text-white transition-colors duration-200" />
             
             <span className="text-base font-bold hidden sm:inline transition-colors duration-200">Account</span>
-            <span className="text-base font-bold sm:hidden transition-colors duration-200">Account</span>
             <ChevronDown size={14} strokeWidth={2.5} className="shrink-0 text-white/80 transition-all duration-200 group-hover:text-white group-hover:rotate-180" />
           </button>
 

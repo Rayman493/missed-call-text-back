@@ -31,15 +31,15 @@ export default function AppHeader({
       <div className="max-w-7xl mx-auto pl-4 pr-4 sm:px-6 lg:px-8 py-3 border-0">
         <div className="flex items-center justify-between h-10">
           {/* Left side - Mobile menu and logo */}
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-3 md:gap-8">
             {/* Mobile menu - only visible on mobile/tablet */}
             <div className="md:hidden">
               <MobileMenu />
             </div>
             
             {/* Logo */}
-            <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90 transition">
-              <BrandIcon size={20} className="sm:size-20" />
+            <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-1.5 hover:opacity-90 transition">
+              <BrandIcon size={28} className="sm:size-20" />
               <span className="text-sm md:text-lg lg:text-xl font-bold tracking-tight">
                 <span className="text-white">ReplyFlow</span>
                 <span className="text-blue-400">HQ</span>

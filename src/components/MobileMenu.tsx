@@ -36,11 +36,11 @@ export default function MobileMenu() {
     return (
       <div className="md:hidden">
         <button
-          className="p-2 text-muted-foreground rounded-md"
+          className="p-3 text-muted-foreground rounded-md"
           disabled
           aria-label="Menu loading"
         >
-          <div className="w-6 h-6 animate-pulse">
+          <div className="w-7 h-7 animate-pulse">
             <div className="h-0.5 bg-muted rounded"></div>
             <div className="h-0.5 bg-muted rounded mt-2"></div>
             <div className="h-0.5 bg-muted rounded mt-2"></div>
@@ -71,10 +71,10 @@ export default function MobileMenu() {
     <div className="md:hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/40 transition-colors"
+        className="p-3 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/40 transition-colors"
         aria-label="Toggle menu"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {isOpen ? (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           ) : (
