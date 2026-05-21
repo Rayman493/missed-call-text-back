@@ -30,6 +30,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Check if we're specifically on the homepage
   const isHomepage = pathname === '/'
 
+  // Check if we're on a content page (privacy, terms, compliance, faq, demo)
+  const isContentPage = pathname === '/privacy' || 
+                        pathname === '/terms' || 
+                        pathname === '/compliance' || 
+                        pathname === '/faq' || 
+                        pathname === '/demo'
+
   const handleSignOut = async () => {
     await signOut()
   }
@@ -75,8 +82,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               {isPublicPage ? (
                 // Public pages: show simplified navigation
                 <>
-                  {/* Only show Home and Demo on non-homepage public pages */}
-                  {!isHomepage && (
+                  {/* Only show Home and Demo on non-homepage, non-content pages */}
+                  {!isHomepage && !isContentPage && (
                     <>
                       <Link
                         href="/"
@@ -92,8 +99,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       </Link>
                     </>
                   )}
-                  {/* Only show FAQ on non-homepage public pages */}
-                  {!isHomepage && (
+                  {/* Only show FAQ on non-homepage, non-content pages */}
+                  {!isHomepage && !isContentPage && (
                     <Link
                       href="/faq"
                       className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
@@ -133,8 +140,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           ) : (
             // Logged-out navigation
             <>
-              {/* Only show Home and Demo on non-homepage public pages */}
-              {!isHomepage && (
+              {/* Only show Home and Demo on non-homepage, non-content pages */}
+              {!isHomepage && !isContentPage && (
                 <>
                   <Link
                     href="/"
@@ -150,8 +157,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   </Link>
                 </>
               )}
-              {/* Only show FAQ on non-homepage public pages */}
-              {!isHomepage && (
+              {/* Only show FAQ on non-homepage, non-content pages */}
+              {!isHomepage && !isContentPage && (
                 <Link
                   href="/faq"
                   className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
