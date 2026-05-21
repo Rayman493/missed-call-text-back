@@ -911,7 +911,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
@@ -930,7 +930,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     )}
                   </div>
                   {!isComplete && (
-                    <div className="flex items-start">
+                    <div className="mb-3">
                       <span
                         className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                           isActionNeeded
@@ -944,7 +944,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       </span>
                     </div>
                   )}
-                  <p className={`text-xs sm:text-sm mb-1.5 leading-relaxed ${
+                  <p className={`text-xs sm:text-sm mb-3 leading-relaxed ${
                     isComplete
                       ? 'text-muted-foreground/60'
                       : !isCurrent && !isActionNeeded
@@ -954,7 +954,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     {item.description}
                   </p>
                   {item.details && (
-                    <p className={`text-[11px] mb-2 leading-relaxed ${
+                    <p className={`text-[11px] mb-3 leading-relaxed ${
                       isComplete
                         ? 'text-muted-foreground/50'
                         : 'text-muted-foreground'
@@ -963,14 +963,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </p>
                   )}
                   {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                    <div className="mt-4 sm:mt-3">
+                    <div className="mt-4">
                       {item.buttonOnClick ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             item.buttonOnClick!()
                           }}
-                          className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors text-center ${
+                          className={`inline-flex items-center justify-center w-full px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors text-center ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
@@ -982,7 +982,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         <Link
                           href={item.buttonHref!}
                           onClick={(e) => e.stopPropagation()}
-                          className={`inline-block w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                          className={`inline-flex items-center justify-center w-full px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors text-center ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
@@ -1011,11 +1011,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       <Link
                         href={item.secondaryButtonHref}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-2.5 px-4 py-2 text-xs font-medium rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-muted/50 hover:border-border/80 cursor-pointer"
+                        className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors text-center text-foreground border-2 border-border bg-background hover:bg-muted hover:border-border/80"
                       >
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
                         {item.secondaryButtonText}
                       </Link>
                     </div>
