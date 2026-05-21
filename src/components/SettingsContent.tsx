@@ -421,18 +421,25 @@ export default function SettingsContent() {
           
           if (visibleSections.length > 0) {
             const mostVisible = visibleSections[0]
-            setActiveSection(mostVisible.target.id)
+            const newActiveSection = mostVisible.target.id
             
-            // Update URL hash without scrolling
-            const url = new URL(window.location.href)
-            url.hash = mostVisible.target.id
-            window.history.replaceState({}, '', url.toString())
+            // Only update if the section actually changed to prevent unnecessary re-renders
+            if (newActiveSection !== activeSection) {
+              setActiveSection(newActiveSection)
+              
+              // Update URL hash without scrolling
+              const url = new URL(window.location.href)
+              url.hash = newActiveSection
+              window.history.replaceState({}, '', url.toString())
+              
+              console.log('[Settings] Active section changed to:', newActiveSection)
+            }
           }
-        }, 50) // 50ms debounce
+        }, 100) // Increased debounce for more stable behavior
       },
       {
         threshold: [0, 0.1, 0.3, 0.5, 0.7, 1],
-        rootMargin: '-100px 0px -50% 0px' // Better threshold for section detection
+        rootMargin: '-80px 0px -60% 0px' // Optimized margins for better section detection
       }
     )
 
@@ -458,14 +465,53 @@ export default function SettingsContent() {
 
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
-    setActiveSection(sectionId)
+    console.log('[Settings] Manual section click:', sectionId)
     const element = document.getElementById(sectionId)
     if (element) {
+      // Update active section immediately for better UX
+      setActiveSection(sectionId)
+      
+      // Update URL hash
+      const url = new URL(window.location.href)
+      url.hash = sectionId
+      window.history.replaceState({}, '', url.toString())
+      
+      // Smooth scroll to section
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
-  // Load ignored contacts
+  // Initialize active section from URL hash or scroll position
+  useEffect(() => {
+    const sections = ['general', 'automation', 'contacts', 'account']
+    
+    // Check if there's a hash in the URL
+    const hash = window.location.hash.slice(1)
+    if (sections.includes(hash)) {
+      setActiveSection(hash)
+      return
+    }
+    
+    // Otherwise, determine the active section based on current scroll position
+    const determineActiveSection = () => {
+      for (const sectionId of sections) {
+        const element = document.getElementById(sectionId)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          // Check if the section is in view (considering header offset)
+          if (rect.top <= 100 && rect.bottom > 100) {
+            setActiveSection(sectionId)
+            return
+          }
+        }
+      }
+      // Default to first section if nothing is in view
+      setActiveSection('general')
+    }
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(determineActiveSection, 100)
+  }, [])
 
   if (!business || !formBusiness) {
     return (
