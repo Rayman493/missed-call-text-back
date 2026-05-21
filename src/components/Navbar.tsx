@@ -82,39 +82,61 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               {isPublicPage ? (
                 // Public pages: show simplified navigation
                 <>
-                  {/* Only show Home and Demo on non-homepage, non-content pages */}
-                  {!isHomepage && !isContentPage && (
+                  {isHomepage ? (
+                    // Homepage: show Dashboard and Account
                     <>
                       <Link
-                        href="/"
+                        href="/dashboard"
                         className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                       >
-                        Home
+                        Dashboard
                       </Link>
+                      {/* Mobile Dashboard Link */}
                       <Link
-                        href="/demo"
-                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                        href="/dashboard"
+                        className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
                       >
-                        Demo
+                        Dashboard
+                      </Link>
+                    </>
+                  ) : (
+                    // Other public pages: show navigation options
+                    <>
+                      {/* Only show Home and Demo on non-homepage, non-content pages */}
+                      {!isHomepage && !isContentPage && (
+                        <>
+                          <Link
+                            href="/"
+                            className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                          >
+                            Home
+                          </Link>
+                          <Link
+                            href="/demo"
+                            className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                          >
+                            Demo
+                          </Link>
+                        </>
+                      )}
+                      {/* Only show FAQ on non-homepage, non-content pages */}
+                      {!isHomepage && !isContentPage && (
+                        <Link
+                          href="/faq"
+                          className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                        >
+                          FAQ
+                        </Link>
+                      )}
+                      {/* Mobile navigation */}
+                      <Link
+                        href="/dashboard"
+                        className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                      >
+                        Dashboard
                       </Link>
                     </>
                   )}
-                  {/* Only show FAQ on non-homepage, non-content pages */}
-                  {!isHomepage && !isContentPage && (
-                    <Link
-                      href="/faq"
-                      className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
-                    >
-                      FAQ
-                    </Link>
-                  )}
-                  {/* Mobile navigation */}
-                  <Link
-                    href="/dashboard"
-                    className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
-                  >
-                    Dashboard
-                  </Link>
                 </>
               ) : (
                 // App pages: show full app navigation
@@ -140,44 +162,65 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           ) : (
             // Logged-out navigation
             <>
-              {/* Only show Home and Demo on non-homepage, non-content pages */}
-              {!isHomepage && !isContentPage && (
+              {isHomepage ? (
+                // Homepage: show Sign In and Sign Up
                 <>
                   <Link
-                    href="/"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                    href="/auth?mode=signin"
+                    className={`text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
                   >
-                    Home
+                    Sign In
                   </Link>
                   <Link
-                    href="/demo"
-                    className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                    href="/auth?mode=signup"
+                    className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
                   >
-                    Demo
+                    Sign Up
+                  </Link>
+                </>
+              ) : (
+                // Other pages: show full navigation
+                <>
+                  {/* Only show Home and Demo on non-homepage, non-content pages */}
+                  {!isHomepage && !isContentPage && (
+                    <>
+                      <Link
+                        href="/"
+                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        href="/demo"
+                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                      >
+                        Demo
+                      </Link>
+                    </>
+                  )}
+                  {/* Only show FAQ on non-homepage, non-content pages */}
+                  {!isHomepage && !isContentPage && (
+                    <Link
+                      href="/faq"
+                      className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
+                    >
+                      FAQ
+                    </Link>
+                  )}
+                  <Link
+                    href="/auth?mode=signin"
+                    className={`text-xs font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth?mode=signup"
+                    className="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
+                  >
+                    Start Free Trial
                   </Link>
                 </>
               )}
-              {/* Only show FAQ on non-homepage, non-content pages */}
-              {!isHomepage && !isContentPage && (
-                <Link
-                  href="/faq"
-                  className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
-                >
-                  FAQ
-                </Link>
-              )}
-              <Link
-                href="/auth?mode=signin"
-                className={`text-xs font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/auth?mode=signup"
-                className="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
-              >
-                Start Free Trial
-              </Link>
             </>
           )}
         </nav>

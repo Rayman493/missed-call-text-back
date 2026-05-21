@@ -10,6 +10,9 @@ export default function MobileMenu() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
 
+  // Check if we're on the homepage
+  const isHomepage = pathname === '/'
+
   // Lock body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -50,7 +53,13 @@ export default function MobileMenu() {
     )
   }
 
-  // Menu items for logged-out users (public navigation)
+  // Menu items for logged-out users on homepage
+  const homepagePublicMenuItems = [
+    { href: '/auth?mode=signin', label: 'Sign In' },
+    { href: '/auth?mode=signup', label: 'Sign Up' },
+  ]
+
+  // Menu items for logged-out users (other pages)
   const publicMenuItems = [
     { href: '/', label: 'Home' },
     { href: '/demo', label: 'Demo' },
@@ -59,13 +68,25 @@ export default function MobileMenu() {
     { href: '/auth?mode=signup', label: 'Start Free Trial' },
   ]
 
+  // Menu items for logged-in users on homepage
+  const homepagePrivateMenuItems = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '#', label: 'Account' }, // This will be handled by UserDropdown
+  ]
+
   // Menu items for logged-in users (dashboard navigation)
   const privateMenuItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
   ]
 
-  const menuItems = user ? privateMenuItems : publicMenuItems
+  // Determine menu items based on auth state and page
+  let menuItems
+  if (user) {
+    menuItems = isHomepage ? homepagePrivateMenuItems : privateMenuItems
+  } else {
+    menuItems = isHomepage ? homepagePublicMenuItems : publicMenuItems
+  }
 
   return (
     <div className="md:hidden">
