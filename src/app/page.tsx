@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
+import PageBackground from '@/components/PageBackground'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -273,7 +274,7 @@ export default function Home() {
   return (
     <>
       <DebugBanner />
-      <main className="min-h-screen bg-background">
+      <PageBackground>
         <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
@@ -620,7 +621,7 @@ export default function Home() {
         </div>
       </section>
       <HomepageFooter />
-    </main>
+      </PageBackground>
     </>
   )
 }

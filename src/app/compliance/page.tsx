@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
+import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Compliance | Conversational Messaging Standards',
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
@@ -414,6 +415,6 @@ export default function CompliancePage() {
         </div>
       </div>
       <Footer />
-    </div>
+    </PageBackground>
   )
 }

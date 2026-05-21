@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import AppHeader from '@/components/AppHeader'
 import Footer from '@/components/Footer'
+import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ FAQ | Missed Call Response Automation',
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       <AppHeader />
       
       {/* Hero Section */}
@@ -471,6 +472,6 @@ export default function FAQPage() {
         </div>
       </div>
       <Footer />
-    </div>
+    </PageBackground>
   )
 }

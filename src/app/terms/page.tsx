@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
+import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Terms of Service | Conversational Messaging Platform',
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
@@ -396,6 +397,6 @@ export default function TermsPage() {
         </div>
       </div>
       <Footer />
-    </div>
+    </PageBackground>
   )
 }

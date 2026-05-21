@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import PageBackground from '@/components/PageBackground'
 
 interface CheckoutStatus {
   ok: boolean
@@ -166,8 +167,9 @@ export default function BillingSuccessPage() {
   // Show success state when subscription is ready
   if (status?.readyForReauth) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="max-w-md w-full mx-auto text-center">
+      <PageBackground>
+        <div className="flex items-center justify-center px-4 min-h-screen">
+          <div className="max-w-md w-full mx-auto text-center">
           {/* Success Icon with polish */}
           <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-green-500/20">
             <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,14 +251,16 @@ export default function BillingSuccessPage() {
           </p>
         </div>
       </div>
+      </PageBackground>
     )
   }
 
   // Timeout state
   if (isTimeout) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="max-w-md w-full mx-auto text-center">
+      <PageBackground>
+        <div className="flex items-center justify-center px-4 min-h-screen">
+          <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -274,13 +278,15 @@ export default function BillingSuccessPage() {
           </Link>
         </div>
       </div>
+      </PageBackground>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="max-w-md w-full mx-auto text-center">
+      <PageBackground>
+        <div className="flex items-center justify-center px-4 min-h-screen">
+          <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -296,13 +302,15 @@ export default function BillingSuccessPage() {
           </Link>
         </div>
       </div>
+      </PageBackground>
     )
   }
 
   // Loading state
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full mx-auto text-center">
+    <PageBackground>
+      <div className="flex items-center justify-center px-4 min-h-screen">
+        <div className="max-w-md w-full mx-auto text-center">
         {/* Logo */}
         <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-8">
           <span className="text-white font-bold text-2xl">RF</span>
@@ -361,5 +369,6 @@ export default function BillingSuccessPage() {
         )}
       </div>
     </div>
+    </PageBackground>
   )
 }
