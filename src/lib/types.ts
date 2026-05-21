@@ -51,6 +51,10 @@ export interface Business {
   forwarding_verified?: boolean | null;
   forwarding_verified_at?: string | null;
   
+  // Test setup fields
+  test_call_received_at?: string | null;
+  test_sms_sent_at?: string | null;
+  
   // Twilio provisioning lifecycle fields
   provisioning_status?: 'purchasing' | 'purchased' | 'campaign_registering' | 'campaign_registered' | 'sender_pool_attaching' | 'ready' | 'failed' | 'pending' | 'provisioning' | 'active' | string | null;
   provisioning_error?: string | null;

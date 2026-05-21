@@ -9,6 +9,7 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
+import { deriveSetupState, getTestStepStates } from '@/lib/setup-state'
 
 export default function TestSetupPage() {
   console.log('[TestSetup] Component render -', new Date().toISOString())
@@ -22,6 +23,21 @@ export default function TestSetupPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Use shared state resolver for consistency
+  const setupState = deriveSetupState(business)
+  const testStepStates = getTestStepStates(business, !!latestLead)
+
+  console.log('[TestSetup] Using shared state resolver:', {
+    setupState,
+    testStepStates,
+    businessId: business?.id,
+    onboarding_status: business?.onboarding_status,
+    forwarding_verified: business?.forwarding_verified,
+    test_call_received_at: business?.test_call_received_at,
+    test_sms_sent_at: business?.test_sms_sent_at,
+    hasLatestLead: !!latestLead
+  })
   const [isMounted, setIsMounted] = useState(false)
   const hasScrolledToTopRef = useRef(false)
   const hasInitializedActiveStepRef = useRef(false)
@@ -63,15 +79,22 @@ export default function TestSetupPage() {
 
   // Check if setup is already verified on mount
   useEffect(() => {
-    if (business?.phone_setup_completed_at && business?.call_forwarding_enabled) {
+    if (setupState.step3Complete) {
+      console.log('[TestSetup] Setup already complete, showing success state')
       setSuccess(true)
       fetchLatestLead()
     }
-  }, [business?.phone_setup_completed_at, business?.call_forwarding_enabled])
+  }, [setupState.step3Complete])
 
-  // Poll for forwarding verification
+  // Poll for test completion using shared state
   useEffect(() => {
-    if (!business || business.phone_setup_completed_at || !business.call_forwarding_enabled) {
+    // Only poll if setup is not complete and forwarding is enabled
+    if (setupState.step3Complete || !setupState.canAccessTestSetup || !business) {
+      console.log('[TestSetup] Not polling - setup complete, cannot access test setup, or no business data', {
+        step3Complete: setupState.step3Complete,
+        canAccessTestSetup: setupState.canAccessTestSetup,
+        hasBusiness: !!business
+      })
       return
     }
 
@@ -97,8 +120,11 @@ export default function TestSetupPage() {
                                         updatedBusiness?.call_forwarding_enabled &&
                                         updatedBusiness?.onboarding_status === 'completed'
 
-        if (isForwardingSetupComplete) {
-          console.log('[TestSetup] Forwarding setup complete, stopping poll')
+        // Use shared state resolver to check for test completion
+        const updatedSetupState = deriveSetupState(updatedBusiness, !!latestLead)
+
+        if (updatedSetupState.step3Complete) {
+          console.log('[TestSetup] Test setup complete via shared state, stopping poll')
           setSuccess(true)
           setIsPolling(false)
           clearInterval(pollInterval)
@@ -119,7 +145,7 @@ export default function TestSetupPage() {
       clearInterval(pollInterval)
       setIsPolling(false)
     }
-  }, [business?.id, business?.phone_setup_completed_at, business?.call_forwarding_enabled])
+  }, [business?.id, setupState.step3Complete, setupState.canAccessTestSetup])
 
   const fetchLatestLead = async () => {
     if (!business) return
