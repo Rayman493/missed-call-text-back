@@ -855,11 +855,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         </div>
       )}
 
-      {/* View steps button - mobile only, below progress bar */}
+      {/* View steps button - visible on both desktop and mobile, below progress bar */}
       {!complete && (
         <button
           onClick={handleToggle}
-          className="sm:hidden inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
           aria-expanded={isExpanded}
           aria-label="Toggle setup checklist"
         >
