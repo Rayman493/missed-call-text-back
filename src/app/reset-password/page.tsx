@@ -17,6 +17,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null)
+  const [hasValidRecoverySession, setHasValidRecoverySession] = useState(false)
   const router = useRouter()
 
   // Check for valid reset session on mount and listen for auth state changes
@@ -60,15 +61,18 @@ export default function ResetPasswordPage() {
 
           if (mounted) {
             setIsValidSession(true)
+            setHasValidRecoverySession(true) // Lock the session once valid
           }
         } else if (data.session) {
           // User is already signed in, allow password reset
           if (mounted) {
             setIsValidSession(true)
+            setHasValidRecoverySession(true) // Lock the session once valid
           }
         } else {
           // No valid session found
-          if (mounted) {
+          if (mounted && !hasValidRecoverySession) {
+            // Only set invalid if we haven't already locked a valid session
             setIsValidSession(false)
           }
         }
@@ -84,9 +88,15 @@ export default function ResetPasswordPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (!mounted) return
 
+      // If we already have a valid recovery session, don't flip back to invalid
+      if (hasValidRecoverySession) {
+        return
+      }
+
       if (event === 'PASSWORD_RECOVERY') {
         // Password recovery event
         setIsValidSession(true)
+        setHasValidRecoverySession(true) // Lock the session once valid
       } else if (event === 'SIGNED_IN' && session) {
         // User signed in, check if this is from a recovery link
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
@@ -94,9 +104,13 @@ export default function ResetPasswordPage() {
         
         if (type === 'recovery') {
           setIsValidSession(true)
+          setHasValidRecoverySession(true) // Lock the session once valid
         }
       } else if (event === 'SIGNED_OUT') {
-        setIsValidSession(false)
+        // Only allow sign out to flip to invalid if we haven't locked a recovery session
+        if (!hasValidRecoverySession) {
+          setIsValidSession(false)
+        }
       }
     })
 
@@ -105,7 +119,8 @@ export default function ResetPasswordPage() {
 
     // Set a timeout to prevent infinite loading
     timeoutId = setTimeout(() => {
-      if (mounted && isValidSession === null) {
+      if (mounted && isValidSession === null && !hasValidRecoverySession) {
+        // Only set invalid if we haven't already locked a valid session
         setIsValidSession(false)
       }
     }, 5000)
@@ -202,7 +217,7 @@ export default function ResetPasswordPage() {
   }
 
   // Invalid session state
-  if (!isValidSession) {
+  if (!isValidSession && !hasValidRecoverySession) {
     return (
       <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex flex-col">
         <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -294,101 +309,116 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // Main reset form
-  return (
-    <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          {/* Header */}
-          <div className="text-center">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
-              <BrandIcon size={32} />
-              <span className="text-2xl font-bold text-white">
-                <span className="text-white">ReplyFlow</span>
-                <span className="text-blue-400">HQ</span>
-              </span>
-            </Link>
-            
-            <h2 className="text-3xl font-bold text-white">
-              Set new password
-            </h2>
-            <p className="mt-2 text-sm text-slate-400">
-              Enter your new password below.
-            </p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                New password
-              </label>
-              <PasswordInput
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
-                placeholder="Enter your new password"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Must be at least 8 characters long
+  // Main reset form - show if session is valid OR we have a locked recovery session
+  if (isValidSession || hasValidRecoverySession) {
+    return (
+      <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex flex-col">
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            {/* Header */}
+            <div className="text-center">
+              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+                <BrandIcon size={32} />
+                <span className="text-2xl font-bold text-white">
+                  <span className="text-white">ReplyFlow</span>
+                  <span className="text-blue-400">HQ</span>
+                </span>
+              </Link>
+              
+              <h2 className="text-3xl font-bold text-white">
+                Set new password
+              </h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Enter your new password below.
               </p>
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
-                Confirm new password
-              </label>
-              <PasswordInput
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
-                placeholder="Confirm your new password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent inline-block mr-2"></div>
-                  Updating password...
-                </>
-              ) : (
-                'Update password'
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4">
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
               )}
-            </button>
-          </form>
 
-          {/* Back link */}
-          <div className="text-center">
-            <Link
-              href="/auth"
-              className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
-            >
-              ← Back to sign in
-            </Link>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                  New password
+                </label>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  placeholder="Enter your new password"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Must be at least 8 characters long
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
+                  Confirm new password
+                </label>
+                <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  placeholder="Confirm your new password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent inline-block mr-2"></div>
+                    Updating password...
+                  </>
+                ) : (
+                  'Update password'
+                )}
+              </button>
+            </form>
+
+            {/* Back link */}
+            <div className="text-center">
+              <Link
+                href="/auth"
+                className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+              >
+                ← Back to sign in
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer */}
+        {/* Footer */}
+        <Footer />
+      </div>
+    )
+  }
+
+  // Fallback - should not reach here, but just in case
+  return (
+    <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="w-8 h-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
       <Footer />
     </div>
   )
