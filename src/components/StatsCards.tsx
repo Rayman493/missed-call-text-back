@@ -175,7 +175,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">
             Business Activity
           </h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground/80">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <span>This Month</span>
             <span>•</span>
             <span>See how ReplyFlow is helping your business</span>

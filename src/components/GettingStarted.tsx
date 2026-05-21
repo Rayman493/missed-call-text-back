@@ -568,7 +568,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
     return (
-      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 p-2 sm:p-3 mb-6 transition-all duration-300 hover:shadow-md">
+      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 px-4 sm:px-6 py-2 sm:py-3 mb-6 transition-all duration-300 hover:shadow-md">
         <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <div className="relative flex-shrink-0">
@@ -1047,7 +1047,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
   // Incomplete setup - show progress with expandable details
   return (
-    <div className="rounded-xl border border-border bg-card p-3 sm:p-4 mb-6 transition-all duration-300">
+    <div className="rounded-xl border border-border bg-card px-4 sm:px-6 py-3 sm:py-4 mb-6 transition-all duration-300">
       {/* Header with progress */}
       <div className="flex items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">

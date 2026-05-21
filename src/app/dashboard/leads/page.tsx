@@ -467,8 +467,8 @@ export default function LeadsPage() {
                 label="New Leads"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'new').length === 0 
-                    ? 'awaiting contact' 
-                    : 'waiting for reply'
+                    ? 'Awaiting Contact' 
+                    : 'Waiting For Reply'
                 }
                 icon="👥"
                 iconColor="blue"
@@ -479,8 +479,8 @@ export default function LeadsPage() {
                 label="Active Conversations"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'active').length === 0 
-                    ? 'no ongoing talks' 
-                    : 'conversations open'
+                    ? 'No Ongoing Conversations' 
+                    : 'Conversations Open'
                 }
                 icon="💬"
                 iconColor="green"
@@ -491,8 +491,8 @@ export default function LeadsPage() {
                 label="Completed Follow-ups"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length === 0 
-                    ? 'no follow-ups yet' 
-                    : 'reminders completed'
+                    ? 'No Follow-Ups Yet' 
+                    : 'Reminders Completed'
                 }
                 icon="📅"
                 iconColor="slate"
@@ -503,8 +503,8 @@ export default function LeadsPage() {
                 label="Ignored Contacts"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length === 0 
-                    ? 'no blocked contacts' 
-                    : 'blocked from automation'
+                    ? 'No Blocked Contacts' 
+                    : 'Blocked From Automation'
                 }
                 icon="🚫"
                 iconColor="orange"
