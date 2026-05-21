@@ -272,13 +272,9 @@ export default function LeadsPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50/60 via-gray-50/40 to-blue-gray-50/20 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
-            {/* Premium light mode ambient layers */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/15 to-slate-50/25 dark:from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/10 via-transparent to-indigo-50/5 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none"></div>
-            <div className="absolute inset-0 opacity-10" style={{
-              background: 'radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.08) 0%, transparent 70%), radial-gradient(circle at 75% 75%, rgba(248, 250, 252, 0.05) 0%, transparent 70%)'
-            }}></div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50/30 via-gray-50/20 to-blue-gray-50/10 dark:from-background dark:via-background dark:to-blue-950/10 flex flex-col relative">
+            {/* Ultra-subtle ambient layers */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-slate-50/10 dark:from-transparent dark:via-slate-900/2 dark:to-slate-900/4 pointer-events-none"></div>
             {/* App Header */}
             <AppHeader title="Leads" />
 

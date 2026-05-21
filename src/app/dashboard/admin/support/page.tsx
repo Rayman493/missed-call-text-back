@@ -145,7 +145,7 @@ export default function AdminSupportPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50/60 via-gray-50/40 to-blue-gray-50/20 dark:from-background dark:via-slate-900/40 dark:to-background flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50/30 via-gray-50/20 to-blue-gray-50/10 dark:from-background dark:via-slate-900/40 dark:to-background flex flex-col">
         <AppHeader showNavigation={true} />
         
         <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
