@@ -39,8 +39,8 @@ export default function AppHeader({
             
             {/* Logo */}
             <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-1.5 hover:opacity-90 transition">
-              <BrandIcon size={28} className="sm:size-20" />
-              <span className="text-sm md:text-lg lg:text-xl font-bold tracking-tight">
+              <BrandIcon size={33} className="sm:size-20" />
+              <span className="text-[15px] md:text-lg lg:text-xl font-bold tracking-tight">
                 <span className="text-white">ReplyFlow</span>
                 <span className="text-blue-400">HQ</span>
               </span>
