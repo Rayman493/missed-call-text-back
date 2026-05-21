@@ -777,7 +777,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-1.5 sm:p-2' : 'p-1.5 sm:p-2.5'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-2 sm:p-2.5' : 'p-2 sm:p-3'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Horizontal layout: left text, right CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 mb-1 sm:mb-2">
         <div className="min-w-0">
@@ -857,12 +857,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
       {/* View steps button - visible on both desktop and mobile, below progress bar */}
       {!complete && (
-        <button
-          onClick={handleToggle}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
-          aria-expanded={isExpanded}
-          aria-label="Toggle setup checklist"
-        >
+        <div className="mt-4 sm:mt-3">
+          <button
+            onClick={handleToggle}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all duration-200 active:scale-95"
+            aria-expanded={isExpanded}
+            aria-label="Toggle setup checklist"
+          >
           <span>{isExpanded ? 'Hide steps' : 'View steps'}</span>
           <svg
             className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -873,11 +874,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
+        </div>
       )}
 
       {isExpanded && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
-          <ol className="space-y-2.5">
+        <div className="animate-in fade-in slide-in-from-top-2 duration-300 ease-out mt-4 sm:mt-3">
+          <ol className="space-y-3 sm:space-y-2.5">
             {checklistItems.map((item, idx) => {
             const stepNum = idx + 1
             const isComplete = item.status === 'complete'
@@ -892,7 +894,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 key={item.id}
                 ref={(el) => { cardRefs.current[item.id] = el }}
                 onClick={() => isForwardingCard && !isComplete && (isCurrent || isActionNeeded) && handleCardToggle(item.id)}
-                className={`flex items-start gap-4 p-2 sm:p-2.5 rounded-xl border transition-all duration-300 ease-out ${
+                className={`flex items-start gap-5 sm:gap-4 ${!isCurrent && !isActionNeeded ? 'p-2 sm:p-2' : 'p-3 sm:p-2.5'} rounded-xl border transition-all duration-300 ease-out ${
                   isComplete
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isActionNeeded
@@ -959,7 +961,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       )}
                     </div>
                   </div>
-                  <p className={`text-xs sm:text-sm mb-1.5 ${
+                  <p className={`text-xs sm:text-sm mb-1.5 leading-relaxed ${
                     isComplete
                       ? 'text-muted-foreground/60'
                       : !isCurrent && !isActionNeeded
@@ -969,7 +971,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     {item.description}
                   </p>
                   {item.details && (
-                    <p className={`text-[11px] mb-2 ${
+                    <p className={`text-[11px] mb-2 leading-relaxed ${
                       isComplete
                         ? 'text-muted-foreground/50'
                         : 'text-muted-foreground'
@@ -978,7 +980,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </p>
                   )}
                   {item.buttonText && (item.buttonOnClick || item.buttonHref) && (
-                    <div className="mt-3">
+                    <div className="mt-4 sm:mt-3">
                       {item.buttonOnClick ? (
                         <button
                           onClick={(e) => {
@@ -1009,7 +1011,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </div>
                   )}
                   {item.secondaryButtonText && item.secondaryButtonOnClick && (
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -1022,7 +1024,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </div>
                   )}
                   {item.secondaryButtonText && item.secondaryButtonHref && (
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <Link
                         href={item.secondaryButtonHref}
                         onClick={(e) => e.stopPropagation()}
