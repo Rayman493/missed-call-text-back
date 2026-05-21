@@ -779,14 +779,34 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   return (
     <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-3 sm:p-3' : 'p-3 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Header with title and status */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
               {complete ? 'Setup Complete ✓' : 'Setup Progress'}
             </h2>
+            {/* Simple chevron expand/collapse control */}
+            {!complete && (
+              <button
+                onClick={handleToggle}
+                className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"
+                aria-expanded={isExpanded}
+                aria-label="Toggle setup checklist"
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
             {/* System Status - subtle indicator - compact on mobile */}
-            <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none w-fit ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
               <span className={`text-[9px] sm:text-[10px] font-medium leading-none ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
                 {complete ? 'Live' : 
@@ -804,25 +824,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             )}
           </div>
         </div>
-        
-        {/* Simple chevron expand/collapse control */}
-        {!complete && (
-          <button
-            onClick={handleToggle}
-            className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"
-            aria-expanded={isExpanded}
-            aria-label="Toggle setup checklist"
-          >
-            <svg
-              className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        )}
       </div>
 
       {/* Progress bar - moved up */}
@@ -910,7 +911,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="space-y-2 mb-2">
+                  <div className="flex items-center justify-between mb-2">
                     <h3 className={`text-sm sm:text-base font-semibold ${
                       isComplete
                         ? 'text-green-800/60 dark:text-green-200/50'
@@ -920,22 +921,29 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     }`}>
                       Step {stepNum} — {item.title}
                     </h3>
+                    {isComplete && (
+                      <span
+                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50`}
+                      >
+                        Done
+                      </span>
+                    )}
+                  </div>
+                  {!isComplete && (
                     <div className="flex items-start">
                       <span
                         className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
-                          isComplete
-                            ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
-                            : isActionNeeded
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                              : isCurrent
-                                ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
-                                : 'bg-muted text-muted-foreground'
+                          isActionNeeded
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                            : isCurrent
+                              ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
+                              : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
+                        {isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
                       </span>
                     </div>
-                  </div>
+                  )}
                   <p className={`text-xs sm:text-sm mb-1.5 leading-relaxed ${
                     isComplete
                       ? 'text-muted-foreground/60'
@@ -962,7 +970,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             e.stopPropagation()
                             item.buttonOnClick!()
                           }}
-                          className={`w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                          className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors text-center ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
