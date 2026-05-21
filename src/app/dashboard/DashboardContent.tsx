@@ -1166,6 +1166,136 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
+                {/* Locked Dashboard Preview - Show what users will unlock */}
+                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                  <SectionErrorBoundary sectionName="LockedDashboardPreview">
+                    <div className="relative">
+                      {/* Dashboard Preview Content */}
+                      <div className="space-y-4 sm:space-y-6">
+                        {/* Setup Progress Preview */}
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Progress</h3>
+                            <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Preview</span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                              <span className="text-sm text-slate-500 dark:text-slate-400">Business phone number</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                              <span className="text-sm text-slate-500 dark:text-slate-400">Call forwarding setup</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                              <span className="text-sm text-slate-500 dark:text-slate-400">Test your setup</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Business Activity Stats Preview */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Missed Calls</span>
+                            </div>
+                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Leads</span>
+                            </div>
+                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Replies</span>
+                            </div>
+                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Follow-ups</span>
+                            </div>
+                            <div className="text-xl font-bold text-slate-300 dark:text-slate-600">—</div>
+                          </div>
+                        </div>
+
+                        {/* Recent Leads Preview */}
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Leads</h3>
+                            <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Preview</span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                                <div>
+                                  <div className="w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+                                  <div className="w-16 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                </div>
+                              </div>
+                              <div className="w-16 h-6 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                                <div>
+                                  <div className="w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+                                  <div className="w-16 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                </div>
+                              </div>
+                              <div className="w-16 h-6 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                                <div>
+                                  <div className="w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+                                  <div className="w-16 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                </div>
+                              </div>
+                              <div className="w-16 h-6 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lock Overlay */}
+                      <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-xl flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-12 h-12 bg-slate-800/80 dark:bg-slate-700/80 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          </div>
+                          <p className="text-white font-medium mb-4">Start your trial to unlock your ReplyFlow dashboard</p>
+                          <button
+                            onClick={() => {
+                              setCheckoutError(null)
+                              handleStartSubscription()
+                            }}
+                            disabled={checkoutLoading}
+                            className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {checkoutLoading ? 'Starting…' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
+
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
