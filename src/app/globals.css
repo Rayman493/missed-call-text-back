@@ -148,34 +148,22 @@ main {
     @apply bg-background text-foreground;
   }
 
-  /* Light mode ambient background - ultra-subtle Linear/Vercel style */
+  /* Light mode ambient background - premium off-white with ultra subtle depth */
   html.light body {
     background: 
-      radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.1) 0%, transparent 35%),
-      radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.15) 0%, transparent 45%),
-      linear-gradient(135deg, 
-        rgb(248 250 252) 0%, 
-        rgb(255 255 255) 30%, 
-        rgb(250 251 252) 50%, 
-        rgb(248 250 252) 70%, 
-        rgb(246 248 250) 100%
-      ) !important;
+      radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.05), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(148, 163, 184, 0.04), transparent 45%),
+      linear-gradient(to bottom, #f8fafc 0%, #f9fbff 35%, #f8fafc 100%) !important;
     background-attachment: fixed !important;
   }
 
-  /* System light mode ambient background - ultra-subtle Linear/Vercel style */
+  /* System light mode ambient background - premium off-white with ultra subtle depth */
   @media (prefers-color-scheme: light) {
     html:not(.dark):not(.light):not([data-theme]) body {
       background: 
-        radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.1) 0%, transparent 35%),
-        radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.15) 0%, transparent 45%),
-        linear-gradient(135deg, 
-          rgb(248 250 252) 0%, 
-          rgb(255 255 255) 30%, 
-          rgb(250 251 252) 50%, 
-          rgb(248 250 252) 70%, 
-          rgb(246 248 250) 100%
-        ) !important;
+        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.05), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(148, 163, 184, 0.04), transparent 45%),
+        linear-gradient(to bottom, #f8fafc 0%, #f9fbff 35%, #f8fafc 100%) !important;
       background-attachment: fixed !important;
     }
   }
