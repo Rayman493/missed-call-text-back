@@ -496,51 +496,49 @@ export default function SettingsContent() {
               <div className="max-w-[1600px] mx-auto">
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-3 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-              <div className="max-w-4xl mx-auto">
-                <nav className="flex items-center gap-1 overflow-x-auto">
-                  <button
-                    onClick={() => handleSectionClick('general')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                      activeSection === 'general'
-                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    General
-                  </button>
-                  <button
-                    onClick={() => handleSectionClick('automation')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                      activeSection === 'automation'
-                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    Automation
-                  </button>
-                  <button
-                    onClick={() => handleSectionClick('contacts')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                      activeSection === 'contacts'
-                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    Contacts
-                  </button>
-                  <button
-                    onClick={() => handleSectionClick('account')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                      activeSection === 'account'
-                        ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    Account
-                  </button>
-                </nav>
-              </div>
+            <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-3 mb-6 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+              <nav className="flex items-center gap-1 overflow-x-auto">
+                <button
+                  onClick={() => handleSectionClick('general')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    activeSection === 'general'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  General
+                </button>
+                <button
+                  onClick={() => handleSectionClick('automation')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    activeSection === 'automation'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Automation
+                </button>
+                <button
+                  onClick={() => handleSectionClick('contacts')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    activeSection === 'contacts'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Contacts
+                </button>
+                <button
+                  onClick={() => handleSectionClick('account')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    activeSection === 'account'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Account
+                </button>
+              </nav>
             </div>
 
             {/* Settings Sections */}
