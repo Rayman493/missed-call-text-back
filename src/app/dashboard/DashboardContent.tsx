@@ -1234,29 +1234,6 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Business Activity Section - shows operational metrics when active */}
-                    <SectionErrorBoundary sectionName="BusinessActivity">
-                      {(() => {
-                        console.log('[SECTION RENDER]', {
-                          section: 'BusinessActivity',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status
-                        })
-                        console.log('[Render Child] BusinessActivity')
-                        return null
-                      })()}
-                      {business?.id && (
-                        <BusinessActivity 
-                          businessId={business.id}
-                          isOnboardingComplete={isOnboardingComplete}
-                          provisioningStatus={business?.provisioning_status || 'pending'}
-                          forwardingVerified={business?.forwarding_verified || false}
-                        />
-                      )}
-                    </SectionErrorBoundary>
-
                     {/* Hero Metrics Section - always visible to maintain operational feel */}
                     <SectionErrorBoundary sectionName="StatsCards">
                       {(() => {
