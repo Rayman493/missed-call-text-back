@@ -14,6 +14,7 @@ import { Circle, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { handleBillingAction } from '@/lib/billing'
 import { usePathname } from 'next/navigation'
+import { Business } from '@/lib/types'
 
 type OnboardingState = 
   | 'loading'
@@ -52,6 +53,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isCompletingForwarding, setIsCompletingForwarding] = useState(false)
+  const [optimisticBusinessState, setOptimisticBusinessState] = useState<Business | null>(null)
   const [isHandlingBilling, setIsHandlingBilling] = useState(false)
   const [hasTriggeredProvisioning, setHasTriggeredProvisioning] = useState(false)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
@@ -342,40 +345,72 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     return null
   }
 
+  // Helper to get current business state (optimistic or actual)
+  const getCurrentBusiness = () => optimisticBusinessState || business
+
   // Simple onboarding state logic using direct business values
-  const hasTrial = hasActiveTrial(business)
-  const hasNumber = Boolean(business?.twilio_phone_number)
-  const number = business?.twilio_phone_number ?? null
-  const provisioningStatus = business?.provisioning_status ?? 'pending'
-  const subscriptionActive = hasActiveAccess(business)
-  const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
-  const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-  const testComplete = business?.forwarding_verified || realCallDataExists
+  const currentBusiness = getCurrentBusiness()
+  const hasTrial = hasActiveTrial(currentBusiness)
+  const hasNumber = Boolean(currentBusiness?.twilio_phone_number)
+  const number = currentBusiness?.twilio_phone_number ?? null
+  const provisioningStatus = currentBusiness?.provisioning_status ?? 'pending'
+  const subscriptionActive = hasActiveAccess(currentBusiness)
+  const twilioReady = Boolean(currentBusiness?.twilio_phone_number) && currentBusiness?.provisioning_status === 'active'
+  const forwardingSetupComplete = Boolean(currentBusiness?.phone_setup_completed_at)
+  const testComplete = currentBusiness?.forwarding_verified || realCallDataExists
 
   const handleCompleteForwarding = async () => {
-    if (!business) return
+    const currentBusiness = getCurrentBusiness()
+    if (!currentBusiness) return
+    
+    console.log('[GettingStarted] Starting forwarding completion - click handler start')
     
     try {
+      setIsCompletingForwarding(true)
+      console.log('[GettingStarted] Database update start')
+      
       const supabase = createBrowserClient()
       const { error } = await supabase
         .from('businesses')
         .update({
           call_forwarding_enabled: true,
-          call_forwarding_status: "enabled",
           phone_setup_completed_at: new Date().toISOString(),
           onboarding_status: "pending_test",
           onboarding_step: "phone_setup_completed"
         })
-        .eq('id', business.id)
+        .eq('id', currentBusiness.id)
       
       if (error) {
         console.error('[GettingStarted] Failed to mark forwarding complete:', error)
+        setIsCompletingForwarding(false)
       } else {
-        console.log('[GettingStarted] Forwarding marked as complete')
-        refreshBusiness()
+        console.log('[GettingStarted] Database update success')
+        
+        // Optimistic UI update - immediately update local state
+        const optimisticBusiness: Business = {
+          ...currentBusiness,
+          call_forwarding_enabled: true,
+          phone_setup_completed_at: new Date().toISOString(),
+          onboarding_status: "pending_test",
+          onboarding_step: "phone_setup_completed"
+        }
+        
+        console.log('[GettingStarted] Local state update - optimistic UI')
+        setOptimisticBusinessState(optimisticBusiness)
+        
+        // Refresh business data in background without causing UI flash
+        setTimeout(() => {
+          console.log('[GettingStarted] Background refresh start')
+          refreshBusiness().finally(() => {
+            console.log('[GettingStarted] Background refresh complete')
+            setOptimisticBusinessState(null)
+            setIsCompletingForwarding(false)
+          })
+        }, 100)
       }
     } catch (error) {
       console.error('[GettingStarted] Error completing forwarding:', error)
+      setIsCompletingForwarding(false)
     }
   }
 
@@ -480,8 +515,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           return wouldNavigate ? '/setup/phone-forwarding' : undefined
         })(),
         // Secondary button for users who have already enabled forwarding
-        secondaryButtonText: replyFlowReadyDone && !forwardingDone ? "I've Enabled Forwarding" : (forwardingDone ? 'Review Forwarding Setup' : undefined),
-        secondaryButtonOnClick: replyFlowReadyDone && !forwardingDone ? handleCompleteForwarding : undefined,
+        secondaryButtonText: replyFlowReadyDone && !forwardingDone ? (isCompletingForwarding ? "Updating setup..." : "I've Enabled Forwarding") : (forwardingDone ? 'Review Forwarding Setup' : undefined),
+        secondaryButtonOnClick: replyFlowReadyDone && !forwardingDone && !isCompletingForwarding ? handleCompleteForwarding : undefined,
         secondaryButtonHref: (() => {
           const wouldNavigate = forwardingDone
           console.log('[GettingStarted] Forwarding secondaryButtonHref calculation', {
@@ -966,12 +1001,17 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            item.buttonOnClick!()
+                            if (!isCompletingForwarding) {
+                              item.buttonOnClick!()
+                            }
                           }}
+                          disabled={isCompletingForwarding}
                           className={`inline-flex items-center justify-center w-full px-4 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-colors text-center ${
                             isCurrent
                               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                               : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                          } ${
+                            isCompletingForwarding ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
                           {item.buttonText}
@@ -996,9 +1036,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          item.secondaryButtonOnClick!()
+                          if (!isCompletingForwarding) {
+                            item.secondaryButtonOnClick!()
+                          }
                         }}
-                        className="w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors text-foreground border-2 border-border bg-background hover:bg-muted hover:border-border/80"
+                        disabled={isCompletingForwarding}
+                        className={`w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors text-foreground border-2 border-border bg-background hover:bg-muted hover:border-border/80 ${
+                          isCompletingForwarding ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         {item.secondaryButtonText}
                       </button>
