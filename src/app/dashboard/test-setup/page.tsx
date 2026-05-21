@@ -11,6 +11,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 
 export default function TestSetupPage() {
+  console.log('[TestSetup] Component render -', new Date().toISOString())
   const { business, refreshBusiness } = useBusiness()
   const router = useRouter()
   const supabase = createBrowserClient()

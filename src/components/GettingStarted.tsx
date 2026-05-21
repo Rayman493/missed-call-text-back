@@ -49,6 +49,7 @@ interface GettingStartedProps {
 const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
 
 export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete }: GettingStartedProps) {
+  console.log('[GettingStarted] Component render -', new Date().toISOString())
   const { business, refreshBusiness } = useBusiness()
   const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
@@ -410,23 +411,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         console.log('[GettingStarted] Local state update - optimistic UI')
         setOptimisticBusinessState(optimisticBusiness)
         
-        // Refresh business data in background without causing UI flash
+        // Navigate directly to test setup without background refresh to prevent flash
+        console.log('[GettingStarted] Navigating to test setup immediately')
         setTimeout(() => {
-          console.log('[GettingStarted] Background refresh start')
-          refreshBusiness().then(() => {
-            console.log('[GettingStarted] Background refresh complete')
-            // Clear optimistic state after a short delay to ensure smooth transition
-            setTimeout(() => {
-              setOptimisticBusinessState(null)
-              setIsCompletingForwarding(false)
-            }, 200)
-          }).catch((error) => {
-            console.error('[GettingStarted] Background refresh failed:', error)
-            // Still clear optimistic state even if refresh fails
-            setOptimisticBusinessState(null)
-            setIsCompletingForwarding(false)
-          })
-        }, 500)
+          setIsCompletingForwarding(false)
+          // Use window.location for immediate navigation without Next.js router overhead
+          window.location.href = '/dashboard/test-setup'
+        }, 300) // Small delay to show success state
       }
     } catch (error) {
       console.error('[GettingStarted] Error completing forwarding:', error)
