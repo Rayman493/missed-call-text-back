@@ -1256,7 +1256,7 @@ export default function DashboardContent() {
                       })()}
                       {/* Hide LiveActivity when Setup Progress is visible to avoid redundant messaging */}
                       {!(!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
-                        <div className={`mb-4 transition-opacity duration-300 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                        <div className="mb-4 transition-opacity duration-300">
                           <LiveActivity 
                             isOnboardingComplete={isOnboardingComplete}
                             provisioningStatus={business?.provisioning_status || 'pending'}
@@ -1302,7 +1302,7 @@ export default function DashboardContent() {
                         console.log('[Render Child] StatsCards')
                         return null
                       })()}
-                      <div className={`transition-opacity duration-300 mb-2 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                      <div className="transition-opacity duration-300 mb-2">
                         {business?.id && (
                           <StatsCards 
                             businessId={business.id} 
@@ -1329,7 +1329,7 @@ export default function DashboardContent() {
                       })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
-                        <div className={`transition-opacity duration-300 mb-2 ${!isOnboardingComplete ? 'opacity-60' : 'opacity-100'}`}>
+                        <div className="transition-opacity duration-300 mb-2">
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 
@@ -1371,7 +1371,7 @@ export default function DashboardContent() {
                             </div>
                             <div>
                               <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
                                 When a customer replies to a ReplyFlow text, you'll see the conversation here.
                               </p>
                             </div>

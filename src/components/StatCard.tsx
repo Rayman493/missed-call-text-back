@@ -79,7 +79,7 @@ export default function StatCard({
               {icon}
             </span>
           )}
-          <h3 className="text-xs font-bold text-slate-800 dark:text-muted-foreground/90 uppercase tracking-wide leading-tight">
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wide leading-tight">
             {label}
           </h3>
         </div>
@@ -100,7 +100,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-xs text-slate-600 dark:text-muted-foreground/70 font-medium leading-tight">
+        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-tight">
           {description}
         </p>
       )}

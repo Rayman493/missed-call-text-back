@@ -175,7 +175,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-foreground mb-1">
             Business Activity
           </h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             <span>This Month</span>
             <span>•</span>
             <span>See how ReplyFlow is helping your business</span>
@@ -193,7 +193,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               Auto-Replies Enabled
             </span>
             {missedCallsCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-muted-foreground rounded-full border border-slate-200 dark:border-border/50">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-muted/30 text-slate-700 dark:text-slate-300 rounded-full border border-slate-200 dark:border-border/50">
                 Last Activity: Today
               </span>
             )}
