@@ -6,6 +6,7 @@ interface DebugEvent {
   id: string
   timestamp: string
   type: string
+  route?: string
   data: any
 }
 
@@ -14,17 +15,17 @@ export function AuthDebugPanel() {
   const [isVisible, setIsVisible] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // Check if debug mode is enabled
+  // Check if debug mode is enabled and always log events
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       const debugMode = urlParams.get('debugAuth') === 'true'
       setIsVisible(debugMode)
       
+      // Always load events for logging, even if not visible
+      loadEvents()
+      
       if (debugMode) {
-        // Load existing events from sessionStorage
-        loadEvents()
-        
         // Add test log when debug panel becomes active
         setTimeout(() => {
           addEvent('AUTH_DEBUG_PANEL_ACTIVE', {
@@ -41,7 +42,7 @@ export function AuthDebugPanel() {
   const loadEvents = () => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = sessionStorage.getItem('replyflow_auth_debug_logs')
+        const stored = localStorage.getItem('replyflow_auth_debug_logs')
         if (stored) {
           const parsedEvents = JSON.parse(stored)
           setEvents(parsedEvents)
@@ -57,15 +58,16 @@ export function AuthDebugPanel() {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       type,
+      route: typeof window !== 'undefined' ? window.location.pathname : undefined,
       data
     }
 
     setEvents(prev => {
       const updated = [newEvent, ...prev].slice(0, 50) // Keep last 50 events
-      // Save to sessionStorage
+      // Save to localStorage
       if (typeof window !== 'undefined') {
         try {
-          sessionStorage.setItem('replyflow_auth_debug_logs', JSON.stringify(updated))
+          localStorage.setItem('replyflow_auth_debug_logs', JSON.stringify(updated))
         } catch (error) {
           console.error('Failed to save debug events:', error)
         }
@@ -77,7 +79,7 @@ export function AuthDebugPanel() {
   const clearEvents = () => {
     setEvents([])
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('replyflow_auth_debug_logs')
+      localStorage.removeItem('replyflow_auth_debug_logs')
     }
   }
 
@@ -217,7 +219,7 @@ export function AuthDebugPanel() {
   )
 }
 
-// Global debug logging function
+// Global debug logging function - always logs events regardless of debugAuth
 export function logAuthEvent(type: string, data: any) {
   if (typeof window !== 'undefined' && (window as any).addAuthDebugEvent) {
     (window as any).addAuthDebugEvent(type, data)
