@@ -204,20 +204,50 @@ export async function POST(request: Request) {
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
-    // Check if debugAuth parameter is present in the referring URL
+    // Check if debugAuth parameter is present from multiple sources
+    const requestBody = await request.json().catch(() => ({}))
+    const requestUrl = new URL(request.url)
     const referer = request.headers.get('referer')
     const requestOrigin = request.headers.get('origin')
-    let debugAuthParam = ''
     
-    // Try to detect debugAuth=true from referer or origin
-    if (referer && referer.includes('debugAuth=true')) {
-      debugAuthParam = '&debugAuth=true'
+    // Priority order: request body > URL params > referer > origin
+    let debugAuthDetected = false
+    let debugAuthSource = 'none'
+    
+    if (requestBody.debugAuth === true) {
+      debugAuthDetected = true
+      debugAuthSource = 'request_body'
+    } else if (requestUrl.searchParams.get('debugAuth') === 'true') {
+      debugAuthDetected = true
+      debugAuthSource = 'url_params'
+    } else if (referer && referer.includes('debugAuth=true')) {
+      debugAuthDetected = true
+      debugAuthSource = 'referer'
     } else if (requestOrigin && requestOrigin.includes('debugAuth=true')) {
-      debugAuthParam = '&debugAuth=true'
+      debugAuthDetected = true
+      debugAuthSource = 'origin'
     }
+    
+    const debugAuthParam = debugAuthDetected ? '&debugAuth=true' : ''
     
     const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${debugAuthParam}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled${debugAuthParam}`
+    
+    // Comprehensive server-side logging for Vercel
+    console.log('[STRIPE CHECKOUT DEBUGAUTH ANALYSIS]', {
+      timestamp: new Date().toISOString(),
+      requestUrl: request.url,
+      requestBody: requestBody,
+      debugAuthDetected,
+      debugAuthSource,
+      debugAuthParam,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      referer: referer,
+      requestOrigin: requestOrigin,
+      hasDebugAuthInSuccessUrl: successUrl.includes('debugAuth=true'),
+      hasDebugAuthInCancelUrl: cancelUrl.includes('debugAuth=true')
+    })
     
     console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
       success_url: successUrl,

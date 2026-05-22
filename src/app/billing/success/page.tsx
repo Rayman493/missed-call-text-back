@@ -51,18 +51,47 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const currentUrl = window.location.href
+      const pathname = window.location.pathname
+      const search = window.location.search
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasDebugAuth = urlParams.get('debugAuth') === 'true'
+      
       const mountData = {
-        pathname: window.location.pathname,
-        search: window.location.search,
+        currentUrl,
+        pathname,
+        search,
         sessionId,
         referrer: document.referrer,
         isMobile,
         userAgent: navigator.userAgent,
+        hasDebugAuth,
+        debugAuthValue: urlParams.get('debugAuth'),
+        allParams: Object.fromEntries(urlParams.entries()),
         timestamp: new Date().toISOString()
       }
       
       console.log('[BILLING SUCCESS MOUNT]', mountData)
+      console.log('[BILLING SUCCESS URL ANALYSIS]', {
+        pathname,
+        search,
+        sessionId,
+        hasDebugAuth,
+        debugAuthValue: urlParams.get('debugAuth'),
+        urlParamsCount: urlParams.size,
+        allParams: Array.from(urlParams.entries()),
+        timestamp: new Date().toISOString()
+      })
       logAuthEvent('BILLING_SUCCESS_MOUNT', mountData)
+      logAuthEvent('BILLING_SUCCESS_URL_ANALYSIS', {
+        pathname,
+        search,
+        sessionId,
+        hasDebugAuth,
+        debugAuthValue: urlParams.get('debugAuth'),
+        allParams: Object.fromEntries(urlParams.entries()),
+        timestamp: new Date().toISOString()
+      })
     }
   }, [sessionId])
 
