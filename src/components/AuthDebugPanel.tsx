@@ -12,6 +12,7 @@ interface DebugEvent {
 export function AuthDebugPanel() {
   const [events, setEvents] = useState<DebugEvent[]>([])
   const [isVisible, setIsVisible] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   // Check if debug mode is enabled
   useEffect(() => {
@@ -104,47 +105,115 @@ export function AuthDebugPanel() {
   if (!isVisible) return null
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 max-h-64 bg-black text-green-400 font-mono text-xs border border-green-600 rounded-lg shadow-2xl z-50 overflow-hidden">
-      <div className="bg-green-900 text-green-100 p-2 border-b border-green-600">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold">Auth Debug</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={copyLogs}
-              className="px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-xs"
-            >
-              Copy Logs
-            </button>
-            <button
-              onClick={clearEvents}
-              className="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-xs"
-            >
-              Clear Logs
-            </button>
-          </div>
-        </div>
+    <>
+      {/* Backup banner for mobile - always visible when debugAuth=true */}
+      <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-xs font-bold py-1 px-2 text-center z-[99999] md:hidden">
+        Auth Debug Active
       </div>
       
-      <div className="overflow-y-auto max-h-80 p-2">
-        {events.length === 0 ? (
-          <div className="text-green-600">No events logged yet</div>
+      {/* Mobile collapsed floating button */}
+      <div className="fixed bottom-4 left-2 right-2 z-[99999] md:hidden">
+        {!isExpanded ? (
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="w-full bg-black text-green-400 border border-green-600 rounded-lg px-3 py-2 font-mono text-xs font-bold shadow-2xl"
+          >
+            Auth Debug
+          </button>
         ) : (
-          events.map(event => (
-            <div key={event.id} className="mb-3 pb-3 border-b border-green-800 last:border-b-0">
-              <div className="text-green-300 font-bold mb-1">
-                {event.type}
-              </div>
-              <div className="text-green-600 text-xs mb-1">
-                {event.timestamp}
-              </div>
-              <div className="text-green-400 text-xs whitespace-pre-wrap">
-                {JSON.stringify(event.data, null, 2)}
+          <div className="bg-black text-green-400 font-mono text-xs border border-green-600 rounded-lg shadow-2xl overflow-hidden">
+            <div className="bg-green-900 text-green-100 p-2 border-b border-green-600">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold">Auth Debug</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={copyLogs}
+                    className="px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-xs"
+                  >
+                    Copy Logs
+                  </button>
+                  <button
+                    onClick={clearEvents}
+                    className="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-xs"
+                  >
+                    Clear Logs
+                  </button>
+                  <button
+                    onClick={() => setIsExpanded(false)}
+                    className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-          ))
+            
+            <div className="overflow-y-auto max-h-[45vh] p-2">
+              {events.length === 0 ? (
+                <div className="text-green-600">No events logged yet</div>
+              ) : (
+                events.map(event => (
+                  <div key={event.id} className="mb-3 pb-3 border-b border-green-800 last:border-b-0">
+                    <div className="text-green-300 font-bold mb-1">
+                      {event.type}
+                    </div>
+                    <div className="text-green-600 text-xs mb-1">
+                      {event.timestamp}
+                    </div>
+                    <div className="text-green-400 text-xs whitespace-pre-wrap">
+                      {JSON.stringify(event.data, null, 2)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         )}
       </div>
-    </div>
+
+      {/* Desktop version - unchanged */}
+      <div className="fixed bottom-4 right-4 w-80 max-h-64 bg-black text-green-400 font-mono text-xs border border-green-600 rounded-lg shadow-2xl z-[99999] overflow-hidden hidden md:block">
+        <div className="bg-green-900 text-green-100 p-2 border-b border-green-600">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold">Auth Debug</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={copyLogs}
+                className="px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-xs"
+              >
+                Copy Logs
+              </button>
+              <button
+                onClick={clearEvents}
+                className="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-xs"
+              >
+                Clear Logs
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="overflow-y-auto max-h-80 p-2">
+          {events.length === 0 ? (
+            <div className="text-green-600">No events logged yet</div>
+          ) : (
+            events.map(event => (
+              <div key={event.id} className="mb-3 pb-3 border-b border-green-800 last:border-b-0">
+                <div className="text-green-300 font-bold mb-1">
+                  {event.type}
+                </div>
+                <div className="text-green-600 text-xs mb-1">
+                  {event.timestamp}
+                </div>
+                <div className="text-green-400 text-xs whitespace-pre-wrap">
+                  {JSON.stringify(event.data, null, 2)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 
