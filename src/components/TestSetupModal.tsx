@@ -61,13 +61,13 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
         : 'Start your 14-day free trial to activate ReplyFlow'
     })
 
-    // Forwarding Verified
+    // Forwarding Connected
     items.push({
-      label: 'Forwarding Verified',
+      label: 'Forwarding Connected',
       status: business.forwarding_verified ? 'healthy' : 'warning',
       details: business.forwarding_verified 
-        ? `Verified at ${business.forwarding_verified_at ? new Date(business.forwarding_verified_at).toLocaleDateString() : 'Recently'}` 
-        : 'Forwarding becomes verified after your first successful missed-call test'
+        ? `Connected at ${business.forwarding_verified_at ? new Date(business.forwarding_verified_at).toLocaleDateString() : 'Recently'}` 
+        : 'Forwarding becomes connected after your first successful missed-call test'
     })
 
     return items
@@ -204,27 +204,27 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
               <h3 className="text-lg font-semibold text-foreground mb-3">Test Instructions</h3>
               <ol className="space-y-3 text-muted-foreground">
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
                   <span>Have someone call your business phone number.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
                   <span>Do not answer the call.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
                   <span>Wait for it to forward to ReplyFlow.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
                   <span>Confirm the caller hears the missed-call message.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</span>
                   <span>Confirm the caller receives the automated SMS.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</span>
                   <span>Refresh the dashboard and confirm the lead appears.</span>
                 </li>
               </ol>

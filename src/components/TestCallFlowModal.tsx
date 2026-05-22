@@ -28,7 +28,7 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
     } 
     // Verified Working (Green) - If forwarding_verified is true
     else if (business.forwarding_verified) {
-      return 'Forwarding Verified'
+      return 'Forwarding Connected'
     } 
     // Set Up / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
     else {
@@ -94,27 +94,27 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
               <h3 className="text-lg font-semibold text-foreground mb-3">Test Instructions</h3>
               <ol className="space-y-3 text-muted-foreground">
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
                   <span>Have someone call your business phone number.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
                   <span>Do not answer the call.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
                   <span>Wait for it to forward to ReplyFlow.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
                   <span>Confirm the caller hears the missed-call message.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</span>
                   <span>Confirm they receive the auto-reply text message.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</span>
                   <span>Refresh the dashboard to confirm the lead appears.</span>
                 </li>
               </ol>

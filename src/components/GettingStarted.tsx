@@ -829,7 +829,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h2 className={`text-sm sm:text-lg font-semibold text-foreground ${isOnboardingComplete && !isExpanded ? 'text-sm' : ''}`}>
-              {complete ? 'Setup Complete ✓' : 'Setup Progress'}
+              {complete ? 'Setup Complete' : 'Setup Progress'}
             </h2>
             {/* Simple chevron expand/collapse control */}
             {!complete && (

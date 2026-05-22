@@ -670,12 +670,12 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-3 sm:space-y-4 pb-40">
+            <div className="space-y-2.5 sm:space-y-3.5 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-5 scroll-mt-24">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">Business Info</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2.5 sm:mb-3">Manage the phone number and business identity customers interact with.</p>
-                <div className="space-y-2 sm:space-y-2.5">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5 scroll-mt-24">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-0.5 sm:mb-1">Business Info</h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2 sm:mb-2.5">Manage the phone number and business identity customers interact with.</p>
+                <div className="space-y-1.5 sm:space-y-2">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       Business Name
@@ -718,26 +718,12 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-5 scroll-mt-24">
-                <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
-                    {hasActiveSubscription(business) && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
-                          <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                          SMS Active
-                        </span>
-                        <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-1">
-                          <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
-                          Automation Ready
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5 scroll-mt-24">
+                <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2.5 sm:mb-3">Customize the instant text customers receive after missed calls.</p>
-                <div className="space-y-2 sm:space-y-2.5">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2 sm:mb-2.5">Customize the instant text customers receive after missed calls.</p>
+                <div className="space-y-1.5 sm:space-y-2">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       Instant Response Message
@@ -768,12 +754,6 @@ export default function SettingsContent() {
                 <div className="mb-3 sm:mb-4">
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                     <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
-                    {spamFilteringEnabled && (
-                      <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
-                        <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                        Active
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
                     Control when ReplyFlow sends instant responses to missed calls.
@@ -787,11 +767,6 @@ export default function SettingsContent() {
                       <div className="flex-1 pr-3 sm:pr-4">
                         <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                           <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">Spam & Repeat Call Filtering</h3>
-                          {spamFilteringEnabled && (
-                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/15 text-green-600 dark:text-green-400 rounded-full font-medium">
-                              Enabled
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-1.5 sm:mb-2">
                           Control which callers receive instant text responses and which calls ReplyFlow should ignore.
@@ -824,9 +799,6 @@ export default function SettingsContent() {
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
-                              <span className="text-[10px] sm:text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
-                                Recommended
-                              </span>
                             </div>
                             <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-1.5 sm:mb-2">
                               If the same person calls multiple times in a short period, ReplyFlow will avoid sending repeated text messages.
@@ -860,9 +832,6 @@ export default function SettingsContent() {
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
                               <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Skip blocked or hidden callers</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium">
-                                Recommended
-                              </span>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-muted-foreground">
                               Prevent instant texts from being sent to callers who hide their number or appear as 'Unknown'.
@@ -1109,9 +1078,9 @@ export default function SettingsContent() {
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-8 sm:py-10 bg-muted/40 rounded-xl border border-border/50">
                       <div className="text-3xl sm:text-4xl mb-3">📵</div>
-                      <h3 className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-2">No ignored contacts yet</h3>
+                      <h3 className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-2">No contacts on ignore list</h3>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground max-w-sm mx-auto">
-                        Add family, employees, personal numbers, or other contacts that should never receive automated texts or create leads.
+                        Add phone numbers that should never receive automated texts or create leads.
                       </p>
                     </div>
                   ) : (
