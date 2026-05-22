@@ -207,3 +207,105 @@ main {
 .animate-slideInUp {
   animation: slideInUp 0.3s ease-out;
 }
+
+/* Chrome/Safari autofill styling for dark theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(30, 41, 59, 0.5) inset;
+  box-shadow: 0 0 0px 1000px rgba(30, 41, 59, 0.5) inset;
+  caret-color: #f1f5f9;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Light mode autofill styling */
+html.light input:-webkit-autofill,
+html.light input:-webkit-autofill:hover,
+html.light input:-webkit-autofill:focus,
+html.light textarea:-webkit-autofill,
+html.light textarea:-webkit-autofill:hover,
+html.light textarea:-webkit-autofill:focus,
+html.light select:-webkit-autofill,
+html.light select:-webkit-autofill:hover,
+html.light select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+  box-shadow: 0 0 0px 1000px #ffffff inset;
+  caret-color: #111827;
+}
+
+/* System light mode autofill styling */
+@media (prefers-color-scheme: light) {
+  html:not(.dark):not(.light):not([data-theme]) input:-webkit-autofill,
+  html:not(.dark):not(.light):not([data-theme]) input:-webkit-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) input:-webkit-autofill:focus,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-webkit-autofill,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-webkit-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-webkit-autofill:focus,
+  html:not(.dark):not(.light):not([data-theme]) select:-webkit-autofill,
+  html:not(.dark):not(.light):not([data-theme]) select:-webkit-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) select:-webkit-autofill:focus {
+    -webkit-text-fill-color: #111827;
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+    box-shadow: 0 0 0px 1000px #ffffff inset;
+    caret-color: #111827;
+  }
+}
+
+/* Firefox autofill styling */
+input:-moz-autofill,
+input:-moz-autofill:hover,
+input:-moz-autofill:focus,
+textarea:-moz-autofill,
+textarea:-moz-autofill:hover,
+textarea:-moz-autofill:focus,
+select:-moz-autofill,
+select:-moz-autofill:hover,
+select:-moz-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(30, 41, 59, 0.5) inset;
+  box-shadow: 0 0 0px 1000px rgba(30, 41, 59, 0.5) inset;
+  caret-color: #f1f5f9;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Firefox light mode autofill styling */
+html.light input:-moz-autofill,
+html.light input:-moz-autofill:hover,
+html.light input:-moz-autofill:focus,
+html.light textarea:-moz-autofill,
+html.light textarea:-moz-autofill:hover,
+html.light textarea:-moz-autofill:focus,
+html.light select:-moz-autofill,
+html.light select:-moz-autofill:hover,
+html.light select:-moz-autofill:focus {
+  -webkit-text-fill-color: #111827;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+  box-shadow: 0 0 0px 1000px #ffffff inset;
+  caret-color: #111827;
+}
+
+/* Firefox system light mode autofill styling */
+@media (prefers-color-scheme: light) {
+  html:not(.dark):not(.light):not([data-theme]) input:-moz-autofill,
+  html:not(.dark):not(.light):not([data-theme]) input:-moz-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) input:-moz-autofill:focus,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-moz-autofill,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-moz-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) textarea:-moz-autofill:focus,
+  html:not(.dark):not(.light):not([data-theme]) select:-moz-autofill,
+  html:not(.dark):not(.light):not([data-theme]) select:-moz-autofill:hover,
+  html:not(.dark):not(.light):not([data-theme]) select:-moz-autofill:focus {
+    -webkit-text-fill-color: #111827;
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+    box-shadow: 0 0 0px 1000px #ffffff inset;
+    caret-color: #111827;
+  }
+}

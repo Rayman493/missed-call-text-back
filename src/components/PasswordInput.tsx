@@ -36,12 +36,12 @@ export default function PasswordInput({
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
-        className={`w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 pr-12 ${className}`}
+        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 ${className}`}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground/70 hover:text-foreground transition-colors p-2 rounded-md hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400/70 hover:text-slate-300 transition-colors p-2 rounded-md hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
         aria-label={showPassword ? 'Hide password' : 'Show password'}
       >
         {showPassword ? (
