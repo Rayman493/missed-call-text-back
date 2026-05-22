@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
-import { AuthDebugPanel, logAuthEvent } from '@/components/AuthDebugPanel'
-import { preserveDebugAuthParam } from '@/lib/debugAuth'
 
 interface CheckoutStatus {
   ok: boolean
@@ -51,47 +49,17 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      const currentUrl = window.location.href
-      const pathname = window.location.pathname
-      const search = window.location.search
-      const urlParams = new URLSearchParams(window.location.search)
-      const hasDebugAuth = urlParams.get('debugAuth') === 'true'
-      
       const mountData = {
-        currentUrl,
-        pathname,
-        search,
+        pathname: window.location.pathname,
+        search: window.location.search,
         sessionId,
         referrer: document.referrer,
         isMobile,
         userAgent: navigator.userAgent,
-        hasDebugAuth,
-        debugAuthValue: urlParams.get('debugAuth'),
-        allParams: Object.fromEntries(urlParams.entries()),
         timestamp: new Date().toISOString()
       }
       
-      console.log('[BILLING SUCCESS MOUNT]', mountData)
-      console.log('[BILLING SUCCESS URL ANALYSIS]', {
-        pathname,
-        search,
-        sessionId,
-        hasDebugAuth,
-        debugAuthValue: urlParams.get('debugAuth'),
-        urlParamsCount: urlParams.size,
-        allParams: Array.from(urlParams.entries()),
-        timestamp: new Date().toISOString()
-      })
-      logAuthEvent('BILLING_SUCCESS_MOUNT', mountData)
-      logAuthEvent('BILLING_SUCCESS_URL_ANALYSIS', {
-        pathname,
-        search,
-        sessionId,
-        hasDebugAuth,
-        debugAuthValue: urlParams.get('debugAuth'),
-        allParams: Object.fromEntries(urlParams.entries()),
-        timestamp: new Date().toISOString()
-      })
+      console.log('[Billing Success Mount]', mountData)
     }
   }, [sessionId])
 
@@ -206,8 +174,7 @@ export default function BillingSuccessPage() {
   if (status?.readyForReauth) {
     return (
       <PageBackground>
-        <AuthDebugPanel />
-        <div className="flex items-center justify-center px-4 min-h-screen">
+                <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           {/* Success Icon with polish */}
           <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-green-500/20">
@@ -270,17 +237,16 @@ export default function BillingSuccessPage() {
           {/* Animated Button - Direct to Dashboard */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
             <Link 
-              href={preserveDebugAuthParam('/dashboard')}
+              href="/dashboard"
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
               onClick={() => {
                 const clickData = {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: preserveDebugAuthParam('/dashboard'),
+                  destination: '/dashboard',
                   timestamp: new Date().toISOString()
                 }
                 console.log('[Billing Success Continue Dashboard]', clickData)
-                logAuthEvent('BILLING_SUCCESS_CONTINUE_DASHBOARD', clickData)
               }}
             >
               Open Dashboard
@@ -301,8 +267,7 @@ export default function BillingSuccessPage() {
   if (isTimeout) {
     return (
       <PageBackground>
-        <AuthDebugPanel />
-        <div className="flex items-center justify-center px-4 min-h-screen">
+                <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,7 +279,7 @@ export default function BillingSuccessPage() {
             Your trial is active, but setup is still finishing. Continue to your dashboard to access your account.
           </p>
           <Link 
-            href={preserveDebugAuthParam('/dashboard')}
+            href="/dashboard"
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Continue to Dashboard
@@ -328,8 +293,7 @@ export default function BillingSuccessPage() {
   if (error) {
     return (
       <PageBackground>
-        <AuthDebugPanel />
-        <div className="flex items-center justify-center px-4 min-h-screen">
+                <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -339,7 +303,7 @@ export default function BillingSuccessPage() {
           <h1 className="text-2xl font-bold text-foreground mb-4">Setup Issue</h1>
           <p className="text-muted-foreground mb-6">{error}</p>
           <Link 
-            href={preserveDebugAuthParam('/dashboard')}
+            href="/dashboard"
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Go to Dashboard
@@ -353,8 +317,7 @@ export default function BillingSuccessPage() {
   // Loading state
   return (
     <PageBackground>
-      <AuthDebugPanel />
-      <div className="flex items-center justify-center px-4 min-h-screen">
+            <div className="flex items-center justify-center px-4 min-h-screen">
         <div className="max-w-md w-full mx-auto text-center">
         {/* Logo */}
         <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-8">

@@ -204,50 +204,8 @@ export async function POST(request: Request) {
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
-    // Check if debugAuth parameter is present from multiple sources
-    const requestBody = await request.json().catch(() => ({}))
-    const requestUrl = new URL(request.url)
-    const referer = request.headers.get('referer')
-    const requestOrigin = request.headers.get('origin')
-    
-    // Priority order: request body > URL params > referer > origin
-    let debugAuthDetected = false
-    let debugAuthSource = 'none'
-    
-    if (requestBody.debugAuth === true) {
-      debugAuthDetected = true
-      debugAuthSource = 'request_body'
-    } else if (requestUrl.searchParams.get('debugAuth') === 'true') {
-      debugAuthDetected = true
-      debugAuthSource = 'url_params'
-    } else if (referer && referer.includes('debugAuth=true')) {
-      debugAuthDetected = true
-      debugAuthSource = 'referer'
-    } else if (requestOrigin && requestOrigin.includes('debugAuth=true')) {
-      debugAuthDetected = true
-      debugAuthSource = 'origin'
-    }
-    
-    const debugAuthParam = debugAuthDetected ? '&debugAuth=true' : ''
-    
-    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${debugAuthParam}`
-    const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled${debugAuthParam}`
-    
-    // Comprehensive server-side logging for Vercel
-    console.log('[STRIPE CHECKOUT DEBUGAUTH ANALYSIS]', {
-      timestamp: new Date().toISOString(),
-      requestUrl: request.url,
-      requestBody: requestBody,
-      debugAuthDetected,
-      debugAuthSource,
-      debugAuthParam,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      referer: referer,
-      requestOrigin: requestOrigin,
-      hasDebugAuthInSuccessUrl: successUrl.includes('debugAuth=true'),
-      hasDebugAuthInCancelUrl: cancelUrl.includes('debugAuth=true')
-    })
+    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`
+    const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
       success_url: successUrl,
@@ -259,19 +217,7 @@ export async function POST(request: Request) {
       appUrlEnv: process.env.NEXT_PUBLIC_APP_URL,
       siteUrlEnv: process.env.NEXT_PUBLIC_SITE_URL,
       origin: request.headers.get('origin'),
-      referer: referer,
-      debugAuthDetected: debugAuthParam !== '',
-      debugAuthParam,
-      timestamp: new Date().toISOString()
-    })
-    
-    // Log debug parameter preservation
-    console.log('[STRIPE_DEBUG_PARAM_PRESERVED]', {
-      success_url_has_debugAuth: successUrl.includes('debugAuth=true'),
-      cancel_url_has_debugAuth: cancelUrl.includes('debugAuth=true'),
-      debugAuthDetected: debugAuthParam !== '',
-      referer: referer,
-      requestOrigin: requestOrigin,
+      referer: request.headers.get('referer'),
       timestamp: new Date().toISOString()
     })
     

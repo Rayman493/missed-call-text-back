@@ -122,17 +122,12 @@ async function openCheckout(): Promise<BillingActionResult> {
   console.log('[Billing Action] Opening checkout')
   
   try {
-    // Check if debugAuth is present in current URL
-    const debugAuth = typeof window !== 'undefined' && window.location.search.includes('debugAuth=true')
-    
     const response = await fetch('/api/stripe/create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        debugAuth: debugAuth
-      })
+      body: JSON.stringify({})
     })
 
     const data = await response.json()

@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
-import { AuthDebugPanel } from '@/components/AuthDebugPanel'
 import { isAdminUser } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
@@ -914,7 +913,6 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <AuthDebugPanel />
           <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader showNavigation={true} />
@@ -922,26 +920,6 @@ export default function DashboardContent() {
             {/* Main Content */}
             <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
               <div className="max-w-[1600px] mx-auto space-y-2 sm:space-y-4">
-                
-                {/* Temporary Admin Debug Button */}
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                      <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                        Admin Debug
-                      </span>
-                    </div>
-                    <Link
-                      href="/app-debug/auth"
-                      className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-medium"
-                    >
-                      View Auth Debug Logs
-                    </Link>
-                  </div>
-                </div>
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
