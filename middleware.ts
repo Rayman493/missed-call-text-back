@@ -19,13 +19,18 @@ export async function middleware(req: NextRequest) {
   const isBillingReturn = billingReturnParam === 'success'
   const hasStripeSession = Boolean(sessionId?.startsWith('cs_'))
 
-  console.log('[TRACE Middleware Entry]', {
+  const isMobile = req.headers.get('user-agent') ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers.get('user-agent')!) : false
+
+  console.log('[MIDDLEWARE ENTRY]', {
     pathname,
     search,
     hasCheckoutSuccess,
     isBillingReturn,
     hasStripeSession,
-    hasSession: false // Will be updated after session check
+    hasSession: false, // Will be updated after session check
+    userAgent: req.headers.get('user-agent'),
+    isMobile,
+    timestamp: new Date().toISOString()
   })
 
   const supabase = createServerClient(
@@ -48,20 +53,25 @@ export async function middleware(req: NextRequest) {
   // Refresh session if expired
   const { data: { session } } = await supabase.auth.getSession()
 
-  console.log('[TRACE Middleware]', {
+  console.log('[MIDDLEWARE SESSION CHECK]', {
     from: pathname + search,
-    to: pathname + search,
-    reason: 'middleware_request',
-    pathname,
-    search,
-    hasCheckoutSuccess
+    hasSession: !!session,
+    userId: session?.user?.id,
+    method: req.method,
+    hasCheckoutSuccess,
+    isMobile,
+    timestamp: new Date().toISOString()
   })
 
-  console.log('[Middleware] Request:', {
+  console.log('[MIDDLEWARE REQUEST ANALYSIS]', {
     pathname,
     hasSession: !!session,
     method: req.method,
     hasCheckoutSuccess,
+    isBillingReturn,
+    hasStripeSession,
+    isMobile,
+    timestamp: new Date().toISOString()
   })
 
   // Public routes - no authentication required
@@ -100,12 +110,14 @@ export async function middleware(req: NextRequest) {
 
   // Bypass auth redirects for billing return requests - let client-side grace mode handle auth restoration
   if (isBillingReturn || hasStripeSession) {
-    console.log('[TRACE Middleware Billing Return Allow]', {
+    console.log('[MIDDLEWARE BILLING RETURN ALLOWED]', {
       pathname,
       search,
       isBillingReturn,
       hasStripeSession,
-      hasSession: !!session
+      hasSession: !!session,
+      isMobile,
+      timestamp: new Date().toISOString()
     })
     return NextResponse.next()
   }
@@ -115,39 +127,51 @@ export async function middleware(req: NextRequest) {
   const billingReturned = url.searchParams.get('billing') === 'returned'
 
   if (isProtectedRoute && !session && !billingReturned && !hasCheckoutSuccess) {
-    console.log('[TRACE Middleware Protected Redirect]', {
+    console.log('[MIDDLEWARE PROTECTED ROUTE REDIRECT]', {
       pathname,
       search,
       hasSession: !!session,
       isBillingReturn,
       hasStripeSession,
       hasCheckoutSuccess,
-      billingReturned
+      billingReturned,
+      isMobile,
+      timestamp: new Date().toISOString()
     })
-    console.log('[Middleware] Protected route without session, redirecting to sign-in')
-    console.log('[Middleware REDIRECT]', {
+    console.log('[MIDDLEWARE REDIRECTING TO SIGNIN]', {
       from: pathname,
       to: '/auth/signin',
       reason: 'Protected route without session',
       hasSession: false,
       billingReturned,
+      isMobile,
       component: 'Middleware',
+      timestamp: new Date().toISOString()
     })
     return NextResponse.redirect(new URL('/auth/signin', req.url))
   }
 
   // Allow checkout success requests through for client-side recovery
   if (isProtectedRoute && !session && hasCheckoutSuccess) {
-    console.log('[TRACE Middleware Checkout Recovery Allow]', {
+    console.log('[MIDDLEWARE CHECKOUT RECOVERY ALLOWED]', {
       pathname,
       search,
       hasSession: false,
       hasCheckoutSuccess: true,
-      billingReturned
+      billingReturned,
+      isMobile,
+      timestamp: new Date().toISOString()
     })
   }
 
-  console.log('[Middleware] Protected route with session, allowing access')
+  console.log('[MIDDLEWARE ALLOWING ACCESS]', {
+    pathname,
+    hasSession: !!session,
+    isProtectedRoute,
+    hasCheckoutSuccess,
+    isMobile,
+    timestamp: new Date().toISOString()
+  })
 
   // Security headers
   res.headers.set('X-Frame-Options', 'DENY')

@@ -48,11 +48,15 @@ export default function BillingSuccessPage() {
   // Trace log on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('[Billing Success Mounted]', {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      console.log('[BILLING SUCCESS MOUNT]', {
         pathname: window.location.pathname,
         search: window.location.search,
         sessionId,
-        referrer: document.referrer
+        referrer: document.referrer,
+        isMobile,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
       })
     }
   }, [sessionId])

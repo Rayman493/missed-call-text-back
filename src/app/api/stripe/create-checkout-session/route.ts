@@ -207,12 +207,18 @@ export async function POST(request: Request) {
     const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
-    console.log('[TRACE Stripe Success URL]', {
+    console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
       success_url: successUrl,
       cancel_url: cancelUrl,
       appUrl: siteUrl,
-      sessionIdPlaceholder: '{CHECKOUT_SESSION_ID}'
-    });
+      sessionIdPlaceholder: '{CHECKOUT_SESSION_ID}',
+      environment: process.env.NODE_ENV,
+      vercelUrl: process.env.VERCEL_URL,
+      appUrlEnv: process.env.NEXT_PUBLIC_APP_URL,
+      siteUrlEnv: process.env.NEXT_PUBLIC_SITE_URL,
+      origin: request.headers.get('origin'),
+      timestamp: new Date().toISOString()
+    })
     
     console.log('[stripe-checkout] Final URLs configured:', { 
       successUrl, 

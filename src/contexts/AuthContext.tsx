@@ -43,21 +43,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
-      console.log('[Auth] Restoring session...', {
+      const isMobile = typeof window !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent) : false
+      console.log('[AUTH SESSION RESTORE START]', {
         pathname,
         isClient,
         billingReturned: pathname?.includes('billing=returned'),
+        isBillingSuccess: pathname?.includes('/billing/success'),
+        isMobile,
         timestamp: new Date().toISOString(),
         userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
       })
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         
-        console.log('[Auth] getSession result:', {
+        console.log('[AUTH GETSESSION RESULT]', {
           hasSession: !!session,
           userId: session?.user?.id,
           error: error?.message,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          pathname,
+          isMobile
         })
         
         if (error) {
@@ -65,7 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (session) {
-          console.log('[Auth] Session restored:', session.user.id)
+          console.log('[AUTH SESSION RESTORED]', {
+            userId: session.user.id,
+            pathname,
+            isMobile,
+            timestamp: new Date().toISOString()
+          })
           setSession(session)
           setUser(session.user)
           
@@ -73,39 +83,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // This handles the case where the user was deleted but the session was still cached
           try {
             const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
-            console.log('[Auth] User verification result:', {
+            console.log('[AUTH USER VERIFICATION RESULT]', {
               hasCurrentUser: !!currentUser,
               currentUserId: currentUser?.id,
               userError: userError?.message,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              pathname,
+              isMobile
             })
             
             if (userError || !currentUser) {
-              console.log('[Auth] User no longer exists in Supabase, clearing session')
+              console.log('[AUTH USER VERIFICATION FAILED - CLEARING SESSION]', {
+                userError: userError?.message,
+                pathname,
+                isMobile,
+                timestamp: new Date().toISOString()
+              })
               await supabase.auth.signOut()
               setSession(null)
               setUser(null)
             }
           } catch (verifyError) {
-            console.error('[Auth] User verification error:', verifyError)
+            console.error('[AUTH USER VERIFICATION ERROR]', {
+              error: verifyError instanceof Error ? verifyError.message : String(verifyError),
+              pathname,
+              isMobile,
+              timestamp: new Date().toISOString()
+            })
             // If verification fails, clear the session to be safe
             await supabase.auth.signOut()
             setSession(null)
             setUser(null)
           }
         } else {
-          console.log('[Auth] No session found', {
+          console.log('[AUTH NO SESSION FOUND]', {
             pathname,
+            isMobile,
             timestamp: new Date().toISOString()
           })
         }
       } catch (error) {
-        console.error('[Auth] Session restore failed:', {
+        console.error('[AUTH SESSION RESTORE FAILED]', {
           error: error instanceof Error ? error.message : String(error),
+          pathname,
+          isMobile,
           timestamp: new Date().toISOString()
         })
       } finally {
-        console.log('[Auth] Session restore completed, setting loading to false', {
+        console.log('[AUTH SESSION RESTORE COMPLETED]', {
+          loading: false,
+          pathname,
+          isMobile,
           timestamp: new Date().toISOString()
         })
         setLoading(false)
@@ -117,12 +145,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-        console.log('[Auth] Auth state changed:', _event, session?.user?.id)
+        const isMobile = typeof window !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent) : false
+        console.log('[AUTH STATE CHANGE]', {
+          event: _event,
+          hasSession: !!session,
+          userId: session?.user?.id,
+          pathname,
+          isMobile,
+          timestamp: new Date().toISOString()
+        })
         
         if (session) {
+          console.log('[AUTH STATE CHANGE - SESSION SET]', {
+            userId: session.user.id,
+            pathname,
+            isMobile,
+            timestamp: new Date().toISOString()
+          })
           setSession(session)
           setUser(session.user)
         } else {
+          console.log('[AUTH STATE CHANGE - SESSION CLEARED]', {
+            pathname,
+            isMobile,
+            timestamp: new Date().toISOString()
+          })
           setSession(null)
           setUser(null)
         }
@@ -147,12 +194,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading || !isClient) return
 
-    console.log('[Auth] Auth routing decision:', {
+    const isMobile = typeof window !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent) : false
+
+    console.log('[AUTH ROUTING DECISION]', {
       user: !!user,
       userId: user?.id,
       loading,
       pathname,
-      isClient
+      isClient,
+      isMobile,
+      timestamp: new Date().toISOString()
     })
 
     // If user is NOT authenticated and on dashboard or onboarding, redirect to login (not homepage)
@@ -164,31 +215,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const isCheckoutSuccess = checkoutStatus === 'success' || sessionId?.startsWith('cs_')
     
-    console.log('[Auth] Checkout params check:', { checkoutStatus, sessionId, billingReturned, isCheckoutSuccess })
+    console.log('[AUTH ROUTING CHECKOUT PARAMS]', { 
+      checkoutStatus, 
+      sessionId: sessionId ? `${sessionId.substring(0, 8)}...` : null,
+      billingReturned, 
+      isCheckoutSuccess,
+      pathname,
+      isMobile,
+      timestamp: new Date().toISOString()
+    })
     
     // Allow users returning from Stripe checkout to have time to recover session
     // Do NOT redirect to signin when checkout=success - let AuthGuard handle recovery flow
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess && !billingReturned) {
-      console.log('[TRACE Redirect Decision]', {
+      console.log('[AUTH REDIRECT TO SIGNIN]', {
         from: pathname,
         to: '/auth/signin',
         reason: 'unauthenticated_protected_route',
         checkoutSuccess: false,
-        callsite: 'AuthContext'
-      })
-      console.log('[Redirect Decision]', {
-        reason: 'unauthenticated_protected_route',
-        from: pathname,
-        to: '/auth/signin',
-        checkoutSuccess: false
+        billingReturned: false,
+        isMobile,
+        callsite: 'AuthContext',
+        timestamp: new Date().toISOString()
       })
       router.push('/auth/signin')
-    } else if (isCheckoutSuccess) {
-      console.log('[Redirect Decision]', {
+    } else if (!user && isCheckoutSuccess) {
+      console.log('[AUTH ALLOWING CHECKOUT SUCCESS RECOVERY]', {
+        pathname,
+        sessionId: sessionId ? `${sessionId.substring(0, 8)}...` : null,
+        isMobile,
         reason: 'checkout_success_allow_recovery',
-        from: pathname,
-        to: 'stay',
-        checkoutSuccess: true
+        timestamp: new Date().toISOString()
+      })
+    } else if (user && isCheckoutSuccess) {
+      console.log('[AUTH USER AUTHENTICATED ON CHECKOUT SUCCESS]', {
+        userId: user.id,
+        pathname,
+        sessionId: sessionId ? `${sessionId.substring(0, 8)}...` : null,
+        isMobile,
+        timestamp: new Date().toISOString()
+      })
+    } else {
+      console.log('[AUTH NO REDIRECT NEEDED]', {
+        user: !!user,
+        pathname,
+        isCheckoutSuccess,
+        billingReturned,
+        isMobile,
+        timestamp: new Date().toISOString()
       })
     }
   }, [user, loading, pathname, router, isClient])
