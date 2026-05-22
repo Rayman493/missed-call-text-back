@@ -186,6 +186,96 @@ export default function CompliancePage() {
             </div>
           </section>
 
+          {/* Customer Consent & SMS Disclosures */}
+          <section>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  Customer Consent & SMS Disclosures
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    ReplyFlowHQ maintains strict compliance standards for customer consent and SMS disclosures:
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Customer Consent</strong> - Businesses using ReplyFlowHQ obtain customer consent before SMS communication occurs.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Customer Initiation</strong> - Customers initiate contact by calling the business directly.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Conversational Follow-up</strong> - If the business is unavailable or misses the call, customers may receive a conversational follow-up SMS related to their inquiry.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>No Unsolicited Messages</strong> - Messages are not used for cold outreach, purchased lead lists, affiliate marketing, or unsolicited promotional campaigns.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Message Frequency</strong> - Message frequency varies based on customer interaction.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Message & Data Rates</strong> - Message and data rates may apply.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Opt-Out Instructions</strong> - Reply STOP to opt out.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Support Information</strong> - Reply HELP for assistance.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Support Contact</strong> - Support: <a href="mailto:support@replyflowhq.com" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">support@replyflowhq.com</a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Opt-In Process */}
           <section>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -221,23 +311,93 @@ export default function CompliancePage() {
                     </div>
                   </div>
 
-                  {/* Example Verbal Opt-In Script */}
+                  {/* Sample Verbal Opt-In Script */}
                   <div className="mt-8">
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-4">
-                        Example Verbal Opt-In Script
+                    <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl p-6">
+                      <h3 className="text-xl font-bold text-red-900 dark:text-red-100 mb-4 flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        Sample Verbal Opt-In Script
                       </h3>
-                      <div className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mb-4">
-                        <p className="text-slate-800 dark:text-slate-200 italic leading-relaxed">
-                          "Thanks for contacting ReplyFlowHQ LLC. As part of our pilot missed-call follow-up testing program, we may send you a conversational text message related to your inquiry. Reply STOP to opt out or HELP for assistance. Do you agree to receive these messages?"
+                      <div className="bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                        <p className="text-slate-800 dark:text-slate-200 italic leading-relaxed font-medium">
+                          "By continuing, you agree to receive SMS messages regarding your inquiry if we are unable to answer your call. Message frequency varies. Message and data rates may apply. Reply STOP to opt out. Reply HELP for assistance."
                         </p>
                       </div>
-                      <div className="bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4">
-                        <p className="text-sm text-indigo-800 dark:text-indigo-200">
-                          <strong>Important Note:</strong> Messages are only sent after inbound contact and are limited to ReplyFlowHQ LLC pilot testing and conversational support workflows.
-                        </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-red-100 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-lg p-4">
+                          <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">Required Disclosures</h4>
+                          <ul className="space-y-1 text-sm text-red-800 dark:text-red-200">
+                            <li>• Message frequency varies</li>
+                            <li>• Message and data rates may apply</li>
+                            <li>• Reply STOP to opt out</li>
+                            <li>• Reply HELP for assistance</li>
+                          </ul>
+                        </div>
+                        <div className="bg-orange-100 dark:bg-orange-900/40 border border-orange-200 dark:border-orange-700 rounded-lg p-4">
+                          <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Compliance Notes</h4>
+                          <p className="text-sm text-orange-800 dark:text-orange-200">
+                            Script must be read before SMS communication. Consent obtained through customer initiation of contact.
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* How Customers Opt In */}
+          <section>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  How Customers Opt In
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    ReplyFlowHQ maintains strict opt-in compliance through customer-initiated contact:
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">1</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Customer Initiated Contact</strong> - Customers opt in by contacting a participating business directly.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">2</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Verbal Consent</strong> - Businesses using ReplyFlowHQ obtain verbal consent during customer interactions before SMS communication occurs.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">3</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>Inquiry-Based Messaging</strong> - Messages are only sent in response to customer-initiated inquiries.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">4</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        <strong>No Unsolicited Marketing</strong> - ReplyFlowHQ does not send unsolicited marketing messages.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      <strong>Compliance Guarantee:</strong> Our system ensures messages are only sent after customer initiation and with proper consent disclosure.
+                    </p>
                   </div>
                 </div>
               </div>
