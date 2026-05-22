@@ -823,7 +823,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-3 sm:p-3' : 'p-3 sm:p-4'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-4 sm:p-5' : 'p-4 sm:p-6'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Header with title and status */}
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
@@ -874,7 +874,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
       {/* Progress bar - moved up */}
       {(!isOnboardingComplete || isExpanded) && (
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-3">
+        <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden mb-4">
           <div
             className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
             style={{ width: `${progressPct}%` }}
@@ -892,14 +892,24 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           <p className={`text-xs sm:text-sm text-muted-foreground mb-3 ${isOnboardingComplete && !isExpanded ? 'hidden' : ''}`}>
             {complete ? 'ReplyFlow is live and monitoring missed calls.' : (incompleteItems.length === 1 ? 'Final step remaining: Complete one missed-call test to activate live monitoring.' : `${doneSteps} of ${totalSteps} steps completed`)}
           </p>
+          
+          {/* Live system reassurance text */}
+          {!complete && (
+            <p className="text-xs text-muted-foreground/70 italic mb-3">
+              {incompleteItems.length === 2 ? 'Waiting for phone number setup to begin monitoring...' : 
+               incompleteItems.length === 1 ? 'Ready to activate once final test is completed...' : 
+               'Monitoring setup status...'}
+            </p>
+          )}
+          
           {!complete && incompleteItems.length === 1 && (
-            <div className="mb-3">
+            <div className="mb-4">
               <Link
                 href="/dashboard/test-setup"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-medium rounded-md transition-all duration-200 text-foreground hover:text-foreground hover:bg-muted/80 border border-muted/60 hover:border-border/90 cursor-pointer shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2.5 sm:gap-3 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg hover:-translate-y-[1px] border border-blue-600 hover:border-blue-700 cursor-pointer"
               >
-                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
                 Complete Final Test

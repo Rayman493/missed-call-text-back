@@ -262,7 +262,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-3 px-4">
+          <div className="text-center py-2 px-4">
             {/* Hide empty-state messaging when onboarding is expanded to avoid duplicate messaging */}
             {!isOnboardingExpanded && (
               <>

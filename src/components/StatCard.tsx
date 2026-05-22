@@ -28,15 +28,17 @@ export default function StatCard({
   const baseClasses = `
     bg-card
     border border-slate-300 dark:border-border/60 
-    rounded-xl shadow-sm hover:shadow
+    rounded-xl shadow-sm hover:shadow-md
     p-3 sm:p-4 
     h-full
-    transition-all duration-300
+    transition-all duration-200
+    hover:-translate-y-[2px]
+    hover:border-slate-400/80 dark:hover:border-border
   `
 
   // Interactive hover states
   const interactiveClasses = isInteractive ? `
-    hover:shadow-md hover:border-slate-300 dark:hover:border-border/80
+    hover:shadow-lg hover:border-slate-400 dark:hover:border-border/90
     cursor-pointer
     ${href ? 'group' : ''}
   ` : ''
