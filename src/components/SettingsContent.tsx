@@ -1219,31 +1219,53 @@ export default function SettingsContent() {
                               {isInTrialPeriod(business?.subscription_status) 
                                 ? 'Trial active - Full access to all features'
                                 : hasActiveSubscription(business)
-                                  ? 'Subscription active - All features unlocked'
+                                  ? business?.subscription_status === 'beta' || business?.subscription_status === 'comped'
+                                    ? 'Complimentary access - All features unlocked'
+                                    : 'Subscription active - All features unlocked'
                                   : 'Subscription inactive - Upgrade to unlock features'
                               }
                             </p>
                           </div>
+                          {/* BETA/COMPED: Show special description for beta/comped users */}
+                          {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') && (
+                            <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                              <p className="text-xs text-green-700 dark:text-green-300">
+                                {business?.subscription_status === 'beta' 
+                                  ? 'This account has complimentary beta access.'
+                                  : 'This account has complimentary access.'
+                                }
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <button
-                          onClick={() => handleBillingActionClick('portal')}
-                          disabled={isOpeningPortal}
-                          className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                        >
-                          Manage Billing
-                        </button>
-                        {needsUpgrade(business?.subscription_status) && (
+                      {/* BETA/COMPED: Hide billing buttons for beta/comped users */}
+                      {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                            Billing not required for this account.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <button
-                            onClick={() => handleBillingActionClick('upgrade')}
-                            disabled={isStartingCheckout}
-                            className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                            onClick={() => handleBillingActionClick('portal')}
+                            disabled={isOpeningPortal}
+                            className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
                           >
-                            Upgrade Plan
+                            Manage Billing
                           </button>
-                        )}
-                      </div>
+                          {needsUpgrade(business?.subscription_status) && (
+                            <button
+                              onClick={() => handleBillingActionClick('upgrade')}
+                              disabled={isStartingCheckout}
+                              className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                            >
+                              Upgrade Plan
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -12,6 +12,38 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
+// Structured Data for Google Search
+function StructuredData() {
+  const organizationData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "ReplyFlowHQ",
+    "url": "https://replyflowhq.com",
+    "logo": "https://replyflowhq.com/replyflow-r-logo.png",
+    "sameAs": []
+  }
+
+  const webSiteData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "ReplyFlowHQ",
+    "url": "https://replyflowhq.com"
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteData) }}
+      />
+    </>
+  )
+}
+
 // Temporary debug banner component (only in development)
 function DebugBanner() {
   const [debugInfo, setDebugInfo] = useState<any>(null)
@@ -273,6 +305,7 @@ export default function Home() {
   
   return (
     <>
+      <StructuredData />
       <DebugBanner />
       <PageBackground>
         <SSRSafeNavbar forceDark={true} />

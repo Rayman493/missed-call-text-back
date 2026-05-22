@@ -1223,7 +1223,7 @@ export default function DashboardContent() {
                         return null
                       })()}
                       {/* Hide LiveActivity when Setup Progress is visible to avoid redundant messaging */}
-                      {!(!isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
+                      {!(!isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
                         <div className="mb-4 transition-opacity duration-300">
                           <LiveActivity 
                             isOnboardingComplete={isOnboardingComplete}

@@ -3,6 +3,9 @@
  * Use these throughout the app to ensure consistent subscription logic
  */
 
+// BETA/COMPED ACCESS: All statuses that unlock full app access
+const ACTIVE_ACCESS_STATUSES = ['active', 'trialing', 'beta', 'comped'];
+
 export type SetupState = 
   | 'loading'
   | 'needs_trial'
@@ -27,13 +30,16 @@ export interface Business {
 }
 
 /**
- * Check if business has active access (trialing or active subscription)
+ * Check if business has active access (trialing, active, beta, or comped)
  * This is the canonical way to check subscription eligibility
+ * 
+ * BETA/COMPED ACCESS: Manual access for test customers without Stripe billing
+ * These statuses allow full app access without routing to Stripe checkout
  */
 export function hasActiveAccess(business: Business | null | undefined): boolean {
   if (!business) return false;
   
-  return business.subscription_status === 'active' || business.subscription_status === 'trialing';
+  return ACTIVE_ACCESS_STATUSES.includes(business.subscription_status ?? '');
 }
 
 /**

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { hasActiveAccess } from '@/lib/subscription-utils'
 import { hasValidSubscription } from '@/lib/subscription'
 import CallForwardingInstructions from './CallForwardingInstructions'
 import BrandIcon from './BrandIcon'
@@ -15,8 +16,8 @@ export default function DashboardEmptyState() {
   const [showTestModal, setShowTestModal] = useState(false)
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
 
-  // Only show test setup if user has valid subscription and set up number
-  const canShowTestSetup = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number
+  // Only show test setup if user has active access and set up number
+  const canShowTestSetup = hasActiveAccess(business) && business?.twilio_phone_number
 
   const handleTestSetup = () => {
     setShowTestModal(true)

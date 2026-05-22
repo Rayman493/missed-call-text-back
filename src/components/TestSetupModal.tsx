@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
+import { hasActiveAccess } from '@/lib/subscription-utils'
 import { 
   hasValidSubscription,
   getSubscriptionStatusText,
@@ -42,7 +43,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
     })
 
     // SMS Working
-    const smsWorking = business.twilio_phone_number && hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const smsWorking = business.twilio_phone_number && hasActiveAccess(business)
     items.push({
       label: 'SMS Working',
       status: smsWorking ? 'healthy' : 'error',
@@ -52,7 +53,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
     })
 
     // Subscription Active
-    const subscriptionActive = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionActive = hasActiveAccess(business)
     items.push({
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',

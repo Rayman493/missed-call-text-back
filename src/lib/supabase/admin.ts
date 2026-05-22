@@ -1202,7 +1202,11 @@ export const db = {
         if (businessData.onboarding_status) {
           // Block premature onboarding_status: "completed" if subscription is not active
           if (businessData.onboarding_status === 'completed') {
-            const subscriptionActive = existingBusiness.subscription_status === 'active' || existingBusiness.subscription_status === 'trialing'
+            // BETA/COMPED ACCESS: Allow beta and comped users to complete onboarding without Stripe
+            const subscriptionActive = existingBusiness.subscription_status === 'active' || 
+                                    existingBusiness.subscription_status === 'trialing' ||
+                                    existingBusiness.subscription_status === 'beta' ||
+                                    existingBusiness.subscription_status === 'comped'
             
             if (!subscriptionActive) {
               console.log('[getOrCreateBusiness] BLOCKED premature onboarding_status completed', {

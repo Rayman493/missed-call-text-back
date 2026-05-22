@@ -39,8 +39,11 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
   }
 
   // Step 1: ReplyFlow is ready (trial + number)
+  // BETA/COMPED ACCESS: Support beta and comped statuses for full access
   const subscriptionActive = business.subscription_status === 'trialing' || 
                          business.subscription_status === 'active' ||
+                         business.subscription_status === 'beta' ||
+                         business.subscription_status === 'comped' ||
                          business.stripe_subscription_id
   const twilioReady = business.twilio_phone_number && business.provisioning_status === 'active'
   const step1Complete = subscriptionActive && twilioReady

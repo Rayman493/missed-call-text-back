@@ -49,8 +49,17 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
       businessError: businessError?.message
     })
 
-    // Determine action based on Stripe customer/subscription existence
+    // Determine action based on subscription status and Stripe data
     const hasStripeAccount = business?.stripe_customer_id || business?.stripe_subscription_id
+    
+    // BETA/COMPED ACCESS: Don't route beta/comped users to Stripe
+    if (business?.subscription_status === 'beta' || business?.subscription_status === 'comped') {
+      console.log('[Billing Action] Beta/Comped user - no billing required')
+      return {
+        success: false,
+        error: 'Billing not required for this account.'
+      }
+    }
     
     if (hasStripeAccount) {
       console.log('[Billing Action] Selected action: portal (has Stripe account)')

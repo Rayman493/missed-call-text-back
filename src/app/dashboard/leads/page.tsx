@@ -297,7 +297,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Pre-trial locked preview - show what users will unlock */}
-            {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+            {!hasActiveAccess(business) && (
               <div className="relative mb-6 sm:mb-8">
                 {/* Leads Preview Content */}
                 <div className="space-y-4 sm:space-y-6">
@@ -452,7 +452,7 @@ export default function LeadsPage() {
             )}
 
             {/* Real Leads content - only show for active users */}
-            {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+            {hasActiveAccess(business) && (
               <>
             {/* Lifecycle Summary Cards - improved spacing hierarchy */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">

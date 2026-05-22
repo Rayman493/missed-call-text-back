@@ -9,7 +9,9 @@ export const SUBSCRIPTION_STATES = {
   CANCELED: 'canceled',
   PAST_DUE: 'past_due',
   UNPAID: 'unpaid',
-  CANCELING: 'canceling'
+  CANCELING: 'canceling',
+  BETA: 'beta',        // Manual beta access for test customers
+  COMPED: 'comped'      // Manual complimentary access
 } as const
 
 export type SubscriptionState = typeof SUBSCRIPTION_STATES[keyof typeof SUBSCRIPTION_STATES]
@@ -20,6 +22,10 @@ export function getSubscriptionStatusText(subscriptionStatus: string | null | un
       return 'Trial Active'
     case SUBSCRIPTION_STATES.ACTIVE:
       return 'Active'
+    case SUBSCRIPTION_STATES.BETA:
+      return 'Beta Access'
+    case SUBSCRIPTION_STATES.COMPED:
+      return 'Comped Access'
     case SUBSCRIPTION_STATES.PAST_DUE:
       return 'Payment Due'
     case SUBSCRIPTION_STATES.CANCELED:
@@ -115,6 +121,10 @@ export function getSubscriptionStatusDescription(subscriptionStatus: string | nu
       return 'Your 14-day free trial is active. Billing starts at $49/month after trial unless canceled.'
     case SUBSCRIPTION_STATES.ACTIVE:
       return 'Your ReplyFlow subscription is active at $49/month.'
+    case SUBSCRIPTION_STATES.BETA:
+      return 'This account has complimentary beta access.'
+    case SUBSCRIPTION_STATES.COMPED:
+      return 'This account has complimentary access.'
     case SUBSCRIPTION_STATES.PAST_DUE:
       return 'Payment required - update your billing information'
     case SUBSCRIPTION_STATES.CANCELED:
@@ -138,6 +148,10 @@ export function getSubscriptionActionButton(subscriptionStatus: string | null | 
     case SUBSCRIPTION_STATES.TRIALING:
     case SUBSCRIPTION_STATES.ACTIVE:
       return { text: 'Manage Billing', href: '/dashboard/settings' }
+    case SUBSCRIPTION_STATES.BETA:
+    case SUBSCRIPTION_STATES.COMPED:
+      // BETA/COMPED: No billing button needed - these users don't use Stripe
+      return { text: 'Billing Not Required', href: '/dashboard/settings' }
     case SUBSCRIPTION_STATES.PAST_DUE:
     case SUBSCRIPTION_STATES.UNPAID:
       return { text: 'Update Payment', href: '/dashboard/settings' }
