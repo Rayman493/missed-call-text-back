@@ -46,10 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[Auth] Restoring session...', {
         pathname,
         isClient,
-        billingReturned: pathname?.includes('billing=returned')
+        billingReturned: pathname?.includes('billing=returned'),
+        timestamp: new Date().toISOString(),
+        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
       })
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
+        
+        console.log('[Auth] getSession result:', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: error?.message,
+          timestamp: new Date().toISOString()
+        })
         
         if (error) {
           console.error('[Auth] Session restore error:', error)
@@ -64,6 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // This handles the case where the user was deleted but the session was still cached
           try {
             const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+            console.log('[Auth] User verification result:', {
+              hasCurrentUser: !!currentUser,
+              currentUserId: currentUser?.id,
+              userError: userError?.message,
+              timestamp: new Date().toISOString()
+            })
+            
             if (userError || !currentUser) {
               console.log('[Auth] User no longer exists in Supabase, clearing session')
               await supabase.auth.signOut()
@@ -78,11 +94,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
           }
         } else {
-          console.log('[Auth] No session found')
+          console.log('[Auth] No session found', {
+            pathname,
+            timestamp: new Date().toISOString()
+          })
         }
       } catch (error) {
-        console.error('[Auth] Session restore failed:', error)
+        console.error('[Auth] Session restore failed:', {
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        })
       } finally {
+        console.log('[Auth] Session restore completed, setting loading to false', {
+          timestamp: new Date().toISOString()
+        })
         setLoading(false)
       }
     }

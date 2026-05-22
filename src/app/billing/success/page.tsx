@@ -228,16 +228,16 @@ export default function BillingSuccessPage() {
             </div>
           )}
 
-          {/* Animated Button */}
+          {/* Animated Button - Direct to Dashboard */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
             <Link 
-              href="/auth/signin?redirect=/dashboard&reason=post_checkout"
+              href="/dashboard"
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
               onClick={() => {
-                console.log('[Billing Success Continue Signin]', {
+                console.log('[Billing Success Continue Dashboard]', {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: '/auth/signin?redirect=/dashboard&reason=post_checkout'
+                  destination: '/dashboard'
                 })
               }}
             >
@@ -268,13 +268,13 @@ export default function BillingSuccessPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-4">Setup Taking Longer</h1>
           <p className="text-muted-foreground mb-6">
-            Your trial is active, but setup is still finishing. Please sign in to access your account.
+            Your trial is active, but setup is still finishing. Continue to your dashboard to access your account.
           </p>
           <Link 
-            href="/auth/signin?redirect=/dashboard&reason=post_checkout"
+            href="/dashboard"
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            Sign In to Continue
+            Continue to Dashboard
           </Link>
         </div>
       </div>
