@@ -624,14 +624,14 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-3 mb-6 border-b border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-              <nav className="flex items-center gap-1 overflow-x-auto">
+            <div className="sticky top-0 z-20 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md py-3 mb-4 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-sm">
+              <nav className="flex items-center gap-1 overflow-x-auto px-2">
                 <button
                   onClick={() => handleSectionClick('general')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'general'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
                   }`}
                 >
                   General
@@ -640,8 +640,8 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('automation')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
                   }`}
                 >
                   Automation
@@ -650,8 +650,8 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('contacts')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
                   }`}
                 >
                   Contacts
@@ -660,8 +660,8 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('account')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
                   }`}
                 >
                   Account
@@ -670,14 +670,14 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-5 pb-40">
+            <div className="space-y-3 sm:space-y-4 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Business Info</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage the phone number and business identity customers interact with.</p>
-                <div className="space-y-2.5 sm:space-y-3">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-5 scroll-mt-24">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">Business Info</h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2.5 sm:mb-3">Manage the phone number and business identity customers interact with.</p>
+                <div className="space-y-2 sm:space-y-2.5">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       Business Name
                     </label>
                     <input
@@ -688,7 +688,7 @@ export default function SettingsContent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       Business Phone Number
                     </label>
                     <input
@@ -704,9 +704,9 @@ export default function SettingsContent() {
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
-                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3.5 sm:p-6">
-                  <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Text Messaging & Automation</h2>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2.5 sm:mb-3">
+                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3 sm:p-5">
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5">Text Messaging & Automation</h2>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2">
                     Instant reply messages, business hours, spam filtering, and ignored contacts unlock
                     once you start your free trial. Your dedicated ReplyFlow number is set up
                     automatically right after activation.
@@ -718,20 +718,28 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
-                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                  <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
-                  {hasActiveSubscription(business) && (
-                    <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
-                      <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                      Active
-                    </span>
-                  )}
+              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-5 scroll-mt-24">
+                <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
+                    {hasActiveSubscription(business) && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                          <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                          SMS Active
+                        </span>
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-1">
+                          <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
+                          Automation Ready
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Customize the instant text customers receive after missed calls.</p>
-                <div className="space-y-2.5 sm:space-y-3">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2.5 sm:mb-3">Customize the instant text customers receive after missed calls.</p>
+                <div className="space-y-2 sm:space-y-2.5">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       Instant Response Message
                     </label>
                     <textarea
@@ -742,7 +750,7 @@ export default function SettingsContent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
                       After Hours Message
                     </label>
                     <textarea
@@ -1215,27 +1223,41 @@ export default function SettingsContent() {
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">Billing</h3>
                     <div className="space-y-4 sm:space-y-5">
                       <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                             isInTrialPeriod(business?.subscription_status) 
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
                               : hasActiveSubscription(business)
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                           }`}>
                             {getSubscriptionStatusText(business?.subscription_status)}
                           </span>
                         </div>
-                        <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-1">
-                          {getPricingDisplay()}
-                          {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
-                        </p>
-                        <p className="text-xs text-slate-600 dark:text-muted-foreground">
-                          {isInTrialPeriod(business?.subscription_status) 
-                            ? 'Your trial includes full access to all features. No charge until trial ends.'
-                            : 'Your subscription is active and all features are unlocked.'}
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
+                            {getPricingDisplay()}
+                            {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              isInTrialPeriod(business?.subscription_status)
+                                ? 'bg-blue-500 animate-pulse'
+                                : hasActiveSubscription(business)
+                                  ? 'bg-green-500'
+                                  : 'bg-amber-500'
+                            }`}></div>
+                            <p className="text-xs text-slate-600 dark:text-muted-foreground font-medium">
+                              {isInTrialPeriod(business?.subscription_status) 
+                                ? 'Trial active - Full access to all features'
+                                : hasActiveSubscription(business)
+                                  ? 'Subscription active - All features unlocked'
+                                  : 'Subscription inactive - Upgrade to unlock features'
+                              }
+                            </p>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button

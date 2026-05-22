@@ -823,7 +823,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border ${isOnboardingComplete && !isExpanded ? 'p-4 sm:p-5' : 'p-4 sm:p-6'} ${!complete ? 'border-border bg-card shadow-sm' : 'border-green-200/50 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border-2 ${isOnboardingComplete && !isExpanded ? 'p-4 sm:p-5' : 'p-4 sm:p-6'} ${!complete ? 'border-border bg-card shadow-sm hover:shadow-md' : 'border-green-200/60 dark:border-green-800/60 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
       {/* Header with title and status */}
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
@@ -852,9 +852,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
             {/* System Status - subtle indicator - compact on mobile */}
-            <span className={`inline-flex items-center gap-1.5 px-2 sm:px-2 py-1 rounded-full leading-none w-fit ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-              <span className={`text-[9px] sm:text-[10px] font-medium leading-none ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full leading-none w-fit ${complete ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30'}`}>
+              <div className={`w-2 h-2 rounded-full ${complete ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+              <span className={`text-[10px] sm:text-xs font-semibold leading-none ${complete ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
                 {complete ? 'Live' : 
                   incompleteItems.length === 2 ? 'Connect Your Business Line' :
                   incompleteItems.length === 1 ? 'Call Forwarding Required' :
@@ -874,9 +874,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
       {/* Progress bar - moved up */}
       {(!isOnboardingComplete || isExpanded) && (
-        <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden mb-4">
+        <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden mb-4 relative">
           <div
-            className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90'}`}
+            className={`h-full transition-all duration-500 ease-out ${complete ? 'bg-gradient-to-r from-green-500/90 to-emerald-500/90 shadow-lg shadow-green-500/30' : 'bg-gradient-to-r from-blue-500/90 to-indigo-500/90 shadow-lg shadow-blue-500/30'}`}
             style={{ width: `${progressPct}%` }}
             aria-valuenow={progressPct}
             aria-valuemin={0}

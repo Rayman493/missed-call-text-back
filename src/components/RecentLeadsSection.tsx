@@ -274,10 +274,10 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   </div>
                 </div>
                 <h3 className="text-sm font-medium text-foreground mb-1">
-                  No leads yet
+                  Ready to capture leads
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Complete setup and place a test call to begin capturing leads.
+                  Recovered leads will appear here once ReplyFlow starts capturing missed calls.
                 </p>
               </>
             )}

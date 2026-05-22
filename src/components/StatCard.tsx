@@ -90,8 +90,8 @@ export default function StatCard({
       {/* Primary Metric */}
       <div className="mb-2">
         <p className={`
-          text-2xl sm:text-3xl lg:text-4xl 
-          font-extrabold 
+          text-3xl sm:text-4xl lg:text-5xl 
+          font-black 
           ${iconTextColors[iconColor]} 
           tracking-tight 
           leading-none
