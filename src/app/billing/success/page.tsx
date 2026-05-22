@@ -357,7 +357,7 @@ export default function BillingSuccessPage() {
           {status ? (
             <>
               {status.checkoutStatus === 'complete' ? (
-                <>Setup complete! Your account is ready.</>
+                <>Setup complete. Your account is ready.</>
               ) : status.checkoutStatus === 'subscription_active' ? (
                 <>Your trial is active! Setting up your ReplyFlow number...</>
               ) : (

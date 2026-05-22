@@ -862,9 +862,6 @@ export default function SettingsContent() {
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-2">
                               <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Skip suspected spam callers</h4>
-                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
-                                Recommended
-                              </span>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-muted-foreground">
                               Automatically identify and skip calls from numbers suspected of being spam or robocalls.

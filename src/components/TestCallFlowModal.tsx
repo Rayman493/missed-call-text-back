@@ -32,7 +32,7 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
     } 
     // Set Up / Awaiting Test (Yellow) - Phone setup completed, forwarding enabled, but not verified
     else {
-      return 'Ready for Test'
+      return 'Pending Test'
     }
   }
 

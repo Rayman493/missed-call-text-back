@@ -232,7 +232,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
         {setupStatus === 'working' && (
           <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">✅ Setup Complete!</h5>
+            <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Setup Complete</h5>
             <p className="text-sm text-green-800 dark:text-green-200">Call forwarding is working. Missed calls will be automatically processed.</p>
           </div>
         )}

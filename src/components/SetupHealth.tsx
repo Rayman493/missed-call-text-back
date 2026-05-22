@@ -267,7 +267,7 @@ return (
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold text-foreground">Connection Status</h2>
         <span className={`text-xs px-2 py-1 rounded-full font-medium ${getOverallStatusColor(overallStatus)}`}>
-          {overallStatus === 'healthy' ? 'Healthy' :
+          {overallStatus === 'healthy' ? 'Active' :
            overallStatus === 'warning' ? 'Warning' :
            overallStatus === 'error' ? 'Error' : 'Unknown'}
         </span>

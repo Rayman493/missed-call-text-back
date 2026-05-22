@@ -41,10 +41,10 @@ export default function DashboardEmptyState() {
 
       {/* Empty State Message */}
       <h2 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3 text-center">
-        No missed-call leads yet
+        Recovered leads will appear here
       </h2>
       <p className="text-sm sm:text-lg text-slate-800 dark:text-muted-foreground text-center mb-4 sm:mb-7 max-w-md leading-relaxed font-medium">
-        Call your ReplyFlow number to test your setup. Missed calls and replies will appear here.
+        After your first missed call, customer conversations and follow-up messages will be displayed in this dashboard.
       </p>
 
       {/* SMS Status */}

@@ -186,7 +186,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         {isOnboardingComplete && (
           <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4 text-xs">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full border border-green-200 dark:border-green-800/30">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               Monitoring Active
             </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800/30">

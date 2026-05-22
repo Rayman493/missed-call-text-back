@@ -141,7 +141,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
         title: 'ReplyFlow is ready',
         description: 'Call forwarding is working and you can start receiving missed calls',
         status: 'healthy',
-        details: 'Setup complete - you\'re all set!'
+        details: 'Setup complete - system operational'
       })
     } else {
       items.push({

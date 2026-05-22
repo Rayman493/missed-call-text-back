@@ -76,7 +76,7 @@ export default function StatCard({
               flex items-center justify-center 
               text-lg sm:text-xl 
               shadow-sm border
-              ${isInteractive && href ? 'group-hover:scale-105 transition-transform duration-300' : ''}
+              ${isInteractive && href ? '' : ''}
             `}>
               {icon}
             </span>
