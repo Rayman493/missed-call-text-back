@@ -607,7 +607,7 @@ export default function LeadsPage() {
                 <div className="relative z-10">
                 {(() => {
                   // Determine actual onboarding state
-                  const hasActiveSubscription = hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id)
+                  const hasActiveSubscription = hasActiveAccess(business)
                   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
                   const provisioningStatus = business?.provisioning_status || 'pending'
                   

@@ -1007,7 +1007,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Consolidated Subscription/Trial Status Banner */}
-                {hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                {hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="SubscriptionBanner">
                     {(() => {
                       console.log('[Render Child] SubscriptionBanner')
@@ -1110,7 +1110,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Locked Dashboard Preview - Show what users will unlock */}
-                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                {!hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="LockedDashboardPreview">
                     <div className="relative">
                       {/* Dashboard Preview Content */}
@@ -1274,7 +1274,7 @@ export default function DashboardContent() {
                         return null
                       })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
-                      {!(isOnboardingExpanded && !isOnboardingComplete && hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && business?.twilio_phone_number) && (
+                      {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
                         <div className="transition-opacity duration-300 mb-2">
                           {business?.id && (
                             <RecentLeadsSection 
