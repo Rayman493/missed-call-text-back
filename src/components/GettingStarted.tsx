@@ -428,6 +428,43 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     }
   }
 
+  const handleProvisionNumber = async () => {
+    if (!business) return
+    
+    setIsHandlingBilling(true)
+    
+    try {
+      console.log('[GettingStarted] Starting number provisioning for beta user:', business.id)
+      
+      // Call the same provisioning API used after Stripe checkout
+      const response = await fetch('/api/business/trigger-provisioning', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          businessId: business.id
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        console.log('[GettingStarted] Provisioning started for beta user:', business.id)
+        // Refresh business data to show provisioning status
+        refreshBusiness()
+      } else {
+        console.error('[GettingStarted] Provisioning failed:', data.error)
+        alert(data.error || 'Failed to provision ReplyFlow number. Please try again.')
+      }
+    } catch (error) {
+      console.error('[GettingStarted] Provisioning error:', error)
+      alert('Failed to provision ReplyFlow number. Please try again.')
+    } finally {
+      setIsHandlingBilling(false)
+    }
+  }
+
   const handleStartTrial = async () => {
     if (isHandlingBilling) return
     
@@ -466,6 +503,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     if (!business) return []
 
     const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
+    const isBetaOrComped = business.subscription_status === SUBSCRIPTION_STATES.BETA || business.subscription_status === SUBSCRIPTION_STATES.COMPED
     const isAuthenticated = !!business
 
     // Use shared setup state for consistency
@@ -486,17 +524,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'ready',
         title: 'Activate ReplyFlow',
-        description: 'Your free trial is active and your dedicated ReplyFlow number is ready.',
+        description: isBetaOrComped 
+          ? 'Beta access is active and your dedicated ReplyFlow number is ready.'
+          : 'Your free trial is active and your dedicated ReplyFlow number is ready.',
         status: (subscriptionActionNeeded || numberActionNeeded) ? 'action-needed' : (step1Complete ? 'complete' : 'needs-action'),
         details: (subscriptionActionNeeded || numberActionNeeded)
           ? (subscriptionActionNeeded ? 'Subscription inactive - reactivate to continue' : 'Number setup has issues - check status')
           : step1Complete
-            ? (isTrialing ? '14-day free trial active' : 'Subscription active') + (business.twilio_phone_number ? ` • ${formatPhoneNumber(business.twilio_phone_number)}` : '') + ' • Completed automatically.'
+            ? (isTrialing ? '14-day free trial active' : isBetaOrComped ? 'Beta access active' : 'Subscription active') + (business.twilio_phone_number ? ` • ${formatPhoneNumber(business.twilio_phone_number)}` : '') + ' • Completed automatically.'
             : 'No charge today. Cancel anytime.',
         buttonText: !step1Complete && !subscriptionActionNeeded && !numberActionNeeded
-          ? (isHandlingBilling ? 'Processing…' : 'Start 14-Day Free Trial')
+          ? (isHandlingBilling ? 'Processing…' : (isBetaOrComped ? 'Set Up ReplyFlow Number' : 'Start 14-Day Free Trial'))
           : (step1Complete ? 'Manage Billing' : 'Reactivate'),
-        buttonOnClick: !step1Complete && !subscriptionActionNeeded && !numberActionNeeded && isAuthenticated ? handleStartTrial : undefined,
+        buttonOnClick: !step1Complete && !subscriptionActionNeeded && !numberActionNeeded && isAuthenticated ? (isBetaOrComped ? handleProvisionNumber : handleStartTrial) : undefined,
         buttonHref: (!step1Complete && !subscriptionActionNeeded && !numberActionNeeded && !isAuthenticated) ? '/auth/signup' : undefined,
       },
       {
