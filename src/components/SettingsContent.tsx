@@ -1123,28 +1123,29 @@ export default function SettingsContent() {
               </>
               )}
 
-              {/* Security Section */}
-              <div id="security" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-4 sm:p-6 scroll-mt-24">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1">Security</h2>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">Keep your account secure by updating your password.</p>
-                  </div>
-                  <button
-                    onClick={() => setShowChangePasswordModal(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-sm"
-                  >
-                    Change Password
-                  </button>
-                </div>
-              </div>
-
               
               {/* Danger Zone */}
               <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account Management</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account and data preferences.</p>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account settings and security.</p>
                 <div className="space-y-2.5 sm:space-y-3">
+                  {/* Change Password Section */}
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-300/50 dark:border-slate-600/30 p-3 sm:p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Change Password</h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3">
+                        Update your account password to keep your account secure.
+                      </p>
+                      <button
+                        onClick={() => setShowChangePasswordModal(true)}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-sm"
+                      >
+                        Change Password
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Delete Account Section */}
                   <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-300/50 dark:border-slate-600/30 p-3 sm:p-4">
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Delete Account</h3>
