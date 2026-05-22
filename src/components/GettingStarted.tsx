@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
+import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { 
   hasValidSubscription,
   SUBSCRIPTION_STATES 
@@ -9,7 +10,6 @@ import {
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
-import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
 import { Circle, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { handleBillingAction } from '@/lib/billing'
@@ -115,7 +115,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       if (!business || hasTriggeredProvisioning) return
       
       const shouldTrigger = 
-        (business.subscription_status === 'trialing' || business.subscription_status === 'active') &&
+        hasActiveAccess(business) &&
         !business.twilio_phone_number_sid &&
         business.provisioning_status !== 'provisioning'
       

@@ -290,7 +290,8 @@ export default function DashboardContent() {
 
   // HARD RENDER GUARD: Single source of truth for subscription status
   // This prevents setup/onboarding UI from rendering for users who have not started trial
-  const isSubscriptionActive = business?.subscription_status === 'trialing' || business?.subscription_status === 'active'
+  // BETA/COMPED ACCESS: Include beta and comped users for full dashboard access
+  const isSubscriptionActive = hasActiveAccess(business)
   
   console.log('[Render Guard] DashboardContent subscription check', {
     subscription_status: business?.subscription_status,
@@ -1068,7 +1069,7 @@ export default function DashboardContent() {
                 )}
 
                 {/* Pre-trial activation CTA - compact, not hero-sized */}
-                {!hasValidSubscription(business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id) && (
+                {!hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
                       <div className="flex flex-col gap-4">

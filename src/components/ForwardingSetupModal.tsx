@@ -61,7 +61,7 @@ export default function ForwardingSetupModal() {
 
   // Also reset dismissal when subscription becomes active
   useEffect(() => {
-    if (business && (business.subscription_status === 'trialing' || business.subscription_status === 'active')) {
+    if (business && hasActiveAccess(business)) {
       setIsDismissed(false)
     }
   }, [business?.subscription_status])
