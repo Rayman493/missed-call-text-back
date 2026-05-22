@@ -8,6 +8,7 @@ import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
 import BrandIcon from '@/components/BrandIcon'
+import { AuthDebugPanel } from '@/components/AuthDebugPanel'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -452,6 +453,7 @@ function AuthContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
+      <AuthDebugPanel />
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-8">
         {/* Back to Homepage Link */}
         <div className="w-full max-w-md sm:max-w-[480px] mb-4">

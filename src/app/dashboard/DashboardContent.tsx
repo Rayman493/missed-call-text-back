@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import { AuthDebugPanel } from '@/components/AuthDebugPanel'
 import { isAdminUser } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
@@ -913,6 +914,7 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
+          <AuthDebugPanel />
           <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader showNavigation={true} />

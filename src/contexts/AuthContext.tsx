@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logAuthEvent } from '@/components/AuthDebugPanel'
+import { preserveDebugAuthParam } from '@/lib/debugAuth'
 
 const supabase = createBrowserClient()
 
@@ -288,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[AUTH REDIRECT TO SIGNIN]', redirectData)
       logAuthEvent('REDIRECT_TO_SIGNIN', redirectData)
-      router.push('/auth/signin')
+      router.push(preserveDebugAuthParam('/auth/signin'))
     } else if (!user && isCheckoutSuccess) {
       const recoveryData = {
         pathname,
@@ -366,7 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/')
       } else {
         console.log('[Auth] Redirecting to login after logout')
-        router.push('/auth/signin')
+        router.push(preserveDebugAuthParam('/auth/signin'))
       }
     } catch (error) {
       console.error('[Auth] Sign out error:', error)
