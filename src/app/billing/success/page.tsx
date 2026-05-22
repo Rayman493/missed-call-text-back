@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
 import { AuthDebugPanel, logAuthEvent } from '@/components/AuthDebugPanel'
+import { preserveDebugAuthParam } from '@/lib/debugAuth'
 
 interface CheckoutStatus {
   ok: boolean
@@ -240,13 +241,13 @@ export default function BillingSuccessPage() {
           {/* Animated Button - Direct to Dashboard */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
             <Link 
-              href="/dashboard"
+              href={preserveDebugAuthParam('/dashboard')}
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
               onClick={() => {
                 const clickData = {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: '/dashboard',
+                  destination: preserveDebugAuthParam('/dashboard'),
                   timestamp: new Date().toISOString()
                 }
                 console.log('[Billing Success Continue Dashboard]', clickData)
@@ -284,7 +285,7 @@ export default function BillingSuccessPage() {
             Your trial is active, but setup is still finishing. Continue to your dashboard to access your account.
           </p>
           <Link 
-            href="/dashboard"
+            href={preserveDebugAuthParam('/dashboard')}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Continue to Dashboard
@@ -309,7 +310,7 @@ export default function BillingSuccessPage() {
           <h1 className="text-2xl font-bold text-foreground mb-4">Setup Issue</h1>
           <p className="text-muted-foreground mb-6">{error}</p>
           <Link 
-            href="/dashboard"
+            href={preserveDebugAuthParam('/dashboard')}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Go to Dashboard

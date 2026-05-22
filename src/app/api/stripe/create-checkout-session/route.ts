@@ -204,8 +204,20 @@ export async function POST(request: Request) {
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
-    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
+    // Check if debugAuth parameter is present in the referring URL
+    const referer = request.headers.get('referer')
+    const requestOrigin = request.headers.get('origin')
+    let debugAuthParam = ''
+    
+    // Try to detect debugAuth=true from referer or origin
+    if (referer && referer.includes('debugAuth=true')) {
+      debugAuthParam = '&debugAuth=true'
+    } else if (requestOrigin && requestOrigin.includes('debugAuth=true')) {
+      debugAuthParam = '&debugAuth=true'
+    }
+    
+    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${debugAuthParam}`
+    const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled${debugAuthParam}`
     
     console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
       success_url: successUrl,
@@ -217,6 +229,19 @@ export async function POST(request: Request) {
       appUrlEnv: process.env.NEXT_PUBLIC_APP_URL,
       siteUrlEnv: process.env.NEXT_PUBLIC_SITE_URL,
       origin: request.headers.get('origin'),
+      referer: referer,
+      debugAuthDetected: debugAuthParam !== '',
+      debugAuthParam,
+      timestamp: new Date().toISOString()
+    })
+    
+    // Log debug parameter preservation
+    console.log('[STRIPE_DEBUG_PARAM_PRESERVED]', {
+      success_url_has_debugAuth: successUrl.includes('debugAuth=true'),
+      cancel_url_has_debugAuth: cancelUrl.includes('debugAuth=true'),
+      debugAuthDetected: debugAuthParam !== '',
+      referer: referer,
+      requestOrigin: requestOrigin,
       timestamp: new Date().toISOString()
     })
     
