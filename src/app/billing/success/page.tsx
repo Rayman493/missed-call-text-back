@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
+import { AuthDebugPanel, logAuthEvent } from '@/components/AuthDebugPanel'
 
 interface CheckoutStatus {
   ok: boolean
@@ -49,7 +50,7 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      console.log('[BILLING SUCCESS MOUNT]', {
+      const mountData = {
         pathname: window.location.pathname,
         search: window.location.search,
         sessionId,
@@ -57,7 +58,10 @@ export default function BillingSuccessPage() {
         isMobile,
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
-      })
+      }
+      
+      console.log('[BILLING SUCCESS MOUNT]', mountData)
+      logAuthEvent('BILLING_SUCCESS_MOUNT', mountData)
     }
   }, [sessionId])
 
@@ -172,6 +176,7 @@ export default function BillingSuccessPage() {
   if (status?.readyForReauth) {
     return (
       <PageBackground>
+        <AuthDebugPanel />
         <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           {/* Success Icon with polish */}
@@ -238,11 +243,14 @@ export default function BillingSuccessPage() {
               href="/dashboard"
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
               onClick={() => {
-                console.log('[Billing Success Continue Dashboard]', {
+                const clickData = {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: '/dashboard'
-                })
+                  destination: '/dashboard',
+                  timestamp: new Date().toISOString()
+                }
+                console.log('[Billing Success Continue Dashboard]', clickData)
+                logAuthEvent('BILLING_SUCCESS_CONTINUE_DASHBOARD', clickData)
               }}
             >
               Open Dashboard
@@ -263,6 +271,7 @@ export default function BillingSuccessPage() {
   if (isTimeout) {
     return (
       <PageBackground>
+        <AuthDebugPanel />
         <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -289,6 +298,7 @@ export default function BillingSuccessPage() {
   if (error) {
     return (
       <PageBackground>
+        <AuthDebugPanel />
         <div className="flex items-center justify-center px-4 min-h-screen">
           <div className="max-w-md w-full mx-auto text-center">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -313,6 +323,7 @@ export default function BillingSuccessPage() {
   // Loading state
   return (
     <PageBackground>
+      <AuthDebugPanel />
       <div className="flex items-center justify-center px-4 min-h-screen">
         <div className="max-w-md w-full mx-auto text-center">
         {/* Logo */}
