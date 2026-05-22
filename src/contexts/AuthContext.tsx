@@ -204,7 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const localKeysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
-          if (key && (key.includes('credential') || key.includes('token') || key.includes('secret') || key.includes('key') || key.includes('auth') || key.includes('email') || key.includes('password'))) {
+          if (key && (
+            key.includes('credential') || 
+            key.includes('token') || 
+            key.includes('secret') || 
+            key.includes('key') || 
+            key.includes('email') || 
+            key.includes('password')
+          ) && !key.startsWith('supabase.')) { // CRITICAL: Exclude Supabase keys to preserve session
             localKeysToRemove.push(key)
           }
         }
