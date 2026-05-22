@@ -436,14 +436,25 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     try {
       console.log('[GettingStarted] Starting number provisioning for beta user:', business.id)
       
+      // Get session token for authentication
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        console.error('[GettingStarted] No session token available')
+        alert('Authentication required. Please sign in again.')
+        return
+      }
+      
       // Call the same provisioning API used after Stripe checkout
       const response = await fetch('/api/business/trigger-provisioning', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          businessId: business.id
+          business_id: business.id
         })
       })
       

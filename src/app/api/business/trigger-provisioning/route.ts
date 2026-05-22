@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { provisionTwilioNumber } from '@/lib/twilio'
 import { headers } from 'next/headers'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,28 @@ export async function POST(request: Request) {
     business_id = body.business_id
     const businessId = business_id // Store in variable for catch block access
 
+    // BETA PROVISIONING: Log request details
+    console.log('[BETA PROVISIONING] request received')
+    console.log('[BETA PROVISIONING] business id:', business_id)
+    console.log('[BETA PROVISIONING] request body:', body)
+
+    // Authenticate user
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[BETA PROVISIONING] No auth header found')
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const token = authHeader.split(' ')[1]
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    
+    if (authError || !user) {
+      console.log('[BETA PROVISIONING] Auth failed:', authError)
+      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+    }
+
+    console.log('[BETA PROVISIONING] auth user id:', user.id)
+
     // Rate limiting check
     const now = Date.now()
     const attempts = provisioningAttempts.get(business_id) || []
@@ -59,17 +82,14 @@ export async function POST(request: Request) {
     const correlationId = `prov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     console.log('[ProvisioningTrigger] Generated correlation_id:', correlationId)
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    )
-
-    // Fetch business details including lock ID
-    const { data: business, error: businessError } = await supabase
+    // BETA PROVISIONING: Use server-side admin client to bypass RLS
+    const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id')
+      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id')
       .eq('id', business_id)
       .single()
+
+    console.log('[BETA PROVISIONING] business lookup result:', { business, businessError })
 
     if (businessError || !business) {
       console.error('[ProvisioningTrigger] Business not found:', businessError)
@@ -85,8 +105,17 @@ export async function POST(request: Request) {
       }, { status: 404 })
     }
 
+    // BETA PROVISIONING: Validate ownership
+    if (business.user_id !== user.id) {
+      console.log('[BETA PROVISIONING] Business does not belong to user')
+      console.log('[BETA PROVISIONING] business.user_id:', business.user_id)
+      console.log('[BETA PROVISIONING] auth user.id:', user.id)
+      return NextResponse.json({ error: 'Business does not belong to user' }, { status: 403 })
+    }
+
     console.log('[ProvisioningTrigger] Business state before checks:', {
       business_id: business.id,
+      user_id: business.user_id,
       subscription_status: business.subscription_status,
       existing_number: business.twilio_phone_number,
       existing_number_sid: business.twilio_phone_number_sid,
@@ -107,12 +136,16 @@ export async function POST(request: Request) {
       }, { status: 429 }) // Too Many Requests
     }
 
-    // Only trigger provisioning if subscription is trialing or active
-    if (business.subscription_status !== 'trialing' && business.subscription_status !== 'active') {
-      console.log('[ProvisioningTrigger] Subscription not trialing or active, skipping')
+    // BETA PROVISIONING: Allow beta and comped statuses
+    const allowedStatuses = ['active', 'trialing', 'beta', 'comped']
+    if (!allowedStatuses.includes(business.subscription_status)) {
+      console.log('[ProvisioningTrigger] Subscription not in allowed statuses, skipping')
+      console.log('[ProvisioningTrigger] subscription_status:', business.subscription_status)
+      console.log('[ProvisioningTrigger] allowedStatuses:', allowedStatuses)
       return NextResponse.json({ 
-        error: 'Subscription not trialing or active',
-        subscription_status: business.subscription_status
+        error: 'Subscription not eligible for provisioning',
+        subscription_status: business.subscription_status,
+        allowedStatuses
       }, { status: 400 })
     }
 
@@ -136,7 +169,7 @@ export async function POST(request: Request) {
     })
 
     // Acquire lock by setting provisioning status and lock ID
-    await supabase
+    await supabaseAdmin
       .from('businesses')
       .update({ 
         provisioning_status: 'provisioning',
@@ -165,7 +198,7 @@ export async function POST(request: Request) {
       console.error('[ProvisioningTrigger] Expected phoneNumber and phoneNumberSid in result')
       
       // Clear lock and mark as failed
-      await supabase
+      await supabaseAdmin
         .from('businesses')
         .update({
           provisioning_status: 'failed',
@@ -200,7 +233,7 @@ export async function POST(request: Request) {
         
         if (!saveResult.success) {
           console.error('[ProvisioningTrigger] Failed to save provisioned number to business')
-          await supabase
+          await supabaseAdmin
             .from('businesses')
             .update({
               provisioning_status: 'failed',
@@ -218,7 +251,7 @@ export async function POST(request: Request) {
           console.log('[ProvisioningTrigger] DB twilio_phone_number_sid:', saveResult.dbNumberSid)
 
           // Clear lock and set active status on success
-          await supabase
+          await supabaseAdmin
             .from('businesses')
             .update({
               provisioning_status: 'active',
@@ -230,6 +263,7 @@ export async function POST(request: Request) {
 
           console.log('[ProvisioningTrigger] Cleared lock and set status=active for business:', business.id)
 
+          console.log('[BETA PROVISIONING] provisioning success')
           return NextResponse.json({
             success: true,
             message: 'Provisioning succeeded',
@@ -242,7 +276,7 @@ export async function POST(request: Request) {
         console.error('[ProvisioningTrigger] Error:', provisioningResult.messagingServiceError)
         
         // Clear lock and mark as failed
-        await supabase
+        await supabaseAdmin
           .from('businesses')
           .update({
             provisioning_status: 'failed',
@@ -263,7 +297,7 @@ export async function POST(request: Request) {
       console.error('[ProvisioningTrigger] Provisioning failed - no result returned')
       
       // Clear lock and mark as failed
-      await supabase
+      await supabaseAdmin
         .from('businesses')
         .update({
           provisioning_status: 'failed',
@@ -282,15 +316,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[ProvisioningTrigger] Error:', error)
     
-    // Create fresh supabase client for error handling
-    const errorSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    
-    // businessId is available from outer scope
-    
-    await errorSupabase
+    // Clear lock and mark as failed
+    await supabaseAdmin
       .from('businesses')
       .update({
         provisioning_status: 'failed',
