@@ -85,6 +85,7 @@ export default function LeadsPage() {
   const { business, refreshBusiness } = useBusiness()
   const { user, signOut } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
+  const [missedCallCount, setMissedCallCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
@@ -136,6 +137,14 @@ export default function LeadsPage() {
 
       if (error) throw error
       setLeads(data || [])
+
+      // Fetch missed call count
+      const { count } = await supabase
+        .from('call_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('business_id', business.id)
+      
+      setMissedCallCount(count || 0)
     } catch (error) {
       console.error('Error fetching leads:', error)
       setError('Failed to load leads. Please try again.')
@@ -300,7 +309,7 @@ export default function LeadsPage() {
 
             {/* Getting Started - match Dashboard spacing */}
             <div className="mb-4 sm:mb-6">
-              <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+              <GettingStarted isOnboardingComplete={isOnboardingComplete} missedCallCount={missedCallCount} />
             </div>
 
             {/* Pre-trial locked preview - show what users will unlock */}
