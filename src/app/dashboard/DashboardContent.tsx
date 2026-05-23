@@ -43,6 +43,7 @@ import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
+import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import Footer from '@/components/Footer'
@@ -1043,7 +1044,7 @@ export default function DashboardContent() {
                       console.log('[Render Child] SetupProgress')
                       return null
                     })()}
-                    <GettingStarted isOnboardingComplete={isOnboardingComplete} missedCallCount={missedCallCount} />
+                    <SetupProgress missedCallCount={missedCallCount} />
                   </SectionErrorBoundary>
                 )}
 
