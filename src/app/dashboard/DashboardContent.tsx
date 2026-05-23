@@ -238,6 +238,7 @@ export default function DashboardContent() {
   
   // ALL hooks must be called before any conditional returns to prevent React #310
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
+  const [missedCallCount, setMissedCallCount] = useState(0)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading, eligibility } = useTrialEligibility()
@@ -287,9 +288,31 @@ export default function DashboardContent() {
       hasConversations: processedLeads.filter(l => l.conversation_id).length > 0,
       hasSuccessfulSms: false, // Would need to check message status
       hasVoiceWebhookSuccess: false, // Would need to check voice webhook logs
-      a2pStatus: business?.a2p_status
+      a2pStatus: business?.a2p_status,
+      missedCallCount
     })
-  }, [business, processedLeads])
+  }, [business, processedLeads, missedCallCount])
+
+  // Fetch missed call count for Step 3 completion logic
+  useEffect(() => {
+    const fetchMissedCallCount = async () => {
+      if (!business?.id) return
+
+      try {
+        const supabase = createBrowserClient()
+        const { count } = await supabase
+          .from('call_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+        
+        setMissedCallCount(count || 0)
+      } catch (error) {
+        console.error('[DashboardContent] Error fetching missed call count:', error)
+      }
+    }
+
+    fetchMissedCallCount()
+  }, [business?.id])
 
   // Auto-complete setup if leads exist but setup is not complete
   useEffect(() => {

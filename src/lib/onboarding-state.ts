@@ -45,6 +45,7 @@ export interface RelatedData {
   hasSuccessfulSms?: boolean
   hasVoiceWebhookSuccess?: boolean
   a2pStatus?: string | null
+  missedCallCount?: number
 }
 
 /**
@@ -61,7 +62,8 @@ export function getBusinessOnboardingState(
     hasConversations = false,
     hasSuccessfulSms = false,
     hasVoiceWebhookSuccess = false,
-    a2pStatus = null
+    a2pStatus = null,
+    missedCallCount = 0
   } = relatedData
 
   // Log raw business data for debugging
@@ -187,12 +189,12 @@ export function getBusinessOnboardingState(
   console.log('[getBusinessOnboardingState] Verification check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified, hasLeads, hasConversations, hasSuccessfulSms })
   
   // Auto-complete verification if real activity exists (completion priority logic)
-  // Priority: existing onboarding status > successful missed call > voice webhook success > captured lead > conversation > auto-reply
-  const hasSuccessfulMissedCall = hasLeads || hasConversations || hasSuccessfulSms || hasVoiceWebhookSuccess
+  // Priority: existing onboarding status > missed call count > voice webhook success > successful missed call > captured lead > conversation > auto-reply
+  const hasSuccessfulMissedCall = missedCallCount > 0 || hasLeads || hasConversations || hasSuccessfulSms || hasVoiceWebhookSuccess
   
   if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified && hasSuccessfulMissedCall) {
-    const completionReason = hasSuccessfulSms ? 'auto_reply_exists' : hasConversations ? 'conversation_exists' : hasLeads ? 'lead_exists' : hasVoiceWebhookSuccess ? 'voice_webhook_success' : 'unknown'
-    console.log('[getBusinessOnboardingState] Auto-completing verification - real activity detected:', { hasLeads, hasConversations, hasSuccessfulSms, hasVoiceWebhookSuccess, completionReason })
+    const completionReason = missedCallCount > 0 ? 'missed_call_received' : hasSuccessfulSms ? 'auto_reply_exists' : hasConversations ? 'conversation_exists' : hasLeads ? 'lead_exists' : hasVoiceWebhookSuccess ? 'voice_webhook_success' : 'unknown'
+    console.log('[getBusinessOnboardingState] Auto-completing verification - real activity detected:', { missedCallCount, hasLeads, hasConversations, hasSuccessfulSms, hasVoiceWebhookSuccess, completionReason })
     console.log('[SETUP COMPLETION CHECK]', {
       businessId: business.subscription_status, // We don't have business.id here
       hasSuccessfulMissedCall,
@@ -203,13 +205,22 @@ export function getBusinessOnboardingState(
       completionReason
     })
     
+    // Add specific logging for missed call derived completion
+    if (missedCallCount > 0) {
+      console.log('[SETUP STEP 3 DERIVED COMPLETE]', {
+        businessId: business.subscription_status,
+        missedCallCount,
+        reason: 'missed_call_received'
+      })
+    }
+    
     // Check if messaging is approved for proper messaging
     const isMessagingApproved = a2pStatus === 'verified' || a2pStatus === 'approved' || business.a2p_status === 'verified' || business.a2p_status === 'approved'
     
     // Adjust description based on messaging compliance
     let description = 'Monitoring missed calls and automatically texting back customers.'
-    if (!isMessagingApproved && hasVoiceWebhookSuccess) {
-      description = 'Call forwarding is connected. ReplyFlow will send texts once messaging approval is complete.'
+    if (!isMessagingApproved && missedCallCount > 0) {
+      description = 'Call forwarding is connected. Text messaging will activate once campaign approval is complete.'
     }
     
     return {
