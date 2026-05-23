@@ -45,11 +45,11 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border bg-card/90 backdrop-blur-md p-3 sm:p-6 sticky bottom-0 z-20 pb-safe">
+    <div className="border-t border-border bg-card/90 backdrop-blur-md p-3 sm:p-4 sm:p-6 sticky bottom-0 z-20 pb-safe">
       <div className="max-w-4xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          <div className="flex items-end gap-3">
+          <div className="flex items-end gap-2 sm:gap-3">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -59,7 +59,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type your reply here..."
                 disabled={sending}
-                className="w-full px-4 py-3 sm:py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base leading-relaxed min-h-[48px] max-h-[120px]"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm leading-relaxed min-h-[44px] sm:min-h-[48px] max-h-[120px]"
                 rows={1}
               />
               
@@ -75,19 +75,19 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-4 py-3 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-2 min-w-[90px] sm:min-w-[100px] justify-center"
+              className="flex-shrink-0 px-3 py-2.5 sm:px-4 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-1.5 sm:gap-2 min-w-[70px] sm:min-w-[90px] justify-center"
             >
               {sending ? (
                 <>
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span className="text-sm font-medium hidden sm:inline">Sending</span>
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">Sending</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  <span className="text-sm font-medium hidden sm:inline">Send</span>
+                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">Send</span>
                 </>
               )}
             </button>

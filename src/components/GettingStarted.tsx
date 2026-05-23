@@ -226,11 +226,34 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           step4Complete: business.forwarding_verified || hasRealData
         })
 
+        // Log onboarding completion event
+        if (hasRealData && !business.forwarding_verified && realCallDataExists === false) {
+          console.log('[ONBOARDING COMPLETE]', {
+            businessId: business.id,
+            reason: 'Real data detected (missed call processed)',
+            leadId: leadsCount > 0 ? 'existing' : 'unknown',
+            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
+            callEventsCount,
+            leadsCount,
+            conversationsCount
+          })
+        }
+
         setRealCallDataExists(hasRealData)
 
         // Auto-repair: if real data exists but forwarding_verified is false, update it
         if (hasRealData && !business.forwarding_verified) {
           console.log('[Setup Progress] Auto-repair: marking forwarding_verified for business with real call data:', business.id)
+          console.log('[ONBOARDING COMPLETE]', {
+            businessId: business.id,
+            reason: 'Auto-repair: Real data detected, updating onboarding_status to completed',
+            leadId: leadsCount > 0 ? 'existing' : 'unknown',
+            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
+            callEventsCount,
+            leadsCount,
+            conversationsCount,
+            previousStatus: business.onboarding_status
+          })
           const { error: updateError } = await supabase
             .from('businesses')
             .update({ 
@@ -244,6 +267,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             console.error('[Setup Progress] Auto-repair failed:', updateError)
           } else {
             console.log('[Setup Progress] Auto-repair successful for business:', business.id)
+            console.log('[ONBOARDING COMPLETE]', {
+              businessId: business.id,
+              reason: 'Auto-repair completed: forwarding_verified and onboarding_status updated',
+              leadId: leadsCount > 0 ? 'existing' : 'unknown',
+              conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
+              callEventsCount,
+              leadsCount,
+              conversationsCount,
+              newStatus: 'completed'
+            })
             // Refresh business to get updated state
             refreshBusiness()
           }

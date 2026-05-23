@@ -6,6 +6,7 @@ import MobileConversationComposer from '@/components/MobileConversationComposer'
 import MobileFollowUpSummary from '@/components/MobileFollowUpSummary'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import MobileMenu from '@/components/MobileMenu'
+import AppHeader from '@/components/AppHeader'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
@@ -936,28 +937,155 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="min-h-screen bg-background flex flex-col">
-      {/* Enhanced Header */}
-      <div className="sticky top-0 z-10 bg-slate-900 dark:bg-slate-800/95 border-b border-slate-800 dark:border-slate-700 backdrop-blur-sm shadow-lg">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+      {/* Standard App Header */}
+      <AppHeader />
+
+      {/* Conversation Sub-Header */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* Lead Identity Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Lead Info */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex flex-col gap-4">
+            {/* Mobile Top Row: Menu, Logo, Actions */}
+            <div className="flex items-center justify-between md:hidden">
               {/* Mobile menu */}
-              <div className="md:hidden">
-                <MobileMenu />
-              </div>
+              <MobileMenu />
               
+              {/* Brand/Logo */}
+              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
+                <span className="text-lg font-semibold tracking-tight">
+                  <span className="text-white">Reply</span>
+                  <span className="text-blue-400">Flow</span>
+                </span>
+              </Link>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50"
+                  title="Refresh"
+                >
+                  {refreshing ? (
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                </button>
+                
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMoreActions(!showMoreActions)}
+                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                    title="More actions"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </button>
+                  
+                  {showMoreActions && (
+                    <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">
+                      {getLeadLifecycleStatus(leadData) !== 'completed' && (
+                        <button
+                          onClick={() => {
+                            handleStatusUpdate('completed')
+                            setShowMoreActions(false)
+                          }}
+                          disabled={isCompleting}
+                          className="w-full px-3 py-1.5 text-left text-xs text-green-400 dark:text-green-400 hover:bg-green-900/20 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {isCompleting ? (
+                            <>
+                              <div className="w-3 h-3 animate-spin rounded-full border border-green-400 border-t-transparent"></div>
+                              <span>Completing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Mark Complete</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowIgnoreModal(true)
+                          setShowMoreActions(false)
+                        }}
+                        disabled={isIgnoring}
+                        className="w-full px-3 py-1.5 text-left text-xs text-red-400 dark:text-red-400 hover:bg-red-900/20 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isIgnoring ? (
+                          <>
+                            <div className="w-3 h-3 animate-spin rounded-full border border-red-400 border-t-transparent"></div>
+                            <span>Ignoring...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span>Ignore Contact</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowRemoveModal(true)
+                          setShowMoreActions(false)
+                        }}
+                        className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+                      >
+                        Remove Lead
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Second Row: Lead Info and Status */}
+            <div className="md:hidden">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-xl font-bold text-white leading-tight truncate">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </h1>
+                  
+                  {/* Status Badge - Only show one */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Lead Meta - Simplified for mobile */}
+                <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                  {lead?.last_message_at && (
+                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden md:flex md:items-center md:gap-4 md:flex-1 md:min-w-0">
               {/* Brand/Back */}
               <div className="flex items-center gap-3">
                 <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0 group">
-                  <span className="text-lg md:text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
+                  <span className="text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
                     <span className="text-white">Reply</span>
                     <span className="text-blue-400">Flow</span>
                   </span>
                 </Link>
                 
-                {/* Desktop Back */}
                 <div className="hidden md:flex items-center">
                   <Link
                     href="/dashboard"
@@ -982,12 +1110,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
-                    {hasInboundReply && (
-                      <span className="px-2 py-1 bg-green-900/40 text-green-300 rounded-full text-xs font-medium flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                        Active
-                      </span>
-                    )}
                   </div>
                 </div>
                 
@@ -997,30 +1119,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {lead?.last_message_at && (
                     <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
                   )}
-                  {/* Operational Status */}
-                  <div className="flex items-center gap-1">
-                    {getLeadLifecycleStatus(leadData) === 'completed' && (
-                      <span className="px-2 py-0.5 bg-green-900/40 text-green-300 rounded-full text-xs font-medium flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                        Lead handled
-                      </span>
-                    )}
-                    {getLeadLifecycleStatus(leadData) === 'active' && hasInboundReply && (
-                      <span className="px-2 py-0.5 bg-blue-900/40 text-blue-300 rounded-full text-xs font-medium flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-                        Awaiting reply
-                      </span>
-                    )}
-                    {getLeadLifecycleStatus(leadData) === 'new' && (
-                      <span className="px-2 py-0.5 bg-orange-900/40 text-orange-300 rounded-full text-xs font-medium flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                        New lead
-                      </span>
-                    )}
-                    {automationStatus && (
-                      <span className="text-blue-400">{automationStatus}</span>
-                    )}
-                  </div>
                 </div>
             </div>
             
@@ -1116,7 +1214,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="mt-2 sm:mt-3 border-t border-border pt-3">
             <button
               onClick={() => setShowLeadInfo(!showLeadInfo)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group py-2"
             >
               <svg
                 className={`w-4 h-4 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
@@ -1132,7 +1230,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </button>
             
             {showLeadInfo && (
-              <div className="mt-4 bg-muted/30 rounded-xl p-4 border border-border/50">
+              <div className="mt-4 bg-muted/30 rounded-xl p-4 sm:p-6 border border-border/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Lead Information */}
                   <div className="space-y-3">
@@ -1214,7 +1312,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
         <div className="bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-6 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1284,7 +1382,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         )}
 
         {/* Scheduled Follow-ups */}
-        <MobileFollowUpSummary followUpJobs={followUpJobs} />
+        <div className="mt-6 sm:mt-8">
+          <MobileFollowUpSummary followUpJobs={followUpJobs} />
+        </div>
 
       </div>
     </div>

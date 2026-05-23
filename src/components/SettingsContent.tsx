@@ -597,17 +597,17 @@ export default function SettingsContent() {
           <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
+            <div className="flex-1 pt-2 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1600px] mx-auto">
 
             {/* Back to Dashboard Link */}
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-3 sm:mb-6">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 rounded-lg transition-all duration-200 group"
+                className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 rounded-lg transition-all duration-200 group"
               >
                 <svg 
-                  className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" 
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:-translate-x-0.5" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -619,49 +619,50 @@ export default function SettingsContent() {
                     d="M15 19l-7-7 7-7" 
                   />
                 </svg>
-                Back to Dashboard
+                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="sm:hidden">Back</span>
               </Link>
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="sticky top-0 z-20 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md py-3 mb-4 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-sm">
-              <nav className="flex items-center gap-1 overflow-x-auto px-2">
+            <div className="mb-4 sm:mb-6">
+              <nav className="flex items-center gap-1 overflow-x-auto px-1 sm:px-2 py-1">
                 <button
                   onClick={() => handleSectionClick('general')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'general'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   General
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   Automation
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   Contacts
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
-                      ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/25 dark:shadow-blue-500/25 border-2 border-blue-700 dark:border-blue-600'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 border border-transparent'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   Account
