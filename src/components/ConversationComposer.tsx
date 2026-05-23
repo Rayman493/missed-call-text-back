@@ -15,7 +15,7 @@ export default function ConversationComposer({
 }: ConversationComposerProps) {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-      <div className="flex items-end gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <textarea
           value={message}
           onChange={(e) => {

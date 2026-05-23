@@ -49,7 +49,7 @@ export default function MobileConversationComposer({
       <div className="max-w-4xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          <div className="flex items-end gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
