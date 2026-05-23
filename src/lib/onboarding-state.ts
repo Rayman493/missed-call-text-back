@@ -177,9 +177,31 @@ export function getBusinessOnboardingState(
   }
 
   // STATE 5: VERIFICATION_PENDING - Forwarding enabled, no successful test call yet
+  // BUT auto-complete if leads/conversations already exist (real missed calls prove it works)
   const forwardingVerified = business.forwarding_verified === true
   
-  console.log('[getBusinessOnboardingState] Verification check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified })
+  console.log('[getBusinessOnboardingState] Verification check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified, hasLeads, hasConversations, hasSuccessfulSms })
+  
+  // Auto-complete verification if real activity exists
+  if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified && (hasLeads || hasConversations || hasSuccessfulSms)) {
+    console.log('[getBusinessOnboardingState] Auto-completing verification - real activity detected:', { hasLeads, hasConversations, hasSuccessfulSms })
+    console.log('[SETUP AUTO COMPLETE]', {
+      businessId: business.subscription_status, // We don't have business.id here, using subscription_status as placeholder
+      reason: hasLeads ? 'lead_exists' : hasConversations ? 'conversation_exists' : 'missed_call_exists',
+      leadCount: hasLeads ? '1+' : '0',
+      conversationCount: hasConversations ? '1+' : '0'
+    })
+    return {
+      state: 'LIVE',
+      label: 'ReplyFlow is live',
+      description: 'Monitoring missed calls and automatically texting back customers.',
+      tone: 'success',
+      canShowLiveIndicators: true,
+      currentStep: 6,
+      lockedSteps: [],
+      completedSteps: [1, 2, 3, 4, 5]
+    }
+  }
   
   if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified) {
     console.log('[getBusinessOnboardingState] Forwarding enabled but not verified - returning VERIFICATION_PENDING')

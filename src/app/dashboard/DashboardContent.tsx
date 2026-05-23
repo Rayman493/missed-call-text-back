@@ -288,6 +288,69 @@ export default function DashboardContent() {
     })
   }, [business, processedLeads])
 
+  // Auto-complete setup if leads exist but setup is not complete
+  useEffect(() => {
+    const hasLeads = processedLeads.length > 0
+    const hasConversations = processedLeads.filter(l => l.conversation_id).length > 0
+    const forwardingVerified = business?.forwarding_verified === true
+    const phoneSetupComplete = Boolean(business?.phone_setup_completed_at)
+    const forwardingEnabled = business?.call_forwarding_enabled === true
+    const hasNumber = Boolean(business?.twilio_phone_number)
+    
+    // Check if setup should be auto-completed
+    const shouldAutoComplete = 
+      hasLeads || hasConversations
+    
+    const needsPersistedCompletion = 
+      shouldAutoComplete &&
+      !forwardingVerified &&
+      phoneSetupComplete &&
+      forwardingEnabled &&
+      hasNumber &&
+      business?.id
+
+    if (needsPersistedCompletion) {
+      console.log('[SETUP AUTO COMPLETE]', {
+        businessId: business.id,
+        reason: hasLeads ? 'lead_exists' : hasConversations ? 'conversation_exists' : 'missed_call_exists',
+        leadCount: processedLeads.length,
+        conversationCount: processedLeads.filter(l => l.conversation_id).length
+      })
+
+      // Update business record to persist completion
+      const persistCompletion = async () => {
+        try {
+          const supabase = createBrowserClient()
+          const updateData: any = {
+            forwarding_verified: true,
+            forwarding_verified_at: new Date().toISOString(),
+            onboarding_status: 'completed'
+          }
+
+          // Add setup_completed_at if it exists
+          if (business?.setup_completed_at !== undefined) {
+            updateData.setup_completed_at = new Date().toISOString()
+          }
+
+          const { error } = await supabase
+            .from('businesses')
+            .update(updateData)
+            .eq('id', business.id)
+
+          if (error) {
+            console.error('[SETUP AUTO COMPLETE] Failed to persist completion:', error)
+          } else {
+            console.log('[SETUP AUTO COMPLETE] Successfully persisted completion for business:', business.id)
+          }
+        } catch (error) {
+          console.error('[SETUP AUTO COMPLETE] Exception persisting completion:', error)
+        }
+      }
+
+      persistCompletion()
+    }
+  }, [business, processedLeads])
+
   // HARD RENDER GUARD: Single source of truth for subscription status
   // This prevents setup/onboarding UI from rendering for users who have not started trial
   // BETA/COMPED ACCESS: Include beta and comped users for full dashboard access
