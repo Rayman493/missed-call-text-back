@@ -213,7 +213,16 @@ export async function POST(request: NextRequest) {
     console.log('[Setup Progress] Step 4 check:', {
       businessId: business.id,
       forwarding_verified: business.forwarding_verified,
+      phone_setup_completed_at: business.phone_setup_completed_at,
+      onboarding_status: business.onboarding_status,
       shouldMarkForwardingVerified
+    });
+
+    console.log('[ONBOARDING CHECK]', {
+      businessId: business.id,
+      currentStatus: business.onboarding_status,
+      forwardingVerified: business.forwarding_verified,
+      phoneSetupCompletedAt: business.phone_setup_completed_at
     });
 
     // Mark forwarding as verified when ANY call is received (not just when SMS succeeds)
@@ -235,6 +244,15 @@ export async function POST(request: NextRequest) {
           console.error('[Setup Progress] Error updating forwarding verification:', updateError);
         } else {
           console.log('[Setup Progress] Forwarding verified successfully for business:', business.id);
+          console.log('[ONBOARDING COMPLETE]', {
+            businessId: business.id,
+            reason: 'First missed-call received and forwarding verified',
+            updatedFields: {
+              forwarding_verified: true,
+              phone_setup_completed_at: new Date().toISOString(),
+              onboarding_status: 'completed'
+            }
+          });
           // Mark as verified so we don't try again in the SMS section
           shouldMarkForwardingVerified = false;
         }
