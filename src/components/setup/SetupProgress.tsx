@@ -219,8 +219,6 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
     
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
-    // If user is on dashboard, treat as testing_needed to avoid showing phone-setup button
-    if (pathname === '/dashboard') return 'testing_needed'
     if (!forwardingSetupComplete) return 'forwarding_needed'
     if (!testComplete) return 'testing_needed'
     return 'active_ready'
