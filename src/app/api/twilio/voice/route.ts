@@ -253,6 +253,14 @@ export async function POST(request: NextRequest) {
               onboarding_status: 'completed'
             }
           });
+          console.log('[SETUP STEP 3 COMPLETE]', {
+            businessId: business.id,
+            reason: 'voice_webhook_success',
+            callSid: CallSid,
+            callStatus: 'completed',
+            smsStatus: 'pending_compliance',
+            smsFailureReason: 'A2P/campaign compliance not approved'
+          });
           // Mark as verified so we don't try again in the SMS section
           shouldMarkForwardingVerified = false;
         }

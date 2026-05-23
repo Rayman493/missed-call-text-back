@@ -285,7 +285,9 @@ export default function DashboardContent() {
     return getBusinessOnboardingState(businessData, {
       hasLeads: processedLeads.length > 0,
       hasConversations: processedLeads.filter(l => l.conversation_id).length > 0,
-      hasSuccessfulSms: false // Would need to check message status
+      hasSuccessfulSms: false, // Would need to check message status
+      hasVoiceWebhookSuccess: false, // Would need to check voice webhook logs
+      a2pStatus: business?.a2p_status
     })
   }, [business, processedLeads])
 
