@@ -943,27 +943,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Back to Leads */}
+          <div className="mb-3">
+            <Link
+              href="/dashboard/leads"
+              className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Leads
+            </Link>
+          </div>
+
           {/* Lead Identity Section */}
           <div className="flex flex-col gap-4">
-            {/* Mobile Top Row: Menu, Logo, Actions */}
-            <div className="flex items-center justify-between md:hidden">
-              {/* Mobile menu */}
-              <MobileMenu />
-              
-              {/* Brand/Logo */}
-              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
-                <span className="text-lg font-semibold tracking-tight">
-                  <span className="text-white">Reply</span>
-                  <span className="text-blue-400">Flow</span>
-                </span>
-              </Link>
-              
-              {/* Actions */}
+            {/* Mobile Top Row: Actions Only */}
+            <div className="flex items-center justify-end md:hidden">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
                   title="Refresh"
                 >
                   {refreshing ? (
@@ -978,7 +979,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                     title="More actions"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -987,7 +988,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                   
                   {showMoreActions && (
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">
+                    <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
                       {getLeadLifecycleStatus(leadData) !== 'completed' && (
                         <button
                           onClick={() => {
@@ -995,7 +996,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             setShowMoreActions(false)
                           }}
                           disabled={isCompleting}
-                          className="w-full px-3 py-1.5 text-left text-xs text-green-400 dark:text-green-400 hover:bg-green-900/20 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="w-full px-3 py-1.5 text-left text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           {isCompleting ? (
                             <>
@@ -1018,7 +1019,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           setShowMoreActions(false)
                         }}
                         disabled={isIgnoring}
-                        className="w-full px-3 py-1.5 text-left text-xs text-red-400 dark:text-red-400 hover:bg-red-900/20 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         {isIgnoring ? (
                           <>
@@ -1039,7 +1040,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           setShowRemoveModal(true)
                           setShowMoreActions(false)
                         }}
-                        className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+                        className="w-full px-3 py-1.5 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
                         Remove Lead
                       </button>
@@ -1053,59 +1054,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="md:hidden">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl font-bold text-white leading-tight truncate">
+                  <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
                   
-                  {/* Status Badge - Only show one */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
-                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Lead Meta - Simplified for mobile */}
-                <div className="flex items-center gap-4 text-xs text-gray-400">
-                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
-                  {lead?.last_message_at && (
-                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Layout */}
-            <div className="hidden md:flex md:items-center md:gap-4 md:flex-1 md:min-w-0">
-              {/* Brand/Back */}
-              <div className="flex items-center gap-3">
-                <Link href="/dashboard" className="flex items-center hover:opacity-90 transition flex-shrink-0 group">
-                  <span className="text-xl font-semibold tracking-tight group-hover:scale-105 transition-transform duration-200">
-                    <span className="text-white">Reply</span>
-                    <span className="text-blue-400">Flow</span>
-                  </span>
-                </Link>
-                
-                <div className="hidden md:flex items-center">
-                  <Link
-                    href="/dashboard"
-                    className="flex-shrink-0 text-gray-400 hover:text-white transition-colors p-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-              
-              {/* Lead Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight truncate">
-                    {formatPhoneNumber(lead?.caller_phone || '')}
-                  </h1>
-                  
-                  {/* Status Badges */}
+                  {/* Status Badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
@@ -1114,29 +1067,42 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
                 
                 {/* Lead Meta */}
-                <div className="flex items-center gap-4 text-xs text-gray-400">
+                <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
-                  {lead?.last_message_at && (
-                    <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
-                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden md:flex md:items-center md:gap-4 md:flex-1 md:min-w-0">
+              {/* Lead Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </h1>
+                  
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Lead Meta */}
+                <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
                 </div>
             </div>
             
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
-              {/* Primary Action - Status Dropdown */}
-              <LeadStatusDropdown
-                currentStatus={getLeadLifecycleStatus(leadData)}
-                onStatusChange={handleStatusUpdate}
-                disabled={isCompleting || isIgnoring || isRemoving}
-                size="md"
-              />
-              
               {/* Refresh Button */}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
                 title="Refresh"
               >
                 {refreshing ? (
@@ -1152,7 +1118,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="relative">
                 <button
                   onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                   title="More actions"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1161,7 +1127,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 
                 {showMoreActions && (
-                  <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
                     {getLeadLifecycleStatus(leadData) !== 'completed' && (
                       <button
                         onClick={() => {
@@ -1169,7 +1135,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           setShowMoreActions(false)
                         }}
                         disabled={isCompleting}
-                        className="w-full px-3 py-1.5 text-left text-xs text-green-400 dark:text-green-400 hover:bg-green-900/20 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="w-full px-3 py-1.5 text-left text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         {isCompleting ? (
                           <>
@@ -1200,7 +1166,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         setShowRemoveModal(true)
                         setShowMoreActions(false)
                       }}
-                      className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+                      className="w-full px-3 py-1.5 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       Remove Lead
                     </button>
@@ -1210,11 +1176,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* Enhanced Details Section */}
-          <div className="mt-2 sm:mt-3 border-t border-border pt-3">
+          {/* Show Lead Details Section */}
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setShowLeadInfo(!showLeadInfo)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group py-2"
+              className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
             >
               <svg
                 className={`w-4 h-4 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
@@ -1224,9 +1190,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7m7 7V3" />
               </svg>
-              <span className="font-medium group-hover:text-blue-400 transition-colors">
-                {showLeadInfo ? 'Hide lead details' : 'Show lead details'}
-              </span>
+              <span>{showLeadInfo ? 'Hide lead details' : 'Show lead details'}</span>
             </button>
             
             {showLeadInfo && (
