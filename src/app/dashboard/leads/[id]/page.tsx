@@ -943,48 +943,154 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Lead Identity Section */}
-          <div className="flex flex-col gap-4">
-            {/* Mobile Top Row: Menu, Logo, Actions */}
-            <div className="flex items-center justify-between md:hidden">
-              {/* Mobile menu */}
-              <MobileMenu />
-              
-              {/* Brand/Logo */}
-              <Link href="/dashboard" className="flex items-center hover:opacity-90 transition">
-                <span className="text-lg font-semibold tracking-tight">
-                  <span className="text-white">Reply</span>
-                  <span className="text-blue-400">Flow</span>
+          {/* Back to Leads */}
+          <div className="mb-3">
+            <Link
+              href="/dashboard/leads"
+              className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Leads
+            </Link>
+          </div>
+                {/* Lead Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Lead Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                  {formatPhoneNumber(lead?.caller_phone || '')}
+                </h1>
+                
+                {/* Status Badge */}
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                  {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                 </span>
-              </Link>
+              </div>
               
-              {/* Actions */}
-              <div className="flex items-center gap-2">
+              {/* Lead Meta */}
+              <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                {automationStatus && (
+                  <span className="text-blue-600 dark:text-blue-400">{automationStatus}</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
+                title="Refresh"
+              >
+                {refreshing ? (
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent"></div>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+              
+              <div className="relative">
                 <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50"
-                  title="Refresh"
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  title="More actions"
                 >
-                  {refreshing ? (
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  )}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
                 </button>
                 
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
-                    title="More actions"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
+                {showMoreActions && (
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+                    {getLeadLifecycleStatus(leadData) !== 'completed' && (
+                      <button
+                        onClick={() => {
+                          handleStatusUpdate('completed')
+                          setShowMoreActions(false)
+                        }}
+                        disabled={isCompleting}
+                        className="w-full px-3 py-1.5 text-left text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isCompleting ? (
+                          <>
+                            <div className="w-3 h-3 animate-spin rounded-full border border-green-400 border-t-transparent"></div>
+                            <span>Completing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Mark Complete</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowIgnoreModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      disabled={isIgnoring}
+                      className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isIgnoring ? (
+                        <>
+                          <div className="w-3 h-3 animate-spin rounded-full border border-red-400 border-t-transparent"></div>
+                          <span>Ignoring...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          <span>Ignore Contact</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRemoveModal(true)
+                        setShowMoreActions(false)
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Remove Lead
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Show Lead Details Button */}
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => setShowLeadInfo(!showLeadInfo)}
+              className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform duration-300 ${showLeadInfo ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7m7 7V3" />
+              </svg>
+              <span>{showLeadInfo ? 'Hide lead details' : 'Show lead details'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
                   
                   {showMoreActions && (
                     <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-lg shadow-lg border border-border py-1 z-50">

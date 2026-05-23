@@ -9,15 +9,30 @@ import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 
-// Helper to generate voice greeting - simplest version for troubleshooting
+// Helper to generate voice greeting with dynamic business name
 function generateVoiceGreeting(businessName?: string): string {
-  // Simplest TwiML to test if recent changes caused silence
-  const greetingText = "Sorry we missed your call. We'll text you shortly.";
+  // Sanitize business name for TTS - remove XML-breaking characters and normalize
+  const sanitizeForTTS = (name: string): string => {
+    return name
+      .replace(/[<>&'"{}]/g, '') // Remove XML-breaking characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim()
+      .substring(0, 100); // Limit length to prevent issues
+  };
   
-  // Simplest TwiML for troubleshooting
+  // Generate dynamic greeting with business name or fallback
+  let greetingText: string;
+  if (businessName && sanitizeForTTS(businessName)) {
+    const sanitized = sanitizeForTTS(businessName);
+    greetingText = `Thanks for calling ${sanitized}. We'll send you a quick text message so you can tell us how we can help.`;
+  } else {
+    greetingText = `Thanks for calling. We'll send you a quick text message so you can tell us how we can help.`;
+  }
+  
+  // TwiML with dynamic greeting
   const simpleTwiml = `
     <Say>${greetingText}</Say>
-    <Pause length="2"/>
+    <Pause length="1"/>
     <Hangup/>
   `;
   
