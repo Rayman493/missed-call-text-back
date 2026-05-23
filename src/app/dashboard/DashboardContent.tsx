@@ -1043,7 +1043,7 @@ export default function DashboardContent() {
                       console.log('[Render Child] SetupProgress')
                       return null
                     })()}
-                    <GettingStarted isOnboardingComplete={isOnboardingComplete} />
+                    <GettingStarted isOnboardingComplete={isOnboardingComplete} missedCallCount={missedCallCount} />
                   </SectionErrorBoundary>
                 )}
 

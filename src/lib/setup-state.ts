@@ -11,7 +11,7 @@ export interface SetupState {
   status: 'pending_forwarding' | 'pending_test' | 'test_in_progress' | 'completed'
 }
 
-export function deriveSetupState(business: Business | null, realCallDataExists: boolean = false): SetupState {
+export function deriveSetupState(business: Business | null, realCallDataExists: boolean = false, missedCallCount: number = 0): SetupState {
   console.log('[SetupState] Deriving setup state from business:', {
     businessId: business?.id,
     onboarding_status: business?.onboarding_status,
@@ -21,7 +21,8 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
     test_call_received_at: business?.test_call_received_at,
     test_sms_sent_at: business?.test_sms_sent_at,
     setup_completed_at: business?.setup_completed_at,
-    realCallDataExists
+    realCallDataExists,
+    missedCallCount
   })
 
   if (!business) {
@@ -52,10 +53,11 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
   const step2Complete = Boolean(business.phone_setup_completed_at && business.call_forwarding_enabled)
 
   // Step 3: Test is complete
-  // Test is complete ONLY when there's real call data OR explicit test completion
+  // Test is complete when missedCallCount > 0 OR there's real call data OR explicit test completion
   const step3Complete = Boolean(
-    business.forwarding_verified === true && 
-    (business.test_call_received_at || business.test_sms_sent_at || realCallDataExists)
+    missedCallCount > 0 ||
+    (business.forwarding_verified === true && 
+    (business.test_call_received_at || business.test_sms_sent_at || realCallDataExists))
   )
 
   // Can access test setup when forwarding is enabled

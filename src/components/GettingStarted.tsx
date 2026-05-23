@@ -44,12 +44,13 @@ interface GettingStartedProps {
   isExpanded?: boolean
   onToggle?: () => void
   isOnboardingComplete?: boolean
+  missedCallCount?: number
 }
 
 // Local storage key for collapse preference
 const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
 
-export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete }: GettingStartedProps) {
+export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete, missedCallCount = 0 }: GettingStartedProps) {
   console.log('[GettingStarted] Component render -', new Date().toISOString())
   const { business, refreshBusiness } = useBusiness()
   const pathname = usePathname()
@@ -391,7 +392,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
   // Simple onboarding state logic using shared state resolver
   const currentBusiness = getCurrentBusiness()
-  const setupState = deriveSetupState(currentBusiness, realCallDataExists)
+  const setupState = deriveSetupState(currentBusiness, realCallDataExists, missedCallCount)
 
   // Legacy variables for compatibility (will be phased out)
   const subscriptionActive = hasActiveAccess(currentBusiness)
