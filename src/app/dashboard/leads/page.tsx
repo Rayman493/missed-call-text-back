@@ -100,8 +100,15 @@ export default function LeadsPage() {
 
   const supabase = createBrowserClient()
 
-  // Determine if onboarding is fully complete
-  const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
+  // Determine if onboarding is fully complete using derived logic
+  // Priority: existing completed onboarding status > successful missed call > captured lead > conversation
+  const hasLeads = leads.length > 0
+  const hasConversations = leads.filter(l => l.conversation_id).length > 0
+  const isOnboardingComplete = Boolean(
+    (business?.onboarding_status === 'completed') ||
+    (business?.phone_setup_completed_at && business?.forwarding_verified) ||
+    (hasLeads || hasConversations)
+  )
 
   // Fetch leads
   const fetchLeads = useCallback(async () => {

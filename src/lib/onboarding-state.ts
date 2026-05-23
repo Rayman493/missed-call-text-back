@@ -182,14 +182,21 @@ export function getBusinessOnboardingState(
   
   console.log('[getBusinessOnboardingState] Verification check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified, hasLeads, hasConversations, hasSuccessfulSms })
   
-  // Auto-complete verification if real activity exists
-  if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified && (hasLeads || hasConversations || hasSuccessfulSms)) {
-    console.log('[getBusinessOnboardingState] Auto-completing verification - real activity detected:', { hasLeads, hasConversations, hasSuccessfulSms })
-    console.log('[SETUP AUTO COMPLETE]', {
-      businessId: business.subscription_status, // We don't have business.id here, using subscription_status as placeholder
-      reason: hasLeads ? 'lead_exists' : hasConversations ? 'conversation_exists' : 'missed_call_exists',
-      leadCount: hasLeads ? '1+' : '0',
-      conversationCount: hasConversations ? '1+' : '0'
+  // Auto-complete verification if real activity exists (completion priority logic)
+  // Priority: existing onboarding status > successful missed call > captured lead > conversation > auto-reply
+  const hasSuccessfulMissedCall = hasLeads || hasConversations || hasSuccessfulSms
+  
+  if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified && hasSuccessfulMissedCall) {
+    const completionReason = hasSuccessfulSms ? 'auto_reply_exists' : hasConversations ? 'conversation_exists' : hasLeads ? 'lead_exists' : 'unknown'
+    console.log('[getBusinessOnboardingState] Auto-completing verification - real activity detected:', { hasLeads, hasConversations, hasSuccessfulSms, completionReason })
+    console.log('[SETUP COMPLETION CHECK]', {
+      businessId: business.subscription_status, // We don't have business.id here
+      hasSuccessfulMissedCall,
+      hasCapturedLead: hasLeads,
+      hasConversation: hasConversations,
+      hasInitialAutoReply: hasSuccessfulSms,
+      existingOnboardingStatus: business.onboarding_status,
+      completionReason
     })
     return {
       state: 'LIVE',

@@ -56,6 +56,7 @@ import NoBusinessSetup from '@/components/NoBusinessSetup'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
+import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -310,9 +311,16 @@ export default function DashboardContent() {
       business?.id
 
     if (needsPersistedCompletion) {
-      console.log('[SETUP AUTO COMPLETE]', {
+      const completionReason = hasConversations ? 'conversation_exists' : 'lead_exists'
+      
+      console.log('[SETUP COMPLETION CHECK]', {
         businessId: business.id,
-        reason: hasLeads ? 'lead_exists' : hasConversations ? 'conversation_exists' : 'missed_call_exists',
+        hasSuccessfulMissedCall: shouldAutoComplete,
+        hasCapturedLead: hasLeads,
+        hasConversation: hasConversations,
+        hasInitialAutoReply: false, // Would need to check messages
+        existingOnboardingStatus: business.onboarding_status,
+        completionReason,
         leadCount: processedLeads.length,
         conversationCount: processedLeads.filter(l => l.conversation_id).length
       })
@@ -338,12 +346,15 @@ export default function DashboardContent() {
             .eq('id', business.id)
 
           if (error) {
-            console.error('[SETUP AUTO COMPLETE] Failed to persist completion:', error)
+            console.error('[SETUP AUTO COMPLETED] Failed to persist completion:', error)
           } else {
-            console.log('[SETUP AUTO COMPLETE] Successfully persisted completion for business:', business.id)
+            console.log('[SETUP AUTO COMPLETED]', {
+              businessId: business.id,
+              completionReason
+            })
           }
         } catch (error) {
-          console.error('[SETUP AUTO COMPLETE] Exception persisting completion:', error)
+          console.error('[SETUP AUTO COMPLETED] Exception persisting completion:', error)
         }
       }
 
