@@ -11,7 +11,6 @@ import BusinessGuard from '@/components/BusinessGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import GettingStarted from '@/components/GettingStarted'
-import SetupProgress from '@/components/setup/SetupProgress'
 import AppHeader from '@/components/AppHeader'
 import Link from 'next/link'
 import { 
@@ -308,10 +307,6 @@ export default function LeadsPage() {
               />
             )}
 
-            {/* Getting Started - match Dashboard spacing */}
-            <div className="mb-4 sm:mb-6">
-              <SetupProgress missedCallCount={missedCallCount} />
-            </div>
 
             {/* Pre-trial locked preview - show what users will unlock */}
             {!hasActiveAccess(business) && (
