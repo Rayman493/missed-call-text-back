@@ -744,11 +744,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                     <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                      Setup Progress
+                      Setup Complete
                     </h2>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-[10px] sm:text-[11px] font-medium text-green-700 dark:text-green-300`}>
-                      {doneSteps} of {totalSteps} steps complete
-                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     ReplyFlow is actively monitoring your business line.
@@ -769,16 +766,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mb-3 sm:mb-6">
-                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-green-600 h-1.5 transition-all duration-500 ease-out"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
               </div>
 
               {/* Checklist items */}
