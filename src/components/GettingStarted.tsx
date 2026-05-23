@@ -102,14 +102,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     }
   }, [isMobile, business, realCallDataExists, isExpanded])
 
-  // When onboarding is complete, collapse by default
-  useEffect(() => {
-    if (isOnboardingComplete) {
-      setIsExpanded(false)
-      saveCollapsePreference(true)
-    }
-  }, [isOnboardingComplete])
-
   // Fallback provisioning trigger on component mount
   useEffect(() => {
     const triggerProvisioningIfNeeded = async () => {
@@ -295,11 +287,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    // Step 4 is complete if forwarding_verified OR if real call data exists
-    const testComplete = business?.forwarding_verified || realCallDataExists || realCallDataExists
+    // Step 3 is complete if missedCallCount > 0 OR forwarding_verified OR real call data exists
+    const testComplete = missedCallCount > 0 || business?.forwarding_verified || realCallDataExists
     
-    console.log('[Setup Progress] Step 4 completion check:', {
+    console.log('[Setup Progress] Step 3 completion check:', {
       businessId: business.id,
+      missedCallCount,
       forwarding_verified: business?.forwarding_verified,
       realCallDataExists,
       testComplete
@@ -312,11 +305,19 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     if (!forwardingSetupComplete) return 'forwarding_needed'
     if (!testComplete) return 'testing_needed'
     return 'active_ready'
-  }, [business, isOnDashboard, realCallDataExists])
+  }, [business, isOnDashboard, realCallDataExists, missedCallCount])
 
   // Calculate if all steps are complete based on computed state
   const isFullyComplete = useMemo(() => {
     return currentOnboardingState === 'active_ready'
+  }, [currentOnboardingState])
+
+  // When onboarding is complete, collapse by default
+  useEffect(() => {
+    if (currentOnboardingState === 'active_ready') {
+      setIsExpanded(false)
+      saveCollapsePreference(true)
+    }
   }, [currentOnboardingState])
 
   // Load collapse preference from localStorage
@@ -750,7 +751,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    ReplyFlow is live and monitoring missed calls.
+                    ReplyFlow is actively monitoring your business line.
                   </p>
                 </div>
                 <button
