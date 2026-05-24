@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Navigation from './Navigation'
 import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
+import NavbarNotifications from './NavbarNotifications'
 import BrandIcon from './BrandIcon'
 
 interface AppHeaderProps {
@@ -52,8 +53,12 @@ export default function AppHeader({
             </div>
           </div>
           
-          {/* Right side - User dropdown */}
-          <div className="flex items-center">
+          {/* Right side - Notifications and User dropdown */}
+          <div className="flex items-center gap-2">
+            {/* Notifications - visible on all screen sizes */}
+            <NavbarNotifications />
+            
+            {/* User dropdown */}
             <UserDropdown />
           </div>
         </div>

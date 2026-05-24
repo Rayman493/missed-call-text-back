@@ -40,6 +40,11 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
     leadsCreated: 0,
     smsSent: 0
   })
+  const [showCompactModal, setShowCompactModal] = useState(false)
+  const [operationalMetrics, setOperationalMetrics] = useState({
+    lastActivity: null as string | null,
+    lastSmsSent: null as string | null
+  })
 
   useEffect(() => {
     if (!business) return
@@ -70,10 +75,31 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
           .eq('from_phone', business.twilio_phone_number || '')
           .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
 
+        // Get last activity and last SMS sent
+        const { data: lastActivity } = await supabase
+          .from('leads')
+          .select('created_at')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        const { data: lastSms } = await supabase
+          .from('messages')
+          .select('created_at')
+          .eq('direction', 'outbound')
+          .eq('from_phone', business.twilio_phone_number || '')
+          .order('created_at', { ascending: false })
+          .limit(1)
+
         setActivityData({
           missedCallsProcessed: missedCalls?.length || 0,
           leadsCreated: recentLeads?.length || 0,
           smsSent: recentMessages?.filter((m: any) => m.direction === 'outbound').length || 0
+        })
+
+        setOperationalMetrics({
+          lastActivity: lastActivity?.[0]?.created_at || null,
+          lastSmsSent: lastSms?.[0]?.created_at || null
         })
       } catch (error) {
         console.error('Error fetching activity data:', error)
@@ -219,7 +245,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
     }
 
     calculateSetupSteps()
-  }, [business, activityData])
+  }, [business, activityData, operationalMetrics])
 
   const getStatusIcon = (status: SetupStep['status']) => {
     switch (status) {
@@ -267,6 +293,91 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
   const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
 
   if (!isOpen) return null
+
+  // Show compact completed state when setup is complete
+  const isSetupComplete = completedSteps === 5
+
+  if (isSetupComplete) {
+    return (
+      <div className="fixed inset-0 z-50 overflow-hidden">
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={onClose}
+        />
+
+        {/* Compact Modal */}
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Setup Complete ✓</h2>
+                  <p className="text-sm text-muted-foreground">ReplyFlow is actively monitoring your business line</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Completed Steps */}
+              <div className="space-y-3 mb-6">
+                {setupSteps.map((step) => (
+                  <div key={step.id} className="flex items-center gap-3">
+                    <div className="w-5 h-5 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-sm text-foreground">{step.title}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Operational Metrics */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 mb-6">
+                <h3 className="text-sm font-medium text-foreground mb-3">Operational Metrics</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Calls Processed</span>
+                    <span className="font-medium text-foreground">{activityData.missedCallsProcessed}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last Activity</span>
+                    <span className="font-medium text-foreground">
+                      {operationalMetrics.lastActivity ? formatRelativeTime(operationalMetrics.lastActivity) : 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last SMS Sent</span>
+                    <span className="font-medium text-foreground">
+                      {operationalMetrics.lastSmsSent ? formatRelativeTime(operationalMetrics.lastSmsSent) : 'None'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
