@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
-import MobileFollowUpSummary from '@/components/MobileFollowUpSummary'
+import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
@@ -1196,9 +1196,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Scheduled Follow-ups */}
+        {/* Automatic Follow-ups */}
         <div className="mt-6 sm:mt-8 lg:mt-10">
-          <MobileFollowUpSummary followUpJobs={followUpJobs} />
+          <AutomaticFollowUpsControl 
+            followUpJobs={followUpJobs} 
+            leadId={params.id}
+            onUpdate={() => {
+              // Refresh lead data to show updated follow-ups
+              getLeadDetails(params.id).then(setLeadData)
+            }}
+          />
         </div>
 
       </div>

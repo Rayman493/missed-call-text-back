@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import Link from 'next/link'
 import { X, Check, AlertCircle, Clock, Phone, MessageSquare, CreditCard, TestTube } from 'lucide-react'
 
@@ -34,9 +35,52 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([])
   const [loading, setLoading] = useState(true)
   const [completedSteps, setCompletedSteps] = useState(0)
+  const [activityData, setActivityData] = useState({
+    missedCallsProcessed: 0,
+    leadsCreated: 0,
+    smsSent: 0
+  })
 
   useEffect(() => {
     if (!business) return
+
+    // Fetch activity data for verification logic
+    const fetchActivityData = async () => {
+      try {
+        const supabase = createBrowserClient()
+        
+        // Get missed calls count (using the same logic as OperationalStatusCard)
+        const { data: missedCalls } = await supabase
+          .from('leads')
+          .select('id, created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+        // Get leads created in last 30 days
+        const { data: recentLeads } = await supabase
+          .from('leads')
+          .select('id, created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+        // Get messages sent in last 30 days
+        const { data: recentMessages } = await supabase
+          .from('messages')
+          .select('created_at, direction')
+          .eq('from_phone', business.twilio_phone_number || '')
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+        setActivityData({
+          missedCallsProcessed: missedCalls?.length || 0,
+          leadsCreated: recentLeads?.length || 0,
+          smsSent: recentMessages?.filter((m: any) => m.direction === 'outbound').length || 0
+        })
+      } catch (error) {
+        console.error('Error fetching activity data:', error)
+      }
+    }
+
+    fetchActivityData()
 
     const calculateSetupSteps = () => {
       // STEP 1: Business Information
@@ -51,8 +95,19 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
       // STEP 4: Forwarding Configured
       const forwardingConfigured = Boolean(business?.phone_setup_completed_at)
       
-      // STEP 5: Test Call Verification
-      const testVerified = business?.forwarding_verified
+      // STEP 5: Call Processing Verification - NEW LOGIC
+      // System is verified if ANY of these have occurred:
+      // 1. Manual test call completed
+      // 2. Calls processed > 0 
+      // 3. Leads created > 0
+      // 4. SMS sent > 0
+      const manualTestVerified = business?.forwarding_verified
+      const systemActivityVerified = Boolean(
+        activityData.missedCallsProcessed > 0 || 
+        activityData.leadsCreated > 0 || 
+        activityData.smsSent > 0
+      )
+      const callProcessingVerified = manualTestVerified || systemActivityVerified
       
       // Calculate completion count
       const completedStepsCount = [
@@ -60,7 +115,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
         subscriptionActive, 
         twilioReady,
         forwardingConfigured,
-        testVerified
+        callProcessingVerified
       ].filter(Boolean).length
 
       const steps: SetupStep[] = [
@@ -112,17 +167,19 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
         // STEP 4: Forwarding Configured
         {
           id: 'call-forwarding',
-          title: 'Forwarding Configured',
-          description: 'Forward your business phone to ReplyFlow',
+          title: callProcessingVerified ? 'Forwarding Verified' : 'Forwarding Configured',
+          description: callProcessingVerified ? 'ReplyFlow has successfully received and processed calls' : 'Forward your business phone to ReplyFlow',
           status: forwardingConfigured ? 'complete' : twilioReady ? 'needs-action' : 'not-started',
           icon: <Phone className="w-5 h-5" />,
-          details: forwardingConfigured
-            ? `Forwarding configured: ${formatPhoneNumber(business.business_phone_number)} → ${formatPhoneNumber(business.twilio_phone_number)}`
-            : twilioReady 
-              ? `Configure forwarding from ${formatPhoneNumber(business.business_phone_number)} to ${formatPhoneNumber(business.twilio_phone_number)}`
-              : 'Requires ReplyFlow number first',
-          completionDate: business?.phone_setup_completed_at || undefined,
-          actionText: forwardingConfigured ? undefined : twilioReady ? 'Configure Forwarding' : 'Get ReplyFlow Number First',
+          details: callProcessingVerified
+            ? `ReplyFlow has successfully received and processed calls from ${formatPhoneNumber(business.business_phone_number)}`
+            : forwardingConfigured
+              ? `Forwarding configured: ${formatPhoneNumber(business.business_phone_number)} → ${formatPhoneNumber(business.twilio_phone_number)}`
+              : twilioReady 
+                ? `Configure forwarding from ${formatPhoneNumber(business.business_phone_number)} to ${formatPhoneNumber(business.twilio_phone_number)}`
+                : 'Requires ReplyFlow number first',
+          completionDate: callProcessingVerified ? (business?.test_call_received_at || undefined) : business?.phone_setup_completed_at || undefined,
+          actionText: forwardingConfigured && !callProcessingVerified ? undefined : twilioReady ? 'Configure Forwarding' : 'Get ReplyFlow Number First',
           actionHref: twilioReady ? '/setup/phone-forwarding' : '/dashboard/settings',
           instructions: twilioReady && !forwardingConfigured ? {
             title: 'Forwarding Instructions',
@@ -136,20 +193,22 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
           } : undefined
         },
         
-        // STEP 5: Test Call Verification
+        // STEP 5: Call Processing Verification
         {
-          id: 'test-verification',
-          title: 'Test Call Verification',
-          description: 'Verify your setup with a test call',
-          status: testVerified ? 'complete' : forwardingConfigured ? 'needs-action' : 'not-started',
+          id: 'call-processing-verification',
+          title: 'Call Processing Verification',
+          description: 'Verify that ReplyFlow successfully receives and processes calls',
+          status: callProcessingVerified ? 'complete' : forwardingConfigured ? 'needs-action' : 'not-started',
           icon: <TestTube className="w-5 h-5" />,
-          details: testVerified 
-            ? 'Test call received and ReplyFlow workflow verified'
+          details: callProcessingVerified 
+            ? systemActivityVerified 
+              ? `ReplyFlow has successfully processed ${activityData.missedCallsProcessed} call${activityData.missedCallsProcessed !== 1 ? 's' : ''} and is actively monitoring`
+              : 'Test call received and ReplyFlow workflow verified'
             : forwardingConfigured 
               ? 'Run a test call to confirm ReplyFlow is receiving missed calls correctly'
               : 'Configure forwarding first',
           completionDate: business?.test_call_received_at || undefined,
-          actionText: testVerified ? 'Run Another Test' : forwardingConfigured ? 'Run Test Call' : 'Configure Forwarding First',
+          actionText: callProcessingVerified ? 'Run Another Test' : forwardingConfigured ? 'Run Test Call' : 'Configure Forwarding First',
           actionHref: forwardingConfigured ? '/dashboard/test-setup' : '/setup/phone-forwarding'
         }
       ]
@@ -160,7 +219,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
     }
 
     calculateSetupSteps()
-  }, [business])
+  }, [business, activityData])
 
   const getStatusIcon = (status: SetupStep['status']) => {
     switch (status) {
