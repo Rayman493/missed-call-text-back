@@ -982,10 +982,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Desktop Layout: Keep existing */}
+          {/* Desktop Layout: Enhanced */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-2 sm:mb-3">
+            <div className="mb-3 sm:mb-4">
               <Link
                 href="/dashboard/leads"
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
@@ -997,11 +997,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </Link>
             </div>
 
-            {/* Lead Identity Section - Desktop */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            {/* Lead Identity Section - Desktop Enhanced */}
+            <div className="flex items-start gap-6 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-2">
+                <div className="flex items-center gap-4 mb-3">
                   <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
@@ -1014,9 +1014,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 
-                {/* Lead Meta */}
-                <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                  <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
+                {/* Enhanced Lead Meta */}
+                <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
+                  </div>
+                  {lead?.last_message_at && (
+                    <div className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                    <span>{messagesArray.length} messages</span>
+                  </div>
                 </div>
               </div>
               
@@ -1026,7 +1045,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
+                  className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                   title="Refresh"
                 >
                   {refreshing ? (
@@ -1042,7 +1061,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                    className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                     title="More actions"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1117,11 +1136,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-0.5 sm:py-2 sm:py-3">
+      <div className="flex-1 max-w-4xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-0.5 sm:py-2 sm:py-3">
         {/* Mobile: Immersive conversation, Desktop: Card container */}
         <div className="md:bg-card md:rounded-xl md:shadow-sm md:hover:shadow-lg md:transition-all md:duration-300 md:border md:border-border md:overflow-hidden md:flex md:flex-col md:h-auto md:min-h-[500px]">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-6 sm:p-8 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-4 md:sm:p-6 md:sm:p-8 md:min-h-[300px] md:sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-4 sm:p-6 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-4 md:sm:p-5 md:sm:p-6 md:min-h-[300px] md:sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

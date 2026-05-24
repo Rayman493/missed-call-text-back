@@ -6,8 +6,6 @@ interface MobileFollowUpSummaryProps {
 }
 
 export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSummaryProps) {
-  if (followUpJobs.length === 0) return null
-
   const allCancelledAfterReply = followUpJobs.every(
     (job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied'
   )
@@ -24,7 +22,12 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
           </svg>
         </div>
         <h3 className="text-sm font-semibold text-foreground">
-          {allCancelledAfterReply ? 'Automatic Check-ins Paused' : 'Upcoming Automatic Check-ins'}
+          {followUpJobs.length === 0 
+            ? 'Automatic Check-ins' 
+            : allCancelledAfterReply 
+            ? 'Automatic Check-ins Paused' 
+            : 'Upcoming Automatic Check-ins'
+          }
         </h3>
         {allCancelledAfterReply && (
           <span className="ml-auto px-2 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs rounded-full font-medium border border-green-100 dark:border-green-800/30">
@@ -33,7 +36,16 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
         )}
       </div>
       
-      {allCancelledAfterReply ? (
+      {followUpJobs.length === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-3 h-3 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span>No future automatic check-ins scheduled</span>
+        </div>
+      ) : allCancelledAfterReply ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
             <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -53,7 +65,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-foreground font-medium truncate">
-                      {job.scheduled_at ? formatRelativeTime(job.scheduled_at) : 'Scheduled'}
+                      {job.scheduled_for ? formatRelativeTime(job.scheduled_for) : 'Scheduled'}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {job.step === 1 ? 'First check-in' : job.step === 2 ? 'Second check-in' : job.step ? `Check-in #${job.step}` : 'Scheduled check-in'}
