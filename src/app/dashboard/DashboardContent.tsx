@@ -50,7 +50,6 @@ import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import RecentLeadsSection from '@/components/RecentLeadsSection'
-import StatsCards from '@/components/StatsCards'
 import SectionErrorBoundary from '@/components/SectionErrorBoundary'
 import NoBusinessSetup from '@/components/NoBusinessSetup'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -1004,8 +1003,7 @@ export default function DashboardContent() {
   // Step 7: SubscriptionBanner ✓
   // Step 8: ActivationHero ✓
   // Step 9: LiveActivity ✓
-  // Step 10: StatsCards ✓
-  // Step 11: RecentLeadsSection ✓
+  // Step 10: RecentLeadsSection ✓
   // Step 12: ConversationsSection ✓
   // Step 13: GettingStartedBottom ✓
   // Step 14: Footer (final section)
@@ -1334,31 +1332,7 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Hero Metrics Section - always visible to maintain operational feel */}
-                    <SectionErrorBoundary sectionName="StatsCards">
-                      {(() => {
-                        console.log('[SECTION RENDER]', {
-                          section: 'StatsCards',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status
-                        })
-                        console.log('[Render Child] StatsCards')
-                        return null
-                      })()}
-                      <div className="transition-opacity duration-300 mb-2">
-                        {business?.id && (
-                          <StatsCards 
-                            businessId={business.id} 
-                            isOnboardingComplete={isOnboardingComplete}
-                            provisioningStatus={business?.provisioning_status || 'pending'}
-                            forwardingVerified={business?.forwarding_verified || false}
-                          />
-                        )}
-                      </div>
-                    </SectionErrorBoundary>
-
+                    
                     {/* Recent Leads Section */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {(() => {
@@ -1374,7 +1348,7 @@ export default function DashboardContent() {
                       })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-2">
+                        <div className="transition-opacity duration-300 mb-8">
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 

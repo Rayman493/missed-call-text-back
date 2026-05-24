@@ -214,6 +214,72 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     }
   }, [businessId, supabase])
 
+  // Helper functions for lead status and display
+  const getLeadStatus = (lead: any) => {
+    if (lead.messages?.length === 0) return 'New'
+    if (lead.messages?.some((m: any) => m.direction === 'inbound')) {
+      return 'Awaiting Response'
+    }
+    return 'Contacted'
+  }
+
+  const getLeadStage = (lead: any) => {
+    const hasInbound = lead.messages?.some((m: any) => m.direction === 'inbound')
+    const hasOutboundAfterInbound = lead.messages?.some((m: any) => {
+      if (m.direction !== 'outbound') return false
+      const inboundMessages = lead.messages?.filter((msg: any) => msg.direction === 'inbound')
+      if (inboundMessages.length === 0) return false
+      const latestInbound = inboundMessages.sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0]
+      return new Date(m.created_at).getTime() > new Date(latestInbound.created_at).getTime()
+    })
+    
+    if (hasInbound && !hasOutboundAfterInbound) return 'Needs Response'
+    if (hasInbound && hasOutboundAfterInbound) return 'Follow-up Active'
+    if (!hasInbound && lead.messages?.length > 0) return 'Initial Contact'
+    return 'New Lead'
+  }
+
+  const getNextFollowUp = (lead: any) => {
+    const leadFollowUps = followUpJobs.filter((job: any) => job.lead_id === lead.id && job.status === 'pending')
+    if (leadFollowUps.length === 0) return null
+    
+    const nextJob = leadFollowUps.sort((a: any, b: any) => 
+      new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime()
+    )[0]
+    
+    return {
+      time: nextJob.scheduled_for,
+      step: nextJob.step
+    }
+  }
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
+    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`
+  }
+
+  const formatFollowUpTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = date.getTime() - now.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Tomorrow'
+    if (diffDays < 7) return `In ${diffDays} days`
+    return `In ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
+  }
+
   // Render the leads section
   console.log('[Dashboard Render] RecentLeadsSection')
   console.log('[RecentLeadsSection] raw leads data:', leads)
@@ -283,24 +349,70 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             )}
           </div>
         ) : (
-          <div className="space-y-2">
-            {leads.slice(0, 5).map((lead) => (
-              <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-muted/50 rounded-lg hover:bg-slate-100 dark:hover:bg-muted/80 hover:border-slate-300 dark:hover:border-border/60 border border-slate-200/80 dark:border-transparent transition-all duration-300 hover:scale-[1.01] cursor-pointer">
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-foreground">{getLeadDisplayName(lead)}</p>
-                    <p className="text-xs text-slate-600 dark:text-muted-foreground">
-                      {lead.last_message_at
-                        ? new Date(lead.last_message_at).toLocaleDateString()
-                        : new Date(lead.created_at).toLocaleDateString()}
-                    </p>
+          <div className="space-y-3">
+            {leads.slice(0, 5).map((lead) => {
+              const nextFollowUp = getNextFollowUp(lead)
+              const status = getLeadStatus(lead)
+              const stage = getLeadStage(lead)
+              const lastActivity = lead.last_message_at || lead.created_at
+              const messagesSent = lead.messages?.filter((m: any) => m.direction === 'outbound').length || 0
+              
+              return (
+                <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
+                    {/* Header with phone number and status */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-foreground">{formatPhoneNumber(lead.phone_number)}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                              status === 'Awaiting Response' 
+                                ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
+                                : status === 'New'
+                                ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
+                                : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
+                            }`}>
+                              {status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                        Open Conversation
+                      </button>
+                    </div>
+                    
+                    {/* Lead details grid */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mb-1">Last Activity</p>
+                        <p className="text-slate-900 dark:text-foreground font-medium">{formatRelativeTime(lastActivity)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mb-1">Messages Sent</p>
+                        <p className="text-slate-900 dark:text-foreground font-medium">{messagesSent}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mb-1">Current Stage</p>
+                        <p className="text-slate-900 dark:text-foreground font-medium">{stage}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mb-1">Next Follow-Up</p>
+                        <p className="text-slate-900 dark:text-foreground font-medium">
+                          {nextFollowUp ? formatFollowUpTime(nextFollowUp.time) : 'None scheduled'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-muted-foreground">
-                    {lead.messages?.length || 0} message{lead.messages?.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
