@@ -151,37 +151,35 @@ export default function OperationalStatusCard({
   if (monitoringStatus === 'active') {
     return (
       <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-5 hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-4 hover:shadow-xl transition-all duration-300">
           {/* Compact Header */}
-          <div className="flex items-center justify-center mb-3">
-            <div className="text-center">
-              <h3 className="text-lg sm:text-xl font-bold text-white">🟢 ReplyFlow Active</h3>
-              <p className="text-sm text-slate-300">Monitoring calls and responding automatically.</p>
-            </div>
+          <div className="flex items-center justify-center mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-white">🟢 ReplyFlow Active</h3>
           </div>
 
+          {/* Compact Description */}
+          <p className="text-xs sm:text-sm text-slate-300 text-center mb-3">
+            Monitoring calls and responding automatically.
+          </p>
+
           {/* Activity Summary */}
-          <div className="text-center mb-5">
-            <p className="text-xs text-slate-400 mb-1">Last Activity:</p>
-            <p className="text-white font-medium text-sm">
-              {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No activity yet'}
-            </p>
-            <p className="text-white font-medium text-sm mt-1">
-              {loading ? '...' : activityData.leadsCreated} lead{activityData.leadsCreated !== 1 ? 's' : ''} recovered
+          <div className="text-center mb-4">
+            <p className="text-xs sm:text-sm text-slate-200">
+              Last activity: {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No activity yet'} • {loading ? '...' : activityData.leadsCreated} lead{activityData.leadsCreated !== 1 ? 's' : ''} recovered
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={onReviewSetup}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
             >
               Test ReplyFlow
             </button>
             <button
               onClick={() => setShowSystemDetails(true)}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
             >
               System Details
             </button>
