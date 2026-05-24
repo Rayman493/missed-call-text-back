@@ -33,8 +33,43 @@ function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
   return date
 }
 
-// Follow-up configuration
-export const FOLLOW_UP_SCHEDULE = [
+// Get follow-up configuration from business settings
+export async function getFollowUpSchedule(businessId: string): Promise<Array<{
+  step: number;
+  delayMinutes: number;
+  message: string;
+}>> {
+  try {
+    const business = await db.getBusiness(businessId)
+    if (!business) {
+      console.error('[FollowUps] Business not found:', businessId)
+      return []
+    }
+
+    const automationSettings = business.automation_settings || {}
+    const followUpSettings = automationSettings.followUps
+
+    // If no custom settings, use defaults
+    if (!followUpSettings || !followUpSettings.enabled) {
+      return []
+    }
+
+    // Convert saved settings to schedule format
+    return (followUpSettings.followUps || [])
+      .filter((fu: any) => fu.enabled)
+      .map((fu: any) => ({
+        step: fu.step,
+        delayMinutes: fu.delayDays * 24 * 60, // Convert days to minutes
+        message: fu.message.replace('{{businessName}}', business.name || 'My Business')
+      }))
+  } catch (error) {
+    console.error('[FollowUps] Error getting follow-up schedule:', error)
+    return []
+  }
+}
+
+// Follow-up configuration (fallback defaults)
+export const DEFAULT_FOLLOW_UP_SCHEDULE = [
   {
     step: 1,
     delayMinutes: 30, // 30 minutes after missed call
@@ -70,7 +105,16 @@ export async function createFollowUpJobs(params: {
   const jobs = []
   const now = new Date()
   
-  for (const followUp of FOLLOW_UP_SCHEDULE) {
+  // Get follow-up schedule from business settings
+  const followUpSchedule = await getFollowUpSchedule(businessId)
+  
+  // If no follow-ups are configured, don't create jobs
+  if (followUpSchedule.length === 0) {
+    console.log('[FollowUps] No follow-up schedule configured for business:', businessId)
+    return []
+  }
+
+  for (const followUp of followUpSchedule) {
     const idempotencyKey = `${leadId}-${followUp.step}`
     
     try {
@@ -101,7 +145,7 @@ export async function createFollowUpJobs(params: {
         }
       }
       
-      const messageBody = followUp.message(businessName || 'My Business')
+      const messageBody = followUp.message
       
       const job = await db.createFollowUpJob({
         lead_id: leadId,

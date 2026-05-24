@@ -45,6 +45,15 @@ export interface Business {
     ignoreBlockedPrivateNumbers?: boolean;
     ignoreSuspectedSpamCallers?: boolean;
     blockedNumbers?: string[];
+    followUps?: {
+      enabled?: boolean;
+      followUps?: Array<{
+        step: number;
+        enabled: boolean;
+        delayDays: number;
+        message: string;
+      }>;
+    };
   } | null;
   
   // Forwarding verification fields

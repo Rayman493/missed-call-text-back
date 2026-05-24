@@ -17,6 +17,9 @@ import { usePathname } from 'next/navigation'
 import { Business } from '@/lib/types'
 import { deriveSetupState } from '@/lib/setup-state'
 import CompletedMonitoringCard from './CompletedMonitoringCard'
+import OperationalStatusCard from '@/components/OperationalStatusCard'
+import SetupReviewPanel from '@/components/SetupReviewPanel'
+import RecentActivityTimeline from '@/components/RecentActivityTimeline'
 
 type OnboardingState = 
   | 'loading'
@@ -61,6 +64,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [realCallDataExists, setRealCallDataExists] = useState(false)
+  const [showSetupReviewPanel, setShowSetupReviewPanel] = useState(false)
   const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
 
   // Mobile detection
@@ -382,9 +386,23 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
   // Compact monitoring card for completed setup
   if (complete) {
     return (
-      <CompletedMonitoringCard 
-        missedCallCount={missedCallCount}
-      />
+      <>
+        <OperationalStatusCard 
+          business={currentBusiness}
+          missedCallCount={missedCallCount}
+          onReviewSetup={() => setShowSetupReviewPanel(true)}
+        />
+        
+        {/* Recent Activity Timeline */}
+        <RecentActivityTimeline business={currentBusiness} />
+        
+        {/* Setup Review Panel */}
+        <SetupReviewPanel 
+          isOpen={showSetupReviewPanel}
+          onClose={() => setShowSetupReviewPanel(false)}
+          business={currentBusiness}
+        />
+      </>
     )
   }
 
@@ -435,8 +453,8 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
   const totalSteps = checklistItems.length
 
   return (
-    <div className="rounded-2xl border border-border bg-transparent p-4 sm:p-6 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+    <div className="rounded-xl border border-border bg-transparent p-3 sm:p-4 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
             <h2 className="text-base sm:text-lg font-semibold text-foreground">
@@ -479,10 +497,10 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
       </div>
 
       {/* Progress bar */}
-      <div className="mb-4 sm:mb-6">
-        <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+      <div className="mb-3 sm:mb-4">
+        <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
           <div
-            className="bg-blue-600 h-1.5 transition-all duration-500 ease-out"
+            className="bg-blue-600 h-1 transition-all duration-500 ease-out"
             style={{ width: `${Math.round((doneSteps / totalSteps) * 100)}%` }}
           />
         </div>
@@ -490,7 +508,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
 
       {/* Checklist items */}
       {isExpanded && (
-        <ul className="space-y-1.5 sm:space-y-2.5">
+        <ul className="space-y-1 sm:space-y-2">
           {checklistItems.map((item, idx) => {
             const stepNum = idx + 1
             const isComplete = item.status === 'complete'

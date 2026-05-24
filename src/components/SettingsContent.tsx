@@ -1002,6 +1002,35 @@ export default function SettingsContent() {
                     )}
                   </div>
 
+                  {/* Automatic Follow-Ups */}
+                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                            New
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-muted-foreground mb-1">
+                          Configure automated follow-up messages to re-engage leads.
+                        </p>
+                        <div className="text-xs text-slate-600 dark:text-muted-foreground">
+                          📅 Schedule up to 3 follow-ups with custom timing and messages.
+                        </div>
+                      </div>
+                      <Link
+                        href="/dashboard/settings/follow-ups"
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      >
+                        Configure
+                        <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+
                   {/* Automation Status Summary */}
                   <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-start gap-3">
