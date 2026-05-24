@@ -25,7 +25,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {messagesArray.map((msg: any, index: number) => {
         const errorMessage = getErrorMessage(msg.error_code)
         const hasError = msg.status === 'undelivered' || msg.status === 'failed'
@@ -39,8 +39,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-2 sm:gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'} animate-slideInUp`}
-            style={{ animationDelay: `${index * 0.05}s` }}
+            className={`flex items-start gap-2 sm:gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Smaller on mobile */}
             <div className={`flex-shrink-0 w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm ${
@@ -58,49 +57,38 @@ export default function MobileConversationMessageList({
                 <span className="text-xs text-muted-foreground font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
-                {isInbound && (
-                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium border border-blue-100 dark:border-blue-800/30">
-                    Customer
-                  </span>
-                )}
                 {isOutbound && !isOptimistic && (
                   <>
                     {msg.status === 'delivered' && (
-                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium border border-emerald-100 dark:border-emerald-800/30 animate-fadeIn">
-                        ✓ Delivered
+                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium border border-emerald-100 dark:border-emerald-800/30">
+                        Delivered
                       </span>
                     )}
                     {msg.status === 'failed' && (
-                      <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-full font-medium animate-shake border border-red-100 dark:border-red-800/30">
-                        ✗ Failed
+                      <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-full font-medium border border-red-100 dark:border-red-800/30">
+                        Failed
                       </span>
                     )}
                   </>
                 )}
                 {isOptimistic && (
-                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium animate-pulse border border-blue-100 dark:border-blue-800/30">
-                    ⏳ Sending...
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium border border-blue-100 dark:border-blue-800/30">
+                    Sending...
                   </span>
                 )}
               </div>
               
               {/* Message Bubble */}
               <div
-                className={`rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 relative transition-all duration-300 ease-out shadow-sm ${
+                className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 relative transition-all duration-300 ease-out shadow-sm ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none hover:shadow-md border border-slate-100 dark:border-slate-700/50'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none hover:shadow-md border border-slate-200 dark:border-slate-700'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-tr-none animate-pulse shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-tr-none opacity-90 shadow-md border border-blue-700'
                     : 'bg-blue-600 text-white rounded-tr-none hover:bg-blue-700 hover:shadow-md border border-blue-700'
                 }`}
               >
-                {isOptimistic && isSending && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1">
-                    <div className="w-2 h-2 bg-white/30 rounded-full animate-ping"></div>
-                    <div className="w-2 h-2 bg-white/40 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                )}
-                <p className="text-sm sm:text-sm leading-relaxed break-words animate-fadeIn">
+                <p className="text-sm sm:text-sm leading-relaxed break-words">
                   {msg.body || 'No content'}
                 </p>
               </div>

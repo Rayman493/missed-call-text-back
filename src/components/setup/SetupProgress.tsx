@@ -16,6 +16,7 @@ import { handleBillingAction } from '@/lib/billing'
 import { usePathname } from 'next/navigation'
 import { Business } from '@/lib/types'
 import { deriveSetupState } from '@/lib/setup-state'
+import CompletedMonitoringCard from './CompletedMonitoringCard'
 
 type OnboardingState = 
   | 'loading'
@@ -378,182 +379,12 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
     )
   }
 
-  // Slim success banner for completed setup
+  // Compact monitoring card for completed setup
   if (complete) {
-    // Calculate progress for expanded view
-    const totalSteps = 3
-    const doneSteps = 3
-    const progressPct = 100
-
     return (
-      <div className="rounded-xl border border-green-200/60 dark:border-green-800/50 bg-gradient-to-r from-green-50/50 to-emerald-50/40 dark:from-green-900/10 dark:to-emerald-900/10 px-4 sm:px-6 py-2 sm:py-3 mb-6 transition-all duration-300 hover:shadow-md">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <div className="relative flex-shrink-0">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
-                <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-sm"></div>
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-200">
-                ReplyFlow is actively monitoring your business line.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <button
-              onClick={() => window.location.href = '/dashboard/test-setup'}
-              className="text-[10px] sm:text-xs text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors font-medium hover:underline"
-            >
-              Run test
-            </button>
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-[10px] sm:text-xs text-green-600/80 dark:text-green-400/70 hover:text-green-800 dark:hover:text-green-300 transition-colors font-medium hover:underline"
-              aria-expanded={isExpanded}
-              aria-label="View setup details"
-            >
-              {isExpanded ? 'Hide details' : 'View setup'}
-            </button>
-          </div>
-        </div>
-
-        {/* Expandable setup details */}
-        {isExpanded && (
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-green-200/50 dark:border-green-800/50">
-            <div className={`rounded-xl border p-2 sm:p-4 border-green-200/50 dark:border-green-800/50`}>
-              {/* Horizontal layout: left text, right CTA */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2 sm:mb-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                    <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                      Setup Complete
-                    </h2>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    ReplyFlow is actively monitoring your business line.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsExpanded(false)}
-                  className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-                  aria-expanded={isExpanded}
-                  aria-label="Collapse setup checklist"
-                >
-                  <svg
-                    className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Checklist items */}
-              <ul className="space-y-1.5 sm:space-y-2.5">
-                <li className="flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
-                      <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-foreground">ReplyFlow Number Ready</h4>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-[10px] sm:text-[11px] font-medium text-green-700 dark:text-green-300">
-                        DONE
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Your dedicated ReplyFlow number is active and ready to receive missed calls.
-                    </p>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {currentBusiness?.twilio_phone_number && (
-                        <span>Number: {getReplyFlowPhoneNumberDisplay(currentBusiness.twilio_phone_number)}</span>
-                      )}
-                    </div>
-                  </div>
-                </li>
-
-                <li className="flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
-                      <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-foreground">Call Forwarding Connected</h4>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-[10px] sm:text-[11px] font-medium text-green-700 dark:text-green-300">
-                        DONE
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Call forwarding is active and your business phone is connected to ReplyFlow.
-                    </p>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {currentBusiness?.business_phone_number && (
-                        <span>Forwarding from: {formatPhoneNumber(currentBusiness.business_phone_number)}</span>
-                      )}
-                    </div>
-                  </div>
-                </li>
-
-                <li className="flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
-                      <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-foreground">Test Your Setup</h4>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-[10px] sm:text-[11px] font-medium text-green-700 dark:text-green-300">
-                        DONE
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Your setup is complete and ReplyFlow is actively monitoring missed calls.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href="/dashboard/test-setup"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
-                      >
-                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Run Another Test
-                      </Link>
-                      <button
-                        onClick={() => window.location.href = '/setup/phone-forwarding'}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
-                      >
-                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Review Forwarding Setup
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
+      <CompletedMonitoringCard 
+        missedCallCount={missedCallCount}
+      />
     )
   }
 

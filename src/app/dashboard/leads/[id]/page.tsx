@@ -942,12 +942,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
           {/* Back to Leads */}
-          <div className="mb-2">
+          <div className="mb-2 sm:mb-3">
             <Link
               href="/dashboard/leads"
-              className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -958,30 +958,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Lead Identity Section */}
           <div className="flex flex-col gap-2">
-            {/* Mobile Layout: Lead Info with Actions */}
+            {/* Mobile Layout: Modern Lead Info */}
             <div className="md:hidden">
               <div className="flex-1 min-w-0">
-                {/* Phone + Status + Actions Row */}
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight truncate flex-1">
+                {/* Phone + Status Row */}
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white leading-tight truncate flex-1">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
                   
-                  {/* Status Badge */}
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                  {/* Modern Status Badge */}
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium flex-shrink-0 border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                     {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                   </span>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* Modern Actions */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
                       onClick={handleRefresh}
                       disabled={refreshing}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
+                      className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
                       title="Refresh"
                     >
                       {refreshing ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
                       ) : (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -992,7 +992,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="relative">
                       <button
                         onClick={() => setShowMoreActions(!showMoreActions)}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                        className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                         title="More actions"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1064,8 +1064,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
                 
                 {/* Lead Meta */}
-                <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
-                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
+                  {/* Show lead details as inline link */}
+                  <button
+                    onClick={() => setShowLeadInfo(!showLeadInfo)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    {showLeadInfo ? 'Hide details' : 'Show details'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1074,22 +1081,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="hidden md:flex md:items-center md:gap-4 md:flex-1 md:min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                <div className="flex items-center gap-4 mb-2">
+                  <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
                   
-                  {/* Status Badge */}
+                  {/* Modern Status Badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
                 </div>
                 
                 {/* Lead Meta */}
-                <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
-                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                  <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
                 </div>
             </div>
             
@@ -1099,11 +1106,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
+                className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50"
                 title="Refresh"
               >
                 {refreshing ? (
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1115,7 +1122,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="relative">
                 <button
                   onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                   title="More actions"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1270,26 +1277,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
-        <div className="bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-2 sm:py-3 sm:py-4">
+        <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col md:h-auto md:min-h-[500px]">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-6 sm:p-8 min-h-[400px] sm:min-h-[500px] max-h-[calc(100vh-280px)] overflow-y-auto scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-6 sm:p-8 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-160px)] overflow-y-auto scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : messagesArray.length === 0 ? (
-              <div className="text-center py-16 sm:py-20 animate-fadeIn">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                  Ready to connect
+                <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+                  Start the conversation
                 </h3>
-                <p className="text-sm text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto">
-                  Send a message to reach this customer. Conversation history will appear here automatically.
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  Send your first message to connect with this customer.
                 </p>
               </div>
             ) : (
@@ -1316,7 +1323,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         )}
 
           {/* Send Message Input */}
-          <div className="border-t border-border bg-card/50 backdrop-blur-sm">
+          <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm">
             <MobileConversationComposer
               message={message}
               setMessage={setMessage}
@@ -1325,7 +1332,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             />
           </div>
           {error && (
-            <div className={`text-sm p-3 rounded-lg border ${
+            <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
               error.includes('verification') || error.includes('carrier')
                 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
                 : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
@@ -1337,13 +1344,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mx-4">
             <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
           </div>
         )}
 
         {/* Scheduled Follow-ups */}
-        <div className="mt-6 sm:mt-8">
+        <div className="mt-4 sm:mt-6">
           <MobileFollowUpSummary followUpJobs={followUpJobs} />
         </div>
 
