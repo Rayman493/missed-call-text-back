@@ -54,25 +54,23 @@ export default function AppHeader({
             </div>
           </div>
           
-          {/* Right side - Account controls */}
+          {/* Right side - Utility actions grouped together */}
           <div className="flex items-center gap-1">
             {/* Notifications - visible on all screen sizes */}
             <NavbarNotifications />
             
-            {/* Settings - only visible on mobile, hidden on desktop (desktop uses Navigation) */}
-            <div className="md:hidden">
-              <Link
-                href="/dashboard/settings"
-                className={`p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors ${
-                  pathname?.startsWith('/dashboard/settings') ? 'text-white' : ''
-                }`}
-                aria-label="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </Link>
-            </div>
+            {/* Settings gear icon - visible on all screen sizes */}
+            <Link
+              href="/dashboard/settings"
+              className={`p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors ${
+                pathname?.startsWith('/dashboard/settings') ? 'text-white' : ''
+              }`}
+              aria-label="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </Link>
             
-            {/* User dropdown */}
+            {/* User dropdown - rightmost element */}
             <UserDropdown />
           </div>
         </div>

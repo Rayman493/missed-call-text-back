@@ -78,8 +78,6 @@ export default function MobileMenu() {
   const privateMenuItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
-    { href: '/dashboard/notifications', label: 'Notifications' },
-    { href: '/dashboard/settings', label: 'Settings' },
   ]
 
   // Determine menu items based on auth state and page
