@@ -33,97 +33,129 @@ interface SetupStep {
 export default function SetupReviewPanel({ isOpen, onClose, business }: SetupReviewPanelProps) {
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([])
   const [loading, setLoading] = useState(true)
+  const [completedSteps, setCompletedSteps] = useState(0)
 
   useEffect(() => {
     if (!business) return
 
     const calculateSetupSteps = () => {
+      // STEP 1: Business Information
+      const businessInfoComplete = Boolean(business?.name && business?.business_phone_number)
+      
+      // STEP 2: Subscription Active  
       const subscriptionActive = hasActiveAccess(business)
+      
+      // STEP 3: ReplyFlow Number Ready
       const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
-      const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-      const testComplete = business?.forwarding_verified
+      
+      // STEP 4: Forwarding Configured
+      const forwardingConfigured = Boolean(business?.phone_setup_completed_at)
+      
+      // STEP 5: Test Call Verification
+      const testVerified = business?.forwarding_verified
+      
+      // Calculate completion count
+      const completedStepsCount = [
+        businessInfoComplete,
+        subscriptionActive, 
+        twilioReady,
+        forwardingConfigured,
+        testVerified
+      ].filter(Boolean).length
 
       const steps: SetupStep[] = [
+        // STEP 1: Business Information
         {
           id: 'business-info',
           title: 'Business Information',
           description: 'Your business details and contact information',
-          status: business?.name ? 'complete' : 'needs-action',
+          status: businessInfoComplete ? 'complete' : 'needs-action',
           icon: <Phone className="w-5 h-5" />,
-          details: business?.name ? `Business: ${business.name}` : undefined,
+          details: businessInfoComplete 
+            ? `Business: ${business.name}`
+            : 'Enter your business name and phone number',
           completionDate: business?.created_at || undefined,
-          actionText: business?.name ? undefined : 'Update Business Info',
+          actionText: businessInfoComplete ? undefined : 'Update Business Info',
           actionHref: '/dashboard/settings'
         },
+        
+        // STEP 2: Subscription Active
         {
           id: 'subscription',
-          title: 'Trial/Subscription Status',
+          title: 'Subscription Active',
           description: 'Your ReplyFlow subscription plan',
           status: subscriptionActive ? 'complete' : 'needs-action',
           icon: <CreditCard className="w-5 h-5" />,
           details: subscriptionActive 
-            ? (hasActiveTrial(business) ? 'Active Trial' : 'Active Subscription')
-            : 'No active subscription',
+            ? (hasActiveTrial(business) ? 'Free Trial Active' : 'Paid Subscription Active')
+            : 'Start your free trial or activate a subscription',
           completionDate: subscriptionActive ? (business?.trial_ends_at || business?.current_period_end || undefined) : undefined,
           actionText: subscriptionActive ? undefined : 'Start Free Trial',
-          actionHref: '/pricing',
-          badge: subscriptionActive ? 'Active' : 'Required'
+          actionHref: '/pricing'
         },
+        
+        // STEP 3: ReplyFlow Number Ready
         {
           id: 'phone-number',
-          title: 'ReplyFlow Phone Number',
+          title: 'ReplyFlow Number Ready',
           description: 'Your dedicated ReplyFlow phone number',
           status: twilioReady ? 'complete' : subscriptionActive ? 'in-progress' : 'not-started',
           icon: <Phone className="w-5 h-5" />,
-          details: business?.twilio_phone_number 
+          details: twilioReady 
             ? `Number: ${formatPhoneNumber(business.twilio_phone_number)}`
-            : undefined,
+            : subscriptionActive ? 'Assigning your ReplyFlow number...' : 'Requires active subscription',
           completionDate: business?.provisioned_at || undefined,
-          actionText: twilioReady ? undefined : subscriptionActive ? 'Assign Number' : 'Start Trial First',
-          actionHref: subscriptionActive ? '/dashboard/settings' : '/pricing',
-          badge: twilioReady ? 'Active' : subscriptionActive ? 'In Progress' : 'Pending'
+          actionText: twilioReady ? undefined : subscriptionActive ? 'Assign Number' : 'Start Subscription First',
+          actionHref: subscriptionActive ? '/dashboard/settings' : '/pricing'
         },
+        
+        // STEP 4: Forwarding Configured
         {
           id: 'call-forwarding',
-          title: 'Call Forwarding',
+          title: 'Forwarding Configured',
           description: 'Forward your business phone to ReplyFlow',
-          status: forwardingSetupComplete ? 'complete' : twilioReady ? 'needs-action' : 'not-started',
+          status: forwardingConfigured ? 'complete' : twilioReady ? 'needs-action' : 'not-started',
           icon: <Phone className="w-5 h-5" />,
-          details: business?.business_phone_number && business?.twilio_phone_number
-            ? `Forward ${formatPhoneNumber(business.business_phone_number)} → ${formatPhoneNumber(business.twilio_phone_number)}`
-            : business?.business_phone_number 
-            ? `Business: ${formatPhoneNumber(business.business_phone_number)}`
-            : undefined,
+          details: forwardingConfigured
+            ? `Forwarding configured: ${formatPhoneNumber(business.business_phone_number)} → ${formatPhoneNumber(business.twilio_phone_number)}`
+            : twilioReady 
+              ? `Configure forwarding from ${formatPhoneNumber(business.business_phone_number)} to ${formatPhoneNumber(business.twilio_phone_number)}`
+              : 'Requires ReplyFlow number first',
           completionDate: business?.phone_setup_completed_at || undefined,
-          actionText: forwardingSetupComplete ? undefined : twilioReady ? 'Setup Forwarding' : 'Assign Number First',
+          actionText: forwardingConfigured ? undefined : twilioReady ? 'Configure Forwarding' : 'Get ReplyFlow Number First',
           actionHref: twilioReady ? '/setup/phone-forwarding' : '/dashboard/settings',
-          badge: forwardingSetupComplete ? 'Active' : twilioReady ? 'Required' : 'Pending',
-          instructions: twilioReady && !forwardingSetupComplete ? {
+          instructions: twilioReady && !forwardingConfigured ? {
             title: 'Forwarding Instructions',
             steps: [
               `Dial **${formatPhoneNumber(business.business_phone_number || '')}**`,
               'Enter **##004** (AT&T) or **##004** (Verizon)',
               `Enter forwarding number: **${formatPhoneNumber(business.twilio_phone_number || '')}**`,
               'Wait for confirmation tone',
-              'Test by calling your business number'
+              'We\'ll verify forwarding during your test call'
             ]
           } : undefined
         },
+        
+        // STEP 5: Test Call Verification
         {
           id: 'test-verification',
           title: 'Test Call Verification',
           description: 'Verify your setup with a test call',
-          status: testComplete ? 'complete' : forwardingSetupComplete ? 'needs-action' : 'not-started',
+          status: testVerified ? 'complete' : forwardingConfigured ? 'needs-action' : 'not-started',
           icon: <TestTube className="w-5 h-5" />,
-          details: testComplete ? 'Test call verified successfully' : undefined,
+          details: testVerified 
+            ? 'Test call received and ReplyFlow workflow verified'
+            : forwardingConfigured 
+              ? 'Run a test call to confirm ReplyFlow is receiving missed calls correctly'
+              : 'Configure forwarding first',
           completionDate: business?.test_call_received_at || undefined,
-          actionText: testComplete ? 'Run Another Test' : forwardingSetupComplete ? 'Run Test Call' : 'Setup Forwarding First',
-          actionHref: forwardingSetupComplete ? '/dashboard/test-setup' : '/setup/phone-forwarding',
-          badge: testComplete ? 'Verified' : forwardingSetupComplete ? 'Required' : 'Pending'
+          actionText: testVerified ? 'Run Another Test' : forwardingConfigured ? 'Run Test Call' : 'Configure Forwarding First',
+          actionHref: forwardingConfigured ? '/dashboard/test-setup' : '/setup/phone-forwarding'
         }
       ]
 
       setSetupSteps(steps)
+      setCompletedSteps(completedStepsCount)
       setLoading(false)
     }
 
@@ -172,7 +204,6 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
     }
   }
 
-  const completedSteps = setupSteps.filter(step => step.status === 'complete').length
   const totalSteps = setupSteps.length
   const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
 
@@ -186,16 +217,40 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
         onClick={onClose}
       />
 
-      {/* Panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl">
+      {/* Panel - positioned below header */}
+      <div className="absolute right-0 top-16 h-[calc(100vh-4rem)] w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-border">
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl font-semibold text-foreground">Setup Review</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Review your ReplyFlow configuration
-              </p>
+              <div className="mt-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-foreground">
+                      {completedSteps}
+                    </span>
+                    <span className="text-sm text-muted-foreground">/ 5 Complete</span>
+                  </div>
+                  {completedSteps === 5 ? (
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                      Setup Complete
+                    </span>
+                  ) : (
+                    <span className="text-sm text-amber-600 dark:text-amber-400">
+                      {5 - completedSteps} step{5 - completedSteps > 1 ? 's' : ''} remaining
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {completedSteps === 5 
+                    ? 'ReplyFlow is actively monitoring your business line.'
+                    : completedSteps === 4
+                      ? 'One final step remains. Run a test call to verify your setup.'
+                      : `${completedSteps} of 5 steps completed. Continue setup to activate ReplyFlow.`
+                  }
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}

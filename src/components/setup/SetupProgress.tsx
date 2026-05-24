@@ -387,7 +387,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
   // Compact monitoring card for completed setup
   if (complete) {
     return (
-      <>
+      <div className="space-y-4">
         <OperationalStatusCard 
           business={currentBusiness}
           missedCallCount={missedCallCount}
@@ -406,7 +406,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
           onClose={() => setShowSetupReviewPanel(false)}
           business={currentBusiness}
         />
-      </>
+      </div>
     )
   }
 

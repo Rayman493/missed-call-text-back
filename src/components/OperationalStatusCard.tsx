@@ -91,11 +91,12 @@ export default function OperationalStatusCard({
     fetchActivityData()
   }, [business, missedCallCount, lastActivity])
 
-  const getStatusIndicator = (status: 'active' | 'inactive' | 'warning') => {
+  const getStatusIndicator = (status: 'active' | 'inactive' | 'warning' | 'needs-attention') => {
     const colors = {
       active: 'bg-green-500',
       inactive: 'bg-gray-400',
-      warning: 'bg-amber-500'
+      warning: 'bg-amber-500',
+      'needs-attention': 'bg-amber-500'
     }
     return (
       <div className={`w-2 h-2 ${colors[status]} rounded-full ${status === 'active' ? 'animate-pulse' : ''}`}></div>
@@ -111,30 +112,82 @@ export default function OperationalStatusCard({
     return texts[status]
   }
 
-  const isMonitoringActive = business?.setup_status === 'working'
   const isForwardingActive = business?.call_forwarding_enabled === true
   const isTextReplyActive = business?.messaging_status === 'active'
+  
+  // Clear monitoring status logic
+  const isMonitoringHealthy = isForwardingActive && isTextReplyActive
+  const monitoringStatus = isMonitoringHealthy ? 'active' : 'needs-attention'
+  
+  // Context for why attention is needed
+  const getMonitoringContext = () => {
+    if (!isForwardingActive && !isTextReplyActive) {
+      return 'Call forwarding and text messaging need to be configured'
+    }
+    if (!isForwardingActive) {
+      return 'Call forwarding needs to be set up'
+    }
+    if (!isTextReplyActive) {
+      return 'Text messaging needs to be activated'
+    }
+    return null
+  }
 
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          {getStatusIndicator(isMonitoringActive ? 'active' : 'warning')}
-          <div>
-            <h3 className="text-xl font-bold text-white">System Status</h3>
-            <p className="text-sm text-slate-300">
-              {isMonitoringActive ? 'ReplyFlow is actively monitoring' : 'Setup required'}
-            </p>
+      {/* Header with Operational Summary */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {getStatusIndicator(monitoringStatus)}
+            <div>
+              <h3 className="text-xl font-bold text-white">ReplyFlow Status</h3>
+              <p className="text-sm text-slate-300">
+                {monitoringStatus === 'active' ? '🟢 Active and Monitoring Calls' : '🟡 Setup Required'}
+              </p>
+            </div>
+          </div>
+          
+          {/* Health Indicator */}
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${monitoringStatus === 'active' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+            <span className={`text-xs font-medium ${monitoringStatus === 'active' ? 'text-green-400' : 'text-amber-400'}`}>
+              {monitoringStatus === 'active' ? 'Healthy' : 'Attention Needed'}
+            </span>
           </div>
         </div>
-        
-        {/* Health Indicator */}
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isMonitoringActive ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-          <span className={`text-xs font-medium ${isMonitoringActive ? 'text-green-400' : 'text-amber-400'}`}>
-            {isMonitoringActive ? 'Healthy' : 'Attention Needed'}
-          </span>
+
+        {/* Operational Summary */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-300 mb-3">
+            {monitoringStatus === 'active' 
+              ? 'ReplyFlow is actively monitoring your business line and responding to missed calls.'
+              : 'Complete setup to start monitoring your business line and capturing missed calls.'
+            }
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Last Lead Activity:</span>
+              <span className="text-white font-medium">
+                {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Last SMS Sent:</span>
+              <span className="text-white font-medium">
+                {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Calls Processed:</span>
+              <span className="text-white font-medium">
+                {loading ? '...' : activityData.missedCallsProcessed}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -169,12 +222,19 @@ export default function OperationalStatusCard({
         {/* Monitoring Status */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            {getStatusIndicator(isMonitoringActive ? 'active' : 'warning')}
+            {getStatusIndicator(monitoringStatus)}
             <span className="text-xs font-medium text-slate-300">Monitoring</span>
           </div>
           <div className="text-sm text-white">
-            {getStatusText(isMonitoringActive ? 'active' : 'warning')}
+            {getStatusText(monitoringStatus === 'active' ? 'active' : 'warning')}
           </div>
+          
+          {/* Context for why attention is needed */}
+          {monitoringStatus === 'needs-attention' && (
+            <div className="text-xs text-amber-400 mt-1">
+              {getMonitoringContext()}
+            </div>
+          )}
         </div>
 
         {/* Text Reply Status */}
