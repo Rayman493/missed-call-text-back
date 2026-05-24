@@ -24,6 +24,10 @@ interface SetupStep {
   actionText?: string
   actionHref?: string
   badge?: string
+  instructions?: {
+    title: string
+    steps: string[]
+  }
 }
 
 export default function SetupReviewPanel({ isOpen, onClose, business }: SetupReviewPanelProps) {
@@ -85,13 +89,25 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
           description: 'Forward your business phone to ReplyFlow',
           status: forwardingSetupComplete ? 'complete' : twilioReady ? 'needs-action' : 'not-started',
           icon: <Phone className="w-5 h-5" />,
-          details: business?.business_phone_number 
-            ? `Forwarding from: ${formatPhoneNumber(business.business_phone_number)}`
+          details: business?.business_phone_number && business?.twilio_phone_number
+            ? `Forward ${formatPhoneNumber(business.business_phone_number)} → ${formatPhoneNumber(business.twilio_phone_number)}`
+            : business?.business_phone_number 
+            ? `Business: ${formatPhoneNumber(business.business_phone_number)}`
             : undefined,
           completionDate: business?.phone_setup_completed_at || undefined,
           actionText: forwardingSetupComplete ? undefined : twilioReady ? 'Setup Forwarding' : 'Assign Number First',
           actionHref: twilioReady ? '/setup/phone-forwarding' : '/dashboard/settings',
-          badge: forwardingSetupComplete ? 'Active' : twilioReady ? 'Required' : 'Pending'
+          badge: forwardingSetupComplete ? 'Active' : twilioReady ? 'Required' : 'Pending',
+          instructions: twilioReady && !forwardingSetupComplete ? {
+            title: 'Forwarding Instructions',
+            steps: [
+              `Dial **${formatPhoneNumber(business.business_phone_number || '')}**`,
+              'Enter **##004** (AT&T) or **##004** (Verizon)',
+              `Enter forwarding number: **${formatPhoneNumber(business.twilio_phone_number || '')}**`,
+              'Wait for confirmation tone',
+              'Test by calling your business number'
+            ]
+          } : undefined
         },
         {
           id: 'test-verification',
@@ -197,6 +213,19 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
               </div>
             ) : (
               <div className="space-y-6">
+                {/* System Health Dashboard */}
+                {completedSteps === totalSteps && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <h4 className="text-sm font-semibold text-green-900 dark:text-green-100">System Ready</h4>
+                    </div>
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      ReplyFlow is fully configured and ready to capture leads
+                    </p>
+                  </div>
+                )}
+
                 {/* Progress Overview */}
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -242,6 +271,23 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
                           {step.completionDate && (
                             <div className="text-xs text-muted-foreground mb-2">
                               Completed: {formatRelativeTime(step.completionDate)}
+                            </div>
+                          )}
+
+                          {/* Forwarding Instructions */}
+                          {step.instructions && (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-2">
+                              <h5 className="text-xs font-medium text-amber-900 dark:text-amber-100 mb-2">
+                                {step.instructions.title}
+                              </h5>
+                              <ol className="text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                                {step.instructions.steps.map((instruction, idx) => (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <span className="text-amber-600 dark:text-amber-400 font-medium">{idx + 1}.</span>
+                                    <span dangerouslySetInnerHTML={{ __html: instruction }} />
+                                  </li>
+                                ))}
+                              </ol>
                             </div>
                           )}
 

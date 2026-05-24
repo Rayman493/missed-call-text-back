@@ -19,6 +19,8 @@ interface ActivityData {
   smsSent: number
   followUpsScheduled: number
   lastActivity: string | null
+  lastSuccessfulSMS: string | null
+  lastLeadActivity: string | null
 }
 
 export default function OperationalStatusCard({ 
@@ -32,7 +34,9 @@ export default function OperationalStatusCard({
     leadsCreated: 0,
     smsSent: 0,
     followUpsScheduled: 0,
-    lastActivity: lastActivity || null
+    lastActivity: lastActivity || null,
+    lastSuccessfulSMS: null,
+    lastLeadActivity: null
   })
   const [loading, setLoading] = useState(true)
 
@@ -73,7 +77,9 @@ export default function OperationalStatusCard({
           leadsCreated: recentLeads?.length || 0,
           smsSent: recentMessages?.filter((m: any) => m.direction === 'outbound').length || 0,
           followUpsScheduled: recentFollowUps?.length || 0,
-          lastActivity: lastActivity || null
+          lastActivity: lastActivity || null,
+          lastSuccessfulSMS: recentMessages?.filter((m: any) => m.direction === 'outbound')[0]?.created_at || null,
+          lastLeadActivity: recentLeads?.[0]?.created_at || null
         })
       } catch (error) {
         console.error('Error fetching activity data:', error)
@@ -110,120 +116,137 @@ export default function OperationalStatusCard({
   const isTextReplyActive = business?.messaging_status === 'active'
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {getStatusIndicator(isMonitoringActive ? 'active' : 'warning')}
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Operational Status</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-xl font-bold text-white">System Status</h3>
+            <p className="text-sm text-slate-300">
               {isMonitoringActive ? 'ReplyFlow is actively monitoring' : 'Setup required'}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {activityData.lastActivity && (
-            <span>Last activity: {formatRelativeTime(activityData.lastActivity)}</span>
-          )}
+        {/* Health Indicator */}
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isMonitoringActive ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+          <span className={`text-xs font-medium ${isMonitoringActive ? 'text-green-400' : 'text-amber-400'}`}>
+            {isMonitoringActive ? 'Healthy' : 'Attention Needed'}
+          </span>
         </div>
       </div>
 
-      {/* Status Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
+      {/* Core Status Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {/* Business Phone */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Business Phone</span>
+            <span className="text-xs font-medium text-slate-300">Business Phone</span>
           </div>
-          <div className="text-sm font-mono text-slate-900 dark:text-slate-100">
+          <div className="text-sm font-mono text-white">
             {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
           </div>
         </div>
 
         {/* ReplyFlow Number */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ReplyFlow Number</span>
+            <span className="text-xs font-medium text-slate-300">ReplyFlow Number</span>
           </div>
-          <div className="text-sm font-mono text-slate-900 dark:text-slate-100">
+          <div className="text-sm font-mono text-white">
             {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
           </div>
         </div>
 
         {/* Monitoring Status */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             {getStatusIndicator(isMonitoringActive ? 'active' : 'warning')}
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Monitoring</span>
+            <span className="text-xs font-medium text-slate-300">Monitoring</span>
           </div>
-          <div className="text-sm text-slate-900 dark:text-slate-100">
+          <div className="text-sm text-white">
             {getStatusText(isMonitoringActive ? 'active' : 'warning')}
           </div>
         </div>
 
         {/* Text Reply Status */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             {getStatusIndicator(isTextReplyActive ? 'active' : 'inactive')}
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Text Replies</span>
+            <span className="text-xs font-medium text-slate-300">Text Replies</span>
           </div>
-          <div className="text-sm text-slate-900 dark:text-slate-100">
+          <div className="text-sm text-white">
             {getStatusText(isTextReplyActive ? 'active' : 'inactive')}
           </div>
         </div>
       </div>
 
-      {/* Forwarding Status */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getStatusIndicator(isForwardingActive ? 'active' : 'warning')}
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Call Forwarding</span>
+      {/* Additional Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        {/* Forwarding Status */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getStatusIndicator(isForwardingActive ? 'active' : 'warning')}
+              <span className="text-sm font-medium text-slate-300">Call Forwarding</span>
+            </div>
+            <div className="text-sm text-white">
+              {getStatusText(isForwardingActive ? 'active' : 'warning')}
+            </div>
           </div>
-          <div className="text-sm text-slate-900 dark:text-slate-100">
-            {getStatusText(isForwardingActive ? 'active' : 'warning')}
+        </div>
+
+        {/* Last Lead Activity */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-medium text-slate-300">Last Lead Activity</span>
+          </div>
+          <div className="text-sm text-white">
+            {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+          </div>
+        </div>
+
+        {/* Last Successful SMS */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span className="text-xs font-medium text-slate-300">Last SMS Sent</span>
+          </div>
+          <div className="text-sm text-white">
+            {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
           </div>
         </div>
       </div>
 
-      {/* Activity Summary */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-4">
-        <div className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Recent Activity (30 days)</div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="text-center">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {loading ? '...' : activityData.missedCallsProcessed}
+      {/* Trial Status */}
+      {business?.trial_ends_at && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium text-slate-300">Trial Status</span>
             </div>
-            <div className="text-xs text-slate-600 dark:text-slate-400">Calls Processed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {loading ? '...' : activityData.leadsCreated}
+            <div className="text-sm text-amber-400">
+              Ends {formatRelativeTime(business.trial_ends_at)}
             </div>
-            <div className="text-xs text-slate-600 dark:text-slate-400">Leads Created</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {loading ? '...' : activityData.smsSent}
-            </div>
-            <div className="text-xs text-slate-600 dark:text-slate-400">SMS Sent</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {loading ? '...' : activityData.followUpsScheduled}
-            </div>
-            <div className="text-xs text-slate-600 dark:text-slate-400">Follow-ups</div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Primary Actions */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">

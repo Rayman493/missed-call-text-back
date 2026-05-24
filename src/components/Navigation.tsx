@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import NavbarNotifications from './NavbarNotifications'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -76,6 +77,9 @@ export default function Navigation() {
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
         )}
       </Link>
+      
+      {/* Notifications */}
+      <NavbarNotifications />
     </nav>
   )
 }

@@ -19,7 +19,8 @@ import { deriveSetupState } from '@/lib/setup-state'
 import CompletedMonitoringCard from './CompletedMonitoringCard'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import SetupReviewPanel from '@/components/SetupReviewPanel'
-import RecentActivityTimeline from '@/components/RecentActivityTimeline'
+import BusinessSnapshot from '@/components/BusinessSnapshot'
+import RecentLeads from '@/components/RecentLeads'
 
 type OnboardingState = 
   | 'loading'
@@ -393,8 +394,11 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
           onReviewSetup={() => setShowSetupReviewPanel(true)}
         />
         
-        {/* Recent Activity Timeline */}
-        <RecentActivityTimeline business={currentBusiness} />
+        {/* Business Snapshot KPI Card */}
+        <BusinessSnapshot business={currentBusiness} />
+        
+        {/* Recent Leads Section */}
+        <RecentLeads business={currentBusiness} />
         
         {/* Setup Review Panel */}
         <SetupReviewPanel 
