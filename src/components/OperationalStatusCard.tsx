@@ -39,6 +39,19 @@ export default function OperationalStatusCard({
     lastLeadActivity: null
   })
   const [loading, setLoading] = useState(true)
+  const [showSystemDetails, setShowSystemDetails] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Fetch recent activity data
   useEffect(() => {
@@ -131,6 +144,133 @@ export default function OperationalStatusCard({
       return 'Text messaging needs to be activated'
     }
     return null
+  }
+
+  // Show compact mobile version when setup is complete
+  if (isMobile && monitoringStatus === 'active') {
+    return (
+      <>
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 hover:shadow-xl transition-all duration-300">
+          {/* Compact Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {getStatusIndicator(monitoringStatus)}
+              <div>
+                <h3 className="text-lg font-bold text-white">ReplyFlow Active</h3>
+                <p className="text-xs text-slate-300">Healthy</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Activity Summary */}
+          <div className="grid grid-cols-1 gap-2 text-xs mb-3">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Last Lead:</span>
+              <span className="text-white font-medium">
+                {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Last SMS:</span>
+              <span className="text-white font-medium">
+                {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Calls Processed:</span>
+              <span className="text-white font-medium">
+                {loading ? '...' : activityData.missedCallsProcessed}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={onReviewSetup}
+              className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              Test ReplyFlow
+            </button>
+            <button
+              onClick={() => setShowSystemDetails(true)}
+              className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              System Details
+            </button>
+          </div>
+        </div>
+
+        {/* System Details Modal */}
+        {showSystemDetails && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowSystemDetails(false)}
+            />
+
+            {/* Modal */}
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                  <h3 className="text-lg font-semibold text-white">System Details</h3>
+                  <button
+                    onClick={() => setShowSystemDetails(false)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Business Phone:</span>
+                    <span className="text-white font-medium">
+                      {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">ReplyFlow Number:</span>
+                    <span className="text-white font-medium">
+                      {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Monitoring:</span>
+                    <span className="text-green-400 font-medium">Active</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Text Replies:</span>
+                    <span className="text-green-400 font-medium">Active</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Forwarding:</span>
+                    <span className="text-green-400 font-medium">Verified</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Last Lead Activity:</span>
+                    <span className="text-white font-medium">
+                      {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Last SMS Sent:</span>
+                    <span className="text-white font-medium">
+                      {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
   }
 
   return (
