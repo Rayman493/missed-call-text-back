@@ -200,6 +200,34 @@ export default function Home() {
   // Only consider account active if subscription is trialing or active, not just business existence
   const hasActiveAccount = isAuthenticated && business && business.subscription_status && ['trialing', 'active'].includes(business.subscription_status)
   
+  // Check if onboarding is complete
+  const isOnboardingComplete = isAuthenticated && business && business.onboarding_status === 'completed'
+  
+  // Determine CTA logic based on user state
+  const getPrimaryCTA = () => {
+    if (!isAuthenticated) {
+      return { text: "Start Free Trial", href: "/signup" }
+    }
+    
+    if (!isOnboardingComplete) {
+      return { text: "Complete Setup", href: "/onboarding" }
+    }
+    
+    return { text: "View Dashboard", href: "/dashboard" }
+  }
+  
+  const getSecondaryCTA = () => {
+    if (!isAuthenticated) {
+      return { text: "View Demo", href: "/demo" }
+    }
+    
+    if (!isOnboardingComplete) {
+      return { text: "Go to Dashboard", href: "/dashboard" }
+    }
+    
+    return { text: "Watch Demo", href: "/demo" }
+  }
+  
   // Trace log on Homepage render
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -327,6 +355,13 @@ export default function Home() {
               ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
             </p>
             
+            {/* Personalization for completed setup users */}
+            {isOnboardingComplete && (
+              <div className="mt-4 text-sm text-green-600 dark:text-green-400 font-medium">
+                ReplyFlow is actively monitoring your business line.
+              </div>
+            )}
+            
             {/* Pricing Information */}
             <div className="flex flex-col items-center gap-2 mt-4">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
@@ -340,27 +375,20 @@ export default function Home() {
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              {/* Show Dashboard CTA on desktop for authenticated users, hide on mobile to avoid navbar duplication */}
-              {isAuthenticated && hasActiveAccount ? (
-                <Link
-                  href="/dashboard"
-                  className="hidden sm:inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-                >
-                  Go to Dashboard
-                </Link>
-              ) : (
-                <Link
-                  href={isAuthenticated ? "/onboarding" : "/signup"}
-                  className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-                >
-                  {isAuthenticated ? "Complete Setup" : "Start Your Free Trial"}
-                </Link>
-              )}
+              {/* Primary CTA - Context-aware based on user state */}
               <Link
-                href="/demo"
+                href={getPrimaryCTA().href}
+                className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
+              >
+                {getPrimaryCTA().text}
+              </Link>
+              
+              {/* Secondary CTA - Context-aware based on user state */}
+              <Link
+                href={getSecondaryCTA().href}
                 className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-white dark:bg-secondary text-slate-700 dark:text-secondary-foreground font-semibold rounded-xl border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-secondary/80 hover:border-slate-300 dark:hover:border-border transition-all duration-200 shadow-sm hover:shadow-md"
               >
-                View Demo
+                {getSecondaryCTA().text}
               </Link>
             </div>
 

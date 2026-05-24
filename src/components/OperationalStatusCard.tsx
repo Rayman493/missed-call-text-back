@@ -151,39 +151,24 @@ export default function OperationalStatusCard({
   if (monitoringStatus === 'active') {
     return (
       <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-5 hover:shadow-xl transition-all duration-300">
           {/* Compact Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {getStatusIndicator(monitoringStatus)}
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">🟢 ReplyFlow Active</h3>
-                <p className="text-sm text-slate-300">Monitoring Calls</p>
-                <p className="text-xs text-slate-400">Healthy</p>
-              </div>
+          <div className="flex items-center justify-center mb-3">
+            <div className="text-center">
+              <h3 className="text-lg sm:text-xl font-bold text-white">🟢 ReplyFlow Active</h3>
+              <p className="text-sm text-slate-300">Monitoring calls and responding automatically.</p>
             </div>
           </div>
 
-          {/* Compact Activity Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-6">
-            <div>
-              <p className="text-xs text-slate-400 mb-1">Last Lead:</p>
-              <p className="text-white font-medium">
-                {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-1">Last SMS:</p>
-              <p className="text-white font-medium">
-                {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-1">Calls Processed:</p>
-              <p className="text-white font-medium">
-                {loading ? '...' : activityData.missedCallsProcessed}
-              </p>
-            </div>
+          {/* Activity Summary */}
+          <div className="text-center mb-5">
+            <p className="text-xs text-slate-400 mb-1">Last Activity:</p>
+            <p className="text-white font-medium text-sm">
+              {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No activity yet'}
+            </p>
+            <p className="text-white font-medium text-sm mt-1">
+              {loading ? '...' : activityData.leadsCreated} lead{activityData.leadsCreated !== 1 ? 's' : ''} recovered
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -264,6 +249,12 @@ export default function OperationalStatusCard({
                     <span className="text-slate-400">Last SMS Sent:</span>
                     <span className="text-white font-medium">
                       {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Calls Processed:</span>
+                    <span className="text-white font-medium">
+                      {loading ? '...' : activityData.missedCallsProcessed}
                     </span>
                   </div>
                 </div>
