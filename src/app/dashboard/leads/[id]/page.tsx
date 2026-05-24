@@ -942,8 +942,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
-          {/* Mobile Layout: Ultra-Compact Messaging App Header */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-1.5 sm:py-3">
+          {/* Mobile Layout: Messaging App Header */}
           <div className="md:hidden">
             <div className="flex items-center justify-between">
               {/* Back + Phone */}
@@ -960,9 +960,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <h1 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
-                  {/* Status Badge */}
-                  <div className="mt-1">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                  {/* Small Status Badge */}
+                  <div className="mt-0.5">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
@@ -1117,10 +1117,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-1 sm:py-2 sm:py-3">
-        <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col md:h-auto md:min-h-[500px]">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-0.5 sm:py-2 sm:py-3">
+        {/* Mobile: Immersive conversation, Desktop: Card container */}
+        <div className="md:bg-card md:rounded-xl md:shadow-sm md:hover:shadow-lg md:transition-all md:duration-300 md:border md:border-border md:overflow-hidden md:flex md:flex-col md:h-auto md:min-h-[500px]">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-6 sm:p-8 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-6 sm:p-8 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-4 md:sm:p-6 md:sm:p-8 md:min-h-[300px] md:sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1150,7 +1151,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Send Message Input */}
-          <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm">
+          <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm md:border-t md:border-border/50 md:bg-background/95 md:backdrop-blur-sm">
             <MobileConversationComposer
               message={message}
               setMessage={setMessage}
