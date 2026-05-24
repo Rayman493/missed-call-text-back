@@ -62,7 +62,7 @@ export default function MobileConversationMessageList({
             )}
             
             {/* Message Content */}
-            <div className={`max-w-[85%] sm:max-w-[80%] ${isOutbound ? 'text-right' : ''}`}>
+            <div className={`max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] ${isOutbound ? 'text-right' : ''}`}>
               {/* Message Header - Lighter timestamp */}
               <div className="flex items-center gap-2 mb-0.5 justify-end flex-wrap">
                 <span className="text-[11px] sm:text-xs text-muted-foreground/70 font-normal" title={new Date(msg.created_at).toLocaleString()}>

@@ -45,11 +45,11 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border bg-card/95 backdrop-blur-md p-3 sm:p-4 sm:p-6 sticky bottom-0 z-20 pb-safe">
-      <div className="max-w-4xl mx-auto">
+    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 sticky bottom-0 z-20 pb-safe">
+      <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-4 sm:gap-5 lg:gap-6">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
