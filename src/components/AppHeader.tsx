@@ -53,12 +53,12 @@ export default function AppHeader({
             </div>
           </div>
           
-          {/* Right side - Notifications and User dropdown */}
-          <div className="flex items-center gap-2">
+          {/* Right side - Account controls grouped as one unit */}
+          <div className="flex items-center gap-1">
             {/* Notifications - visible on all screen sizes */}
             <NavbarNotifications />
             
-            {/* User dropdown */}
+            {/* User dropdown - grouped with notifications */}
             <UserDropdown />
           </div>
         </div>
