@@ -43,7 +43,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <span>No future automatic check-ins scheduled</span>
+          <span>No future automatic check-ins scheduled.</span>
         </div>
       ) : allCancelledAfterReply ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1045,7 +1045,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                  className="w-10 h-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-center"
                   title="Refresh"
                 >
                   {refreshing ? (
@@ -1061,7 +1061,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                    className="w-10 h-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-center"
                     title="More actions"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1136,11 +1136,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-4xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-0.5 sm:py-2 sm:py-3">
+      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 sm:px-6 py-0.5 sm:py-2 sm:py-3">
         {/* Mobile: Immersive conversation, Desktop: Card container */}
         <div className="md:bg-card md:rounded-xl md:shadow-sm md:hover:shadow-lg md:transition-all md:duration-300 md:border md:border-border md:overflow-hidden md:flex md:flex-col md:h-auto md:min-h-[500px]">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-4 sm:p-6 min-h-[300px] sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-4 md:sm:p-5 md:sm:p-6 md:min-h-[300px] md:sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-3 sm:p-3 sm:p-4 min-h-[300px] sm:min-h-[350px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-3 md:sm:p-4 md:sm:p-4 md:min-h-[300px] md:sm:min-h-[350px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
