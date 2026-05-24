@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { Settings } from 'lucide-react'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -63,14 +64,32 @@ export default function Navigation() {
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
         )}
       </Link>
+      
+      {/* Notifications - moved from header to main nav */}
+      <Link
+        href="/dashboard/notifications"
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+          isActive('/dashboard/notifications')
+            ? 'text-white'
+            : 'text-gray-400 hover:text-white'
+        }`}
+      >
+        Notifications
+        {isActive('/dashboard/notifications') && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+        )}
+      </Link>
+      
+      {/* Settings with gear icon */}
       <Link
         href="/dashboard/settings"
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative flex items-center gap-2 ${
           isActive('/dashboard/settings')
             ? 'text-white'
             : 'text-gray-400 hover:text-white'
         }`}
       >
+        <Settings className="w-4 h-4" />
         Settings
         {isActive('/dashboard/settings') && (
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>

@@ -112,7 +112,6 @@ export default function UserDropdown() {
             <User className="sm:hidden w-5 h-5 text-inherit group-hover:text-inherit transition-colors duration-200" />
             
             <span className="hidden sm:inline transition-colors duration-200">Account</span>
-            <ChevronDown size={16} strokeWidth={2} className="shrink-0 text-inherit transition-all duration-200 group-hover:text-inherit group-hover:rotate-180" />
           </button>
 
           {isOpen && (
@@ -123,53 +122,14 @@ export default function UserDropdown() {
                   </p>
                 </div>
                 
-                {/* Theme Selector */}
-                <div className="px-4 py-3 border-b border-border">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Theme</p>
-                  <ThemeSelector />
-                </div>
-                
-                {/* Account Settings */}
-                <button
-                  onClick={() => navigateToSettings('account')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                >
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  Account Settings
-                </button>
-                
-                {/* Manage Subscription */}
-                <button
-                  onClick={handleManageBilling}
-                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                >
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  Manage Subscription
-                </button>
-                
-                {/* FAQ / Help */}
-                <Link
-                  href="/faq"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                >
-                  <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                  FAQ / Help
-                </Link>
-                
                 {/* View Homepage */}
                 <Link
                   href="/"
                   onClick={() => setIsOpen(false)}
-                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center justify-between"
+                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    View Homepage
-                  </div>
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                  View Homepage
                 </Link>
                 
                 {/* Divider before Logout */}

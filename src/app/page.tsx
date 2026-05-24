@@ -209,11 +209,8 @@ export default function Home() {
       return { text: "Start Free Trial", href: "/signup" }
     }
     
-    if (!isOnboardingComplete) {
-      return { text: "Complete Setup", href: "/onboarding" }
-    }
-    
-    return { text: "View Dashboard", href: "/dashboard" }
+    // Authenticated users always go to dashboard
+    return { text: "Go To Dashboard", href: "/dashboard" }
   }
   
   const getSecondaryCTA = () => {
@@ -221,10 +218,7 @@ export default function Home() {
       return { text: "View Demo", href: "/demo" }
     }
     
-    if (!isOnboardingComplete) {
-      return { text: "Go to Dashboard", href: "/dashboard" }
-    }
-    
+    // Authenticated users see demo as secondary option
     return { text: "Watch Demo", href: "/demo" }
   }
   
@@ -355,8 +349,8 @@ export default function Home() {
               ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
             </p>
             
-            {/* Personalization for completed setup users */}
-            {isOnboardingComplete && (
+            {/* Personalization for authenticated users */}
+            {isAuthenticated && (
               <div className="mt-4 text-sm text-green-600 dark:text-green-400 font-medium">
                 ReplyFlow is actively monitoring your business line.
               </div>
