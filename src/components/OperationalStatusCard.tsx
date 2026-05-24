@@ -146,55 +146,57 @@ export default function OperationalStatusCard({
     return null
   }
 
-  // Show compact mobile version when setup is complete
-  if (isMobile && monitoringStatus === 'active') {
+  // Show compact version when setup is complete (both mobile and desktop)
+  // Show full version when setup needs attention
+  if (monitoringStatus === 'active') {
     return (
       <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
           {/* Compact Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
               {getStatusIndicator(monitoringStatus)}
               <div>
-                <h3 className="text-lg font-bold text-white">ReplyFlow Active</h3>
-                <p className="text-xs text-slate-300">Healthy</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">🟢 ReplyFlow Active</h3>
+                <p className="text-sm text-slate-300">Monitoring Calls</p>
+                <p className="text-xs text-slate-400">Healthy</p>
               </div>
             </div>
           </div>
 
           {/* Compact Activity Summary */}
-          <div className="grid grid-cols-1 gap-2 text-xs mb-3">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Last Lead:</span>
-              <span className="text-white font-medium">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-6">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Last Lead:</p>
+              <p className="text-white font-medium">
                 {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Last SMS:</span>
-              <span className="text-white font-medium">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Last SMS:</p>
+              <p className="text-white font-medium">
                 {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Calls Processed:</span>
-              <span className="text-white font-medium">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Calls Processed:</p>
+              <p className="text-white font-medium">
                 {loading ? '...' : activityData.missedCallsProcessed}
-              </span>
+              </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={onReviewSetup}
-              className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Test ReplyFlow
             </button>
             <button
               onClick={() => setShowSystemDetails(true)}
-              className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
             >
               System Details
             </button>
@@ -212,7 +214,7 @@ export default function OperationalStatusCard({
 
             {/* Modal */}
             <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700">
+              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-700">
                   <h3 className="text-lg font-semibold text-white">System Details</h3>
@@ -283,16 +285,16 @@ export default function OperationalStatusCard({
             <div>
               <h3 className="text-xl font-bold text-white">ReplyFlow Status</h3>
               <p className="text-sm text-slate-300">
-                {monitoringStatus === 'active' ? '🟢 Active and Monitoring Calls' : '🟡 Setup Required'}
+                 Setup Required
               </p>
             </div>
           </div>
           
           {/* Health Indicator */}
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${monitoringStatus === 'active' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-            <span className={`text-xs font-medium ${monitoringStatus === 'active' ? 'text-green-400' : 'text-amber-400'}`}>
-              {monitoringStatus === 'active' ? 'Healthy' : 'Attention Needed'}
+            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+            <span className="text-xs font-medium text-amber-400">
+              Attention Needed
             </span>
           </div>
         </div>
@@ -300,10 +302,7 @@ export default function OperationalStatusCard({
         {/* Operational Summary */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-300 mb-3">
-            {monitoringStatus === 'active' 
-              ? 'ReplyFlow is actively monitoring your business line and responding to missed calls.'
-              : 'Complete setup to start monitoring your business line and capturing missed calls.'
-            }
+            Complete setup to start monitoring your business line and capturing missed calls.
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -366,7 +365,7 @@ export default function OperationalStatusCard({
             <span className="text-xs font-medium text-slate-300">Monitoring</span>
           </div>
           <div className="text-sm text-white">
-            {getStatusText(monitoringStatus === 'active' ? 'active' : 'warning')}
+            {getStatusText('warning')}
           </div>
           
           {/* Context for why attention is needed */}
