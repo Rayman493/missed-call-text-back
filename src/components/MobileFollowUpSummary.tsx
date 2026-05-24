@@ -14,7 +14,7 @@ export default function MobileFollowUpSummary({ followUpJobs }: MobileFollowUpSu
   const cancelledJobs = followUpJobs.filter((job: any) => job.status === 'cancelled')
 
   return (
-    <div className="bg-white dark:bg-card/80 backdrop-blur border border-slate-100 dark:border-border/40 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-sm">
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

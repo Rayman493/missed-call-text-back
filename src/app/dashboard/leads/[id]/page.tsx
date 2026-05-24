@@ -1136,11 +1136,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread */}
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-1 sm:py-2 lg:py-3">
         {/* Mobile: Immersive conversation, Desktop: Card container */}
         <div className="md:bg-card md:rounded-xl md:shadow-sm md:hover:shadow-lg md:transition-all md:duration-300 md:border md:border-border md:overflow-hidden md:flex md:flex-col md:h-auto md:min-h-[500px]">
           {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-5 md:sm:p-6 md:sm:p-8 md:min-h-[350px] md:sm:min-h-[400px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
+          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 min-h-[200px] sm:min-h-[250px] lg:min-h-[300px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-auto max-h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-5 md:sm:p-6 md:sm:p-8 md:min-h-[250px] md:sm:min-h-[300px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
