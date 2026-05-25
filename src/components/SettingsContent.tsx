@@ -469,13 +469,22 @@ export default function SettingsContent() {
         return
       }
       
-      // Get scroll position
+      // Get scroll position and viewport dimensions
       const scrollY = window.scrollY
+      const viewportHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
       
       // TOP_THRESHOLD: Force General tab when at or near the top of the page
       const TOP_THRESHOLD = 120
       if (scrollY <= TOP_THRESHOLD) {
         setActiveSection('general')
+        return
+      }
+      
+      // BOTTOM_THRESHOLD: Force Account tab when at or near the bottom of the page
+      const BOTTOM_THRESHOLD = 120
+      if (scrollY + viewportHeight >= documentHeight - BOTTOM_THRESHOLD) {
+        setActiveSection('account')
         return
       }
       

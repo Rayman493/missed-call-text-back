@@ -170,17 +170,23 @@ export default function OperationalStatusCard({
 
           {/* Health Status Pills */}
           <div className="flex flex-wrap justify-center gap-2 mb-4">
-            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-              <span className="text-xs text-green-300">🟢 Calls Active</span>
+            <div className="inline-flex items-center px-3 py-1.5 bg-green-500/20 border border-green-400/30 rounded-full">
+              <svg className="w-3 h-3 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs text-green-300">Calls Active</span>
             </div>
-            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-              <span className="text-xs text-green-300">🟢 Text Replies Active</span>
+            <div className="inline-flex items-center px-3 py-1.5 bg-green-500/20 border border-green-400/30 rounded-full">
+              <svg className="w-3 h-3 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs text-green-300">Text Replies Active</span>
             </div>
-            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-              <span className="text-xs text-green-300">🟢 Follow-Ups Active</span>
+            <div className="inline-flex items-center px-3 py-1.5 bg-green-500/20 border border-green-400/30 rounded-full">
+              <svg className="w-3 h-3 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs text-green-300">Follow-Ups Active</span>
             </div>
           </div>
 

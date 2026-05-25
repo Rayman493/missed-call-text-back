@@ -134,9 +134,9 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
     },
     {
       type: 'texts',
-      label: 'Conversations Started',
+      label: 'Texts Sent',
       value: kpiData.textsSent,
-      description: 'Customer conversations initiated'
+      description: 'Automated outreach messages'
     },
     {
       type: 'replies',
@@ -215,8 +215,10 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
             Lead Conversion
           </div>
           <div className="font-medium text-foreground">
-            {kpiData.callsProcessed > 0 
-              ? `${Math.round((kpiData.leadsCaptured / kpiData.callsProcessed) * 100)}%`
+            {kpiData.callsProcessed > 0 && kpiData.repliesReceived > 0
+              ? `${Math.round((kpiData.repliesReceived / kpiData.callsProcessed) * 100)}%`
+              : kpiData.callsProcessed > 0
+              ? 'Not enough data'
               : 'N/A'
             }
           </div>
