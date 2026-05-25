@@ -21,22 +21,27 @@ function generateVoiceGreeting(businessName?: string): string {
   };
   
   // Generate dynamic greeting with business name or fallback
-  let greetingText: string;
+  let firstMessage: string;
   if (businessName && sanitizeForTTS(businessName)) {
     const sanitized = sanitizeForTTS(businessName);
-    greetingText = `Thanks for calling ${sanitized}. We'll send you a quick text message so you can tell us how we can help.`;
+    firstMessage = `Thanks for calling ${sanitized}. We missed your call, but we are sending you a text message now so we can help.`;
   } else {
-    greetingText = `Thanks for calling. We'll send you a quick text message so you can tell us how we can help.`;
+    firstMessage = `Thanks for calling. We missed your call, but we are sending you a text message now so we can help.`;
   }
   
-  // TwiML with dynamic greeting
-  const simpleTwiml = `
-    <Say>${greetingText}</Say>
+  const secondMessage = `You can reply to the text message with what you need.`;
+  
+  // Improved TwiML with pauses, consistent voice, and better message structure
+  const enhancedTwiml = `
+    <Pause length="1"/>
+    <Say voice="alice">${firstMessage}</Say>
+    <Pause length="2"/>
+    <Say voice="alice">${secondMessage}</Say>
     <Pause length="1"/>
     <Hangup/>
-  `;
+  `.trim();
   
-  return simpleTwiml;
+  return enhancedTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
@@ -649,6 +654,14 @@ export async function POST(request: NextRequest) {
     
     const twiml = generateTwiMLResponse(business.name);
 
+    console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING =====');
+    console.log('[Twilio Voice] Business ID:', business.id);
+    console.log('[Twilio Voice] Business Name:', business.name);
+    console.log('[Twilio Voice] Call SID:', CallSid);
+    console.log('[Twilio Voice] Caller:', From);
+    console.log('[Twilio Voice] Generated TwiML:');
+    console.log('[Twilio Voice]', twiml);
+    console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING END =====');
     console.log('[Twilio Voice] Generated final TwiML response');
     return new NextResponse(twiml, {
       status: 200,

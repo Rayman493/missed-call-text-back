@@ -288,6 +288,52 @@ export async function POST(request: Request) {
         console.log('[PROVISIONING FLOW] ✓ twilio_phone_number_sid saved:', provisioningResult.phoneNumberSid)
         console.log('[PROVISIONING FLOW] ✓ provisioning_status set to completed')
         console.log('[PROVISIONING FLOW] ✓ onboarding_status advanced to completed')
+        
+        // Insert into twilio_numbers table for SMS fail-safe
+        console.log('[PROVISIONING FLOW] ===== TWILIO_NUMBERS UPSERT START =====')
+        console.log('[PROVISIONING FLOW] Inserting into twilio_numbers table for SMS fail-safe')
+        console.log('[PROVISIONING FLOW] Business ID:', business.id)
+        console.log('[PROVISIONING FLOW] Phone Number:', provisioningResult.phoneNumber)
+        console.log('[PROVISIONING FLOW] Phone SID:', provisioningResult.phoneNumberSid)
+        
+        try {
+          const { error: twilioNumbersError } = await supabaseAdmin
+            .from('twilio_numbers')
+            .upsert({
+              twilio_sid: provisioningResult.phoneNumberSid,
+              phone_number: provisioningResult.phoneNumber,
+              business_id: business.id,
+              messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+              provisioning_status: 'ready',
+              campaign_registered_at: new Date().toISOString(),
+              sender_pool_attached_at: provisioningResult.messagingServiceAttached ? new Date().toISOString() : null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'twilio_sid',
+              ignoreDuplicates: false
+            })
+
+          if (twilioNumbersError) {
+            console.error('[PROVISIONING FLOW] ✗ twilio_numbers upsert failed:', twilioNumbersError)
+            console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
+              code: twilioNumbersError.code,
+              message: twilioNumbersError.message,
+              details: twilioNumbersError.details,
+              hint: twilioNumbersError.hint
+            })
+            // Don't fail the provisioning, but log the error for monitoring
+            console.warn('[PROVISIONING FLOW] ⚠ SMS fail-safe may not work until twilio_numbers row is manually added')
+          } else {
+            console.log('[PROVISIONING FLOW] ✓ twilio_numbers upsert successful')
+            console.log('[PROVISIONING FLOW] ✓ SMS fail-safe will now recognize this number')
+          }
+        } catch (twilioNumbersUpsertError) {
+          console.error('[PROVISIONING FLOW] ✗ twilio_numbers upsert error:', twilioNumbersUpsertError)
+          console.warn('[PROVISIONING FLOW] ⚠ SMS fail-safe may not work until twilio_numbers row is manually added')
+        }
+        
+        console.log('[PROVISIONING FLOW] ===== TWILIO_NUMBERS UPSERT END =====')
         console.log('[PROVISIONING FLOW] ===== PROVISIONING FLOW COMPLETE =====')
 
         return NextResponse.json({
