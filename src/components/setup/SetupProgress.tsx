@@ -83,7 +83,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
     
     // Calculate current incomplete step from business data
     const subscriptionActive = hasActiveAccess(business)
-    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
     const replyFlowReadyDone = subscriptionActive && twilioReady
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
     const testComplete = business?.forwarding_verified || realCallDataExists
@@ -209,7 +209,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
   const currentOnboardingState = useMemo(() => {
     if (!business) return 'loading'
     const subscriptionActive = hasActiveAccess(business)
-    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+    const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
     // Step 3 is complete if missedCallCount > 0 OR forwarding_verified OR real call data exists
     const testComplete = missedCallCount > 0 || business?.forwarding_verified || realCallDataExists
@@ -308,7 +308,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
 
   // Legacy variables for compatibility (will be phased out)
   const subscriptionActive = hasActiveAccess(currentBusiness)
-  const twilioReady = Boolean(currentBusiness?.twilio_phone_number) && currentBusiness?.provisioning_status === 'active'
+  const twilioReady = Boolean(currentBusiness?.twilio_phone_number) && currentBusiness?.provisioning_status === 'completed'
   const forwardingSetupComplete = Boolean(currentBusiness?.phone_setup_completed_at)
   const testComplete = setupState.step3Complete
   const provisioningStatus = currentBusiness?.provisioning_status ?? 'pending'
@@ -415,7 +415,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
       status: subscriptionActive && twilioReady ? 'complete' : 'needs-action',
       buttonText: (!subscriptionActive && !twilioReady) ? 'Start Free Trial' : (!subscriptionActive ? 'Upgrade Plan' : undefined),
       buttonHref: (!subscriptionActive && !twilioReady) ? '/pricing' : (!subscriptionActive ? '/billing' : undefined),
-      details: currentBusiness?.twilio_phone_number ? `Number: ${getReplyFlowPhoneNumberDisplay(currentBusiness.twilio_phone_number)}` : undefined
+      details: currentBusiness?.twilio_phone_number ? `Number: ${getReplyFlowPhoneNumberDisplay(currentBusiness)}` : undefined
     },
     {
       id: 'forwarding',

@@ -116,7 +116,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
       const subscriptionActive = hasActiveAccess(business)
       
       // STEP 3: ReplyFlow Number Ready
-      const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'active'
+      const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
       
       // STEP 4: Forwarding Configured
       const forwardingConfigured = Boolean(business?.phone_setup_completed_at)

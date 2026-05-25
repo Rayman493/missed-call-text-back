@@ -306,7 +306,18 @@ export async function POST(request: Request) {
               console.log('[PROVISIONING FLOW] Starting provisioning process')
               console.log('[PROVISIONING FLOW] Business ID:', businessId)
               console.log('[PROVISIONING FLOW] Subscription ID:', subscriptionId)
-              console.log('[PROVISIONING FLOW] Admin secret configured:', !!process.env.PROVISIONING_ADMIN_SECRET)
+              
+              // Detailed secret debugging
+              const secretVarName = 'PROVISIONING_ADMIN_SECRET'
+              const secretExists = !!process.env.PROVISIONING_ADMIN_SECRET
+              const secretValue = process.env.PROVISIONING_ADMIN_SECRET ? '[REDACTED]' : 'NULL'
+              
+              console.log('[PROVISIONING FLOW] ===== SECRET DEBUGGING =====')
+              console.log('[PROVISIONING FLOW] Expected secret variable name:', secretVarName)
+              console.log('[PROVISIONING FLOW] Secret variable exists:', secretExists)
+              console.log('[PROVISIONING FLOW] Secret variable value:', secretValue)
+              console.log('[PROVISIONING FLOW] Admin secret configured:', secretExists)
+              console.log('[PROVISIONING FLOW] ===== SECRET DEBUGGING END =====')
               
               try {
                 console.log('[PROVISIONING FLOW] Making request to provisioning endpoint...')

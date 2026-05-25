@@ -49,11 +49,26 @@ export async function POST(request: Request) {
     console.log('[PROVISIONING AUTH] Auth header present:', !!authHeader)
     console.log('[PROVISIONING AUTH] Admin secret present:', !!adminSecret)
     
+    // Detailed secret debugging
+    const secretVarName = 'PROVISIONING_ADMIN_SECRET'
+    const expectedSecret = process.env.PROVISIONING_ADMIN_SECRET
+    const secretExists = !!expectedSecret
+    const secretValue = expectedSecret ? '[REDACTED]' : 'NULL'
+    
+    console.log('[PROVISIONING AUTH] ===== SECRET DEBUGGING =====')
+    console.log('[PROVISIONING AUTH] Expected secret variable name:', secretVarName)
+    console.log('[PROVISIONING AUTH] Secret variable exists:', secretExists)
+    console.log('[PROVISIONING AUTH] Secret variable value:', secretValue)
+    console.log('[PROVISIONING AUTH] Header admin secret present:', !!adminSecret)
+    console.log('[PROVISIONING AUTH] Header admin secret value:', adminSecret ? '[REDACTED]' : 'NULL')
+    console.log('[PROVISIONING AUTH] ===== SECRET DEBUGGING END =====')
+    
     if (adminSecret) {
       // Webhook authentication via admin secret
-      const expectedSecret = process.env.PROVISIONING_ADMIN_SECRET
       if (!expectedSecret) {
         console.error('[PROVISIONING AUTH] PROVISIONING_ADMIN_SECRET not configured')
+        console.error('[PROVISIONING AUTH] Expected variable:', secretVarName)
+        console.error('[PROVISIONING AUTH] Variable exists:', secretExists)
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
       }
       
