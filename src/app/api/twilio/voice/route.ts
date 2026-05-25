@@ -13,6 +13,7 @@ import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
 
+
 // Helper function to check if auto-reply SMS was recently sent
 async function hasRecentAutoReply(businessId: string, callerPhone: string): Promise<{ hasRecent: boolean; lastSentAt?: string }> {
   try {
@@ -58,24 +59,32 @@ function generateVoiceGreeting(businessName?: string): string {
       .substring(0, 100); // Limit length to prevent issues
   };
   
-  // Generate simple, reliable greeting with business name or fallback
-  let simpleMessage: string;
+  // Generate simple voicemail greeting with business name or fallback
+  let voicemailMessage: string;
   if (businessName && sanitizeForTTS(businessName)) {
     const sanitized = sanitizeForTTS(businessName);
-    simpleMessage = `Thanks for calling ${sanitized}. We've sent you a text message and will be in touch shortly.`;
+    voicemailMessage = `Thanks for calling ${sanitized}. Sorry we missed your call. Please leave a message after the beep and we'll get back to you shortly.`;
   } else {
-    simpleMessage = `Thanks for calling. We've sent you a text message and will be in touch shortly.`;
+    voicemailMessage = `Thanks for calling. Sorry we missed your call. Please leave a message after the beep and we'll get back to you shortly.`;
   }
   
-  // Simple, reliable TwiML with single Say block and minimal pauses
-  const simpleTwiml = `
+  // Voicemail TwiML with recording capability
+  const voicemailTwiml = `
     <Pause length="1"/>
-    <Say voice="alice">${simpleMessage}</Say>
-    <Pause length="2"/>
+    <Say voice="alice">${voicemailMessage}</Say>
+    <Record
+      maxLength="60"
+      playBeep="true"
+      trim="trim-silence"
+      action="/api/twilio/voicemail"
+      method="POST"
+      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallbackMethod="POST"
+    />
     <Hangup/>
   `.trim();
   
-  return simpleTwiml;
+  return voicemailTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
@@ -617,14 +626,23 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Prepare auto-reply message
-        let messageToSend = business.auto_reply_message || 
-          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call-how can we help? Reply STOP to opt out.`;
+        // Prepare fixed SMS message (simplified approach)
+        let messageToSend: string;
         
-        // Use after-hours message if outside business hours
+        // Use business custom auto-reply message if configured
+        if (business.auto_reply_message && business.auto_reply_message.trim()) {
+          console.log('[SMS] Using business custom auto-reply message');
+          messageToSend = business.auto_reply_message;
+        } else {
+          // Use fixed generic message
+          messageToSend = `Hi, this is ${business.name || 'My Business'}. We received your call and will get back to you shortly. You can also reply to this text with any additional details. Reply STOP to opt out.`;
+          console.log('[SMS] Using fixed generic message');
+        }
+        
+        // Use after-hours message if outside business hours (overrides fixed message)
         if ((business as any)._useAfterHoursMessage && business.after_hours_message && business.after_hours_message.trim()) {
-          messageToSend = business.after_hours_message;
           console.log('[QA - Business Hours] Using after-hours message for SMS');
+          messageToSend = business.after_hours_message;
         }
         
         // Replace business name placeholder if present
@@ -743,6 +761,7 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[Twilio Voice] Voice webhook processed successfully');
+    console.log('[VOICE] Returning voicemail TwiML for call:', callSid);
     
     // DEBUG LOGS
     console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
