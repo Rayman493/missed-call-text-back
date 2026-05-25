@@ -108,30 +108,35 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
   return (
     <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Lead Engagement</h3>
+        <h3 className="text-lg font-semibold text-foreground">Customer Responses</h3>
         <div className="text-xs text-muted-foreground">
           Last 30 days
         </div>
       </div>
 
-      {metrics.totalLeads > 0 ? (
+      {metrics.repliedLeads > 0 ? (
         <div className="space-y-4">
-          {/* Main engagement metric */}
+          {/* Main response metric */}
           <div className={`p-4 rounded-lg border ${getEngagementBg(metrics.engagementRate)}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Engagement Rate</p>
+                <p className="text-sm text-muted-foreground mb-1">Customer Responses</p>
                 <div className="flex items-baseline gap-2">
                   <span className={`text-2xl font-bold ${getEngagementColor(metrics.engagementRate)}`}>
-                    {metrics.engagementRate}%
+                    {metrics.repliedLeads}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    ({metrics.repliedLeads} of {metrics.totalLeads} leads replied)
+                    of {metrics.totalLeads} leads
                   </span>
                 </div>
+                {metrics.engagementRate > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {metrics.engagementRate}% engagement rate
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-center w-12 h-12 bg-white dark:bg-slate-800 rounded-full">
-                <TrendingUp className={`w-6 h-6 ${getEngagementColor(metrics.engagementRate)}`} />
+                <MessageSquare className={`w-6 h-6 ${getEngagementColor(metrics.engagementRate)}`} />
               </div>
             </div>
           </div>
@@ -155,14 +160,14 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
             </div>
           </div>
 
-          {/* Engagement insight */}
+          {/* Positive insight */}
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
               {metrics.engagementRate >= 30 
-                ? 'Excellent engagement! Your follow-up strategy is working well.'
+                ? 'Excellent customer engagement! Your follow-up strategy is working well.'
                 : metrics.engagementRate >= 15
-                ? 'Good engagement. Consider optimizing your follow-up timing.'
-                : 'Low engagement. Review your instant response message and follow-up strategy.'
+                ? 'Good customer engagement. Continue following up with leads.'
+                : 'ReplyFlow is still following up automatically.'
               }
             </p>
           </div>
@@ -170,11 +175,11 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
       ) : (
         <div className="text-center py-8">
           <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-            <BarChart className="w-6 h-6 text-muted-foreground" />
+            <MessageSquare className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground mb-3">No leads captured yet</p>
+          <p className="text-sm text-muted-foreground mb-3">No customer replies yet</p>
           <p className="text-xs text-muted-foreground">
-            Engagement metrics will appear once ReplyFlow starts capturing missed calls
+            ReplyFlow is still following up automatically.
           </p>
         </div>
       )}

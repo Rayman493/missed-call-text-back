@@ -58,6 +58,7 @@ import FollowUpActivityCard from '@/components/FollowUpActivityCard'
 import LeadEngagementCard from '@/components/LeadEngagementCard'
 import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
+import ReplyFlowImpact from '@/components/ReplyFlowImpact'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1280,7 +1281,14 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Follow-Up Activity Card - Priority 2 */}
+                    {/* ReplyFlow Impact Section - Priority 2 */}
+                    <SectionErrorBoundary sectionName="ReplyFlowImpact">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <ReplyFlowImpact business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Follow-Up Activity Card - Priority 3 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
                       <div className="mb-4 transition-opacity duration-300">
                         <FollowUpActivityCard business={business} />

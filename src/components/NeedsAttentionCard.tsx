@@ -97,8 +97,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         if (failedFollowUps && failedFollowUps.length > 0) {
           items.push({
             type: 'followup_failed',
-            title: 'Follow-Up Failed',
-            description: `${failedFollowUps.length} follow-up${failedFollowUps.length !== 1 ? 's' : ''} failed to send`,
+            title: 'Follow-Ups Require Review',
+            description: `${failedFollowUps.length} follow-up${failedFollowUps.length !== 1 ? 's' : ''} require review`,
             priority: 'medium',
             link: '/dashboard/settings/follow-ups',
             linkText: 'Manage Follow-Ups'

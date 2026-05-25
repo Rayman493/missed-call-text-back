@@ -322,7 +322,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Recent Leads</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Latest Lead</h2>
               <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
             </div>
           </div>

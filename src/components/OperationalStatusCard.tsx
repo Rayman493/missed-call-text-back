@@ -160,17 +160,41 @@ export default function OperationalStatusCard({
             </div>
           </div>
 
-          {/* Compact Description */}
-          <p className="text-xs sm:text-sm text-slate-300 text-center mb-3">
-            Monitoring calls and responding automatically.
-          </p>
-
-          {/* Activity Summary */}
+          {/* Primary Hero Metric - Recovered Leads */}
           <div className="text-center mb-4">
-            <p className="text-xs sm:text-sm text-slate-200">
-              Last activity: {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No activity yet'} • {loading ? '...' : activityData.leadsCreated} lead{activityData.leadsCreated !== 1 ? 's' : ''} recovered
+            <p className="text-xs sm:text-sm text-slate-300 mb-1">Recovered Leads</p>
+            <p className="text-4xl sm:text-5xl font-bold text-white mb-2">
+              {loading ? '...' : activityData.leadsCreated}
             </p>
           </div>
+
+          {/* Health Status Pills */}
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
+            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+              <span className="text-xs text-green-300">🟢 Calls Active</span>
+            </div>
+            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+              <span className="text-xs text-green-300">🟢 Text Replies Active</span>
+            </div>
+            <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+              <span className="text-xs text-green-300">🟢 Follow-Ups Active</span>
+            </div>
+          </div>
+
+          {/* Improved Copy */}
+          <p className="text-xs sm:text-sm text-slate-300 text-center mb-4">
+            Monitoring calls and responding automatically.
+            <br />
+            <span className="text-slate-400">
+              {activityData.lastLeadActivity 
+                ? `Last recovered lead: ${formatRelativeTime(activityData.lastLeadActivity)}`
+                : 'No recovered leads yet.'
+              }
+            </span>
+          </p>
 
           {/* Action Buttons */}
           <div className="flex gap-2 sm:gap-3">

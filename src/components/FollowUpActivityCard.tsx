@@ -116,7 +116,7 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
       </div>
 
       {hasActivity ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="text-center">
             <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full mx-auto mb-1">
               <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -139,14 +139,6 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
             </div>
             <p className="text-lg font-semibold text-foreground">{metrics.pending}</p>
             <p className="text-xs text-muted-foreground">Pending</p>
-          </div>
-
-          <div className="text-center">
-            <div className="flex items-center justify-center w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-full mx-auto mb-1">
-              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-            </div>
-            <p className="text-lg font-semibold text-foreground">{metrics.failed}</p>
-            <p className="text-xs text-muted-foreground">Failed</p>
           </div>
         </div>
       ) : (
