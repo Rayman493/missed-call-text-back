@@ -35,27 +35,52 @@ export async function POST(request: Request) {
     business_id = body.business_id
     const businessId = business_id // Store in variable for catch block access
 
-    // BETA PROVISIONING: Log request details
-    console.log('[BETA PROVISIONING] request received')
-    console.log('[BETA PROVISIONING] business id:', business_id)
-    console.log('[BETA PROVISIONING] request body:', body)
+    console.log('[PROVISIONING FLOW] ===== PROVISIONING ENDPOINT HIT =====')
+    console.log('[PROVISIONING FLOW] Request received')
+    console.log('[PROVISIONING FLOW] Business ID:', business_id)
+    console.log('[PROVISIONING FLOW] Request body:', body)
 
-    // Authenticate user
+    // Authenticate user OR webhook via admin secret
     const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('[BETA PROVISIONING] No auth header found')
+    const adminSecret = request.headers.get('x-admin-secret')
+    let userId: string | null = null
+    
+    console.log('[PROVISIONING AUTH] Checking authentication...')
+    console.log('[PROVISIONING AUTH] Auth header present:', !!authHeader)
+    console.log('[PROVISIONING AUTH] Admin secret present:', !!adminSecret)
+    
+    if (adminSecret) {
+      // Webhook authentication via admin secret
+      const expectedSecret = process.env.PROVISIONING_ADMIN_SECRET
+      if (!expectedSecret) {
+        console.error('[PROVISIONING AUTH] PROVISIONING_ADMIN_SECRET not configured')
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+      }
+      
+      if (adminSecret !== expectedSecret) {
+        console.error('[PROVISIONING AUTH] Invalid admin secret provided')
+        return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+      }
+      
+      console.log('[PROVISIONING AUTH] ✓ Webhook authenticated via admin secret')
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+      // User authentication via Bearer token
+      const token = authHeader.split(' ')[1]
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+      
+      if (authError || !user) {
+        console.log('[PROVISIONING AUTH] User auth failed:', authError)
+        return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+      }
+      
+      userId = user.id
+      console.log('[PROVISIONING AUTH] ✓ User authenticated:', userId)
+    } else {
+      console.log('[PROVISIONING AUTH] No authentication provided')
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
-    if (authError || !user) {
-      console.log('[BETA PROVISIONING] Auth failed:', authError)
-      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
-    }
-
-    console.log('[BETA PROVISIONING] auth user id:', user.id)
+    console.log('[PROVISIONING AUTH] ✓ Authentication validation result: SUCCESS')
 
     // Rate limiting check
     const now = Date.now()
@@ -89,7 +114,7 @@ export async function POST(request: Request) {
       .eq('id', business_id)
       .single()
 
-    console.log('[BETA PROVISIONING] business lookup result:', { business, businessError })
+    console.log('[PROVISIONING FLOW] Business lookup result:', { business, businessError })
 
     if (businessError || !business) {
       console.error('[ProvisioningTrigger] Business not found:', businessError)
@@ -105,12 +130,18 @@ export async function POST(request: Request) {
       }, { status: 404 })
     }
 
-    // BETA PROVISIONING: Validate ownership
-    if (business.user_id !== user.id) {
-      console.log('[BETA PROVISIONING] Business does not belong to user')
-      console.log('[BETA PROVISIONING] business.user_id:', business.user_id)
-      console.log('[BETA PROVISIONING] auth user.id:', user.id)
+    // BETA PROVISIONING: Validate ownership (skip for webhook authentication)
+    if (userId && business.user_id !== userId) {
+      console.log('[PROVISIONING AUTH] Business does not belong to user')
+      console.log('[PROVISIONING AUTH] business.user_id:', business.user_id)
+      console.log('[PROVISIONING AUTH] auth user.id:', userId)
       return NextResponse.json({ error: 'Business does not belong to user' }, { status: 403 })
+    }
+    
+    if (userId) {
+      console.log('[PROVISIONING AUTH] ✓ Ownership validated for user:', userId)
+    } else {
+      console.log('[PROVISIONING AUTH] Webhook authentication - ownership check bypassed')
     }
 
     console.log('[ProvisioningTrigger] Business state before checks:', {
@@ -124,50 +155,6 @@ export async function POST(request: Request) {
       provisioning_lock_id: business.provisioning_lock_id
     })
 
-    // Check if business is already being provisioned by a different request
-    if (business.provisioning_status === 'provisioning' && business.provisioning_lock_id && business.provisioning_lock_id !== correlationId) {
-      console.log('[ProvisioningTrigger] Business is already being provisioned by another request')
-      console.log('[ProvisioningTrigger] Existing lock_id:', business.provisioning_lock_id)
-      console.log('[ProvisioningTrigger] Current correlation_id:', correlationId)
-      return NextResponse.json({ 
-        error: 'Business is already being provisioned',
-        provisioning_status: business.provisioning_status,
-        existing_lock_id: business.provisioning_lock_id
-      }, { status: 429 }) // Too Many Requests
-    }
-
-    // BETA PROVISIONING: Allow beta and comped statuses
-    const allowedStatuses = ['active', 'trialing', 'beta', 'comped']
-    if (!allowedStatuses.includes(business.subscription_status)) {
-      console.log('[ProvisioningTrigger] Subscription not in allowed statuses, skipping')
-      console.log('[ProvisioningTrigger] subscription_status:', business.subscription_status)
-      console.log('[ProvisioningTrigger] allowedStatuses:', allowedStatuses)
-      return NextResponse.json({ 
-        error: 'Subscription not eligible for provisioning',
-        subscription_status: business.subscription_status,
-        allowedStatuses
-      }, { status: 400 })
-    }
-
-    // Only trigger if no number exists or provisioning failed
-    if (business.twilio_phone_number && business.provisioning_status === 'attached') {
-      console.log('[ProvisioningTrigger] Number already provisioned and attached, skipping')
-      return NextResponse.json({ 
-        success: true,
-        message: 'Number already provisioned and attached',
-        twilio_phone_number: business.twilio_phone_number
-      })
-    }
-
-    console.log('[ProvisioningTrigger] START - calling provisionTwilioNumber')
-    console.log('[ProvisioningTrigger] Business state before provisioning:', {
-      business_id: business.id,
-      provisioning_status: business.provisioning_status,
-      provisioning_lock_id: business.provisioning_lock_id,
-      has_number: !!business.twilio_phone_number,
-      has_number_sid: !!business.twilio_phone_number_sid
-    })
-
     // Acquire lock by setting provisioning status and lock ID
     await supabaseAdmin
       .from('businesses')
@@ -177,103 +164,47 @@ export async function POST(request: Request) {
       })
       .eq('id', business.id)
 
-    console.log('[ProvisioningTrigger] Acquired lock for business:', business.id)
+    console.log('[ProvisioningTrigger] ✓ Acquired lock for business:', business.id)
     console.log('[ProvisioningTrigger] Set provisioning_status=provisioning, lock_id=', correlationId)
 
     // Call provisioning function with correlation ID
-    console.log('[ProvisioningTrigger] Calling provisionTwilioNumber with correlation_id:', correlationId)
-    const provisioningResult = await provisionTwilioNumber(business.id, correlationId)
-
-    console.log('[ProvisioningTrigger] provisionTwilioNumber result:', {
-      success: !!provisioningResult,
-      phoneNumber: provisioningResult?.phoneNumber,
-      phoneNumberSid: provisioningResult?.phoneNumberSid,
-      messagingServiceAttached: provisioningResult?.messagingServiceAttached,
-      messagingServiceError: provisioningResult?.messagingServiceError
-    })
-
-    // Hard assertion: provisioning result must be valid
-    if (!provisioningResult || !provisioningResult.phoneNumber || !provisioningResult.phoneNumberSid) {
-      console.error('[ProvisioningTrigger] CRITICAL ERROR: Invalid provisioning result')
-      console.error('[ProvisioningTrigger] Expected phoneNumber and phoneNumberSid in result')
+    console.log('[PROVISIONING FLOW] ===== TWILIO PURCHASE START =====')
+    console.log('[PROVISIONING FLOW] Calling provisionTwilioNumber with correlation_id:', correlationId)
+    console.log('[PROVISIONING FLOW] Business ID for Twilio purchase:', business.id)
+    
+    try {
+      const provisioningResult = await provisionTwilioNumber(business.id, correlationId)
       
-      // Clear lock and mark as failed
-      await supabaseAdmin
-        .from('businesses')
-        .update({
-          provisioning_status: 'failed',
-          provisioning_lock_id: null,
-          provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
-        })
-        .eq('id', business.id)
-
-      return NextResponse.json({
-        error: 'Provisioning failed - invalid result',
-        provisioning_status: 'failed',
-        provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
-      }, { status: 500 })
-    }
-
-    if (provisioningResult) {
-      console.log('[ProvisioningTrigger] Provisioning succeeded:', provisioningResult.phoneNumber)
-      console.log('[ProvisioningTrigger] Purchased number from Twilio:', provisioningResult.phoneNumber)
-      console.log('[ProvisioningTrigger] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
+      console.log('[PROVISIONING FLOW] ===== TWILIO PURCHASE RESULT =====')
+      console.log('[PROVISIONING FLOW] ✓ Twilio purchase completed')
+      console.log('[PROVISIONING FLOW] Provisioning result:', {
+        success: !!provisioningResult,
+        phoneNumber: provisioningResult?.phoneNumber,
+        phoneNumberSid: provisioningResult?.phoneNumberSid,
+        messagingServiceAttached: provisioningResult?.messagingServiceAttached,
+        messagingServiceError: provisioningResult?.messagingServiceError
+      })
       
-      // Only save number if messaging service attached
-      if (provisioningResult.messagingServiceAttached) {
-        // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
-        const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
-        
-        const saveResult = await saveProvisionedNumberToBusiness({
-          businessId: business.id,
-          phoneNumber: provisioningResult.phoneNumber,
-          phoneNumberSid: provisioningResult.phoneNumberSid,
-          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
-        })
-        
-        if (!saveResult.success) {
-          console.error('[ProvisioningTrigger] Failed to save provisioned number to business')
-          await supabaseAdmin
-            .from('businesses')
-            .update({
-              provisioning_status: 'failed',
-              provisioning_error: 'Failed to save provisioned number to business'
-            })
-            .eq('id', business.id)
+      if (provisioningResult?.phoneNumber) {
+        console.log('[PROVISIONING FLOW] ✓ Phone number purchased:', provisioningResult.phoneNumber)
+      }
+      
+      if (provisioningResult?.phoneNumberSid) {
+        console.log('[PROVISIONING FLOW] ✓ Phone number SID obtained:', provisioningResult.phoneNumberSid)
+      }
+      
+      if (provisioningResult?.messagingServiceAttached) {
+        console.log('[PROVISIONING FLOW] ✓ Number added to Messaging Service')
+      }
+      
+      if (provisioningResult?.messagingServiceError) {
+        console.warn('[PROVISIONING FLOW] ⚠ Messaging Service warning:', provisioningResult.messagingServiceError)
+      }
 
-          return NextResponse.json({ 
-            error: 'Failed to save provisioned number to business',
-            provisioning_status: 'failed'
-          }, { status: 500 })
-        } else {
-          console.log('[ProvisioningTrigger] Number saved successfully to business')
-          console.log('[ProvisioningTrigger] DB twilio_phone_number:', saveResult.dbNumber)
-          console.log('[ProvisioningTrigger] DB twilio_phone_number_sid:', saveResult.dbNumberSid)
-
-          // Clear lock and set active status on success
-          await supabaseAdmin
-            .from('businesses')
-            .update({
-              provisioning_status: 'active',
-              provisioning_lock_id: null,
-              provisioning_error: null,
-              provisioned_at: new Date().toISOString()
-            })
-            .eq('id', business.id)
-
-          console.log('[ProvisioningTrigger] Cleared lock and set status=active for business:', business.id)
-
-          console.log('[BETA PROVISIONING] provisioning success')
-          return NextResponse.json({
-            success: true,
-            message: 'Provisioning succeeded',
-            twilio_phone_number: saveResult.dbNumber,
-            twilio_phone_number_sid: saveResult.dbNumberSid
-          })
-        }
-      } else {
-        console.error('[ProvisioningTrigger] Messaging Service NOT attached - NOT saving number to business')
-        console.error('[ProvisioningTrigger] Error:', provisioningResult.messagingServiceError)
+      // Hard assertion: provisioning result must be valid
+      if (!provisioningResult || !provisioningResult.phoneNumber || !provisioningResult.phoneNumberSid) {
+        console.error('[PROVISIONING FLOW] ✗ CRITICAL ERROR: Invalid provisioning result')
+        console.error('[PROVISIONING FLOW] Expected phoneNumber and phoneNumberSid in result')
         
         // Clear lock and mark as failed
         await supabaseAdmin
@@ -281,20 +212,105 @@ export async function POST(request: Request) {
           .update({
             provisioning_status: 'failed',
             provisioning_lock_id: null,
-            provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+            provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
           })
           .eq('id', business.id)
 
-        console.log('[ProvisioningTrigger] Cleared lock and set status=failed for business:', business.id)
-
-        return NextResponse.json({ 
-          error: 'Messaging Service attachment failed',
+        return NextResponse.json({
+          error: 'Provisioning failed - invalid result',
           provisioning_status: 'failed',
-          provisioning_error: provisioningResult.messagingServiceError
+          provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
         }, { status: 500 })
       }
-    } else {
-      console.error('[ProvisioningTrigger] Provisioning failed - no result returned')
+
+      console.log('[PROVISIONING FLOW] ===== DATABASE SAVE START =====')
+      console.log('[PROVISIONING FLOW] ✓ Provisioning succeeded, saving to database...')
+      console.log('[PROVISIONING FLOW] Phone number to save:', provisioningResult.phoneNumber)
+      console.log('[PROVISIONING FLOW] Phone SID to save:', provisioningResult.phoneNumberSid)
+      
+      try {
+        // Save Twilio phone number and SID to business record
+        const { error: saveError } = await supabaseAdmin
+          .from('businesses')
+          .update({
+            twilio_phone_number: provisioningResult.phoneNumber,
+            twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+            provisioning_status: 'completed',
+            provisioning_lock_id: null,
+            provisioning_error: null,
+            onboarding_status: 'completed' // Advance onboarding
+          })
+          .eq('id', business.id)
+
+        if (saveError) {
+          console.error('[PROVISIONING FLOW] ✗ Database save failed:', saveError)
+          console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
+            code: saveError.code,
+            message: saveError.message,
+            details: saveError.details,
+            hint: saveError.hint
+          })
+          
+          // Mark as failed due to database error
+          await supabaseAdmin
+            .from('businesses')
+            .update({
+              provisioning_status: 'failed',
+              provisioning_lock_id: null,
+              provisioning_error: `Database save failed: ${saveError.message}`
+            })
+            .eq('id', business.id)
+
+          return NextResponse.json({
+            error: 'Database save failed',
+            provisioning_status: 'failed',
+            provisioning_error: saveError.message
+          }, { status: 500 })
+        }
+
+        console.log('[PROVISIONING FLOW] ✓ Database save successful')
+        console.log('[PROVISIONING FLOW] ✓ twilio_phone_number saved:', provisioningResult.phoneNumber)
+        console.log('[PROVISIONING FLOW] ✓ twilio_phone_number_sid saved:', provisioningResult.phoneNumberSid)
+        console.log('[PROVISIONING FLOW] ✓ provisioning_status set to completed')
+        console.log('[PROVISIONING FLOW] ✓ onboarding_status advanced to completed')
+        console.log('[PROVISIONING FLOW] ===== PROVISIONING FLOW COMPLETE =====')
+
+        return NextResponse.json({
+          success: true,
+          phoneNumber: provisioningResult.phoneNumber,
+          phoneNumberSid: provisioningResult.phoneNumberSid,
+          messagingServiceAttached: provisioningResult.messagingServiceAttached,
+          provisioning_status: 'completed',
+          onboarding_status: 'completed'
+        })
+
+      } catch (dbError) {
+        console.error('[PROVISIONING FLOW] ✗ Database save error:', dbError)
+        
+        // Mark as failed due to database error
+        await supabaseAdmin
+          .from('businesses')
+          .update({
+            provisioning_status: 'failed',
+            provisioning_lock_id: null,
+            provisioning_error: `Database save error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`
+          })
+          .eq('id', business.id)
+
+        return NextResponse.json({
+          error: 'Database save error',
+          provisioning_status: 'failed',
+          provisioning_error: dbError instanceof Error ? dbError.message : 'Unknown error'
+        }, { status: 500 })
+      }
+
+    } catch (twilioError) {
+      console.error('[PROVISIONING FLOW] ✗ TWILIO PURCHASE FAILED')
+      console.error('[PROVISIONING FLOW] Twilio error details:', {
+        name: twilioError instanceof Error ? twilioError.name : 'Unknown',
+        message: twilioError instanceof Error ? twilioError.message : 'Unknown error',
+        stack: twilioError instanceof Error ? twilioError.stack : 'No stack trace'
+      })
       
       // Clear lock and mark as failed
       await supabaseAdmin
@@ -302,32 +318,47 @@ export async function POST(request: Request) {
         .update({
           provisioning_status: 'failed',
           provisioning_lock_id: null,
-          provisioning_error: 'Provisioning failed - no result returned'
+          provisioning_error: `Twilio purchase failed: ${twilioError instanceof Error ? twilioError.message : 'Unknown error'}`
         })
         .eq('id', business.id)
 
-      console.log('[ProvisioningTrigger] Cleared lock and set status=failed for business:', business.id)
-
-      return NextResponse.json({ 
-        error: 'Provisioning failed - no result returned',
-        provisioning_status: 'failed'
+      return NextResponse.json({
+        error: 'Twilio purchase failed',
+        provisioning_status: 'failed',
+        provisioning_error: twilioError instanceof Error ? twilioError.message : 'Unknown error'
       }, { status: 500 })
     }
+
+    console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING END ==========')
+    return NextResponse.json({
+      success: true,
+      message: 'Provisioning completed successfully'
+    })
+
   } catch (error) {
-    console.error('[ProvisioningTrigger] Error:', error)
+    console.error('[ProvisioningTrigger] UNEXPECTED ERROR:', error)
+    console.error('[ProvisioningTrigger] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    })
     
     // Clear lock and mark as failed
-    await supabaseAdmin
-      .from('businesses')
-      .update({
-        provisioning_status: 'failed',
-        provisioning_lock_id: null,
-        provisioning_error: 'Internal server error'
-      })
-      .eq('id', business_id)
+    if (business_id) {
+      await supabaseAdmin
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        })
+        .eq('id', business_id)
+    }
 
-    console.log('[ProvisioningTrigger] Cleared lock and set status=failed for business:', business_id)
-
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Unexpected provisioning error',
+      provisioning_status: 'failed',
+      provisioning_error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

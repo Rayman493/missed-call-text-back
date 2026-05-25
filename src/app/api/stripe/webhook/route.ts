@@ -303,24 +303,42 @@ export async function POST(request: Request) {
             
             if (shouldProvision) {
               console.log('[ProvisioningState] TRIGGERING provisioning from checkout.session.completed webhook')
+              console.log('[PROVISIONING FLOW] Starting provisioning process')
+              console.log('[PROVISIONING FLOW] Business ID:', businessId)
+              console.log('[PROVISIONING FLOW] Subscription ID:', subscriptionId)
+              console.log('[PROVISIONING FLOW] Admin secret configured:', !!process.env.PROVISIONING_ADMIN_SECRET)
+              
               try {
+                console.log('[PROVISIONING FLOW] Making request to provisioning endpoint...')
                 const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
                   method: 'POST',
                   headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET || ''
                   },
                   body: JSON.stringify({
                     business_id: businessId
                   })
                 })
                 
+                console.log('[PROVISIONING FLOW] Provisioning endpoint response status:', response.status)
+                
                 if (response.ok) {
-                  console.log('[ProvisioningState] Provisioning triggered successfully from webhook')
+                  console.log('[PROVISIONING FLOW] ✓ Provisioning triggered successfully from webhook')
+                  console.log('[PROVISIONING FLOW] ✓ Twilio purchase should start now...')
                 } else {
-                  console.error('[ProvisioningState] Failed to trigger provisioning from webhook:', response.status, await response.text())
+                  const errorText = await response.text()
+                  console.error('[PROVISIONING FLOW] ✗ Failed to trigger provisioning from webhook')
+                  console.error('[PROVISIONING FLOW] Response status:', response.status)
+                  console.error('[PROVISIONING FLOW] Response body:', errorText)
                 }
               } catch (provisioningError) {
-                console.error('[ProvisioningState] Error triggering provisioning from webhook:', provisioningError)
+                console.error('[PROVISIONING FLOW] ✗ Error triggering provisioning from webhook:', provisioningError)
+                console.error('[PROVISIONING FLOW] Error details:', {
+                  name: provisioningError instanceof Error ? provisioningError.name : 'Unknown',
+                  message: provisioningError instanceof Error ? provisioningError.message : 'Unknown error',
+                  stack: provisioningError instanceof Error ? provisioningError.stack : 'No stack trace'
+                })
               }
             } else {
               console.log('[ProvisioningState] NOT triggering provisioning - conditions not met')
