@@ -287,26 +287,26 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
 
   return (
     <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-semibold text-foreground">Business Wins</h3>
         <div className="text-xs text-muted-foreground">
           {achievements.length} achievement{achievements.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {achievements.slice(0, 3).map((achievement, index) => (
-          <div key={achievement.id} className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-              <span className="text-amber-600 dark:text-amber-400">
+          <div key={achievement.id} className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center shadow-sm">
+              <span className="text-amber-600 dark:text-amber-400 text-lg">
                 🎉
               </span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">{achievement.title}</p>
-              <p className="text-xs text-muted-foreground">{achievement.description}</p>
+            <div className="flex-1 min-w-0 pt-1">
+              <p className="text-base font-semibold text-foreground mb-1">{achievement.title}</p>
+              <p className="text-sm text-muted-foreground mb-2">{achievement.description}</p>
               {achievement.earnedAt && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
                   Earned {formatRelativeTime(achievement.earnedAt)}
                 </p>
               )}
@@ -316,7 +316,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
       </div>
 
       {achievements.length > 3 && (
-        <div className="mt-3 text-center">
+        <div className="mt-4 text-center">
           <p className="text-xs text-muted-foreground">
             +{achievements.length - 3} more achievement{achievements.length - 3 !== 1 ? 's' : ''}
           </p>

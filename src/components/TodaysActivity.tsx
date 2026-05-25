@@ -129,8 +129,11 @@ export default function TodaysActivity({ business }: TodaysActivityProps) {
       {/* Value-focused message when no activity */}
       {metrics.missedCallsToday === 0 && metrics.textsSentToday === 0 && metrics.repliesToday === 0 && (
         <div className="text-center mt-3 pt-3 border-t border-border">
+          <p className="text-sm font-medium text-foreground mb-1">
+            No activity yet today.
+          </p>
           <p className="text-xs text-muted-foreground">
-            No activity today yet. ReplyFlow will automatically engage missed callers.
+            ReplyFlow is actively monitoring for missed callers.
           </p>
         </div>
       )}

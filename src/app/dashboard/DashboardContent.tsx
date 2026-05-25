@@ -1317,64 +1317,28 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Follow-Up Activity Card - Priority 3 */}
-                    <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <FollowUpActivityCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Customer Responses Card - Priority 4 */}
-                    <SectionErrorBoundary sectionName="LeadEngagementCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <LeadEngagementCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Business Wins Card - Priority 5 */}
+                    {/* Business Wins Card - Priority 3 */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
                       <div className="mb-4 transition-opacity duration-300">
                         <BusinessWinsCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Conversations Section */}
-                    <SectionErrorBoundary sectionName="ConversationsSection">
-                      {(() => {
-                        console.log('[SECTION RENDER]', {
-                          section: 'ConversationsSection',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status
-                        })
-                        console.log('[Render Child] ConversationsSection')
-                        return null
-                      })()}
-                      {(() => {
-                        console.log('[Dashboard Render] ConversationsSection')
-                        return null
-                      })()}
-                      {/* Only show conversations section when onboarding is complete */}
-                      {isOnboardingComplete && (
-                        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <h2 className="text-lg font-semibold text-foreground">No customer replies yet</h2>
-                              <p className="text-sm text-slate-600 dark:text-slate-400">
-                                When a customer replies to a ReplyFlow text, you'll see the conversation here.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                    {/* Follow-Up Activity Card - Priority 4 */}
+                    <SectionErrorBoundary sectionName="FollowUpActivityCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <FollowUpActivityCard business={business} />
+                      </div>
                     </SectionErrorBoundary>
-                  </>
+
+                    {/* Customer Responses Card - Priority 5 */}
+                    <SectionErrorBoundary sectionName="LeadEngagementCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <LeadEngagementCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                                      </>
                 ) : null}
 
                 {/* Admin Tools - Only visible to admin users or development environment */}

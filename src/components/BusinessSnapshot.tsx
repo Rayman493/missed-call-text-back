@@ -124,7 +124,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       type: 'calls',
       label: 'Missed Calls',
       value: kpiData.callsProcessed,
-      description: 'Business opportunities recovered'
+      description: 'Business opportunities captured'
     },
     {
       type: 'leads',
@@ -136,13 +136,13 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       type: 'texts',
       label: 'Texts Sent',
       value: kpiData.textsSent,
-      description: 'Automated outreach messages'
+      description: 'Customer conversations started'
     },
     {
       type: 'replies',
       label: 'Replies',
       value: kpiData.repliesReceived,
-      description: 'Conversations started'
+      description: 'Customer responses received'
     }
   ]
 

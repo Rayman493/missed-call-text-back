@@ -239,30 +239,57 @@ export default function OperationalStatusCard({
                 </div>
 
                 {/* Content */}
-                <div className="p-4 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Business Phone:</span>
-                    <span className="text-white font-medium">
-                      {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
-                    </span>
+                <div className="p-4 space-y-4">
+                  {/* Phone Numbers Section */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Business Number</span>
+                      <span className="text-white font-medium">
+                        {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">ReplyFlow Number</span>
+                      <span className="text-white font-medium">
+                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Forwarding Status</span>
+                      <span className={`font-medium flex items-center gap-1 ${
+                        business?.forwarding_verified 
+                          ? 'text-green-400' 
+                          : business?.business_phone_number && business?.twilio_phone_number
+                          ? 'text-amber-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {business?.forwarding_verified ? (
+                          <>
+                            Connected ✅
+                          </>
+                        ) : business?.business_phone_number && business?.twilio_phone_number ? (
+                          <>
+                            Needs Setup ⚠️
+                          </>
+                        ) : (
+                          <>
+                            Not Set ⚠️
+                          </>
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">ReplyFlow Number:</span>
-                    <span className="text-white font-medium">
-                      {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Monitoring:</span>
-                    <span className="text-green-400 font-medium">Active</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Text Replies:</span>
-                    <span className="text-green-400 font-medium">Active</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Forwarding:</span>
-                    <span className="text-green-400 font-medium">Verified</span>
+
+                  {/* System Status Section */}
+                  <div className="space-y-3 border-t border-slate-700 pt-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Monitoring:</span>
+                      <span className="text-green-400 font-medium">Active</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Text Replies:</span>
+                      <span className="text-green-400 font-medium">Active</span>
+                    </div>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Last Lead Activity:</span>

@@ -70,7 +70,7 @@ export function isValidPhone(phone: string): boolean {
 }
 
 export function formatPhoneNumber(phone: string | null | undefined): string {
-  if (!phone) return 'Recent caller'
+  if (!phone) return 'Latest Lead'
 
   let normalized = phone.replace(/\D/g, '')
 
@@ -90,7 +90,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.name → formatted phone number → "Recent caller"
+ * Priority: lead.name → formatted phone number → "Latest Lead"
  */
 export function getLeadDisplayName(lead: any): string {
   // Try lead name first
@@ -102,13 +102,13 @@ export function getLeadDisplayName(lead: any): string {
   if (lead.customer_phone || lead.caller_phone) {
     const phone = lead.customer_phone || lead.caller_phone
     const formatted = formatPhoneNumber(phone)
-    if (formatted !== 'Recent caller') {
+    if (formatted !== 'Latest Lead') {
       return formatted
     }
   }
 
   // Fallback to generic text
-  return 'Recent caller'
+  return 'Latest Lead'
 }
 
 export function formatDate(dateString: string | null | undefined): string {
