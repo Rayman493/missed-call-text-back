@@ -472,6 +472,13 @@ export default function SettingsContent() {
       // Get scroll position
       const scrollY = window.scrollY
       
+      // TOP_THRESHOLD: Force General tab when at or near the top of the page
+      const TOP_THRESHOLD = 120
+      if (scrollY <= TOP_THRESHOLD) {
+        setActiveSection('general')
+        return
+      }
+      
       // Get section offsets
       const generalTop = generalSection.offsetTop
       const automationTop = automationSection.offsetTop
@@ -731,7 +738,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5 scroll-mt-24">
+              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5">
                 <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                   <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
