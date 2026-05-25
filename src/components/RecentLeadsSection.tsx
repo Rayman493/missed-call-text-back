@@ -312,7 +312,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
   return (
     <DashboardErrorBoundary>
-      {/* Recent Leads */}
+      {/* Latest Lead */}
       <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md dark:shadow-md hover:shadow-lg dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

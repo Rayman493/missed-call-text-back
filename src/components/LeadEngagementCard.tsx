@@ -106,8 +106,8 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-foreground">Customer Responses</h3>
         <div className="text-xs text-muted-foreground">
           Last 30 days
@@ -115,9 +115,9 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
       </div>
 
       {metrics.repliedLeads > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Main response metric */}
-          <div className={`p-4 rounded-lg border ${getEngagementBg(metrics.engagementRate)}`}>
+          <div className={`p-3 rounded-lg border ${getEngagementBg(metrics.engagementRate)}`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Customer Responses</p>
@@ -173,11 +173,11 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
           </div>
         </div>
       ) : (
-        <div className="text-center py-8">
-          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-            <MessageSquare className="w-6 h-6 text-muted-foreground" />
+        <div className="text-center py-4">
+          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
+            <MessageSquare className="w-5 h-5 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground mb-3">No customer replies yet</p>
+          <p className="text-sm text-muted-foreground mb-2">No customer replies yet</p>
           <p className="text-xs text-muted-foreground">
             ReplyFlow is still following up automatically.
           </p>

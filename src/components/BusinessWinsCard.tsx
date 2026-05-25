@@ -47,6 +47,13 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             earned: false
           },
           {
+            id: 'five_leads',
+            title: '5 Leads Recovered',
+            description: 'Successfully captured 5 missed calls',
+            icon: 'trophy',
+            earned: false
+          },
+          {
             id: 'ten_leads',
             title: '10 Leads Recovered',
             description: 'Successfully captured 10 missed calls',
@@ -71,6 +78,20 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             id: 'twenty_five_leads',
             title: '25 Leads Recovered',
             description: 'Successfully captured 25 missed calls',
+            icon: 'trophy',
+            earned: false
+          },
+          {
+            id: 'fifty_leads',
+            title: '50 Leads Recovered',
+            description: 'Successfully captured 50 missed calls',
+            icon: 'trophy',
+            earned: false
+          },
+          {
+            id: 'hundred_leads',
+            title: '100 Leads Recovered',
+            description: 'Successfully captured 100 missed calls',
             icon: 'trophy',
             earned: false
           }
@@ -111,15 +132,43 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           })
         }
 
-        // Check for 10 leads
+        // Check for lead milestones
         const { count: leadCount } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', business.id)
 
+        if (leadCount && leadCount >= 5) {
+          earnedAchievements.push({
+            ...allAchievements.find(a => a.id === 'five_leads')!,
+            earned: true
+          })
+        }
+
         if (leadCount && leadCount >= 10) {
           earnedAchievements.push({
             ...allAchievements.find(a => a.id === 'ten_leads')!,
+            earned: true
+          })
+        }
+
+        if (leadCount && leadCount >= 25) {
+          earnedAchievements.push({
+            ...allAchievements.find(a => a.id === 'twenty_five_leads')!,
+            earned: true
+          })
+        }
+
+        if (leadCount && leadCount >= 50) {
+          earnedAchievements.push({
+            ...allAchievements.find(a => a.id === 'fifty_leads')!,
+            earned: true
+          })
+        }
+
+        if (leadCount && leadCount >= 100) {
+          earnedAchievements.push({
+            ...allAchievements.find(a => a.id === 'hundred_leads')!,
             earned: true
           })
         }

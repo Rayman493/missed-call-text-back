@@ -58,7 +58,7 @@ import FollowUpActivityCard from '@/components/FollowUpActivityCard'
 import LeadEngagementCard from '@/components/LeadEngagementCard'
 import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
-import ReplyFlowImpact from '@/components/ReplyFlowImpact'
+import TodaysActivity from '@/components/TodaysActivity'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1274,42 +1274,21 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Needs Attention Card - Priority 1 */}
+                    {/* Today's Activity - Priority 1 */}
+                    <SectionErrorBoundary sectionName="TodaysActivity">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <TodaysActivity business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Needs Attention Card - Priority 2 */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
                       <div className="mb-4 transition-opacity duration-300">
                         <NeedsAttentionCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* ReplyFlow Impact Section - Priority 2 */}
-                    <SectionErrorBoundary sectionName="ReplyFlowImpact">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <ReplyFlowImpact business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Follow-Up Activity Card - Priority 3 */}
-                    <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <FollowUpActivityCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Lead Engagement Card - Priority 3 */}
-                    <SectionErrorBoundary sectionName="LeadEngagementCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <LeadEngagementCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Business Wins Card - Priority 4 */}
-                    <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <BusinessWinsCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Recent Leads Section */}
+                    {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {(() => {
                         console.log('[SECTION RENDER]', {
@@ -1324,7 +1303,7 @@ export default function DashboardContent() {
                       })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-8">
+                        <div className="transition-opacity duration-300 mb-4">
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 
@@ -1336,6 +1315,27 @@ export default function DashboardContent() {
                           )}
                         </div>
                       )}
+                    </SectionErrorBoundary>
+
+                    {/* Follow-Up Activity Card - Priority 3 */}
+                    <SectionErrorBoundary sectionName="FollowUpActivityCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <FollowUpActivityCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Customer Responses Card - Priority 4 */}
+                    <SectionErrorBoundary sectionName="LeadEngagementCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <LeadEngagementCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Business Wins Card - Priority 5 */}
+                    <SectionErrorBoundary sectionName="BusinessWinsCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <BusinessWinsCard business={business} />
+                      </div>
                     </SectionErrorBoundary>
 
                     {/* Conversations Section */}
