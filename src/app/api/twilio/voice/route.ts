@@ -20,28 +20,24 @@ function generateVoiceGreeting(businessName?: string): string {
       .substring(0, 100); // Limit length to prevent issues
   };
   
-  // Generate dynamic greeting with business name or fallback
-  let firstMessage: string;
+  // Generate simple, reliable greeting with business name or fallback
+  let simpleMessage: string;
   if (businessName && sanitizeForTTS(businessName)) {
     const sanitized = sanitizeForTTS(businessName);
-    firstMessage = `Thanks for calling ${sanitized}. We missed your call, but we are sending you a text message now so we can help.`;
+    simpleMessage = `Thanks for calling ${sanitized}. We'll send you a text message shortly.`;
   } else {
-    firstMessage = `Thanks for calling. We missed your call, but we are sending you a text message now so we can help.`;
+    simpleMessage = `Thanks for calling. We'll send you a text message shortly.`;
   }
   
-  const secondMessage = `You can reply to the text message with what you need.`;
-  
-  // Improved TwiML with pauses, consistent voice, and better message structure
-  const enhancedTwiml = `
+  // Simple, reliable TwiML with single Say block and minimal pauses
+  const simpleTwiml = `
     <Pause length="1"/>
-    <Say voice="alice">${firstMessage}</Say>
+    <Say voice="alice">${simpleMessage}</Say>
     <Pause length="2"/>
-    <Say voice="alice">${secondMessage}</Say>
-    <Pause length="1"/>
     <Hangup/>
   `.trim();
   
-  return enhancedTwiml;
+  return simpleTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
