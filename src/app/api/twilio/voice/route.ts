@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendSms } from '@/lib/twilio';
 import { normalizePhoneNumber } from '@/lib/twilio';
 import { timelineEvents } from '@/lib/event-timeline';
@@ -8,6 +9,43 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
+
+// Constants for repeat caller behavior
+const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
+
+// Helper function to check if auto-reply SMS was recently sent
+async function hasRecentAutoReply(businessId: string, callerPhone: string): Promise<{ hasRecent: boolean; lastSentAt?: string }> {
+  try {
+    const cutoffTime = new Date(Date.now() - AUTO_REPLY_REPEAT_WINDOW_MINUTES * 60 * 1000).toISOString();
+    
+    const { data: recentMessage, error } = await supabaseAdmin
+      .from('messages')
+      .select('created_at')
+      .eq('business_id', businessId)
+      .eq('customer_phone', callerPhone)
+      .eq('direction', 'outbound')
+      .eq('message_type', 'auto_reply')
+      .gte('created_at', cutoffTime)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[Repeat Caller] Error checking recent auto-reply:', error);
+      return { hasRecent: false };
+    }
+
+    if (recentMessage) {
+      console.log('[Repeat Caller] Found recent auto-reply sent at:', recentMessage.created_at);
+      return { hasRecent: true, lastSentAt: recentMessage.created_at };
+    }
+
+    return { hasRecent: false };
+  } catch (error) {
+    console.error('[Repeat Caller] Exception checking recent auto-reply:', error);
+    return { hasRecent: false };
+  }
+}
 
 // Helper to generate voice greeting with dynamic business name
 function generateVoiceGreeting(businessName?: string): string {
@@ -24,9 +62,9 @@ function generateVoiceGreeting(businessName?: string): string {
   let simpleMessage: string;
   if (businessName && sanitizeForTTS(businessName)) {
     const sanitized = sanitizeForTTS(businessName);
-    simpleMessage = `Thanks for calling ${sanitized}. We'll send you a text message shortly.`;
+    simpleMessage = `Thanks for calling ${sanitized}. We've sent you a text message and will be in touch shortly.`;
   } else {
-    simpleMessage = `Thanks for calling. We'll send you a text message shortly.`;
+    simpleMessage = `Thanks for calling. We've sent you a text message and will be in touch shortly.`;
   }
   
   // Simple, reliable TwiML with single Say block and minimal pauses
@@ -371,6 +409,7 @@ export async function POST(request: NextRequest) {
     
     let lead;
     let shouldSendSms = false;
+    let isRepeatCaller = false;
     
     if (!existingLead) {
       console.log('[Voice] No existing lead found, creating new lead');
@@ -411,11 +450,37 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log('[Voice] Existing lead found:', existingLead.id);
+      console.log('[Repeat Caller] Reusing existing lead for repeat call');
       lead = existingLead;
-      // For testing, we'll send SMS even for existing leads to ensure the flow works
-      // TODO: Add logic to determine if SMS should be sent for existing leads based on business rules
-      shouldSendSms = true;
-      console.log('[Voice] Will send auto-reply SMS for existing lead (testing mode)');
+      isRepeatCaller = true;
+      
+      // Update lead's last activity
+      try {
+        await db.updateLead(lead.id, {
+          first_contact_at: new Date().toISOString()
+        });
+        console.log('[Repeat Caller] Updated lead first_contact_at');
+      } catch (updateError) {
+        console.error('[Repeat Caller] Error updating lead:', updateError);
+      }
+      
+      await timelineEvents.callReceived(business.id, lead.id, '', normalizedCallerPhone, '');
+      
+      // Check for recent auto-reply SMS (rate limiting)
+      console.log('[Repeat Caller] Checking for recent auto-reply SMS');
+      const recentCheck = await hasRecentAutoReply(business.id, normalizedCallerPhone);
+      
+      if (recentCheck.hasRecent) {
+        console.log('[Repeat Caller] Auto-reply skipped: recent message already sent');
+        console.log('[Repeat Caller] Last auto-reply sent at:', recentCheck.lastSentAt);
+        shouldSendSms = false;
+        
+        // Log timeline event for skipped SMS (using existing event)
+        await timelineEvents.messageSent(business.id, lead.id, '', 'auto_reply_skipped_recent', '');
+      } else {
+        console.log('[Repeat Caller] No recent auto-reply found, allowing SMS');
+        shouldSendSms = true;
+      }
     }
     
     // Send auto-reply SMS if appropriate
@@ -513,7 +578,7 @@ export async function POST(request: NextRequest) {
         let conversation = await db.getOpenConversationForLead(lead.id, business.id);
         
         if (!conversation) {
-          console.log('[Voice] Creating conversation:', {
+          console.log('[Voice] No existing conversation, creating new conversation:', {
             lead_id: lead.id,
             business_id: business.id,
             status: 'open',
@@ -546,7 +611,10 @@ export async function POST(request: NextRequest) {
             });
           }
         } else {
-          console.log('[Voice] Using existing conversation:', conversation.id);
+          console.log('[Voice] Reusing existing conversation:', conversation.id);
+          if (isRepeatCaller) {
+            console.log('[Repeat Caller] Reusing existing conversation for repeat call');
+          }
         }
         
         // Prepare auto-reply message
@@ -604,16 +672,47 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Create follow-up jobs after successful auto-reply SMS
+          // Create follow-up jobs after successful auto-reply SMS (prevent duplicates for repeat callers)
           try {
-            const followUpJobs = await createFollowUpJobs({
-              businessId: business.id,
-              leadId: lead.id,
-              conversationId: conversation?.id,
-              businessName: business.name
-            });
-            
-            console.log(`[Voice] Created ${followUpJobs.length} follow-up jobs for lead: ${lead.id}`);
+            // Check for existing active follow-up jobs to prevent duplicates
+            if (isRepeatCaller) {
+              console.log('[Repeat Caller] Checking for existing follow-up jobs before creating duplicates');
+              
+              const { data: existingJobs, error: jobsError } = await supabaseAdmin
+                .from('follow_up_jobs')
+                .select('id')
+                .eq('lead_id', lead.id)
+                .in('status', ['pending', 'scheduled'])
+                .limit(1);
+              
+              if (jobsError) {
+                console.error('[Repeat Caller] Error checking existing follow-up jobs:', jobsError);
+              } else if (existingJobs && existingJobs.length > 0) {
+                console.log('[Repeat Caller] Follow-up scheduling skipped: active follow-ups already exist');
+                console.log('[Repeat Caller] Existing job count:', existingJobs.length);
+              } else {
+                console.log('[Repeat Caller] No existing follow-up jobs found, creating new ones');
+                
+                const followUpJobs = await createFollowUpJobs({
+                  businessId: business.id,
+                  leadId: lead.id,
+                  conversationId: conversation?.id,
+                  businessName: business.name
+                });
+                
+                console.log(`[Repeat Caller] Created ${followUpJobs.length} follow-up jobs for repeat caller: ${lead.id}`);
+              }
+            } else {
+              // New caller - always create follow-up jobs
+              const followUpJobs = await createFollowUpJobs({
+                businessId: business.id,
+                leadId: lead.id,
+                conversationId: conversation?.id,
+                businessName: business.name
+              });
+              
+              console.log(`[Voice] Created ${followUpJobs.length} follow-up jobs for new lead: ${lead.id}`);
+            }
           } catch (followUpError) {
             console.error('[Voice] Error creating follow-up jobs:', followUpError);
             // Don't fail the voice webhook - follow-up creation is secondary
