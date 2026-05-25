@@ -547,8 +547,14 @@ export default function SettingsContent() {
       if (sections.includes(hash)) {
         const element = document.getElementById(hash)
         if (element) {
-          // Scroll to the section
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // Manual offset scrolling to account for sticky header
+          const HEADER_OFFSET = 100 // Adjust based on actual header + tabs height
+          const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
+          
+          window.scrollTo({
+            top: targetTop,
+            behavior: 'smooth'
+          })
           // Let the scroll handler update the active section
         }
       }
@@ -592,8 +598,14 @@ export default function SettingsContent() {
       url.hash = sectionId
       window.history.replaceState({}, '', url.toString())
       
-      // Smooth scroll to section
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // Manual offset scrolling to account for sticky header
+      const HEADER_OFFSET = 100 // Adjust based on actual header + tabs height
+      const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
+      
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      })
     }
   }
 
