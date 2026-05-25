@@ -7,6 +7,23 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard } from 'lucide-react'
 
+// Hook to detect mobile breakpoint
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
 export default function NavbarNotifications() {
   const { business } = useBusiness()
   const router = useRouter()
@@ -15,6 +32,7 @@ export default function NavbarNotifications() {
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ unread: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -150,7 +168,19 @@ export default function NavbarNotifications() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50">
+        <>
+          {/* Mobile backdrop */}
+          {isMobile && (
+            <div 
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              onClick={() => setIsOpen(false)}
+            />
+          )}
+          <div className={`${
+            isMobile 
+              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden'
+              : 'absolute right-0 mt-2 w-80 bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50'
+          }`}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="font-semibold text-foreground">Notifications</h3>
@@ -255,6 +285,7 @@ export default function NavbarNotifications() {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   )

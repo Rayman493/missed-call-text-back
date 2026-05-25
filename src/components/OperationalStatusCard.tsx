@@ -151,10 +151,13 @@ export default function OperationalStatusCard({
   if (monitoringStatus === 'active') {
     return (
       <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-4 hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-5 hover:shadow-xl transition-all duration-300">
           {/* Compact Header */}
           <div className="flex items-center justify-center mb-2">
-            <h3 className="text-base sm:text-lg font-bold text-white">🟢 ReplyFlow Active</h3>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+              <h3 className="text-base sm:text-lg font-bold text-white">ReplyFlow Active</h3>
+            </div>
           </div>
 
           {/* Compact Description */}

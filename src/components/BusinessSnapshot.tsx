@@ -122,27 +122,27 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   const kpiItems = [
     {
       type: 'calls',
-      label: 'Calls Processed',
+      label: 'Missed Calls Captured',
       value: kpiData.callsProcessed,
-      description: 'Missed calls captured'
+      description: 'Business opportunities recovered'
     },
     {
       type: 'leads',
-      label: 'Leads Captured',
+      label: 'Leads Recovered',
       value: kpiData.leadsCaptured,
-      description: 'New leads created'
+      description: 'Customers engaged successfully'
     },
     {
       type: 'texts',
       label: 'Texts Sent',
       value: kpiData.textsSent,
-      description: 'Outbound messages'
+      description: 'Automated outreach messages'
     },
     {
       type: 'replies',
-      label: 'Replies Received',
+      label: 'Customer Replies',
       value: kpiData.repliesReceived,
-      description: 'Customer responses'
+      description: 'Conversations started'
     }
   ]
 
