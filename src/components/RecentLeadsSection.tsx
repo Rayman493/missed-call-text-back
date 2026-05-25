@@ -5,6 +5,7 @@ import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
+import LeadTimeline from '@/components/LeadTimeline'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -406,6 +407,11 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                           {nextFollowUp ? `${Math.ceil((new Date(nextFollowUp.time).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d` : 'None'}
                         </p>
                       </div>
+                    </div>
+
+                    {/* Lead Timeline */}
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <LeadTimeline leadId={lead.id} compact={true} />
                     </div>
                   </div>
                 </Link>
