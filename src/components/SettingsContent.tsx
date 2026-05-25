@@ -459,16 +459,20 @@ export default function SettingsContent() {
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
-      const offset = 180 // Account for sticky header/nav offset
+      // Dynamic offset calculation for better mobile/desktop compatibility
+      const isMobile = window.innerWidth < 768
+      const header = document.querySelector('header')
+      const headerHeight = header ? header.offsetHeight : 0
+      const offset = headerHeight + 20 // Header height + extra padding
       let computedActiveSection = 'general' // Default fallback
       
-      // Get scroll position and viewport dimensions from correct container
+      // Get scroll position and viewport dimensions
       const scrollTop = window.scrollY
       const viewportHeight = window.innerHeight
       const scrollHeight = document.documentElement.scrollHeight
       
-      // Edge case: Force General when near top
-      if (scrollTop <= 50) {
+      // Edge case: Force General when near top (more reliable detection)
+      if (scrollTop <= 100) {
         if (activeSection !== 'general') {
           setActiveSection('general')
         }
@@ -476,7 +480,7 @@ export default function SettingsContent() {
       }
       
       // Edge case: Force Account when near bottom
-      const nearBottom = scrollTop + viewportHeight >= scrollHeight - 50
+      const nearBottom = scrollTop + viewportHeight >= scrollHeight - 100
       if (nearBottom) {
         if (activeSection !== 'account') {
           setActiveSection('account')
@@ -484,18 +488,35 @@ export default function SettingsContent() {
         return
       }
       
-      // Normal section detection for middle scrolling
+      // Normal section detection - find the section that's most visible
+      let maxVisibility = 0
+      let mostVisibleSection = 'general'
+      
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId)
         if (element) {
           const rect = element.getBoundingClientRect()
           
-          // Use only getBoundingClientRect().top - no mixing with window.scrollY
-          if (rect.top <= offset) {
-            computedActiveSection = sectionId
+          // Calculate how much of the section is visible in the viewport
+          const visibleTop = Math.max(0, rect.top)
+          const visibleBottom = Math.min(viewportHeight, rect.bottom)
+          const visibleHeight = Math.max(0, visibleBottom - visibleTop)
+          
+          // Calculate visibility percentage
+          const visibilityPercentage = visibleHeight / rect.height
+          
+          // Check if section is in the upper part of viewport (for active tab selection)
+          const isInUpperViewport = rect.top <= offset && rect.bottom > offset
+          
+          if (isInUpperViewport && visibilityPercentage > maxVisibility) {
+            maxVisibility = visibilityPercentage
+            mostVisibleSection = sectionId
           }
         }
       }
+      
+      // Update with the most visible section
+      computedActiveSection = mostVisibleSection
       
       // Only update if the section actually changed
       if (computedActiveSection !== activeSection) {
@@ -719,7 +740,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div id="general-messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5 scroll-mt-24">
+              <div id="messaging" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-4.5 scroll-mt-24">
                 <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                   <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
