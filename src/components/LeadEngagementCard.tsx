@@ -105,6 +105,11 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
     return 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800'
   }
 
+  // Hide card entirely if there are no customer responses (low-value empty state)
+  if (metrics.repliedLeads === 0) {
+    return null
+  }
+
   return (
     <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
       <div className="flex items-center justify-between mb-3">
@@ -114,7 +119,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
         </div>
       </div>
 
-      {metrics.repliedLeads > 0 ? (
+      {metrics.repliedLeads > 0 && (
         <div className="space-y-3">
           {/* Main response metric */}
           <div className={`p-3 rounded-lg border ${getEngagementBg(metrics.engagementRate)}`}>
@@ -171,16 +176,6 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
               }
             </p>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-4">
-          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-            <MessageSquare className="w-5 h-5 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-2">No customer replies yet</p>
-          <p className="text-xs text-muted-foreground">
-            ReplyFlow is still following up automatically.
-          </p>
         </div>
       )}
     </div>

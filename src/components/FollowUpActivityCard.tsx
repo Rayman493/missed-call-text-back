@@ -119,10 +119,10 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="text-center">
             <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full mx-auto mb-1">
-              <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <p className="text-lg font-semibold text-foreground">{metrics.scheduled}</p>
-            <p className="text-xs text-muted-foreground">Scheduled</p>
+            <p className="text-lg font-semibold text-foreground">{metrics.pending}</p>
+            <p className="text-xs text-muted-foreground">Awaiting Replies</p>
           </div>
 
           <div className="text-center">
@@ -130,15 +130,15 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
               <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
             <p className="text-lg font-semibold text-foreground">{metrics.sentThisWeek}</p>
-            <p className="text-xs text-muted-foreground">Sent This Week</p>
+            <p className="text-xs text-muted-foreground">Completed This Week</p>
           </div>
 
           <div className="text-center">
             <div className="flex items-center justify-center w-8 h-8 bg-amber-100 dark:bg-amber-900/20 rounded-full mx-auto mb-1">
-              <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="text-lg font-semibold text-foreground">{metrics.pending}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
+            <p className="text-lg font-semibold text-foreground">{metrics.scheduled}</p>
+            <p className="text-xs text-muted-foreground">Active Follow-Ups</p>
           </div>
         </div>
       ) : (

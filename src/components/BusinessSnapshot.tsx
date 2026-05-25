@@ -122,7 +122,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   const kpiItems = [
     {
       type: 'calls',
-      label: 'Missed Calls',
+      label: 'Missed Calls Captured',
       value: kpiData.callsProcessed,
       description: 'Business opportunities captured'
     },
@@ -130,19 +130,19 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       type: 'leads',
       label: 'Recovered Leads',
       value: kpiData.leadsCaptured,
-      description: 'Customers engaged successfully'
+      description: 'Customers successfully engaged'
     },
     {
       type: 'texts',
-      label: 'Texts Sent',
+      label: 'Conversations Started',
       value: kpiData.textsSent,
-      description: 'Customer conversations started'
+      description: 'Customer conversations initiated'
     },
     {
       type: 'replies',
-      label: 'Replies',
+      label: 'Customer Replies',
       value: kpiData.repliesReceived,
-      description: 'Customer responses received'
+      description: 'Customers who responded'
     }
   ]
 
@@ -166,8 +166,8 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-foreground">Business Snapshot</h3>
         <div className="text-xs text-muted-foreground">Last {kpiData.period}</div>
       </div>

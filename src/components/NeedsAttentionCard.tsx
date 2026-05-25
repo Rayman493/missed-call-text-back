@@ -205,7 +205,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         </div>
       </div>
 
-      {topItem && (
+      {topItem ? (
         <div className={`flex items-start gap-3 p-3 rounded-lg border ${getPriorityColor(topItem.priority)}`}>
           <div className="flex-shrink-0 mt-0.5">
             {getPriorityIcon(topItem.type)}
@@ -221,6 +221,18 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
                 {topItem.linkText}
               </Link>
             )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <div className="flex-shrink-0">
+            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-green-700 dark:text-green-300">Everything is running normally</p>
+            <p className="text-xs opacity-75 mt-1 text-green-600 dark:text-green-400">
+              ReplyFlow is actively monitoring and engaging missed callers
+            </p>
           </div>
         </div>
       )}

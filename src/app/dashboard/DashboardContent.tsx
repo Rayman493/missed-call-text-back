@@ -59,6 +59,8 @@ import LeadEngagementCard from '@/components/LeadEngagementCard'
 import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
 import TodaysActivity from '@/components/TodaysActivity'
+import BusinessSnapshot from '@/components/BusinessSnapshot'
+import ReplyFlowImpact from '@/components/ReplyFlowImpact'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1274,20 +1276,6 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Today's Activity - Priority 1 */}
-                    <SectionErrorBoundary sectionName="TodaysActivity">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <TodaysActivity business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Needs Attention Card - Priority 2 */}
-                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <NeedsAttentionCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
                     {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {(() => {
@@ -1317,24 +1305,38 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Business Wins Card - Priority 3 */}
-                    <SectionErrorBoundary sectionName="BusinessWinsCard">
+                    {/* Needs Attention Card - Priority 3 */}
+                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
                       <div className="mb-4 transition-opacity duration-300">
-                        <BusinessWinsCard business={business} />
+                        <NeedsAttentionCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Follow-Up Activity Card - Priority 4 */}
+                    {/* Business Snapshot - Priority 4 */}
+                    <SectionErrorBoundary sectionName="BusinessSnapshot">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <BusinessSnapshot business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* ReplyFlow Impact - Priority 5 */}
+                    <SectionErrorBoundary sectionName="ReplyFlowImpact">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <ReplyFlowImpact business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Follow-Up Activity Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
                       <div className="mb-4 transition-opacity duration-300">
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Customer Responses Card - Priority 5 */}
-                    <SectionErrorBoundary sectionName="LeadEngagementCard">
+                    {/* Business Wins Card - Priority 7 */}
+                    <SectionErrorBoundary sectionName="BusinessWinsCard">
                       <div className="mb-4 transition-opacity duration-300">
-                        <LeadEngagementCard business={business} />
+                        <BusinessWinsCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 

@@ -94,6 +94,20 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             description: 'Successfully captured 100 missed calls',
             icon: 'trophy',
             earned: false
+          },
+          {
+            id: 'one_week_active',
+            title: '1 Week Active',
+            description: 'ReplyFlow has been protecting your business for a week',
+            icon: 'star',
+            earned: false
+          },
+          {
+            id: 'one_month_active',
+            title: '1 Month Active',
+            description: 'ReplyFlow has been protecting your business for a month',
+            icon: 'trophy',
+            earned: false
           }
         ]
 
@@ -171,6 +185,26 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             ...allAchievements.find(a => a.id === 'hundred_leads')!,
             earned: true
           })
+        }
+
+        // Check for time-based milestones
+        if (business?.created_at) {
+          const businessAge = new Date().getTime() - new Date(business.created_at).getTime()
+          const daysSinceCreation = Math.floor(businessAge / (1000 * 60 * 60 * 24))
+          
+          if (daysSinceCreation >= 7) {
+            earnedAchievements.push({
+              ...allAchievements.find(a => a.id === 'one_week_active')!,
+              earned: true
+            })
+          }
+          
+          if (daysSinceCreation >= 30) {
+            earnedAchievements.push({
+              ...allAchievements.find(a => a.id === 'one_month_active')!,
+              earned: true
+            })
+          }
         }
 
         // Check for first follow-up

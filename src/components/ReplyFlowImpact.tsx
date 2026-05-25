@@ -118,7 +118,7 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
                 <MessageSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <p className="text-lg font-semibold text-foreground">{metrics.textsSent}</p>
-              <p className="text-xs text-muted-foreground">Texts Sent</p>
+              <p className="text-xs text-muted-foreground">Follow-Ups Sent</p>
             </div>
 
             <div className="text-center">
@@ -133,7 +133,18 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
           {/* Impact Summary */}
           <div className="text-center pt-4 border-t border-blue-200 dark:border-blue-800">
             <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-              ReplyFlow automatically engaged {metrics.recoveredLeads} missed callers for your business.
+              {metrics.recoveredLeads === 1 
+                ? 'ReplyFlow has engaged 1 missed caller.'
+                : `ReplyFlow has engaged ${metrics.recoveredLeads} missed callers.`
+              }
+              {metrics.customerReplies > 0 && (
+                <span className="block mt-1">
+                  {metrics.customerReplies === 1 
+                    ? '1 customer has responded to your messages.'
+                    : `${metrics.customerReplies} customers have responded to your messages.`
+                  }
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -144,7 +155,7 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
           </div>
           <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">No impact yet</p>
           <p className="text-xs text-muted-foreground">
-            ReplyFlow will show your business impact once you start capturing missed calls
+            ReplyFlow is actively monitoring and responding to missed calls.
           </p>
         </div>
       )}
