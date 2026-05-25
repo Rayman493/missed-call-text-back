@@ -453,70 +453,61 @@ export default function SettingsContent() {
     }
   }, [business])
 
-  // Scroll-aware active section detection using scroll listener
+  // Scroll-aware active section detection using explicit scroll positions
   useEffect(() => {
     const sections = ['general', 'automation', 'contacts', 'account']
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
-      // Dynamic offset calculation for better mobile/desktop compatibility
-      const isMobile = window.innerWidth < 768
+      // Get section elements
+      const generalSection = document.getElementById('general')
+      const automationSection = document.getElementById('automation')
+      const contactsSection = document.getElementById('contacts')
+      const accountSection = document.getElementById('account')
+      
+      if (!generalSection || !automationSection || !contactsSection || !accountSection) {
+        return
+      }
+      
+      // Get scroll position
+      const scrollY = window.scrollY
+      
+      // Get section offsets
+      const generalTop = generalSection.offsetTop
+      const automationTop = automationSection.offsetTop
+      const contactsTop = contactsSection.offsetTop
+      const accountTop = accountSection.offsetTop
+      
+      // Calculate offset for header and tabs
       const header = document.querySelector('header')
       const headerHeight = header ? header.offsetHeight : 0
-      const offset = headerHeight + 20 // Header height + extra padding
-      let computedActiveSection = 'general' // Default fallback
+      const tabsHeight = 60 // Approximate height of tab navigation
+      const offset = headerHeight + tabsHeight + 80
       
-      // Get scroll position and viewport dimensions
-      const scrollTop = window.scrollY
-      const viewportHeight = window.innerHeight
-      const scrollHeight = document.documentElement.scrollHeight
+      // Calculate which section should be active
+      let computedActiveSection = 'general'
       
-      // Edge case: Force General when near top (more reliable detection)
-      if (scrollTop <= 100) {
-        if (activeSection !== 'general') {
-          setActiveSection('general')
-        }
-        return
+      if (scrollY < automationTop - offset) {
+        computedActiveSection = 'general'
+      } else if (scrollY < contactsTop - offset) {
+        computedActiveSection = 'automation'
+      } else if (scrollY < accountTop - offset) {
+        computedActiveSection = 'contacts'
+      } else {
+        computedActiveSection = 'account'
       }
       
-      // Edge case: Force Account when near bottom
-      const nearBottom = scrollTop + viewportHeight >= scrollHeight - 100
-      if (nearBottom) {
-        if (activeSection !== 'account') {
-          setActiveSection('account')
-        }
-        return
-      }
-      
-      // Normal section detection - find the section that's most visible
-      let maxVisibility = 0
-      let mostVisibleSection = 'general'
-      
-      for (const sectionId of sections) {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          
-          // Calculate how much of the section is visible in the viewport
-          const visibleTop = Math.max(0, rect.top)
-          const visibleBottom = Math.min(viewportHeight, rect.bottom)
-          const visibleHeight = Math.max(0, visibleBottom - visibleTop)
-          
-          // Calculate visibility percentage
-          const visibilityPercentage = visibleHeight / rect.height
-          
-          // Check if section is in the upper part of viewport (for active tab selection)
-          const isInUpperViewport = rect.top <= offset && rect.bottom > offset
-          
-          if (isInUpperViewport && visibilityPercentage > maxVisibility) {
-            maxVisibility = visibilityPercentage
-            mostVisibleSection = sectionId
-          }
-        }
-      }
-      
-      // Update with the most visible section
-      computedActiveSection = mostVisibleSection
+      // Debug logging (remove after confirming)
+      console.log('ScrollSpy Debug:', {
+        scrollY,
+        generalTop,
+        automationTop,
+        contactsTop,
+        accountTop,
+        offset,
+        computedActiveSection,
+        currentActive: activeSection
+      })
       
       // Only update if the section actually changed
       if (computedActiveSection !== activeSection) {
