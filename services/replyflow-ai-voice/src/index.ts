@@ -214,6 +214,8 @@ wss.on('connection', (ws, req) => {
     let firstFrameLogged = false;
     let debugMessageCount = 0;
     const DEBUG_MESSAGE_LIMIT = 20;
+    let mediaPacketCount = 0;
+    let firstMediaPacketLogged = false;
     let openaiInitAttempted = false;
     let openaiInitSucceeded = false;
     let openaiInitFailed = false;
@@ -232,9 +234,13 @@ wss.on('connection', (ws, req) => {
           firstFrameLogged = true;
         }
 
-        // LOW-LEVEL INSPECTION: Log raw frame before any processing
+        // LOW-LEVEL INSPECTION: Log raw frame before any processing (non-media only)
         if (debugMessageCount < DEBUG_MESSAGE_LIMIT) {
-          log(LogLevel.INFO, '[RAW WS]', { type: typeof data, data: data.toString() });
+          const dataStr = data.toString();
+          const isMedia = dataStr.includes('"event":"media"');
+          if (!isMedia) {
+            log(LogLevel.INFO, '[RAW WS]', { type: typeof data, data: dataStr });
+          }
           debugMessageCount++;
         }
 
@@ -247,10 +253,20 @@ wss.on('connection', (ws, req) => {
           return;
         }
 
-        // Log parsed frame
-        if (debugMessageCount <= DEBUG_MESSAGE_LIMIT) {
-          log(LogLevel.INFO, '[PARSED WS]', JSON.stringify(message, null, 2));
-          log(LogLevel.INFO, '[WS KEYS]', Object.keys(message));
+        // Log parsed frame (non-media only, or first media, or every 100th media)
+        if (message.event === 'media') {
+          mediaPacketCount++;
+          if (!firstMediaPacketLogged) {
+            log(LogLevel.INFO, '[PARSED WS] FIRST MEDIA PACKET', JSON.stringify(message, null, 2));
+            firstMediaPacketLogged = true;
+          } else if (mediaPacketCount % 100 === 0) {
+            log(LogLevel.INFO, `[MEDIA] packet ${mediaPacketCount} (every 100th)`);
+          }
+        } else {
+          if (debugMessageCount <= DEBUG_MESSAGE_LIMIT) {
+            log(LogLevel.INFO, '[PARSED WS]', JSON.stringify(message, null, 2));
+            log(LogLevel.INFO, '[WS KEYS]', Object.keys(message));
+          }
         }
 
         // Handle start event
@@ -315,7 +331,7 @@ wss.on('connection', (ws, req) => {
             for (let i = 1; i <= 5; i++) {
               setTimeout(() => {
                 if (openAiWs) {
-                  console.log('[OPENAI WATCHDOG] readyState after', i, 'seconds:', openAiWs.readyState);
+                  console.log(`[OPENAI WATCHDOG] after ${i}s readyState:`, openAiWs.readyState);
                 }
               }, i * 1000);
             }
