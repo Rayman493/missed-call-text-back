@@ -56,6 +56,13 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               source,
               started_at,
               last_activity_at
+            ),
+            voicemail_recordings (
+              id,
+              recording_url,
+              recording_duration,
+              recording_status,
+              created_at
             )
           `)
           .eq('business_id', businessId)
@@ -408,6 +415,19 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                         </p>
                       </div>
                     </div>
+
+                    {/* Voicemail Indicator */}
+                    {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-blue-600 dark:text-blue-400 text-lg">📞</span>
+                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                          Voicemail Available
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          ({lead.voicemail_recordings.length} recording{lead.voicemail_recordings.length > 1 ? 's' : ''})
+                        </span>
+                      </div>
+                    )}
 
                     {/* Lead Timeline */}
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">

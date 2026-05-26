@@ -96,6 +96,19 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Messages fetched:", messages?.length || 0)
 
+    // Fetch voicemail recordings for this lead with RLS protection
+    const { data: voicemailRecordings, error: voicemailError } = await supabase
+      .from("voicemail_recordings")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: true })
+
+    if (voicemailError) {
+      console.log("[lead-details API] Voicemail recordings error:", voicemailError)
+    }
+
+    console.log("[lead-details API] Voicemail recordings fetched:", voicemailRecordings?.length || 0)
+
     // Fetch follow-up jobs for this lead with RLS protection
     const { data: followUpJobs } = await supabase
       .from("follow_up_jobs")
@@ -110,6 +123,7 @@ export async function GET(request: NextRequest) {
         ...lead,
         conversation,
         messages: messages || [],
+        voicemailRecordings: voicemailRecordings || [],
         followUpJobs: followUpJobs || []
       }
     })

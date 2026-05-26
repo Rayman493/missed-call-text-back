@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
+import VoicemailMessage from '@/components/VoicemailMessage'
 
 interface MobileConversationMessageListProps {
   messagesArray: any[]
+  conversationTimeline: any[]
   sending: boolean
   handleRetry: (body: string, id: string, clientTempId?: string) => void
   getErrorMessage: (errorCode: string) => string
@@ -10,6 +12,7 @@ interface MobileConversationMessageListProps {
 
 export default function MobileConversationMessageList({ 
   messagesArray, 
+  conversationTimeline,
   sending, 
   handleRetry, 
   getErrorMessage 
@@ -26,7 +29,21 @@ export default function MobileConversationMessageList({
 
   return (
     <div className="space-y-2 sm:space-y-3">
-      {messagesArray.map((msg: any, index: number) => {
+      {conversationTimeline.map((item: any, index: number) => {
+        // Handle voicemail items
+        if (item.type === 'voicemail') {
+          return (
+            <VoicemailMessage
+              key={item.id}
+              recording={item.data}
+              isInbound={true}
+              showAvatar={index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail'}
+            />
+          )
+        }
+
+        // Handle message items
+        const msg = item.data
         const errorMessage = getErrorMessage(msg.error_code)
         const hasError = msg.status === 'undelivered' || msg.status === 'failed'
         const isInbound = msg.direction === 'inbound'
@@ -37,8 +54,11 @@ export default function MobileConversationMessageList({
         const isSending = msg.status === 'sending'
         
         // Check if we should show avatar (only when sender changes)
-        const prevMsg = messagesArray[index - 1]
-        const shouldShowAvatar = index === 0 || prevMsg?.direction !== msg.direction
+        const prevItem = conversationTimeline[index - 1]
+        const shouldShowAvatar = index === 0 || 
+          (prevItem?.type === 'message' && prevItem.data?.direction !== msg.direction) ||
+          (prevItem?.type === 'voicemail') ||
+          (prevItem?.type === 'message' && msg.direction === 'inbound')
         
         return (
           <div

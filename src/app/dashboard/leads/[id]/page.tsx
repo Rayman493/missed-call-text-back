@@ -16,6 +16,7 @@ import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
+import VoicemailMessage from '@/components/VoicemailMessage'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -215,6 +216,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
   }, [leadData?.messages, optimisticMessage])
+
+  // Create combined timeline with messages and voicemail recordings
+  const conversationTimeline = useMemo(() => {
+    const messages = allMessages || []
+    const voicemails = leadData?.voicemailRecordings || []
+    
+    // Convert voicemails to timeline items
+    const voicemailItems = voicemails.map((voicemail: any) => ({
+      type: 'voicemail',
+      id: voicemail.id,
+      created_at: voicemail.created_at,
+      data: voicemail
+    }))
+    
+    // Convert messages to timeline items
+    const messageItems = messages.map((message: any) => ({
+      type: 'message',
+      id: message.id,
+      created_at: message.created_at,
+      data: message
+    }))
+    
+    // Combine and sort chronologically
+    const timeline = [...messageItems, ...voicemailItems].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+    
+    return timeline
+  }, [allMessages, leadData?.voicemailRecordings])
   
   const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
@@ -1162,6 +1192,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <MobileConversationMessageList
                 messagesArray={messagesArray}
+                conversationTimeline={conversationTimeline}
                 sending={sending}
                 handleRetry={handleRetry}
                 getErrorMessage={getErrorMessage}
