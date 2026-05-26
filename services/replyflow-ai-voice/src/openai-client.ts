@@ -56,62 +56,92 @@ export class OpenAIRealtimeClient {
     return new Promise((resolve, reject) => {
       log(LogLevel.INFO, 'Connecting to OpenAI Realtime API');
 
-      this.ws = new WebSocket('wss://api.openai.com/v1/realtime', {
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'OpenAI-Beta': 'realtime=v1',
-        },
+      // Log API key presence without logging the key itself
+      log(LogLevel.INFO, '[AI POC] OpenAI key present', {
+        exists: !!this.config.apiKey,
+        length: this.config.apiKey?.length,
       });
 
-      this.ws.on('open', () => {
-        log(LogLevel.INFO, 'OpenAI WebSocket connected');
-        
-        // Clear timeout on successful connection
-        if (this.timeoutId) {
-          clearTimeout(this.timeoutId);
+      const wsUrl = 'wss://api.openai.com/v1/realtime';
+      const headers = {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'OpenAI-Beta': 'realtime=v1',
+      };
+
+      log(LogLevel.INFO, '[AI POC] Creating OpenAI websocket', {
+        url: wsUrl,
+        model: this.config.model,
+      });
+
+      log(LogLevel.INFO, '[AI POC] Request headers', {
+        'Authorization': headers.Authorization ? '[REDACTED]' : undefined,
+        'OpenAI-Beta': headers['OpenAI-Beta'],
+      });
+
+      try {
+        this.ws = new WebSocket(wsUrl, {
+          headers: headers,
+        });
+
+        log(LogLevel.INFO, '[AI POC] OpenAI websocket object created');
+
+        this.ws.on('open', () => {
+          log(LogLevel.INFO, '[AI POC] OpenAI connected');
+
+          // Clear timeout on successful connection
+          if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+          }
+
+          this.connectionState = ConnectionState.CONNECTED;
+
+          // Send session configuration
+          this.sendSessionUpdate();
+          resolve();
+        });
+
+        this.ws.on('error', (error) => {
+          log(LogLevel.ERROR, '[AI POC] OpenAI websocket error', error as Error);
+          this.connectionState = ConnectionState.ERROR;
+          this.clearTimeout();
+          reject(error);
+        });
+
+        this.ws.on('close', (code, reason) => {
+          log(LogLevel.ERROR, '[AI POC] OpenAI websocket closed', {
+            code,
+            reason: reason?.toString(),
+          });
+          this.connectionState = ConnectionState.CLOSED;
+          this.clearTimeout();
+        });
+
+        this.ws.on('message', (data) => {
+          const message = JSON.parse(data.toString());
+          this.handleMessage(message);
+        });
+
+        // 10 second timeout with cleanup
+        this.timeoutId = setTimeout(() => {
+          log(LogLevel.ERROR, 'OpenAI connection timeout');
+
+          // Cleanup: close WebSocket if it exists
+          if (this.ws) {
+            this.ws.close();
+            this.ws = null;
+          }
+
+          this.connectionState = ConnectionState.ERROR;
           this.timeoutId = null;
-        }
 
-        this.connectionState = ConnectionState.CONNECTED;
-        
-        // Send session configuration
-        this.sendSessionUpdate();
-        resolve();
-      });
-
-      this.ws.on('error', (error) => {
-        log(LogLevel.ERROR, 'OpenAI WebSocket error', error);
+          reject(new Error('OpenAI connection timeout'));
+        }, 10000);
+      } catch (error) {
+        log(LogLevel.ERROR, '[AI POC] OpenAI websocket creation failed', error as Error);
         this.connectionState = ConnectionState.ERROR;
-        this.clearTimeout();
         reject(error);
-      });
-
-      this.ws.on('close', () => {
-        log(LogLevel.INFO, 'OpenAI WebSocket closed');
-        this.connectionState = ConnectionState.CLOSED;
-        this.clearTimeout();
-      });
-
-      this.ws.on('message', (data) => {
-        const message = JSON.parse(data.toString());
-        this.handleMessage(message);
-      });
-
-      // 10 second timeout with cleanup
-      this.timeoutId = setTimeout(() => {
-        log(LogLevel.ERROR, 'OpenAI connection timeout');
-        
-        // Cleanup: close WebSocket if it exists
-        if (this.ws) {
-          this.ws.close();
-          this.ws = null;
-        }
-        
-        this.connectionState = ConnectionState.ERROR;
-        this.timeoutId = null;
-        
-        reject(new Error('OpenAI connection timeout'));
-      }, 10000);
+      }
     });
   }
 
