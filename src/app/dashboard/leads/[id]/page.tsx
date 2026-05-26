@@ -5,6 +5,7 @@ import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
+import DesktopConversationMessageList from '@/components/DesktopConversationMessageList'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import { useRouter } from 'next/navigation'
@@ -1211,13 +1212,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </p>
                 </div>
               ) : (
-                <MobileConversationMessageList
+                <DesktopConversationMessageList
                   messagesArray={messagesArray}
                   conversationTimeline={conversationTimeline}
                   sending={sending}
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
-                  renderAudio={false}
                 />
               )}
             </div>

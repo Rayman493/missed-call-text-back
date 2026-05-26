@@ -454,6 +454,24 @@ export default function VoicemailMessage({
     const voicemailAudioElements = audioElements.filter(audio => audio.voicemailId)
     const expectedCount = document.querySelectorAll('[data-voicemail-id]').length
     
+    // Dev-only assertion for duplicate audio elements
+    if (process.env.NODE_ENV === 'development') {
+      const voicemailCards = document.querySelectorAll('[data-voicemail-id]').length
+      const audioCount = voicemailAudioElements.length
+      
+      if (audioCount > voicemailCards) {
+        console.error(
+          `[VOICEMAIL ASSERTION FAILED] Duplicate audio elements detected! ` +
+          `Found ${audioCount} audio elements but only ${voicemailCards} voicemail recordings. ` +
+          `This violates the 1:1 audio-to-voicemail rule and will cause echo/overlap issues.`
+        )
+      } else if (audioCount === voicemailCards) {
+        console.log(
+          `[VOICEMAIL ASSERTION PASSED] ${audioCount} audio elements for ${voicemailCards} voicemail recordings - OK`
+        )
+      }
+    }
+    
     if (voicemailAudioElements.length > expectedCount) {
       console.warn(
         `[VOICEMAIL WARNING] Audio element count mismatch! ` +
