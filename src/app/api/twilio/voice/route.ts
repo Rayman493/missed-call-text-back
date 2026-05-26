@@ -59,13 +59,13 @@ function generateVoiceGreeting(businessName?: string): string {
       .substring(0, 100); // Limit length to prevent issues
   };
   
-  // Generate simple voicemail greeting with business name or fallback
+  // Generate clear voicemail greeting with business name or fallback
   let voicemailMessage: string;
   if (businessName && sanitizeForTTS(businessName)) {
     const sanitized = sanitizeForTTS(businessName);
-    voicemailMessage = `Thanks for calling ${sanitized}. Sorry we missed your call. Please leave a message after the beep and we'll get back to you shortly.`;
+    voicemailMessage = `Thanks for calling ${sanitized}. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
   } else {
-    voicemailMessage = `Thanks for calling. Sorry we missed your call. Please leave a message after the beep and we'll get back to you shortly.`;
+    voicemailMessage = `Thanks for calling. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
   }
   
   // Voicemail TwiML with recording capability
