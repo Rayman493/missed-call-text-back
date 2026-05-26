@@ -315,19 +315,19 @@ export default function LeadsPage() {
                 <div className="space-y-4 sm:space-y-6">
                   {/* Lifecycle Summary Cards Preview */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
-                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1.5 sm:p-2">
+                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
                       <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">New Leads</p>
                       <p className="text-base sm:text-lg font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1.5 sm:p-2">
+                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
                       <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Active</p>
                       <p className="text-base sm:text-lg font-extrabold text-green-600 dark:text-green-400 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1.5 sm:p-2">
+                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
                       <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Completed</p>
                       <p className="text-base sm:text-lg font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1.5 sm:p-2">
+                    <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
                       <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Ignored</p>
                       <p className="text-base sm:text-lg font-extrabold text-slate-600 dark:text-slate-400 tracking-tight">—</p>
                     </div>

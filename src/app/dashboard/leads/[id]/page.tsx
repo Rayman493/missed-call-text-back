@@ -1222,7 +1222,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Right Column - Simplified Lead Panel (30%) */}
-          <div className="lg:flex-[0.3] overflow-y-auto space-y-3">
+          <div className="lg:flex-[0.3] overflow-y-auto space-y-2">
             {/* Lead Details Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Lead Details</h3>

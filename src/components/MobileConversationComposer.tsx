@@ -60,7 +60,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={sending}
-                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-none h-11 py-0 mt-0 mb-0 flex items-center"
+                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-tight h-11 py-0 mt-0 mb-0 flex items-center"
                 rows={1}
               />
               

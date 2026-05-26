@@ -153,7 +153,7 @@ export default function NavbarNotifications() {
       {/* UPDATED HEADER COMPONENT - Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors md:h-9 md:w-9 h-10 w-10 md:h-auto md:w-auto"
+        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
         aria-label="Notifications"
       >
         <Bell className="w-4 h-4" />

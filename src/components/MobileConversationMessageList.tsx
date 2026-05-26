@@ -128,7 +128,7 @@ export default function MobileConversationMessageList({
               
               {/* Message Bubble - Modern chat styling */}
               <div
-                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm ${
+                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm max-w-[70%] ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm hover:shadow-md border border-slate-200 dark:border-slate-700/50'
                     : isOptimistic && isSending
@@ -136,7 +136,7 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 hover:shadow-md border border-blue-700'
                 }`}
               >
-                <p className="text-sm sm:text-sm leading-relaxed break-words overflow-wrap-anywhere">
+                <p className="text-sm sm:text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
                   {msg.body || 'No content'}
                 </p>
               </div>
