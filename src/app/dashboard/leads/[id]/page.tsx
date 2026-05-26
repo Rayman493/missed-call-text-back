@@ -17,7 +17,6 @@ import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
-import VoicemailMessage from '@/components/VoicemailMessage'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -109,6 +108,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -278,6 +278,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     
     return () => container.removeEventListener('scroll', handleScroll)
   }, [messagesArray.length])
+
+  // Track viewport size for conditional rendering
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsMobileView(window.innerWidth < 1024) // lg breakpoint
+    }
+    
+    checkViewport()
+    window.addEventListener('resize', checkViewport)
+    
+    return () => window.removeEventListener('resize', checkViewport)
+  }, [])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
@@ -1186,13 +1198,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Conversation Thread - 2 Column Layout */}
+      {/* Conversation Thread - Conditional Rendering */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
-        <div className="hidden lg:flex lg:gap-6">
-          {/* Left Column - Conversation (70%) */}
-          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
+        {isMobileView ? (
+          /* Mobile Layout - Single Column */
+          <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh - 280px)' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1212,7 +1224,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </p>
                 </div>
               ) : (
-                <DesktopConversationMessageList
+                <MobileConversationMessageList
                   messagesArray={messagesArray}
                   conversationTimeline={conversationTimeline}
                   sending={sending}
@@ -1241,9 +1253,64 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </div>
+        ) : (
+          /* Desktop Layout - 2 Column */
+          <div className="flex gap-6">
+            {/* Left Column - Conversation (70%) */}
+            <div className="flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
+              {/* Message Thread */}
+              <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : messagesArray.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+                      Start the conversation
+                    </h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                      Send your first message to connect with this customer.
+                    </p>
+                  </div>
+                ) : (
+                  <DesktopConversationMessageList
+                    messagesArray={messagesArray}
+                    conversationTimeline={conversationTimeline}
+                    sending={sending}
+                    handleRetry={handleRetry}
+                    getErrorMessage={getErrorMessage}
+                  />
+                )}
+              </div>
 
-          {/* Right Column - Simplified Lead Panel (30%) */}
-          <div className="lg:flex-[0.3] overflow-y-auto space-y-2">
+              {/* Send Message Input */}
+              <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
+                <MobileConversationComposer
+                  message={message}
+                  setMessage={setMessage}
+                  handleSendMessage={handleSendMessage}
+                  sending={sending}
+                />
+              </div>
+              {error && (
+                <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
+                  error.includes('verification') || error.includes('carrier')
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+                }`}>
+                  <p>{error}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column - Simplified Lead Panel (30%) */}
+            <div className="flex-[0.3] overflow-y-auto space-y-2" data-sidebar>
             {/* Customer Information Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
@@ -1383,14 +1450,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="pt-2 border-t border-border/50">
                     <h4 className="text-xs font-medium text-foreground mb-2">Voicemail</h4>
                     {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
-                      <div key={voicemail.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-amber-600 dark:text-amber-400">📞</span>
-                          <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
-                        </div>
-                        <button className="px-2 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[10px] font-medium rounded transition-colors">
-                          Play
-                        </button>
+                      <div key={voicemail.id} className="flex items-center gap-2">
+                        <span className="text-amber-600 dark:text-amber-400">📞</span>
+                        <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
                       </div>
                     ))}
                   </div>
@@ -1428,6 +1490,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
+        )}
 
         {/* Mobile Layout - Single Column */}
         <div className="lg:hidden">

@@ -450,6 +450,23 @@ export default function VoicemailMessage({
   // Debug logging function for all audio elements
   const logAllAudioElements = () => {
     const allAudio = document.querySelectorAll("audio")
+    
+    // Enhanced debug table to identify source of extra audio elements
+    console.table(
+      Array.from(allAudio).map((audio, index) => ({
+        index,
+        voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
+        src: (audio as HTMLAudioElement).src,
+        className: (audio as HTMLAudioElement).className,
+        paused: (audio as HTMLAudioElement).paused,
+        currentTime: (audio as HTMLAudioElement).currentTime,
+        parentText: audio.closest("[data-voicemail-card]")?.textContent?.slice(0, 80),
+        inSidebar: !!audio.closest("[data-sidebar]"),
+        inMobileLayout: !!audio.closest("[data-mobile-layout]"),
+        inDesktopLayout: !!audio.closest("[data-desktop-layout]"),
+      }))
+    );
+    
     const audioElements = Array.from(allAudio).map((audio) => ({
       voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
       src: (audio as HTMLAudioElement).src,
@@ -657,7 +674,7 @@ export default function VoicemailMessage({
   }
 
   return (
-    <div className={`flex items-start gap-2 sm:gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}>
+    <div className={`flex items-start gap-2 sm:gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`} data-voicemail-card data-voicemail-id={recording.id}>
       {/* Avatar */}
       {showAvatar && (
         <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
