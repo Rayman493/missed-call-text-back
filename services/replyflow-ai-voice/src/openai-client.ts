@@ -70,13 +70,11 @@ export class OpenAIRealtimeClient {
       const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
-        'OpenAI-Beta': 'realtime=v1',
       };
 
       log(LogLevel.INFO, '[AI POC] OPENAI URL FINAL', { url: wsUrl });
       log(LogLevel.INFO, '[AI POC] OPENAI HEADERS FINAL', {
         'Authorization': headers.Authorization ? '[REDACTED]' : undefined,
-        'OpenAI-Beta': headers['OpenAI-Beta'],
       });
 
       try {

@@ -59,7 +59,6 @@ const server = createServer((req, res) => {
     const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[TEST OPENAI] creating websocket');
@@ -79,14 +78,20 @@ const server = createServer((req, res) => {
       result = 'open';
       console.log('[TEST OPENAI] open event fired');
       events.push({ type: 'open', timestamp: Date.now() });
-      const response = JSON.stringify({
-        ok: true,
-        result: 'open',
-        readyState: testWs.readyState,
-        events: events,
-      });
-      res.end(response);
-      testWs.close();
+      
+      // Wait 2 seconds to confirm connection stays open
+      setTimeout(() => {
+        console.log('[TEST OPENAI] 2s delay complete, readyState:', testWs.readyState);
+        events.push({ type: 'delay_complete', timestamp: Date.now(), readyState: testWs.readyState });
+        const response = JSON.stringify({
+          ok: true,
+          result: 'open',
+          readyState: testWs.readyState,
+          events: events,
+        });
+        res.end(response);
+        testWs.close();
+      }, 2000);
     });
 
     testWs.on('error', (error) => {
