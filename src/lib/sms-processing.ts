@@ -29,6 +29,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   const originalBody = body.trim().toUpperCase()
   const isOptOut = optOutKeywords.some(keyword => originalBody === keyword)
   
+  // Check for opt-in keywords (case-insensitive) - START, UNSTOP, YES
+  const optInKeywords = ['START', 'UNSTOP', 'YES']
+  const isOptIn = optInKeywords.some(keyword => originalBody === keyword)
+  
   // Try to find existing lead across all businesses with this phone number
   const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, to)
   
@@ -103,6 +107,60 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     } else {
       console.log(`[SMS Processing] Updated lead: ${updatedLead.id}`)
       lead = updatedLead
+    }
+  }
+  
+  // Handle opt-in requests (START, UNSTOP, YES)
+  if (isOptIn) {
+    console.log(`[CONSENT] START received from: ${normalizedCustomerPhone}`)
+    console.log(`[CONSENT] normalized caller phone: ${normalizedCustomerPhone}`)
+    console.log(`[CONSENT] lead before update:`, {
+      id: lead.id,
+      opted_out: lead.opted_out,
+      caller_phone: lead.caller_phone
+    })
+    
+    // Update lead to set opted_out = false and update timestamps
+    const updatedLead = await db.updateLead(lead.id, {
+      opted_out: false,
+      last_reply_at: new Date().toISOString(),
+      last_message_at: new Date().toISOString(),
+    })
+    
+    if (updatedLead) {
+      console.log(`[CONSENT] lead after update:`, {
+        id: updatedLead.id,
+        opted_out: updatedLead.opted_out,
+        caller_phone: updatedLead.caller_phone
+      })
+      lead = updatedLead
+    } else {
+      console.error(`[CONSENT] Failed to update lead opted_out status`)
+    }
+    
+    // Send confirmation reply for real Twilio messages, not dev simulations
+    if (source === 'twilio') {
+      const confirmationMessage = "You have been re-subscribed. You will receive messages again."
+      const messageSid = await sendSms(business, from, confirmationMessage, {
+        lead_id: lead.id,
+      })
+
+      if (messageSid) {
+        console.log(`[CONSENT] Sent opt-in confirmation: ${messageSid}`)
+      } else {
+        console.error(`[CONSENT] Failed to send opt-in confirmation`)
+      }
+    }
+    
+    // Return TwiML response for opt-in
+    return {
+      success: true,
+      optIn: true,
+      lead,
+      twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>You have been re-subscribed. You will receive messages again.</Message>
+</Response>`
     }
   }
   
