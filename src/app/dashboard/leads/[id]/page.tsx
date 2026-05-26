@@ -1166,12 +1166,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - 2 Column Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4 min-h-[calc(100vh-120px)]">
-        <div className="hidden lg:flex lg:gap-6 h-[calc(100vh-120px)]">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
+        <div className="hidden lg:flex lg:gap-6">
           {/* Left Column - Conversation (70%) */}
-          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
+          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col max-h-[620px]">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth min-h-[260px] max-h-[420px]">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

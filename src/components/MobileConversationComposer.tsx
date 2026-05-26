@@ -49,7 +49,8 @@ export default function MobileConversationComposer({
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Main Composer Row */}
+          <div className="flex items-center gap-3">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -59,7 +60,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={sending}
-                className="w-full px-4 sm:px-5 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed h-10 sm:h-11 max-h-[140px]"
+                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-tight h-11 py-0 mt-0 mb-0 flex items-center"
                 rows={1}
               />
               
@@ -75,7 +76,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center gap-2.5 sm:gap-3 min-w-[100px] sm:min-w-[120px] justify-center font-semibold text-sm sm:text-base h-10 sm:h-11"
+              className="flex-shrink-0 px-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center justify-center gap-2.5 sm:gap-3 min-w-[100px] sm:min-w-[120px] font-semibold text-sm sm:text-base h-11 self-center mt-0 mb-0"
             >
               {sending ? (
                 <>
@@ -106,7 +107,7 @@ export default function MobileConversationComposer({
           )}
         </div>
         
-        {/* Helper Text - hide on mobile to save space */}
+        {/* Helper Text - separated from main composer row */}
         <div className="mt-3 flex items-center justify-between hidden sm:flex">
           <div className="text-xs text-muted-foreground">
             Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Shift+Enter</kbd> for new line
