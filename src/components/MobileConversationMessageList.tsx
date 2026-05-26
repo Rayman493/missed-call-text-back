@@ -28,7 +28,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-4">
       {conversationTimeline.map((item: any, index: number) => {
         // Handle voicemail items
         if (item.type === 'voicemail') {
@@ -63,7 +63,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-end gap-2 sm:gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show when sender changes */}
             {shouldShowAvatar && (
@@ -84,8 +84,8 @@ export default function MobileConversationMessageList({
             {/* Message Content */}
             <div className={`max-w-[70%] ${isOutbound ? 'text-right' : ''}`}>
               {/* Message Header - Lighter timestamp */}
-              <div className="flex items-center gap-2 mb-1 justify-end flex-wrap">
-                <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-medium" title={new Date(msg.created_at).toLocaleString()}>
+              <div className="flex items-center gap-2 mb-1.5 justify-end flex-wrap">
+                <span className="text-[10px] sm:text-xs text-muted-foreground/50 font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
                 {isOutbound && (
@@ -128,12 +128,12 @@ export default function MobileConversationMessageList({
               
               {/* Message Bubble - Modern chat styling */}
               <div
-                className={`rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 relative transition-all duration-300 ease-out shadow-sm ${
+                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none hover:shadow-md border border-slate-200 dark:border-slate-700/50'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm hover:shadow-md border border-slate-200 dark:border-slate-700/50'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-none opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-none hover:bg-blue-700 hover:shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 shadow-md border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 hover:shadow-md border border-blue-700'
                 }`}
               >
                 <p className="text-sm sm:text-sm leading-relaxed break-words overflow-wrap-anywhere">

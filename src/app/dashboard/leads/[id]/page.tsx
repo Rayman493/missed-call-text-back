@@ -1166,12 +1166,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - 2 Column Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-1 sm:py-2 lg:py-3">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
         <div className="hidden lg:flex lg:gap-6 lg:h-[calc(100vh-140px)]">
           {/* Left Column - Conversation (70%) */}
           <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth">
+            <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1222,7 +1222,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Right Column - Simplified Lead Panel (30%) */}
-          <div className="lg:flex-[0.3] overflow-y-auto space-y-4">
+          <div className="lg:flex-[0.3] overflow-y-auto space-y-3">
             {/* Lead Details Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Lead Details</h3>
