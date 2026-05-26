@@ -306,8 +306,11 @@ wss.on('connection', (ws, req) => {
                 twilioHandler.setOpenAiReady();
               },
               onAudioDelta: (delta: string) => {
-                console.log('[AUDIO OUT] twilio ws readyState', { readyState: ws.readyState });
-                console.log('[AUDIO OUT] streamSid exists', { exists: !!twilioHandler.getStreamSid() });
+                console.log('[AUDIO OUT] sending to Twilio', { 
+                  streamSidExists: !!twilioHandler.getStreamSid(), 
+                  twilioReadyState: ws.readyState, 
+                  payloadLength: delta.length 
+                });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
@@ -318,7 +321,6 @@ wss.on('connection', (ws, req) => {
                   },
                 };
                 
-                console.log('[AUDIO OUT] sending media to Twilio');
                 ws.send(JSON.stringify(mediaMessage));
                 console.log('[AUDIO OUT] sent media to Twilio');
               },

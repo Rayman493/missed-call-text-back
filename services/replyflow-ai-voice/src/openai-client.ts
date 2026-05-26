@@ -324,13 +324,20 @@ export class OpenAIRealtimeClient {
       case 'session.updated':
         console.log('[OPENAI SESSION] session.updated received');
         log(LogLevel.INFO, '[AI POC] OpenAI session updated');
+        // Log audio config fields only
+        if (message.session) {
+          console.log('[OPENAI SESSION] audio config', {
+            input_audio_format: message.session.input_audio_format,
+            output_audio_format: message.session.output_audio_format,
+          });
+        }
         // Call onSessionUpdated callback to notify listeners
         if (this.config.onSessionUpdated) {
           this.config.onSessionUpdated();
         }
         break;
       case 'response.output_audio.delta':
-        console.log('[AUDIO OUT] received OpenAI delta', { length: message.delta?.length });
+        console.log('[AUDIO OUT] delta received', { length: message.delta?.length, type: typeof message.delta });
         // Forward audio to Twilio via callback
         if (this.config.onAudioDelta && message.delta) {
           console.log('[AUDIO OUT] about to send audio to Twilio');
