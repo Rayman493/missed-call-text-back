@@ -249,108 +249,119 @@ export default function VoicemailMessage({
         return
       }
       
-      try {
-        // Set up authenticated request before playing
-        if (audioUrl) {
-          console.log('[VOICEMAIL FRONTEND] Attempting to fetch audio from:', audioUrl)
+      // Check if we already have audio loaded - reuse it if we do
+      if (audio.src && blobUrl) {
+        console.log('[VOICEMAIL PLAYER] Reusing existing audio src and blob URL')
+        
+        try {
+          // Request play from audio manager (will pause other voicemails if needed)
+          const canPlay = await audioManager.requestPlay(recording.id)
+          if (!canPlay) {
+            console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
+            return
+          }
           
-          const supabase = createBrowserClient()
-          if (supabase) {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session?.access_token) {
-              console.log('[VOICEMAIL FRONTEND] Making authenticated request to:', audioUrl)
-              
-              // Create a new request with authentication headers
-              const response = await fetch(audioUrl, {
-                headers: {
-                  'Authorization': `Bearer ${session.access_token}`
-                }
-              })
-              
-              console.log('[VOICEMAIL FRONTEND] API Response:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok,
-                headers: Object.fromEntries(response.headers.entries())
-              })
-              
-              if (response.ok) {
-                let objectUrl = blobUrl
-                
-                // Create blob URL only if not cached
-                if (!objectUrl) {
-                  const audioBlob = await response.blob()
-                  objectUrl = URL.createObjectURL(audioBlob)
-                  setBlobUrl(objectUrl)
-                  console.log('[VOICEMAIL FRONTEND] Created new blob URL:', objectUrl)
-                } else {
-                  console.log('[VOICEMAIL FRONTEND] Reusing cached blob URL:', objectUrl)
-                }
-                
-                // Set the audio source and load it
-                audio.src = objectUrl
-                audio.load()
-                
-                // Clean up object URL when audio finishes (only if we created it)
-                const handleEnded = () => {
-                  console.log('[VOICEMAIL FRONTEND] Audio playback ended')
-                  if (blobUrl === objectUrl) {
-                    URL.revokeObjectURL(objectUrl)
-                    setBlobUrl(null)
-                  }
-                  audio.removeEventListener('ended', handleEnded)
-                }
-                audio.addEventListener('ended', handleEnded)
-                
-                // Also clean up on error
-                const handleError = () => {
-                  console.error('[VOICEMAIL FRONTEND] Audio playback error')
-                  if (blobUrl === objectUrl) {
-                    URL.revokeObjectURL(objectUrl)
-                    setBlobUrl(null)
-                  }
-                  audio.removeEventListener('error', handleError)
-                }
-                audio.addEventListener('error', handleError)
-                
-                // Wait for audio to load before playing
-                audio.addEventListener('canplay', async () => {
-                  console.log('[VOICEMAIL FRONTEND] Audio can play, requesting play from audio manager')
-                  
-                  // Request play from audio manager (will pause other voicemails if needed)
-                  const canPlay = await audioManager.requestPlay(recording.id)
-                  if (!canPlay) {
-                    console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
-                    return
-                  }
-                  
-                  try {
-                    await audio.play()
-                    console.log('[VOICEMAIL FRONTEND] Audio playback started successfully')
-                    setIsPlaying(true)
-                  } catch (error) {
-                    console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)
-                    setAudioError('Unable to play voicemail recording.')
-                    audioManager.requestPause(recording.id)
-                  }
-                }, { once: true })
-                
-                return // Exit early, play will be called in the canplay event
-              } else {
-                console.error('[VOICEMAIL FRONTEND] Failed to fetch audio blob:', response.status, response.statusText)
-                setAudioError('Unable to load voicemail recording.')
+          await audio.play()
+          console.log('[VOICEMAIL FRONTEND] Audio playback started successfully (reused)')
+          setIsPlaying(true)
+        } catch (error) {
+          console.error('[VOICEMAIL FRONTEND] Failed to play reused audio:', error)
+          setAudioError('Unable to play voicemail recording.')
+          audioManager.requestPause(recording.id)
+        }
+        return
+      }
+      
+      // Only fetch audio if we don't have it yet
+      if (!audioUrl) {
+        console.error('[VOICEMAIL FRONTEND] No audio URL available')
+        setAudioError('Voicemail URL not available.')
+        return
+      }
+      
+      console.log('[VOICEMAIL PLAYER] Fetching recording for first time')
+      
+      try {
+        const supabase = createBrowserClient()
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.access_token) {
+            console.log('[VOICEMAIL FRONTEND] Making authenticated request to:', audioUrl)
+            
+            // Create a new request with authentication headers
+            const response = await fetch(audioUrl, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
               }
+            })
+            
+            console.log('[VOICEMAIL FRONTEND] API Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              ok: response.ok,
+              headers: Object.fromEntries(response.headers.entries())
+            })
+            
+            if (response.ok) {
+              const audioBlob = await response.blob()
+              const objectUrl = URL.createObjectURL(audioBlob)
+              setBlobUrl(objectUrl)
+              console.log('[VOICEMAIL FRONTEND] Created new blob URL:', objectUrl)
+              
+              // Set the audio source and load it
+              audio.src = objectUrl
+              audio.load()
+              
+              // Clean up object URL when audio finishes
+              const handleEnded = () => {
+                console.log('[VOICEMAIL FRONTEND] Audio playback ended')
+                URL.revokeObjectURL(objectUrl)
+                setBlobUrl(null)
+                audio.removeEventListener('ended', handleEnded)
+              }
+              audio.addEventListener('ended', handleEnded)
+              
+              // Also clean up on error
+              const handleError = () => {
+                console.error('[VOICEMAIL FRONTEND] Audio playback error')
+                URL.revokeObjectURL(objectUrl)
+                setBlobUrl(null)
+                audio.removeEventListener('error', handleError)
+              }
+              audio.addEventListener('error', handleError)
+              
+              // Wait for audio to load before playing
+              audio.addEventListener('canplay', async () => {
+                console.log('[VOICEMAIL FRONTEND] Audio can play, requesting play from audio manager')
+                
+                // Request play from audio manager (will pause other voicemails if needed)
+                const canPlay = await audioManager.requestPlay(recording.id)
+                if (!canPlay) {
+                  console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
+                  return
+                }
+                
+                try {
+                  await audio.play()
+                  console.log('[VOICEMAIL FRONTEND] Audio playback started successfully (first time)')
+                  setIsPlaying(true)
+                } catch (error) {
+                  console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)
+                  setAudioError('Unable to play voicemail recording.')
+                  audioManager.requestPause(recording.id)
+                }
+              }, { once: true })
             } else {
-              console.error('[VOICEMAIL FRONTEND] No session or access token available')
-              setAudioError('Authentication required.')
+              console.error('[VOICEMAIL FRONTEND] Failed to fetch audio blob:', response.status, response.statusText)
+              setAudioError('Unable to load voicemail recording.')
             }
           } else {
-            console.error('[VOICEMAIL FRONTEND] Failed to create Supabase client')
-            setAudioError('Unable to initialize authentication.')
+            console.error('[VOICEMAIL FRONTEND] No session or access token available')
+            setAudioError('Authentication required.')
           }
         } else {
-          console.error('[VOICEMAIL FRONTEND] No audio URL available')
-          setAudioError('Voicemail URL not available.')
+          console.error('[VOICEMAIL FRONTEND] Failed to create Supabase client')
+          setAudioError('Unable to initialize authentication.')
         }
       } catch (error) {
         console.error('[VOICEMAIL FRONTEND] Failed to play audio:', error)
