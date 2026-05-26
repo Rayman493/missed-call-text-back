@@ -82,7 +82,7 @@ export class OpenAIRealtimeClient {
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
         log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
-        // Log readyState every second for 10 seconds
+        // Log readyState every second for 15 seconds
         let readyStateCheckCount = 0;
         const readyStateInterval = setInterval(() => {
           if (!this.ws) {
@@ -96,9 +96,9 @@ export class OpenAIRealtimeClient {
             readyState: this.ws.readyState,
             seconds: readyStateCheckCount,
           });
-          if (readyStateCheckCount >= 10) {
+          if (readyStateCheckCount >= 15) {
             clearInterval(readyStateInterval);
-            log(LogLevel.ERROR, '[OPENAI] readyState check timeout after 10 seconds');
+            log(LogLevel.ERROR, '[OPENAI] readyState check timeout after 15 seconds');
           }
         }, 1000);
 
@@ -274,6 +274,7 @@ export class OpenAIRealtimeClient {
    */
   sendAudio(audioData: Buffer) {
     if (this.ws?.readyState === WebSocket.OPEN) {
+      log(LogLevel.INFO, '[AI POC] about to append audio to OpenAI');
       const message = {
         type: 'input_audio_buffer.append',
         audio: audioData.toString('base64'),
@@ -284,6 +285,13 @@ export class OpenAIRealtimeClient {
       });
       log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(message, null, 2));
       this.ws.send(JSON.stringify(message));
+    } else {
+      const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      const state = this.ws ? states[this.ws.readyState] : 'NO_WEBSOCKET';
+      log(LogLevel.INFO, '[AI POC] skipped audio append because websocket not open', {
+        readyState: this.ws?.readyState,
+        state,
+      });
     }
   }
 
