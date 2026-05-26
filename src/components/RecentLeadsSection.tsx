@@ -367,72 +367,50 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
-                    {/* Header with "Latest Lead" title */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:shadow-md transition-all duration-300 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Latest Lead</p>
                           <p className="font-medium text-slate-900 dark:text-foreground">{formatPhoneNumber(lead.phone_number)}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              status === 'Awaiting Response' 
+                                ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
+                                : status === 'New'
+                                ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
+                                : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
+                            }`}>
+                              {status}
+                            </div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              {formatRelativeTime(lastActivity)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                        Open Conversation
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
+                          <span className="text-blue-600 dark:text-blue-400">📞</span>
+                        )}
+                        <button className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                          View
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Lead details grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 mb-1">Lead Status</p>
-                        <div className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
-                          status === 'Awaiting Response' 
-                            ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
-                            : status === 'New'
-                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
-                            : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
-                        }`}>
-                          {status}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 mb-1">Last Contact</p>
-                        <p className="text-slate-900 dark:text-foreground font-medium">{formatRelativeTime(lastActivity)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 mb-1">Messages Sent</p>
-                        <p className="text-slate-900 dark:text-foreground font-medium">{messagesSent}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 mb-1">Next Follow-Up</p>
-                        <p className="text-slate-900 dark:text-foreground font-medium">
-                          {nextFollowUp ? `${Math.ceil((new Date(nextFollowUp.time).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d` : 'None'}
+                    
+                    {/* Last message preview */}
+                    {lead.messages && lead.messages.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                          {lead.messages[lead.messages.length - 1].body}
                         </p>
                       </div>
-                    </div>
-
-                    {/* Voicemail Indicator */}
-                    {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-blue-600 dark:text-blue-400 text-lg">📞</span>
-                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                          Voicemail Available
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          ({lead.voicemail_recordings.length} recording{lead.voicemail_recordings.length > 1 ? 's' : ''})
-                        </span>
-                      </div>
                     )}
-
-                    {/* Lead Timeline */}
-                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <LeadTimeline leadId={lead.id} compact={true} />
-                    </div>
                   </div>
                 </Link>
               )

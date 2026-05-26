@@ -142,14 +142,9 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
           </div>
         </div>
       ) : (
-        <div className="text-center py-8">
-          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-            <MessageSquare className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-3">No active follow-ups</p>
-          <p className="text-xs text-muted-foreground mb-3">
-            ReplyFlow will automatically follow up with new leads.
-          </p>
+        <div className="text-center py-3">
+          <p className="text-sm text-muted-foreground mb-1">No active follow-ups</p>
+          <p className="text-xs text-muted-foreground/70 mb-3">New leads will automatically appear here.</p>
           <Link
             href="/dashboard/settings/follow-ups"
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"

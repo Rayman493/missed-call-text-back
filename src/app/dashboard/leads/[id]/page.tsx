@@ -1165,80 +1165,231 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Conversation Thread */}
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-1 sm:py-2 lg:py-3">
-        {/* Mobile: Immersive conversation, Desktop: Card container */}
-        <div className="md:bg-card md:rounded-xl md:shadow-sm md:hover:shadow-lg md:transition-all md:duration-300 md:border md:border-border md:overflow-hidden md:flex md:flex-col md:h-auto md:min-h-[500px]">
-          {/* Message Thread */}
-          <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 min-h-[200px] sm:min-h-[250px] lg:min-h-[300px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth h-auto max-h-[calc(100vh-140px)] overflow-y-auto scroll-smooth md:p-5 md:sm:p-6 md:sm:p-8 md:min-h-[250px] md:sm:min-h-[300px] md:max-h-[calc(100vh-280px)] md:overflow-y-auto md:scroll-smooth">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : messagesArray.length === 0 ? (
-              <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+      {/* Conversation Thread - 2 Column Layout */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-1 sm:py-2 lg:py-3">
+        <div className="hidden lg:flex lg:gap-6 lg:h-[calc(100vh-200px)]">
+          {/* Left Column - Conversation (70%) */}
+          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
+            {/* Message Thread */}
+            <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-                <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-                  Start the conversation
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Send your first message to connect with this customer.
-                </p>
-              </div>
-            ) : (
-              <MobileConversationMessageList
-                messagesArray={messagesArray}
-                conversationTimeline={conversationTimeline}
+              ) : messagesArray.length === 0 ? (
+                <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+                    Start the conversation
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Send your first message to connect with this customer.
+                  </p>
+                </div>
+              ) : (
+                <MobileConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                />
+              )}
+            </div>
+
+            {/* Send Message Input */}
+            <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm">
+              <MobileConversationComposer
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
                 sending={sending}
-                handleRetry={handleRetry}
-                getErrorMessage={getErrorMessage}
               />
+            </div>
+            {error && (
+              <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
+                error.includes('verification') || error.includes('carrier')
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+              }`}>
+                <p>{error}</p>
+              </div>
             )}
           </div>
 
-          {/* Send Message Input */}
-          <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm md:border-t md:border-border/50 md:bg-background/95 md:backdrop-blur-sm">
-            <MobileConversationComposer
-              message={message}
-              setMessage={setMessage}
-              handleSendMessage={handleSendMessage}
-              sending={sending}
-            />
+          {/* Right Column - Sidebar (30%) */}
+          <div className="lg:flex-[0.3] space-y-4 overflow-y-auto">
+            {/* Lead Details Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Lead Details</h3>
+              {leadData && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
+                    <p className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData.phone_number)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <LeadStatusDropdown 
+                  currentStatus={leadData.status || 'new'} 
+                  onStatusChange={async (newStatus) => {
+                    // Handle status change if needed
+                  }}
+                />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Created</p>
+                    <p className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Follow-Up Status Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Follow-Up Status</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Active</span>
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                    {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Completed</span>
+                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Cancelled</span>
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Actions</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowLeadInfo(true)}
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  View Full Details
+                </button>
+                <button
+                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
+                >
+                  Call Lead
+                </button>
+              </div>
+            </div>
+
+            {/* Voicemail Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Voicemail</h3>
+              {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 ? (
+                <div className="space-y-2">
+                  {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
+                    <div key={voicemail.id} className="text-sm">
+                      <p className="text-amber-600 dark:text-amber-400 font-medium">📞 Voicemail Available</p>
+                      <p className="text-muted-foreground">{voicemail.recording_duration}s • {formatRelativeTime(voicemail.created_at)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-3">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
+                    📞
+                  </div>
+                  <p className="text-sm text-muted-foreground">No voicemail recorded yet</p>
+                </div>
+              )}
+            </div>
           </div>
-          {error && (
-            <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
-              error.includes('verification') || error.includes('carrier')
-                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-            }`}>
-              <p>{error}</p>
+        </div>
+
+        {/* Mobile Layout - Single Column */}
+        <div className="lg:hidden">
+          <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
+            {/* Message Thread */}
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 min-h-[200px] sm:min-h-[250px] lg:min-h-[300px] h-auto max-h-[calc(100vh-140px)] overflow-y-auto scroll-smooth">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : messagesArray.length === 0 ? (
+                <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+                    Start the conversation
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Send your first message to connect with this customer.
+                  </p>
+                </div>
+              ) : (
+                <MobileConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                />
+              )}
+            </div>
+
+            {/* Send Message Input */}
+            <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm">
+              <MobileConversationComposer
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
+                sending={sending}
+              />
+            </div>
+            {error && (
+              <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
+                error.includes('verification') || error.includes('carrier')
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+              }`}>
+                <p>{error}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
             </div>
           )}
-        </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mx-4">
-            <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+          {/* Automatic Follow-ups */}
+          <div className="mt-6 sm:mt-8 lg:mt-10">
+            <AutomaticFollowUpsControl 
+              followUpJobs={followUpJobs} 
+              leadId={params.id}
+              onUpdate={() => {
+                // Refresh lead data to show updated follow-ups
+                getLeadDetails(params.id).then(setLeadData)
+              }}
+            />
           </div>
-        )}
-
-        {/* Automatic Follow-ups */}
-        <div className="mt-6 sm:mt-8 lg:mt-10">
-          <AutomaticFollowUpsControl 
-            followUpJobs={followUpJobs} 
-            leadId={params.id}
-            onUpdate={() => {
-              // Refresh lead data to show updated follow-ups
-              getLeadDetails(params.id).then(setLeadData)
-            }}
-          />
         </div>
-
       </div>
 
       {/* Mobile Bottom Sheet for Lead Details */}

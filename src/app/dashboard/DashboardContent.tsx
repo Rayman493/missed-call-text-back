@@ -60,7 +60,6 @@ import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
 import TodaysActivity from '@/components/TodaysActivity'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
-import ReplyFlowImpact from '@/components/ReplyFlowImpact'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1025,7 +1024,7 @@ export default function DashboardContent() {
 
             {/* Main Content */}
             <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
-              <div className="max-w-[1600px] mx-auto space-y-2 sm:space-y-4">
+              <div className="max-w-[1200px] mx-auto space-y-2 sm:space-y-4">
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
@@ -1319,13 +1318,7 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* ReplyFlow Impact - Priority 5 */}
-                    <SectionErrorBoundary sectionName="ReplyFlowImpact">
-                      <div className="mb-4 transition-opacity duration-300">
-                        <ReplyFlowImpact business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
+                    
                     {/* Follow-Up Activity Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
                       <div className="mb-4 transition-opacity duration-300">

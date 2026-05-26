@@ -96,7 +96,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       case 'leads':
         return 'text-green-600 dark:text-green-400'
       case 'texts':
-        return 'text-purple-600 dark:text-purple-400'
+        return 'text-blue-600 dark:text-blue-400'
       case 'replies':
         return 'text-amber-600 dark:text-amber-400'
       default:
@@ -105,18 +105,8 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   }
 
   const getKPIColorBg = (type: string) => {
-    switch (type) {
-      case 'calls':
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-      case 'leads':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-      case 'texts':
-        return 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
-      case 'replies':
-        return 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-      default:
-        return 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800'
-    }
+    // Use consistent dark card styling for all cards
+    return 'bg-slate-800/50 dark:bg-slate-900/60 border-slate-700 dark:border-slate-700'
   }
 
   const kpiItems = [
@@ -176,20 +166,20 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         {kpiItems.map((item) => (
           <div
             key={item.type}
-            className={`border rounded-lg p-3 ${getKPIColorBg(item.type)} hover:shadow-md transition-all duration-200`}
+            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-3 hover:border-white/12 transition-all duration-200"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={getKPIColor(item.type)}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-4 h-4 ${getKPIColor(item.type)}`}>
                 {getKPIIcon(item.type)}
               </div>
-              <div className="text-xs text-muted-foreground">{item.label}</div>
+              <div className="text-xs text-muted-foreground/80 font-medium">{item.label}</div>
             </div>
             
-            <div className={`text-2xl font-bold ${getKPIColor(item.type)} mb-1`}>
+            <div className={`text-2xl font-black ${getKPIColor(item.type)} mb-2`}>
               {item.value.toLocaleString()}
             </div>
             
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground/60">
               {item.description}
             </div>
           </div>
