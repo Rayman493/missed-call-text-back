@@ -63,14 +63,16 @@ export class OpenAIRealtimeClient {
       });
 
       // Use gpt-realtime model in URL query string for GA API
-      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
+        'OpenAI-Beta': 'realtime=v1',
       };
 
       log(LogLevel.INFO, '[AI POC] OPENAI URL FINAL', { url: wsUrl });
       log(LogLevel.INFO, '[AI POC] OPENAI HEADERS FINAL', {
         'Authorization': headers.Authorization ? '[REDACTED]' : undefined,
+        'OpenAI-Beta': headers['OpenAI-Beta'],
       });
 
       try {
@@ -80,7 +82,7 @@ export class OpenAIRealtimeClient {
 
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
-        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-4o-realtime-preview' });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-realtime' });
 
         // Log readyState every second for 15 seconds
         let readyStateCheckCount = 0;
@@ -96,6 +98,12 @@ export class OpenAIRealtimeClient {
             readyState: this.ws.readyState,
             seconds: readyStateCheckCount,
           });
+          
+          // Check if stuck in CONNECTING after 10 seconds
+          if (readyStateCheckCount === 10 && this.ws.readyState === 0) {
+            log(LogLevel.ERROR, '[OPENAI] stuck in CONNECTING after 10 seconds');
+          }
+          
           if (readyStateCheckCount >= 15) {
             clearInterval(readyStateInterval);
             log(LogLevel.ERROR, '[OPENAI] readyState check timeout after 15 seconds');
@@ -104,6 +112,7 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('open', () => {
           clearInterval(readyStateInterval);
+          log(LogLevel.INFO, '[OPENAI] websocket open event fired');
           log(LogLevel.INFO, '[AI POC] OpenAI connected');
 
           // Clear timeout on successful connection
@@ -121,6 +130,8 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('error', (error) => {
           clearInterval(readyStateInterval);
+          log(LogLevel.ERROR, '[OPENAI] websocket error event fired', error as Error);
+          log(LogLevel.ERROR, '[OPENAI] full error object', JSON.stringify(error, null, 2));
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket error', error as Error);
           this.connectionState = ConnectionState.ERROR;
           this.clearTimeout();
@@ -129,6 +140,7 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('close', (code, reason) => {
           clearInterval(readyStateInterval);
+          log(LogLevel.INFO, '[OPENAI] websocket close event fired');
           log(LogLevel.INFO, '[AI POC] OPENAI CLOSE', { code, reason: reason?.toString() });
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket closed', {
             code,
