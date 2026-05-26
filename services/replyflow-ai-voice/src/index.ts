@@ -301,6 +301,23 @@ wss.on('connection', (ws, req) => {
               apiKey: OPENAI_API_KEY,
               model: 'gpt-4o',
               voice: 'alloy',
+              onAudioDelta: (delta: string) => {
+                log(LogLevel.INFO, '[AI POC] Twilio websocket readyState', { readyState: ws.readyState });
+                log(LogLevel.INFO, '[AI POC] outbound Twilio media payload length', { length: delta.length });
+                
+                // Send audio to Twilio
+                const mediaMessage = {
+                  event: 'media',
+                  streamSid: twilioHandler.getStreamSid(),
+                  media: {
+                    payload: delta,
+                  },
+                };
+                
+                log(LogLevel.INFO, '[AI POC] sending media event to Twilio');
+                ws.send(JSON.stringify(mediaMessage));
+                log(LogLevel.INFO, '[AI POC] sent audio to Twilio');
+              },
             });
 
             // Set OpenAI client on Twilio handler to enable audio forwarding

@@ -19,6 +19,7 @@ export class TwilioStreamHandler {
   private ws: WebSocket | null = null;
   private config: StreamConfig;
   private openAiClient: OpenAIRealtimeClient | null = null;
+  private streamSid: string | null = null;
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -30,6 +31,13 @@ export class TwilioStreamHandler {
    */
   setOpenAIClient(client: OpenAIRealtimeClient) {
     this.openAiClient = client;
+  }
+
+  /**
+   * Get the streamSid for Twilio media events
+   */
+  getStreamSid(): string | null {
+    return this.streamSid;
   }
 
   /**
@@ -65,6 +73,8 @@ export class TwilioStreamHandler {
       switch (message.event) {
         case 'start':
           log(LogLevel.INFO, 'Twilio stream started', message);
+          this.streamSid = message.streamSid || null;
+          log(LogLevel.INFO, '[STREAM] streamSid extracted', { streamSid: this.streamSid });
           break;
         case 'media':
           log(LogLevel.INFO, '[MEDIA] entered media handler');

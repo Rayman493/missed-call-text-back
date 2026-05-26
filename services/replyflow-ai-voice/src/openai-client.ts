@@ -16,6 +16,7 @@ export interface OpenAIConfig {
   apiKey: string;
   model?: string;
   voice?: string;
+  onAudioDelta?: (delta: string) => void;
 }
 
 enum ConnectionState {
@@ -246,15 +247,18 @@ export class OpenAIRealtimeClient {
     }
 
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
-    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-4o-realtime-preview' });
+    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-realtime' });
 
-    // Minimal session.update to isolate the offending field
+    // Configure session with g711_ulaw audio format for Twilio compatibility
     const sessionUpdate = {
       type: 'session.update',
-      session: {},
+      session: {
+        input_audio_format: 'g711_ulaw',
+        output_audio_format: 'g711_ulaw',
+      },
     };
 
-    log(LogLevel.INFO, '[AI POC] OPENAI SESSION UPDATE MINIMAL', JSON.stringify(sessionUpdate, null, 2));
+    log(LogLevel.INFO, '[AI POC] OPENAI SESSION UPDATE', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] COMPLETE session.update payload', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
     this.ws.send(JSON.stringify(sessionUpdate));
@@ -307,13 +311,23 @@ export class OpenAIRealtimeClient {
       case 'session.updated':
         log(LogLevel.INFO, '[AI POC] OpenAI session updated');
         break;
-      case 'response.audio.delta':
-        log(LogLevel.INFO, '[AI POC] OpenAI response.audio.delta received', {
+      case 'response.output_audio.delta':
+        log(LogLevel.INFO, '[AI POC] received OpenAI audio delta (GA schema)', {
           deltaLength: message.delta?.length,
         });
+        // Forward audio to Twilio via callback
+        if (this.config.onAudioDelta && message.delta) {
+          log(LogLevel.INFO, '[AI POC] about to send audio to Twilio');
+          this.config.onAudioDelta(message.delta);
+          log(LogLevel.INFO, '[AI POC] sent audio to Twilio');
+        }
         break;
-      case 'response.audio.done':
-        log(LogLevel.INFO, '[AI POC] OpenAI response.audio.done received');
+      case 'response.output_audio_transcript.delta':
+        log(LogLevel.INFO, '[AI POC] received OpenAI transcript delta (GA schema)');
+        // Do not send transcript to Twilio
+        break;
+      case 'response.output_audio.done':
+        log(LogLevel.INFO, '[AI POC] OpenAI response.output_audio.done received');
         break;
       case 'response.done':
         log(LogLevel.INFO, '[AI POC] OpenAI response.done received');
