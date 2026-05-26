@@ -297,19 +297,53 @@ wss.on('connection', (ws, req) => {
           log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
 
           try {
-            const openaiClient = new OpenAIRealtimeClient({
-              apiKey: OPENAI_API_KEY,
-              model: 'gpt-4o',
-              voice: 'alloy',
-              onOpen: () => {
-                console.log('[STREAM] OpenAI websocket opened, marking ready immediately for test');
-                twilioHandler.setOpenAiReady();
-              },
-              onAudioDelta: (delta: string) => {
+            console.log('[STREAM OPENAI] creating websocket');
+            const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+            const headers = {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            };
+            const openAiWs = new WebSocket(wsUrl, { headers });
+            console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
+            console.log('[STREAM OPENAI] listeners attaching');
+
+            // Attach raw listeners directly
+            openAiWs.on('open', () => {
+              console.log('[OPENAI RAW] open');
+              console.log('[STREAM] OpenAI websocket opened, marking ready immediately for test');
+              twilioHandler.setOpenAiReady();
+              
+              // Send test message
+              const testMessage = {
+                type: 'response.create',
+                response: {
+                  modalities: ['audio', 'text'],
+                  instructions: 'Say exactly: Hello from ReplyFlow.',
+                },
+              };
+              console.log('[OPENAI TEST] sending test message');
+              openAiWs.send(JSON.stringify(testMessage));
+              console.log('[OPENAI TEST] test message sent');
+            });
+
+            openAiWs.on('message', (data) => {
+              console.log('[OPENAI RAW] message', { first200: data.toString().substring(0, 200) });
+              
+              // Parse message
+              let message;
+              try {
+                message = JSON.parse(data.toString());
+              } catch (err) {
+                log(LogLevel.ERROR, '[STREAM OPENAI] JSON parse failed', err);
+                return;
+              }
+
+              // Handle audio delta
+              if (message.type === 'response.output_audio.delta' && message.delta) {
+                console.log('[AUDIO OUT] delta received', { length: message.delta.length, type: typeof message.delta });
                 console.log('[AUDIO OUT] sending to Twilio', { 
                   streamSidExists: !!twilioHandler.getStreamSid(), 
                   twilioReadyState: ws.readyState, 
-                  payloadLength: delta.length 
+                  payloadLength: message.delta.length 
                 });
                 
                 // Send audio to Twilio with exact shape
@@ -317,33 +351,28 @@ wss.on('connection', (ws, req) => {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: delta,
+                    payload: message.delta,
                   },
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
                 console.log('[AUDIO OUT] sent media to Twilio');
-              },
+              }
             });
 
-            // Set OpenAI client on Twilio handler to enable audio forwarding
-            twilioHandler.setOpenAIClient(openaiClient);
-            log(LogLevel.INFO, '[AI POC] OpenAI client set on Twilio handler');
+            openAiWs.on('error', (error) => {
+              console.log('[OPENAI RAW] error', { error: String(error) });
+              log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
+              openaiInitFailed = true;
+            });
 
-            openaiClient
-              .connect()
-              .then(() => {
-                log(LogLevel.INFO, '[AI POC] initializeOpenAI completed');
-                openaiInitSucceeded = true;
-              })
-              .catch((error: Error) => {
-                log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed', error);
-                openaiInitFailed = true;
+            openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
+              log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
+            });
 
-                // Fallback: close connection, Twilio will redirect to voicemail
-                log(LogLevel.INFO, '[AI POC] Falling back to voicemail');
-                ws.close(1011, 'OpenAI connection failed');
-              });
+            log(LogLevel.INFO, '[AI POC] OpenAI websocket created directly');
+            openaiInitSucceeded = true;
           } catch (error) {
             log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed with exception', error as Error);
             openaiInitFailed = true;
