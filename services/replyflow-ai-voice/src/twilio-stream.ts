@@ -122,9 +122,13 @@ export class TwilioStreamHandler {
               this.openAiClient.sendAudio(audioBuffer);
               log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
             } else {
-              // Buffer if OpenAI is not ready
-              this.mediaBuffer.push(audioBuffer);
-              log(LogLevel.INFO, '[MEDIA] audio buffered', { bufferSize: this.mediaBuffer.length });
+              // Buffer if OpenAI is not ready, cap at 100 packets
+              if (this.mediaBuffer.length < 100) {
+                this.mediaBuffer.push(audioBuffer);
+                log(LogLevel.INFO, '[MEDIA] audio buffered', { bufferSize: this.mediaBuffer.length });
+              } else {
+                log(LogLevel.INFO, '[MEDIA] buffer full, dropping audio');
+              }
             }
           } else {
             log(LogLevel.INFO, '[MEDIA] skipping because no audio payload');

@@ -34,6 +34,8 @@ export class OpenAIRealtimeClient {
   private config: OpenAIConfig;
   private connectionState: ConnectionState = ConnectionState.IDLE;
   private timeoutId: NodeJS.Timeout | null = null;
+  private sessionUpdateTimeoutId: NodeJS.Timeout | null = null;
+  private sessionUpdatedReceived: boolean = false;
 
   constructor(config: OpenAIConfig) {
     this.config = {
@@ -130,6 +132,14 @@ export class OpenAIRealtimeClient {
           if (this.config.onOpen) {
             this.config.onOpen();
           }
+
+          // Set timeout for session.updated
+          this.sessionUpdateTimeoutId = setTimeout(() => {
+            if (!this.sessionUpdatedReceived) {
+              console.log('[OPENAI SESSION] session.updated timeout');
+              log(LogLevel.ERROR, '[AI POC] session.updated timeout');
+            }
+          }, 3000);
 
           // Clear timeout on successful connection
           if (this.timeoutId) {
@@ -271,8 +281,10 @@ export class OpenAIRealtimeClient {
     };
 
     console.log('[OPENAI SESSION] session.update sent');
-    log(LogLevel.INFO, '[AI POC] OPENAI SESSION UPDATE', JSON.stringify(sessionUpdate, null, 2));
-    log(LogLevel.INFO, '[AI POC] COMPLETE session.update payload', JSON.stringify(sessionUpdate, null, 2));
+    console.log('[OPENAI SESSION] session.update fields', {
+      type: sessionUpdate.type,
+      sessionFields: Object.keys(sessionUpdate.session),
+    });
     log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
     this.ws.send(JSON.stringify(sessionUpdate));
     log(LogLevel.INFO, 'Session update sent to OpenAI');
@@ -320,9 +332,19 @@ export class OpenAIRealtimeClient {
    * Handle incoming messages from OpenAI
    */
   private handleMessage(message: any) {
+    console.log('[OPENAI IN] type', { type: message.type });
     switch (message.type) {
+      case 'session.created':
+        console.log('[OPENAI SESSION] session.created received');
+        log(LogLevel.INFO, '[AI POC] OpenAI session created');
+        break;
       case 'session.updated':
         console.log('[OPENAI SESSION] session.updated received');
+        this.sessionUpdatedReceived = true;
+        if (this.sessionUpdateTimeoutId) {
+          clearTimeout(this.sessionUpdateTimeoutId);
+          this.sessionUpdateTimeoutId = null;
+        }
         log(LogLevel.INFO, '[AI POC] OpenAI session updated');
         // Log audio config fields only
         if (message.session) {
@@ -336,6 +358,19 @@ export class OpenAIRealtimeClient {
           this.config.onSessionUpdated();
         }
         break;
+      case 'error':
+        console.log('[OPENAI ERROR]', {
+          type: message.error?.type,
+          code: message.error?.code,
+          message: message.error?.message,
+          param: message.error?.param,
+        });
+        log(LogLevel.ERROR, '[AI POC] OpenAI error', message.error);
+        break;
+      case 'response.created':
+        console.log('[OPENAI RESPONSE] response.created received');
+        log(LogLevel.INFO, '[AI POC] OpenAI response created');
+        break;
       case 'response.output_audio.delta':
         console.log('[AUDIO OUT] delta received', { length: message.delta?.length, type: typeof message.delta });
         // Forward audio to Twilio via callback
@@ -344,6 +379,10 @@ export class OpenAIRealtimeClient {
           this.config.onAudioDelta(message.delta);
           console.log('[AUDIO OUT] sent audio to Twilio');
         }
+        break;
+      case 'response.done':
+        console.log('[OPENAI RESPONSE] response.done received');
+        log(LogLevel.INFO, '[AI POC] OpenAI response done');
         break;
       case 'response.output_audio_transcript.delta':
         log(LogLevel.INFO, '[AI POC] received OpenAI transcript delta (GA schema)');
