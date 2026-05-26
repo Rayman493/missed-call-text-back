@@ -35,8 +35,10 @@ const server = createServer((req, res) => {
 
   // Test OpenAI websocket connection endpoint
   if (req.url === '/test-openai') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.write('Testing OpenAI websocket connection...\n\n');
+    console.log('[TEST OPENAI] endpoint hit');
+    console.log('[TEST OPENAI] key present', { exists: !!OPENAI_API_KEY });
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
     const headers = {
@@ -44,47 +46,88 @@ const server = createServer((req, res) => {
       'OpenAI-Beta': 'realtime=v1',
     };
 
+    console.log('[TEST OPENAI] creating websocket');
     const testWs = new WebSocket(wsUrl, { headers });
     let opened = false;
     let errored = false;
     let closed = false;
+    let result = '';
+    let errorMessage = '';
 
+    console.log('[TEST OPENAI] listeners attaching');
     testWs.on('open', () => {
       opened = true;
-      res.write('[TEST] WebSocket OPEN event fired\n');
-      res.write('[TEST] Connection successful\n');
+      result = 'open';
+      console.log('[TEST OPENAI] open');
+      const response = JSON.stringify({
+        ok: true,
+        result: 'open',
+        readyState: testWs.readyState,
+      });
+      res.end(response);
       testWs.close();
     });
 
     testWs.on('error', (error) => {
       errored = true;
-      res.write('[TEST] WebSocket ERROR event fired\n');
-      res.write(`[TEST] Error: ${error}\n`);
+      result = 'error';
+      errorMessage = String(error);
+      console.log('[TEST OPENAI] error', error);
+      const response = JSON.stringify({
+        ok: false,
+        result: 'error',
+        error: errorMessage,
+        readyState: testWs.readyState,
+      });
+      res.end(response);
     });
 
     testWs.on('close', (code, reason) => {
       closed = true;
-      res.write(`[TEST] WebSocket CLOSE event fired (code: ${code}, reason: ${reason?.toString()})\n`);
-      res.write(`[TEST] Final state - opened: ${opened}, errored: ${errored}\n`);
-      res.end();
+      if (!opened && !errored) {
+        result = 'close';
+      }
+      console.log('[TEST OPENAI] close', { code, reason: reason?.toString() });
+      const response = JSON.stringify({
+        ok: false,
+        result: result || 'close',
+        readyState: testWs.readyState,
+      });
+      res.end(response);
     });
 
     testWs.on('unexpected-response', (request, response) => {
-      res.write(`[TEST] WebSocket UNEXPECTED-RESPONSE event fired (status: ${response.statusCode})\n`);
-      res.write(`[TEST] Headers: ${JSON.stringify(response.headers)}\n`);
-      res.end();
+      result = 'unexpected-response';
+      console.log('[TEST OPENAI] unexpected-response', { statusCode: response.statusCode });
+      const responseBody = JSON.stringify({
+        ok: false,
+        result: 'unexpected-response',
+        statusCode: response.statusCode,
+        headers: response.headers,
+        readyState: testWs.readyState,
+      });
+      res.end(responseBody);
     });
 
-    // Timeout after 10 seconds
+    console.log('[TEST OPENAI] listeners attached');
+
+    // Timeout after 15 seconds
     setTimeout(() => {
-      if (!closed) {
-        res.write(`[TEST] Timeout after 10 seconds - opened: ${opened}, errored: ${errored}\n`);
+      if (!closed && !opened && !errored) {
+        result = 'timeout';
+        console.log('[TEST OPENAI] timeout');
+        console.log('[TEST OPENAI] readyState', testWs.readyState);
+        const response = JSON.stringify({
+          ok: false,
+          result: 'timeout',
+          readyState: testWs.readyState,
+        });
+        res.end(response);
         if (testWs) {
           testWs.close();
         }
-        res.end();
       }
-    }, 10000);
+    }, 15000);
 
     return;
   }
