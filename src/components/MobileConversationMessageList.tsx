@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
+import VoicemailMessage from '@/components/VoicemailMessage'
+
+// Helper function to extract recording SID from URL
+function extractRecordingSid(url: string): string | null {
+  const match = url.match(/\/Recordings\/([a-zA-Z0-9]{34})/)
+  return match ? match[1] : null
+}
 
 interface MobileConversationMessageListProps {
   messagesArray: any[]
@@ -29,43 +36,25 @@ export default function MobileConversationMessageList({
   return (
     <div className="space-y-4">
       {conversationTimeline.map((item: any, index: number) => {
-        // Handle voicemail items - render as a simple message without audio player to avoid duplicates
+        // Handle voicemail items - render with full audio player
         if (item.type === 'voicemail') {
           const voicemail = item.data
+          console.log('[VOICEMAIL DEBUG] Rendering voicemail item:', {
+            voicemailId: voicemail.id,
+            recordingSid: voicemail.recording_url ? extractRecordingSid(voicemail.recording_url) : 'none',
+            recordingUrl: voicemail.recording_url,
+            recordingStatus: voicemail.recording_status,
+            recordingDuration: voicemail.recording_duration,
+            createdAt: voicemail.created_at
+          })
+          
           return (
-            <div
+            <VoicemailMessage
               key={item.id}
-              className={`flex items-start gap-2 mb-3 flex-row`}
-            >
-              {/* Avatar for voicemail */}
-              {index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail' ? (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-sm font-medium shadow-sm">
-                  📞
-                </div>
-              ) : (
-                <div className="flex-shrink-0 w-8"></div>
-              )}
-              
-              {/* Voicemail Content */}
-              <div className="flex flex-col items-start max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%]">
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-xs">📞</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Voicemail</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        {voicemail.recording_duration ? `${voicemail.recording_duration}s` : 'Processing...'}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-800 dark:text-blue-200">
-                    Voicemail received • {formatRelativeTime(voicemail.created_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
+              recording={voicemail}
+              isInbound={true}
+              showAvatar={index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail'}
+            />
           )
         }
 
