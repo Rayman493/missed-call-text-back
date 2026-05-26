@@ -1,16 +1,23 @@
-app = "replyflow-ai-voice"
-primary_region = "ewr"
+# fly.toml app configuration file generated for replyflow-ai-voice on 2026-05-26T10:37:28-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'replyflow-ai-voice'
+primary_region = 'ewr'
+
+[build]
+
+[env]
+  NODE_ENV = 'production'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   min_machines_running = 1
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 512
-
-[env]
-  NODE_ENV = "production"
