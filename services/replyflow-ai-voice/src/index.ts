@@ -218,6 +218,7 @@ wss.on('connection', (ws, req) => {
     let openaiInitSucceeded = false;
     let openaiInitFailed = false;
     let startEventProcessed = false;
+    let openAiWs: WebSocket | null = null;
 
     log(LogLevel.INFO, '[AI POC] attaching message listener');
 
@@ -302,8 +303,15 @@ wss.on('connection', (ws, req) => {
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
             };
-            const openAiWs = new WebSocket(wsUrl, { headers });
+            openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
+            console.log('[OPENAI REF] websocket assigned');
+            
+            // Set websocket on Twilio handler so media handler can access it
+            (twilioHandler as any).openAiWs = openAiWs;
+            console.log('[OPENAI REF] websocket set on Twilio handler');
+            console.log('[OPENAI REF] media handler websocket exists', { exists: !!((twilioHandler as any).openAiWs) });
+            
             console.log('[STREAM OPENAI] listeners attaching');
 
             // Attach raw listeners directly
@@ -321,7 +329,9 @@ wss.on('connection', (ws, req) => {
                 },
               };
               console.log('[OPENAI TEST] sending test message');
-              openAiWs.send(JSON.stringify(testMessage));
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify(testMessage));
+              }
               console.log('[OPENAI TEST] test message sent');
             });
 

@@ -97,11 +97,11 @@ export class TwilioStreamHandler {
           break;
         case 'media':
           log(LogLevel.INFO, '[MEDIA] entered media handler');
-          log(LogLevel.INFO, '[MEDIA] openAiWs exists', { exists: !!this.openAiClient });
+          log(LogLevel.INFO, '[MEDIA] openAiWs exists', { exists: !!((this as any).openAiWs) });
           log(LogLevel.INFO, '[MEDIA] openAiReady', { ready: this.openAiReady });
           
-          if (!this.openAiClient) {
-            log(LogLevel.INFO, '[MEDIA] returning because OpenAI client not initialized');
+          if (!(this as any).openAiWs) {
+            log(LogLevel.INFO, '[MEDIA] returning because OpenAI websocket not initialized');
             break;
           }
 
@@ -119,7 +119,13 @@ export class TwilioStreamHandler {
             
             if (this.openAiReady) {
               // Send directly if OpenAI is ready
-              this.openAiClient.sendAudio(audioBuffer);
+              const openAiWs = (this as any).openAiWs;
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify({
+                  type: 'input_audio_buffer.append',
+                  audio: audioBuffer.toString('base64'),
+                }));
+              }
               log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
