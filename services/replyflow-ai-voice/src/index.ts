@@ -46,7 +46,7 @@ wss.on('connection', (ws, req) => {
   log(LogLevel.INFO, '[WS ENTRY] headers:', JSON.stringify(req.headers));
   log(LogLevel.INFO, '[WS ENTRY] websocket upgrade started');
   log(LogLevel.INFO, '[WS ENTRY] websocket accepted');
-  log(LogLevel.INFO, '[WS ENTRY] waiting for first message');
+  log(LogLevel.INFO, '[AI POC] websocket accepted');
 
   try {
     // Extract parameters from URL (fallback - not required)
@@ -70,122 +70,38 @@ wss.on('connection', (ws, req) => {
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
-    let startEventReceived = false;
-    let firstMessageLogged = false;
-    let openaiClient: any = null;
-
-    // Set 5-second timeout for start event
-    const startTimeout = setTimeout(() => {
-      log(LogLevel.ERROR, '[AI POC] start event timeout - no start event received within 5 seconds');
-      ws.close(1000, 'No start event received');
-    }, 5000);
+    let debugMessageCount = 0;
+    const DEBUG_MESSAGE_LIMIT = 20;
 
     // Override handleMessage to capture customParameters from start event
     const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
     (twilioHandler as any).handleMessage = (data: any) => {
       try {
-        if (!firstMessageLogged) {
-          log(LogLevel.INFO, '[AI POC] first websocket message');
-          firstMessageLogged = true;
+        // LOW-LEVEL INSPECTION: Log raw frame before any processing
+        if (debugMessageCount < DEBUG_MESSAGE_LIMIT) {
+          log(LogLevel.INFO, '[RAW WS]', { type: typeof data, data: data.toString() });
+          debugMessageCount++;
         }
 
-        const message = JSON.parse(data.toString());
-
-        log(LogLevel.INFO, `[AI POC] Twilio event: ${message.event}`);
-
-        switch (message.event) {
-          case 'connected':
-            log(LogLevel.INFO, '[AI POC] Twilio connected event received');
-            // Send connected acknowledgment
-            ws.send(JSON.stringify({ event: 'connected' }));
-            break;
-
-          case 'start':
-            if (startEventReceived) {
-              log(LogLevel.INFO, '[AI POC] start event already processed, skipping');
-              originalHandleMessage(data);
-              return;
-            }
-
-            startEventReceived = true;
-            clearTimeout(startTimeout);
-
-            log(LogLevel.INFO, '[AI POC] start payload:', JSON.stringify(message, null, 2));
-
-            const customParams = message.start?.customParameters || {};
-
-            log(LogLevel.INFO, '[AI POC] extracted customParameters:', customParams);
-
-            const sessionId = customParams.sessionId || urlSessionId;
-            const callSid = customParams.callSid || urlCallSid;
-            const businessId = customParams.businessId || urlBusinessId;
-
-            log(LogLevel.INFO, '[AI POC] parsed sessionId:', sessionId);
-            log(LogLevel.INFO, '[AI POC] parsed callSid:', callSid);
-
-            if (!sessionId || !callSid) {
-              log(LogLevel.WARN, '[AI POC] Missing Twilio start customParameters');
-              ws.close(1008, 'Missing required parameters');
-              return;
-            }
-
-            // Update handler config with real parameters
-            (twilioHandler as any).config = {
-              sessionId,
-              businessId: businessId || '',
-              callSid,
-            };
-
-            log(LogLevel.INFO, '[AI POC] Connection parameters validated', { sessionId, callSid });
-
-            // Now initialize OpenAI after receiving start event
-            log(LogLevel.INFO, '[AI POC] initializing OpenAI');
-
-            openaiClient = new OpenAIRealtimeClient({
-              apiKey: OPENAI_API_KEY,
-              model: 'gpt-4o',
-              voice: 'alloy',
-            });
-
-            openaiClient
-              .connect()
-              .then(() => {
-                log(LogLevel.INFO, '[AI POC] OpenAI connected');
-
-                // Send greeting
-                log(LogLevel.INFO, 'Sending greeting...');
-                openaiClient.sendGreeting();
-                log(LogLevel.INFO, 'Greeting sent');
-              })
-              .catch((error: Error) => {
-                log(LogLevel.ERROR, '[AI POC] Failed to connect to OpenAI', error);
-
-                // Fallback: close connection, Twilio will redirect to voicemail
-                log(LogLevel.INFO, '[AI POC] Falling back to voicemail');
-                ws.close(1011, 'OpenAI connection failed');
-              });
-
-            break;
-
-          case 'media':
-            if (!startEventReceived) {
-              log(LogLevel.WARN, '[AI POC] media received before start event, ignoring');
-              return;
-            }
-            log(LogLevel.INFO, 'Audio data received from Twilio', {
-              size: message.media?.payload?.length,
-            });
-            break;
-
-          case 'stop':
-            log(LogLevel.INFO, '[AI POC] Twilio stop event received');
-            break;
-
-          default:
-            log(LogLevel.INFO, `[AI POC] Unknown Twilio event: ${message.event}`);
+        // Safely parse JSON
+        let message;
+        try {
+          message = JSON.parse(data.toString());
+        } catch (err) {
+          log(LogLevel.ERROR, '[AI POC] JSON parse failed', err);
+          return;
         }
 
-        // Call original handler
+        // Log parsed frame
+        if (debugMessageCount <= DEBUG_MESSAGE_LIMIT) {
+          log(LogLevel.INFO, '[PARSED WS]', JSON.stringify(message, null, 2));
+          log(LogLevel.INFO, '[WS KEYS]', Object.keys(message));
+        }
+
+        // TEMPORARILY DISABLED: OpenAI initialization and media processing
+        // This is a debugging pass to see what Twilio is actually sending
+
+        // Call original handler for basic logging only
         originalHandleMessage(data);
       } catch (error) {
         log(LogLevel.ERROR, '[AI POC] Error parsing Twilio message', error);
@@ -194,20 +110,12 @@ wss.on('connection', (ws, req) => {
 
     // Handle WebSocket close
     ws.on('close', (code, reason) => {
-      clearTimeout(startTimeout);
       log(LogLevel.INFO, '[WS CLOSED]', { code, reason: reason?.toString() });
-      if (openaiClient) {
-        openaiClient.disconnect();
-      }
     });
 
     // Handle WebSocket error
     ws.on('error', (error) => {
-      clearTimeout(startTimeout);
       log(LogLevel.ERROR, '[WS ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
-      if (openaiClient) {
-        openaiClient.disconnect();
-      }
     });
 
     // Handle Twilio connection
