@@ -105,6 +105,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
+  const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
+  const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
+  const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1485,6 +1488,195 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
             </div>
           )}
+
+          {/* Mobile Collapsible Sections */}
+          <div className="mt-6 space-y-3">
+            {/* Customer Information Section */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setMobileCustomerExpanded(!mobileCustomerExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowCustomerInfoModal(true)
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    mobileCustomerExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileCustomerExpanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  {leadData?.contact_name ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Name</span>
+                      <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Name</span>
+                      <span className="text-sm text-muted-foreground">Not set</span>
+                    </div>
+                  )}
+                  {leadData?.company_name ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Company</span>
+                      <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Company</span>
+                      <span className="text-sm text-muted-foreground">Not set</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Phone</span>
+                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                  </div>
+                  {leadData?.tags && leadData.tags.length > 0 ? (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Tags</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {leadData.tags.map((tag: string, index: number) => (
+                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Tags</span>
+                      <span className="text-sm text-muted-foreground">None</span>
+                    </div>
+                  )}
+                  {leadData?.notes ? (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Notes</span>
+                      <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Notes</span>
+                      <span className="text-sm text-muted-foreground">None</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Lead Details Section */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setMobileLeadDetailsExpanded(!mobileLeadDetailsExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Lead Details</h3>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    mobileLeadDetailsExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileLeadDetailsExpanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <div className="flex-shrink-0">
+                      <LeadStatusDropdown 
+                        currentStatus={leadData?.status || 'new'} 
+                        onStatusChange={async (newStatus) => {
+                          // Handle status change if needed
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {leadData?.created_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Created</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
+                    </div>
+                  )}
+                  {leadData?.last_message_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Last Activity</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Messages</span>
+                    <span className="text-sm text-foreground">{messagesArray.length}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions Section */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setMobileActionsExpanded(!mobileActionsExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Actions</h3>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    mobileActionsExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileActionsExpanded && (
+                <div className="px-4 pb-4 space-y-2">
+                  <button
+                    onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Call Lead
+                  </button>
+                  <button
+                    onClick={() => setShowLeadInfo(true)}
+                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
+                  >
+                    View Full Details
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Mark Closed
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Block Contact
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Automatic Follow-ups */}
           <div className="mt-6 sm:mt-8 lg:mt-10">

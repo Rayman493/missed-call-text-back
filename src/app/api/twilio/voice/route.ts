@@ -9,6 +9,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
+import { getSpokenBusinessName } from '@/lib/speech';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -50,23 +51,11 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
 
 // Helper to generate voice greeting with dynamic business name
 function generateVoiceGreeting(businessName?: string): string {
-  // Sanitize business name for TTS - remove XML-breaking characters and normalize
-  const sanitizeForTTS = (name: string): string => {
-    return name
-      .replace(/[<>&'"{}]/g, '') // Remove XML-breaking characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim()
-      .substring(0, 100); // Limit length to prevent issues
-  };
+  // Convert business name to speech-friendly format
+  const spokenBusinessName = getSpokenBusinessName(businessName);
   
-  // Generate clear voicemail greeting with business name or fallback
-  let voicemailMessage: string;
-  if (businessName && sanitizeForTTS(businessName)) {
-    const sanitized = sanitizeForTTS(businessName);
-    voicemailMessage = `Thanks for calling ${sanitized}. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
-  } else {
-    voicemailMessage = `Thanks for calling. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
-  }
+  // Generate clear voicemail greeting with speech-friendly business name
+  const voicemailMessage = `Thanks for calling ${spokenBusinessName}. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
   
   // Voicemail TwiML with recording capability
   const voicemailTwiml = `
