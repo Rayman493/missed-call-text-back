@@ -17,6 +17,7 @@ export interface OpenAIConfig {
   model?: string;
   voice?: string;
   onAudioDelta?: (delta: string) => void;
+  onOpen?: () => void;
 }
 
 enum ConnectionState {
@@ -123,6 +124,11 @@ export class OpenAIRealtimeClient {
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket open event fired');
           log(LogLevel.INFO, '[AI POC] OpenAI connected');
+
+          // Call onOpen callback to notify listeners
+          if (this.config.onOpen) {
+            this.config.onOpen();
+          }
 
           // Clear timeout on successful connection
           if (this.timeoutId) {

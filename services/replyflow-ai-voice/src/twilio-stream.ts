@@ -20,6 +20,8 @@ export class TwilioStreamHandler {
   private config: StreamConfig;
   private openAiClient: OpenAIRealtimeClient | null = null;
   private streamSid: string | null = null;
+  private openAiReady: boolean = false;
+  private mediaBuffer: Buffer[] = [];
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -31,6 +33,23 @@ export class TwilioStreamHandler {
    */
   setOpenAIClient(client: OpenAIRealtimeClient) {
     this.openAiClient = client;
+  }
+
+  /**
+   * Mark OpenAI as ready and flush buffered media
+   */
+  setOpenAiReady() {
+    console.log('[STREAM] OpenAI ready, flushing buffer', { bufferSize: this.mediaBuffer.length });
+    this.openAiReady = true;
+    
+    // Flush buffered media
+    while (this.mediaBuffer.length > 0) {
+      const audioBuffer = this.mediaBuffer.shift();
+      if (audioBuffer && this.openAiClient) {
+        this.openAiClient.sendAudio(audioBuffer);
+      }
+    }
+    console.log('[STREAM] buffer flushed');
   }
 
   /**
@@ -79,6 +98,7 @@ export class TwilioStreamHandler {
         case 'media':
           log(LogLevel.INFO, '[MEDIA] entered media handler');
           log(LogLevel.INFO, '[MEDIA] openAiWs exists', { exists: !!this.openAiClient });
+          log(LogLevel.INFO, '[MEDIA] openAiReady', { ready: this.openAiReady });
           
           if (!this.openAiClient) {
             log(LogLevel.INFO, '[MEDIA] returning because OpenAI client not initialized');
@@ -92,12 +112,20 @@ export class TwilioStreamHandler {
 
           log(LogLevel.INFO, '[MEDIA] before audio append');
           
-          // Decode base64 audio and forward to OpenAI
+          // Decode base64 audio
           const audioPayload = message.media?.payload;
           if (audioPayload) {
             const audioBuffer = Buffer.from(audioPayload, 'base64');
-            this.openAiClient.sendAudio(audioBuffer);
-            log(LogLevel.INFO, '[MEDIA] after audio append');
+            
+            if (this.openAiReady) {
+              // Send directly if OpenAI is ready
+              this.openAiClient.sendAudio(audioBuffer);
+              log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
+            } else {
+              // Buffer if OpenAI is not ready
+              this.mediaBuffer.push(audioBuffer);
+              log(LogLevel.INFO, '[MEDIA] audio buffered', { bufferSize: this.mediaBuffer.length });
+            }
           } else {
             log(LogLevel.INFO, '[MEDIA] skipping because no audio payload');
           }
