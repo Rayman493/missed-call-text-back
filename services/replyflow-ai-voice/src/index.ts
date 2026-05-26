@@ -302,10 +302,10 @@ wss.on('connection', (ws, req) => {
               model: 'gpt-4o',
               voice: 'alloy',
               onAudioDelta: (delta: string) => {
-                log(LogLevel.INFO, '[AI POC] Twilio websocket readyState', { readyState: ws.readyState });
-                log(LogLevel.INFO, '[AI POC] outbound Twilio media payload length', { length: delta.length });
+                console.log('[AUDIO OUT] twilio ws readyState', { readyState: ws.readyState });
+                console.log('[AUDIO OUT] streamSid exists', { exists: !!twilioHandler.getStreamSid() });
                 
-                // Send audio to Twilio
+                // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
@@ -314,9 +314,9 @@ wss.on('connection', (ws, req) => {
                   },
                 };
                 
-                log(LogLevel.INFO, '[AI POC] sending media event to Twilio');
+                console.log('[AUDIO OUT] sending media to Twilio');
                 ws.send(JSON.stringify(mediaMessage));
-                log(LogLevel.INFO, '[AI POC] sent audio to Twilio');
+                console.log('[AUDIO OUT] sent media to Twilio');
               },
             });
 

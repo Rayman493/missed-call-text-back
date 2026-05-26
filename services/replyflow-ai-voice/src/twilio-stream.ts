@@ -96,9 +96,6 @@ export class TwilioStreamHandler {
           const audioPayload = message.media?.payload;
           if (audioPayload) {
             const audioBuffer = Buffer.from(audioPayload, 'base64');
-            console.log('[STREAM OPENAI] media append path, openAiClient identity:', this.openAiClient);
-            console.log('[STREAM OPENAI] media append path, openAiClient.ws identity:', this.openAiClient?.['ws']);
-            console.log('[STREAM OPENAI] media append path, openAiClient.ws readyState:', this.openAiClient?.['ws']?.readyState);
             this.openAiClient.sendAudio(audioBuffer);
             log(LogLevel.INFO, '[MEDIA] after audio append');
           } else {

@@ -80,12 +80,10 @@ export class OpenAIRealtimeClient {
 
       try {
         console.log('[STREAM OPENAI] creating websocket');
-        console.log('[OPENAI] constructor calling');
         this.ws = new WebSocket(wsUrl, {
           headers: headers,
         });
-        console.log('[OPENAI] websocket object created, identity:', this.ws);
-        console.log('[OPENAI] constructor returned');
+        console.log('[STREAM OPENAI] websocket created');
 
         console.log('[OPENAI] attaching listeners');
         
@@ -153,7 +151,6 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('close', (code, reason) => {
           console.log('[STREAM OPENAI] websocket close event fired', { code, reason: reason?.toString() });
-          console.log('[OPENAI] close event fired (raw args)', { code, reason: reason?.toString(), reasonType: typeof reason, reasonLength: reason?.length });
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket close event fired');
           log(LogLevel.INFO, '[AI POC] OPENAI CLOSE', { code, reason: reason?.toString() });
@@ -312,14 +309,12 @@ export class OpenAIRealtimeClient {
         log(LogLevel.INFO, '[AI POC] OpenAI session updated');
         break;
       case 'response.output_audio.delta':
-        log(LogLevel.INFO, '[AI POC] received OpenAI audio delta (GA schema)', {
-          deltaLength: message.delta?.length,
-        });
+        console.log('[AUDIO OUT] received OpenAI delta', { length: message.delta?.length });
         // Forward audio to Twilio via callback
         if (this.config.onAudioDelta && message.delta) {
-          log(LogLevel.INFO, '[AI POC] about to send audio to Twilio');
+          console.log('[AUDIO OUT] about to send audio to Twilio');
           this.config.onAudioDelta(message.delta);
-          log(LogLevel.INFO, '[AI POC] sent audio to Twilio');
+          console.log('[AUDIO OUT] sent audio to Twilio');
         }
         break;
       case 'response.output_audio_transcript.delta':
