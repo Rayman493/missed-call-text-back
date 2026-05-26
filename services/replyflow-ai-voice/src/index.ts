@@ -422,7 +422,6 @@ wss.on('connection', (ws, req) => {
             console.log('[STREAM OPENAI] creating websocket');
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'OpenAI-Beta': 'realtime=v1',
             };
             console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
             openAiWs = new WebSocket(wsUrl, { headers });
@@ -484,8 +483,7 @@ wss.on('connection', (ws, req) => {
               const testMessage = {
                 type: 'response.create',
                 response: {
-                  modalities: ['audio', 'text'],
-                  instructions: 'Say hello from ReplyFlow.',
+                  instructions: 'Hello from ReplyFlow.',
                 },
               };
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
@@ -521,12 +519,8 @@ wss.on('connection', (ws, req) => {
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
-                console.log('[AUDIO OUT] delta received', { length: message.delta.length, type: typeof message.delta });
-                console.log('[AUDIO OUT] sending to Twilio', { 
-                  streamSidExists: !!twilioHandler.getStreamSid(), 
-                  twilioReadyState: ws.readyState, 
-                  payloadLength: message.delta.length 
-                });
+                console.log('[AUDIO OUT] OpenAI audio delta received', { length: message.delta.length });
+                console.log('[AUDIO OUT] sending audio to Twilio', { streamSidExists: !!twilioHandler.getStreamSid() });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
@@ -538,7 +532,7 @@ wss.on('connection', (ws, req) => {
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
-                console.log('[AUDIO OUT] sent media to Twilio');
+                console.log('[AUDIO OUT] audio sent to Twilio');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
