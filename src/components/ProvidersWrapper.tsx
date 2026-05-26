@@ -12,6 +12,8 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const [AuthProvider, setAuthProvider] = useState<any>(null)
   const [BusinessProvider, setBusinessProvider] = useState<any>(null)
   const [ThemeProvider, setThemeProvider] = useState<any>(null)
+  const [VoicemailVolumeProvider, setVoicemailVolumeProvider] = useState<any>(null)
+  const [VoicemailPlaybackManagerProvider, setVoicemailPlaybackManagerProvider] = useState<any>(null)
 
   // Trace log on every page load
   useEffect(() => {
@@ -33,15 +35,19 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
     const loadProviders = async () => {
       try {
         // Dynamically import providers only on client side
-        const [{ AuthProvider: AP }, { BusinessProvider: BP }, { ThemeProvider: TP }] = await Promise.all([
+        const [{ AuthProvider: AP }, { BusinessProvider: BP }, { ThemeProvider: TP }, { VoicemailVolumeProvider: VP }, { VoicemailPlaybackManagerProvider: VMP }] = await Promise.all([
           import('@/contexts/AuthContext'),
           import('@/contexts/BusinessContext'),
-          import('@/contexts/ThemeContext')
+          import('@/contexts/ThemeContext'),
+          import('@/contexts/VoicemailVolumeContext'),
+          import('@/contexts/VoicemailPlaybackManager')
         ])
         
         setAuthProvider(() => AP)
         setBusinessProvider(() => BP)
         setThemeProvider(() => TP)
+        setVoicemailVolumeProvider(() => VP)
+        setVoicemailPlaybackManagerProvider(() => VMP)
         setProvidersLoaded(true)
         setIsClient(true)
       } catch (error) {
@@ -54,7 +60,7 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   }, [])
 
   // Don't render anything until providers are loaded to prevent context errors
-  if (!isClient || !providersLoaded || !AuthProvider || !BusinessProvider || !ThemeProvider) {
+  if (!isClient || !providersLoaded || !AuthProvider || !BusinessProvider || !ThemeProvider || !VoicemailVolumeProvider || !VoicemailPlaybackManagerProvider) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -65,7 +71,11 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BusinessProvider>{children}</BusinessProvider>
+        <BusinessProvider>
+          <VoicemailVolumeProvider>
+            <VoicemailPlaybackManagerProvider>{children}</VoicemailPlaybackManagerProvider>
+          </VoicemailVolumeProvider>
+        </BusinessProvider>
       </AuthProvider>
     </ThemeProvider>
   )

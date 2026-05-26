@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import { Phone, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useVoicemailVolume } from '@/contexts/VoicemailVolumeContext'
+import { useVoicemailAudioManager } from '@/lib/voicemail-audio-manager'
 
 interface VoicemailMessageProps {
   recording: {
@@ -59,10 +61,13 @@ export default function VoicemailMessage({
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioError, setAudioError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [volume, setVolume] = useState(1)
-  const [isMuted, setIsMuted] = useState(false)
-  const [previousVolume, setPreviousVolume] = useState(1)
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+  
+  // Use global volume context
+  const { volume, isMuted, previousVolume, setVolume, setMuted, setPreviousVolume, toggleMute } = useVoicemailVolume()
+  
+  // Use audio-element level manager for coordinated playback
+  const audioManager = useVoicemailAudioManager()
   const [isSeeking, setIsSeeking] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [canSeek, setCanSeek] = useState(false)
@@ -161,6 +166,8 @@ export default function VoicemailMessage({
     setIsPlaying(false)
     setIsEnded(true)
     // Keep currentTime at duration to show progress at the end
+    
+    // Audio manager will handle clearing the current playing state
   }
 
   const handleSeeked = () => {
@@ -189,6 +196,7 @@ export default function VoicemailMessage({
       console.log('[VOICEMAIL FRONTEND] Pausing audio')
       audio.pause()
       setIsPlaying(false)
+      audioManager.requestPause(recording.id)
     } else {
       console.log('[VOICEMAIL FRONTEND] Starting audio playback')
       
@@ -252,15 +260,25 @@ export default function VoicemailMessage({
                 audio.addEventListener('error', handleError)
                 
                 // Wait for audio to load before playing
-                audio.addEventListener('canplay', () => {
-                  console.log('[VOICEMAIL FRONTEND] Audio can play, starting playback')
-                  audio.play().then(() => {
+                audio.addEventListener('canplay', async () => {
+                  console.log('[VOICEMAIL FRONTEND] Audio can play, requesting play from audio manager')
+                  
+                  // Request play from audio manager (will pause other voicemails if needed)
+                  const canPlay = await audioManager.requestPlay(recording.id)
+                  if (!canPlay) {
+                    console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
+                    return
+                  }
+                  
+                  try {
+                    await audio.play()
                     console.log('[VOICEMAIL FRONTEND] Audio playback started successfully')
                     setIsPlaying(true)
-                  }).catch(error => {
+                  } catch (error) {
                     console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)
                     setAudioError('Unable to play voicemail recording.')
-                  })
+                    audioManager.requestPause(recording.id)
+                  }
                 }, { once: true })
                 
                 return // Exit early, play will be called in the canplay event
@@ -293,24 +311,7 @@ export default function VoicemailMessage({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const toggleMute = () => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isMuted) {
-      // Unmute - restore previous volume
-      audio.volume = previousVolume
-      setVolume(previousVolume)
-      setIsMuted(false)
-    } else {
-      // Mute - save current volume and set to 0
-      setPreviousVolume(volume)
-      audio.volume = 0
-      setVolume(0)
-      setIsMuted(true)
-    }
-  }
-
+  
   const handleVolumeChange = (newVolume: number) => {
     const audio = audioRef.current
     if (!audio) return
@@ -320,12 +321,50 @@ export default function VoicemailMessage({
     
     // Update mute state based on volume
     if (newVolume === 0) {
-      setIsMuted(true)
+      setMuted(true)
     } else {
-      setIsMuted(false)
+      setMuted(false)
       setPreviousVolume(newVolume)
     }
   }
+
+  // Apply global volume to audio element
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    // Apply volume and mute state
+    audio.volume = isMuted ? 0 : volume
+  }, [volume, isMuted])
+
+  // Register voicemail with audio manager when audio element is ready
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !audioUrl) return
+
+    audioManager.registerAudio(recording.id, audio)
+    console.log('[VoicemailMessage] Registered with audio manager:', recording.id)
+
+    return () => {
+      audioManager.unregisterAudio(recording.id)
+      console.log('[VoicemailMessage] Unregistered from audio manager:', recording.id)
+    }
+  }, [recording.id, audioUrl])
+
+  // Handle playback state changes from audio manager
+  useEffect(() => {
+    const handlePlaybackStateChange = (voicemailId: string, isPlaying: boolean) => {
+      if (voicemailId === recording.id) {
+        console.log('[VoicemailMessage] Received playback state change from audio manager:', isPlaying)
+        setIsPlaying(isPlaying)
+      }
+    }
+
+    audioManager.addListener(handlePlaybackStateChange)
+    return () => {
+      audioManager.removeListener(handlePlaybackStateChange)
+    }
+  }, [recording.id])
 
   // Close volume slider when clicking outside
   useEffect(() => {
