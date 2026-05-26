@@ -6,31 +6,43 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[RECORDING STATUS] Recording status callback received');
     
-    // Parse form data from Twilio first
-    const formData = await request.formData();
+    // Read body exactly once to prevent "Body has already been read" error
     const rawBody = await request.text();
     const contentType = request.headers.get('content-type') || '';
     
-    // Convert FormData to params object for signature validation
-    const params: Record<string, string> = {};
-    formData.forEach((value, key) => {
-      params[key] = value as string;
+    // Parse form data using URLSearchParams
+    const params = new URLSearchParams(rawBody);
+    
+    // Defensive logging
+    console.log('[RECORDING STATUS] Request details:', {
+      rawBodyLength: rawBody.length,
+      paramKeys: Array.from(params.keys()),
+      RecordingSid: params.get('RecordingSid'),
+      RecordingUrl: params.get('RecordingUrl') ? '[URL_PRESENT]' : '[URL_MISSING]',
+      CallSid: params.get('CallSid'),
+      AccountSid: params.get('AccountSid') ? '[PRESENT]' : '[MISSING]'
+    });
+    
+    // Convert params to object for signature validation
+    const paramsObject: Record<string, string> = {};
+    params.forEach((value, key) => {
+      paramsObject[key] = value;
     });
     
     // Validate Twilio signature with params object
-    const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
+    const isValid = requireTwilioAuth(request, paramsObject, rawBody.length, contentType);
     if (!isValid) {
       console.error('[RECORDING STATUS] Invalid Twilio signature');
       return new NextResponse('Invalid signature', { status: 403 });
     }
 
-    // Extract recording status data
-    const recordingSid = formData.get('RecordingSid') as string;
-    const recordingStatus = formData.get('RecordingStatus') as string;
-    const recordingUrl = formData.get('RecordingUrl') as string;
-    const recordingDuration = formData.get('RecordingDuration') as string;
-    const callSid = formData.get('CallSid') as string;
-    const accountSid = formData.get('AccountSid') as string;
+    // Extract recording status data using params.get()
+    const recordingSid = params.get('RecordingSid') as string;
+    const recordingStatus = params.get('RecordingStatus') as string;
+    const recordingUrl = params.get('RecordingUrl') as string;
+    const recordingDuration = params.get('RecordingDuration') as string;
+    const callSid = params.get('CallSid') as string;
+    const accountSid = params.get('AccountSid') as string;
 
     console.log('[RECORDING STATUS] Recording status data:', {
       recordingSid,
