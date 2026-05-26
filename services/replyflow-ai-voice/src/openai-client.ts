@@ -191,23 +191,15 @@ export class OpenAIRealtimeClient {
     }
 
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
+    log(LogLevel.INFO, '[AI POC] exact model being used', { model: this.config.model });
 
+    // Minimal session.update to isolate the offending field
     const sessionUpdate = {
       type: 'session.update',
-      session: {
-        instructions: 'You are a test AI assistant. Say: "Hello. This is the ReplyFlow AI Assistant test environment." Then end the call.',
-        voice: this.config.voice,
-        audio: {
-          input: {
-            format: 'g711_ulaw',
-          },
-          output: {
-            format: 'g711_ulaw',
-          },
-        },
-      },
+      session: {},
     };
 
+    log(LogLevel.INFO, '[AI POC] COMPLETE session.update payload', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
     this.ws.send(JSON.stringify(sessionUpdate));
     log(LogLevel.INFO, 'Session update sent to OpenAI');
