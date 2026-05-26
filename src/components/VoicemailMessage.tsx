@@ -5,6 +5,7 @@ import { formatRelativeTime } from '@/lib/utils'
 import { Phone, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useVoicemailVolume } from '@/contexts/VoicemailVolumeContext'
+import { useVoicemailProgress } from '@/contexts/VoicemailProgressContext'
 import { useVoicemailAudioManager } from '@/lib/voicemail-audio-manager'
 
 interface VoicemailMessageProps {
@@ -55,9 +56,6 @@ export default function VoicemailMessage({
   showAvatar = true 
 }: VoicemailMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false)
-  const [isEnded, setIsEnded] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(recording.recording_duration || 0)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioError, setAudioError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -65,6 +63,15 @@ export default function VoicemailMessage({
   
   // Use global volume context
   const { volume, isMuted, previousVolume, setVolume, setMuted, setPreviousVolume, toggleMute } = useVoicemailVolume()
+  
+  // Use shared progress context
+  const { getProgress, setCurrentTime, setDuration, setIsEnded } = useVoicemailProgress()
+  
+  // Get progress from shared context
+  const progress = getProgress(recording.id)
+  const currentTime = progress.currentTime
+  const duration = progress.duration
+  const isEnded = progress.isEnded
   
   // Use audio-element level manager for coordinated playback
   const audioManager = useVoicemailAudioManager()
@@ -144,15 +151,15 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio) return
     
-    const duration = audio.duration || recording.recording_duration || 0
-    if (isNaN(duration) || !isFinite(duration)) {
-      console.log('[VOICEMAIL PLAYER] Invalid duration:', duration)
-      setDuration(0)
+    const audioDuration = audio.duration || recording.recording_duration || 0
+    if (isNaN(audioDuration) || !isFinite(audioDuration)) {
+      console.log('[VOICEMAIL PLAYER] Invalid duration:', audioDuration)
+      setDuration(recording.id, 0)
       return
     }
     
-    console.log('[VOICEMAIL PLAYER] loaded metadata - duration:', duration)
-    setDuration(duration)
+    console.log('[VOICEMAIL PLAYER] loaded metadata - duration:', audioDuration)
+    setDuration(recording.id, audioDuration)
     setCanSeek(true)
   }
 
@@ -160,27 +167,28 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio || isDragging) return
     
-    const currentTime = audio.currentTime
-    if (isNaN(currentTime) || !isFinite(currentTime)) return
+    const audioCurrentTime = audio.currentTime
+    if (isNaN(audioCurrentTime) || !isFinite(audioCurrentTime)) return
     
-    setCurrentTime(currentTime)
+    // Continuously save currentTime to shared context
+    setCurrentTime(recording.id, audioCurrentTime)
   }
 
   const handleDurationChange = () => {
     const audio = audioRef.current
     if (!audio) return
     
-    const duration = audio.duration || recording.recording_duration || 0
-    if (isNaN(duration) || !isFinite(duration)) return
+    const audioDuration = audio.duration || recording.recording_duration || 0
+    if (isNaN(audioDuration) || !isFinite(audioDuration)) return
     
-    console.log('[VOICEMAIL PLAYER] duration change - duration:', duration)
-    setDuration(duration)
+    console.log('[VOICEMAIL PLAYER] duration change - duration:', audioDuration)
+    setDuration(recording.id, audioDuration)
   }
 
   const handleEnded = () => {
     console.log('[VOICEMAIL PLAYER] audio ended')
     setIsPlaying(false)
-    setIsEnded(true)
+    setIsEnded(recording.id, true)
     // Keep currentTime at duration to show progress at the end
     
     // Audio manager will handle clearing the current playing state
@@ -190,7 +198,7 @@ export default function VoicemailMessage({
     console.log('[VOICEMAIL PLAYER] audio seeked')
     // Reset isEnded state when user seeks
     if (isEnded) {
-      setIsEnded(false)
+      setIsEnded(recording.id, false)
     }
   }
 
@@ -198,7 +206,7 @@ export default function VoicemailMessage({
     console.error('[VOICEMAIL PLAYER] audio error:', e)
     setAudioError('Unable to load voicemail recording.')
     setIsPlaying(false)
-    setIsEnded(false)
+    setIsEnded(recording.id, false)
   }
 
   const togglePlayPause = async () => {
@@ -215,6 +223,7 @@ export default function VoicemailMessage({
       console.log('[VOICEMAIL FRONTEND] Pausing audio')
       audio.pause()
       setIsPlaying(false)
+      // Save current time to progress context (already done by timeupdate)
       audioManager.requestPause(recording.id)
     } else {
       console.log('[VOICEMAIL FRONTEND] Starting audio playback')
@@ -223,8 +232,15 @@ export default function VoicemailMessage({
       if (isEnded) {
         console.log('[VOICEMAIL FRONTEND] Audio ended, resetting to beginning')
         audio.currentTime = 0
-        setCurrentTime(0)
-        setIsEnded(false)
+        setCurrentTime(recording.id, 0)
+        setIsEnded(recording.id, false)
+      } else {
+        // Restore saved currentTime for resumed playback
+        const savedCurrentTime = currentTime
+        if (savedCurrentTime > 0) {
+          console.log('[VOICEMAIL FRONTEND] Restoring saved currentTime:', savedCurrentTime)
+          audio.currentTime = savedCurrentTime
+        }
       }
       
       // Prevent multiple play requests on the same audio element
@@ -488,7 +504,7 @@ export default function VoicemailMessage({
     // Clamp time to valid range
     const clampedTime = Math.max(0, Math.min(time, duration))
     audio.currentTime = clampedTime
-    setCurrentTime(clampedTime)
+    setCurrentTime(recording.id, clampedTime)
   }
 
   const seekToClientX = (clientX: number) => {
@@ -512,7 +528,7 @@ export default function VoicemailMessage({
 
     console.log('[VOICEMAIL PLAYER] seek - nextTime:', nextTime, 'percent:', percent)
     audio.currentTime = nextTime
-    setCurrentTime(nextTime)
+    setCurrentTime(recording.id, nextTime)
   }
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -546,7 +562,7 @@ export default function VoicemailMessage({
         const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
         const percentage = clickX / rect.width
         const newTime = percentage * duration
-        setCurrentTime(newTime)
+        setCurrentTime(recording.id, newTime)
       }
     }
 

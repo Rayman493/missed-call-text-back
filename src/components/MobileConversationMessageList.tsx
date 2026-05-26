@@ -14,6 +14,7 @@ interface MobileConversationMessageListProps {
   sending: boolean
   handleRetry: (body: string, id: string, clientTempId?: string) => void
   getErrorMessage: (errorCode: string) => string
+  renderAudio?: boolean // New prop to control audio rendering
 }
 
 export default function MobileConversationMessageList({ 
@@ -21,7 +22,8 @@ export default function MobileConversationMessageList({
   conversationTimeline,
   sending, 
   handleRetry, 
-  getErrorMessage 
+  getErrorMessage,
+  renderAudio = true // Default to true for mobile
 }: MobileConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
   
@@ -36,7 +38,7 @@ export default function MobileConversationMessageList({
   return (
     <div className="space-y-4">
       {conversationTimeline.map((item: any, index: number) => {
-        // Handle voicemail items - render with full audio player
+        // Handle voicemail items - render with full audio player only if renderAudio is true
         if (item.type === 'voicemail') {
           const voicemail = item.data
           console.log('[VOICEMAIL DEBUG] Rendering voicemail item:', {
@@ -45,17 +47,57 @@ export default function MobileConversationMessageList({
             recordingUrl: voicemail.recording_url,
             recordingStatus: voicemail.recording_status,
             recordingDuration: voicemail.recording_duration,
-            createdAt: voicemail.created_at
+            createdAt: voicemail.created_at,
+            renderAudio: renderAudio
           })
           
-          return (
-            <VoicemailMessage
-              key={item.id}
-              recording={voicemail}
-              isInbound={true}
-              showAvatar={index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail'}
-            />
-          )
+          if (renderAudio) {
+            return (
+              <VoicemailMessage
+                key={item.id}
+                recording={voicemail}
+                isInbound={true}
+                showAvatar={index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail'}
+              />
+            )
+          } else {
+            // Render simple voicemail display without audio player
+            return (
+              <div
+                key={item.id}
+                className={`flex items-start gap-2 mb-3 flex-row`}
+              >
+                {/* Avatar for voicemail */}
+                {index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail' ? (
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-sm font-medium shadow-sm">
+                    📞
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 w-8"></div>
+                )}
+                
+                {/* Voicemail Content */}
+                <div className="flex flex-col items-start max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%]">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <span className="text-xs">📞</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Voicemail</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          {voicemail.recording_duration ? `${voicemail.recording_duration}s` : 'Processing...'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      Voicemail received • {formatRelativeTime(voicemail.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          }
         }
 
         // Handle message items
