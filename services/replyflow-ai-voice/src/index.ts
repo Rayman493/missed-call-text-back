@@ -76,6 +76,7 @@ wss.on('connection', (ws, req) => {
     let openaiInitAttempted = false;
     let openaiInitSucceeded = false;
     let openaiInitFailed = false;
+    let startEventProcessed = false;
 
     log(LogLevel.INFO, '[AI POC] attaching message listener');
 
@@ -110,9 +111,82 @@ wss.on('connection', (ws, req) => {
           log(LogLevel.INFO, '[WS KEYS]', Object.keys(message));
         }
 
-        // TEMPORARILY DISABLED: OpenAI initialization and media processing
-        // This is a debugging pass to see what Twilio is actually sending
-        log(LogLevel.INFO, '[AI POC] OpenAI initialization: NOT attempted');
+        // Handle start event
+        if (message.event === 'start') {
+          log(LogLevel.INFO, '[AI POC] entered start handler');
+
+          if (startEventProcessed) {
+            log(LogLevel.INFO, '[AI POC] start event already processed, skipping');
+            originalHandleMessage(data);
+            return;
+          }
+
+          startEventProcessed = true;
+
+          const customParams = message.start?.customParameters || {};
+          log(LogLevel.INFO, '[AI POC] received custom parameters', customParams);
+
+          const sessionId = customParams.sessionId || urlSessionId;
+          const callSid = customParams.callSid || urlCallSid;
+          const businessId = customParams.businessId || urlBusinessId;
+
+          log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId });
+
+          // Check for required parameters
+          if (!sessionId || !callSid) {
+            log(LogLevel.WARN, '[AI POC] initialization skipped because: missing required parameters', { sessionId, callSid });
+            openaiInitAttempted = false;
+            openaiInitFailed = true;
+            ws.close(1008, 'Missing required parameters');
+            return;
+          }
+
+          // Check for API key
+          if (!OPENAI_API_KEY) {
+            log(LogLevel.ERROR, '[AI POC] initialization skipped because: OPENAI_API_KEY not set');
+            openaiInitAttempted = false;
+            openaiInitFailed = true;
+            ws.close(1011, 'OpenAI API key not configured');
+            return;
+          }
+
+          log(LogLevel.INFO, '[AI POC] about to initialize OpenAI');
+          openaiInitAttempted = true;
+
+          log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
+
+          try {
+            const openaiClient = new OpenAIRealtimeClient({
+              apiKey: OPENAI_API_KEY,
+              model: 'gpt-4o',
+              voice: 'alloy',
+            });
+
+            openaiClient
+              .connect()
+              .then(() => {
+                log(LogLevel.INFO, '[AI POC] initializeOpenAI completed');
+                openaiInitSucceeded = true;
+
+                // Send greeting
+                log(LogLevel.INFO, 'Sending greeting...');
+                openaiClient.sendGreeting();
+                log(LogLevel.INFO, 'Greeting sent');
+              })
+              .catch((error: Error) => {
+                log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed', error);
+                openaiInitFailed = true;
+
+                // Fallback: close connection, Twilio will redirect to voicemail
+                log(LogLevel.INFO, '[AI POC] Falling back to voicemail');
+                ws.close(1011, 'OpenAI connection failed');
+              });
+          } catch (error) {
+            log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed with exception', error as Error);
+            openaiInitFailed = true;
+            ws.close(1011, 'OpenAI initialization exception');
+          }
+        }
 
         // Call original handler for basic logging only
         originalHandleMessage(data);
