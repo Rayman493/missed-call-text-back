@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
-import { Phone, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward } from 'lucide-react'
+import { Phone, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface VoicemailMessageProps {
@@ -324,14 +324,7 @@ export default function VoicemailMessage({
     setCurrentTime(clampedTime)
   }
 
-  const skipBackward = () => {
-    seekTo(currentTime - 5)
-  }
-
-  const skipForward = () => {
-    seekTo(currentTime + 5)
-  }
-
+  
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canSeek || !progressBarRef.current) return
 
@@ -404,11 +397,11 @@ export default function VoicemailMessage({
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault()
-        skipBackward()
+        seekTo(currentTime - 5)
         break
       case 'ArrowRight':
         e.preventDefault()
-        skipForward()
+        seekTo(currentTime + 5)
         break
     }
   }
@@ -509,123 +502,107 @@ export default function VoicemailMessage({
               {/* Audio Controls */}
               {!isLoading && !audioError && (
                 <div className="space-y-3">
-                  {/* Custom Audio Controls */}
-                  <div className="flex items-center gap-2">
-                    {/* Skip Backward Button */}
-                    <button
-                      onClick={skipBackward}
-                      disabled={!audioUrl || !canSeek}
-                      className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center transition-colors"
-                      aria-label="Skip backward 5 seconds"
-                    >
-                      <SkipBack className="w-3 h-3" />
-                    </button>
-
-                    {/* Play/Pause Button */}
-                    <button
-                      onClick={togglePlayPause}
-                      disabled={!audioUrl}
-                      className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
-                      aria-label={isPlaying ? 'Pause' : 'Play'}
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 ml-0.5" />
-                      )}
-                    </button>
-
-                    {/* Skip Forward Button */}
-                    <button
-                      onClick={skipForward}
-                      disabled={!audioUrl || !canSeek}
-                      className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center transition-colors"
-                      aria-label="Skip forward 5 seconds"
-                    >
-                      <SkipForward className="w-3 h-3" />
-                    </button>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <span>{formatTime(currentTime)}</span>
-                        <span>/</span>
-                        <span>{formatTime(duration)}</span>
-                      </div>
-                      {/* Interactive Progress Bar */}
-                      <div
-                        ref={progressBarRef}
-                        className="relative w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5 cursor-pointer group"
-                        onClick={handleProgressClick}
-                        onMouseDown={handleProgressDragStart}
-                        onMouseMove={handleProgressDragMove}
-                        onMouseUp={handleProgressDragEnd}
-                        onMouseLeave={handleProgressDragEnd}
-                        onKeyDown={handleKeyDown}
-                        tabIndex={canSeek ? 0 : -1}
-                        role="slider"
-                        aria-label="Audio progress"
-                        aria-valuemin={0}
-                        aria-valuemax={duration}
-                        aria-valuenow={currentTime}
-                        aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-                      >
-                        <div 
-                          className={`bg-blue-600 h-1.5 rounded-full transition-all ${isDragging ? 'duration-0' : 'duration-100'} ${canSeek ? 'group-hover:bg-blue-700' : ''}`}
-                          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                        />
-                        {/* Progress Handle */}
-                        {canSeek && (
-                          <div 
-                            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 6px)` }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="relative" ref={volumeSliderRef}>
-                      {/* Volume Button */}
+                  {/* iOS-style Audio Controls */}
+                  <div className="space-y-3">
+                    {/* Main Controls Row */}
+                    <div className="flex items-center justify-between">
+                      {/* Play/Pause Button */}
                       <button
-                        onClick={toggleMute}
-                        onMouseEnter={() => setShowVolumeSlider(true)}
-                        onFocus={() => setShowVolumeSlider(true)}
-                        className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                        aria-label={isMuted ? 'Unmute' : 'Mute'}
-                        aria-pressed={isMuted}
+                        onClick={togglePlayPause}
+                        disabled={!audioUrl}
+                        className="w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
+                        aria-label={isPlaying ? 'Pause' : 'Play'}
                       >
-                        {isMuted || volume === 0 ? (
-                          <VolumeX className="w-4 h-4" />
+                        {isPlaying ? (
+                          <Pause className="w-5 h-5" />
                         ) : (
-                          <Volume2 className="w-4 h-4" />
+                          <Play className="w-5 h-5 ml-0.5" />
                         )}
                       </button>
 
-                      {/* Volume Slider */}
-                      {showVolumeSlider && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[120px]">
-                          <div className="flex flex-col items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Volume</span>
-                            <div className="flex items-center gap-2 w-full">
-                              <VolumeX className="w-3 h-3 text-muted-foreground" />
-                              <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                value={volume}
-                                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                                className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                                style={{
-                                  background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${volume * 100}%, rgb(229 231 235) ${volume * 100}%, rgb(229 231 235) 100%)`
-                                }}
-                              />
-                              <Volume2 className="w-3 h-3 text-muted-foreground" />
+                      {/* Time Display */}
+                      <div className="flex items-center text-sm text-muted-foreground font-medium">
+                        <span>{formatTime(currentTime)}</span>
+                        <span className="mx-2">/</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+
+                      {/* Volume Control */}
+                      <div className="relative" ref={volumeSliderRef}>
+                        {/* Volume Button */}
+                        <button
+                          onClick={toggleMute}
+                          onMouseEnter={() => setShowVolumeSlider(true)}
+                          onFocus={() => setShowVolumeSlider(true)}
+                          className="w-8 h-8 text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                          aria-label={isMuted ? 'Unmute' : 'Mute'}
+                          aria-pressed={isMuted}
+                        >
+                          {isMuted || volume === 0 ? (
+                            <VolumeX className="w-5 h-5" />
+                          ) : (
+                            <Volume2 className="w-5 h-5" />
+                          )}
+                        </button>
+
+                        {/* Volume Slider */}
+                        {showVolumeSlider && (
+                          <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[120px]">
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Volume</span>
+                              <div className="flex items-center gap-2 w-full">
+                                <VolumeX className="w-3 h-3 text-muted-foreground" />
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="1"
+                                  step="0.1"
+                                  value={volume}
+                                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                                  className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                                  style={{
+                                    background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${volume * 100}%, rgb(229 231 235) ${volume * 100}%, rgb(229 231 235) 100%)`
+                                  }}
+                                />
+                                <Volume2 className="w-3 h-3 text-muted-foreground" />
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {Math.round(volume * 100)}%
+                              </span>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {Math.round(volume * 100)}%
-                            </span>
                           </div>
-                        </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Enhanced Progress Bar */}
+                    <div
+                      ref={progressBarRef}
+                      className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 cursor-pointer group"
+                      onClick={handleProgressClick}
+                      onMouseDown={handleProgressDragStart}
+                      onMouseMove={handleProgressDragMove}
+                      onMouseUp={handleProgressDragEnd}
+                      onMouseLeave={handleProgressDragEnd}
+                      onKeyDown={handleKeyDown}
+                      tabIndex={canSeek ? 0 : -1}
+                      role="slider"
+                      aria-label="Audio progress"
+                      aria-valuemin={0}
+                      aria-valuemax={duration}
+                      aria-valuenow={currentTime}
+                      aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+                    >
+                      <div 
+                        className={`bg-blue-600 h-2 rounded-full transition-all ${isDragging ? 'duration-0' : 'duration-100'} ${canSeek ? 'group-hover:bg-blue-700' : ''}`}
+                        style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                      />
+                      {/* Enhanced Progress Handle */}
+                      {canSeek && (
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110"
+                          style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 8px)` }}
+                        />
                       )}
                     </div>
                   </div>
