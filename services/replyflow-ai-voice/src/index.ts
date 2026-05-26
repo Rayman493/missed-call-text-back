@@ -41,7 +41,12 @@ const server = createServer((req, res) => {
 const wss = new WebSocketServer({ server, path: '/stream' });
 
 wss.on('connection', (ws, req) => {
-  log(LogLevel.INFO, 'WebSocket connection received');
+  log(LogLevel.INFO, '[WS ENTRY] raw request received');
+  log(LogLevel.INFO, '[WS ENTRY] request url:', req.url);
+  log(LogLevel.INFO, '[WS ENTRY] headers:', JSON.stringify(req.headers));
+  log(LogLevel.INFO, '[WS ENTRY] websocket upgrade started');
+  log(LogLevel.INFO, '[WS ENTRY] websocket accepted');
+  log(LogLevel.INFO, '[WS ENTRY] waiting for first message');
 
   try {
     // Extract parameters from URL (fallback)
@@ -133,19 +138,19 @@ wss.on('connection', (ws, req) => {
       });
 
     // Handle WebSocket close
-    ws.on('close', () => {
-      log(LogLevel.INFO, 'WebSocket connection closed');
+    ws.on('close', (code, reason) => {
+      log(LogLevel.INFO, '[WS CLOSED]', { code, reason: reason?.toString() });
       openaiClient.disconnect();
     });
 
     // Handle WebSocket error
     ws.on('error', (error) => {
-      log(LogLevel.ERROR, 'WebSocket error', error);
+      log(LogLevel.ERROR, '[WS ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
       openaiClient.disconnect();
     });
 
   } catch (error) {
-    log(LogLevel.ERROR, 'Error handling connection', error);
+    log(LogLevel.ERROR, '[WS FATAL ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
     ws.close(1011, 'Internal server error');
   }
 });
