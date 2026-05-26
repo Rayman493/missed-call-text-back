@@ -316,9 +316,12 @@ wss.on('connection', (ws, req) => {
 
             // Attach raw listeners directly
             openAiWs.on('open', () => {
-              console.log('[OPENAI RAW] open');
+              console.log('[OPENAI WS] socket open');
+              console.log('[OPENAI WS] readyState', openAiWs?.readyState);
               console.log('[STREAM] OpenAI websocket opened, marking ready immediately for test');
+              console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
+              console.log('[OPENAI READY] openAiReady set to true');
               
               // Send test message
               const testMessage = {
@@ -336,7 +339,9 @@ wss.on('connection', (ws, req) => {
             });
 
             openAiWs.on('message', (data) => {
-              console.log('[OPENAI RAW] message', { first200: data.toString().substring(0, 200) });
+              console.log('[OPENAI WS] message received');
+              const dataStr = data.toString();
+              console.log('[OPENAI WS] message length', { length: dataStr.length });
               
               // Parse message
               let message;
@@ -345,6 +350,29 @@ wss.on('connection', (ws, req) => {
               } catch (err) {
                 log(LogLevel.ERROR, '[STREAM OPENAI] JSON parse failed', err);
                 return;
+              }
+
+              // Log every message type
+              console.log('[OPENAI WS] message type', { type: message.type });
+
+              // Log specific message types
+              if (message.type === 'session.created') {
+                console.log('[OPENAI WS] session.created');
+              }
+              if (message.type === 'session.updated') {
+                console.log('[OPENAI WS] session.updated');
+              }
+              if (message.type === 'error') {
+                console.log('[OPENAI WS] error', { error: message.error });
+              }
+              if (message.type === 'response.created') {
+                console.log('[OPENAI WS] response.created');
+              }
+              if (message.type === 'response.output_audio.delta') {
+                console.log('[OPENAI WS] response.output_audio.delta');
+              }
+              if (message.type === 'response.done') {
+                console.log('[OPENAI WS] response.done');
               }
 
               // Handle audio delta
@@ -371,13 +399,13 @@ wss.on('connection', (ws, req) => {
             });
 
             openAiWs.on('error', (error) => {
-              console.log('[OPENAI RAW] error', { error: String(error) });
+              console.log('[OPENAI WS] error', { error: String(error) });
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
             });
 
             openAiWs.on('close', (code, reason) => {
-              console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
+              console.log('[OPENAI WS] close', { code, reason: reason?.toString() });
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
             });
 
