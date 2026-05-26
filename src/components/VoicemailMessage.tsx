@@ -117,44 +117,54 @@ export default function VoicemailMessage({
     initializeAudioUrl()
   }, [recording.recording_status, recording.recording_url])
 
-  // Update duration when metadata loads
-  useEffect(() => {
+  // Audio event handlers
+  const handleLoadedMetadata = () => {
     const audio = audioRef.current
     if (!audio) return
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || recording.recording_duration || 0)
-      setCanSeek(true)
+    
+    const duration = audio.duration || recording.recording_duration || 0
+    if (isNaN(duration) || !isFinite(duration)) {
+      console.log('[VOICEMAIL PLAYER] Invalid duration:', duration)
+      setDuration(0)
+      return
     }
+    
+    console.log('[VOICEMAIL PLAYER] loaded metadata - duration:', duration)
+    setDuration(duration)
+    setCanSeek(true)
+  }
 
-    const handleTimeUpdate = () => {
-      if (!isDragging) {
-        setCurrentTime(audio.currentTime)
-      }
-    }
+  const handleTimeUpdate = () => {
+    const audio = audioRef.current
+    if (!audio || isDragging) return
+    
+    const currentTime = audio.currentTime
+    if (isNaN(currentTime) || !isFinite(currentTime)) return
+    
+    setCurrentTime(currentTime)
+  }
 
-    const handleEnded = () => {
-      setIsPlaying(false)
-      setCurrentTime(0)
-    }
+  const handleDurationChange = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    
+    const duration = audio.duration || recording.recording_duration || 0
+    if (isNaN(duration) || !isFinite(duration)) return
+    
+    console.log('[VOICEMAIL PLAYER] duration change - duration:', duration)
+    setDuration(duration)
+  }
 
-    const handleLoadError = () => {
-      console.error('Audio loading error')
-      setAudioError('Unable to load voicemail recording.')
-    }
+  const handleEnded = () => {
+    console.log('[VOICEMAIL PLAYER] audio ended')
+    setIsPlaying(false)
+    setCurrentTime(0)
+  }
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('ended', handleEnded)
-    audio.addEventListener('error', handleLoadError)
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('ended', handleEnded)
-      audio.removeEventListener('error', handleLoadError)
-    }
-  }, [recording.recording_duration, isDragging])
+  const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    console.error('[VOICEMAIL PLAYER] audio error:', e)
+    setAudioError('Unable to load voicemail recording.')
+  }
 
   const togglePlayPause = async () => {
     const audio = audioRef.current
@@ -324,39 +334,51 @@ export default function VoicemailMessage({
     setCurrentTime(clampedTime)
   }
 
-  
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canSeek || !progressBarRef.current) return
+  const seekToClientX = (clientX: number) => {
+    const audio = audioRef.current
+    const progressRef = progressBarRef.current
+    
+    if (!audio || !progressRef || !duration || isNaN(duration)) {
+      console.log('[VOICEMAIL PLAYER] seek failed - missing refs or duration')
+      return
+    }
 
-    const rect = progressBarRef.current.getBoundingClientRect()
-    const clickX = e.clientX - rect.left
-    const percentage = clickX / rect.width
-    const newTime = percentage * duration
-    seekTo(newTime)
+    const rect = progressRef.getBoundingClientRect()
+    const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    const nextTime = percent * duration
+
+    // Prevent NaN
+    if (isNaN(nextTime) || !isFinite(nextTime)) {
+      console.log('[VOICEMAIL PLAYER] seek failed - invalid time:', nextTime)
+      return
+    }
+
+    console.log('[VOICEMAIL PLAYER] seek - nextTime:', nextTime, 'percent:', percent)
+    audio.currentTime = nextTime
+    setCurrentTime(nextTime)
+  }
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canSeek) return
+    seekToClientX(e.clientX)
   }
 
   const handleProgressDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canSeek) return
     setIsDragging(true)
     setIsSeeking(true)
-    handleProgressClick(e)
+    seekToClientX(e.clientX)
   }
 
   const handleProgressDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !canSeek || !progressBarRef.current) return
-
-    const rect = progressBarRef.current.getBoundingClientRect()
-    const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-    const percentage = clickX / rect.width
-    const newTime = percentage * duration
-    setCurrentTime(newTime)
+    if (!isDragging || !canSeek) return
+    seekToClientX(e.clientX)
   }
 
   const handleProgressDragEnd = () => {
     if (!isDragging) return
     setIsDragging(false)
     setIsSeeking(false)
-    seekTo(currentTime)
   }
 
   // Handle mouse move for dragging
@@ -578,12 +600,17 @@ export default function VoicemailMessage({
                     {/* Enhanced Progress Bar */}
                     <div
                       ref={progressBarRef}
-                      className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 cursor-pointer group"
+                      className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 cursor-pointer"
                       onClick={handleProgressClick}
-                      onMouseDown={handleProgressDragStart}
-                      onMouseMove={handleProgressDragMove}
-                      onMouseUp={handleProgressDragEnd}
-                      onMouseLeave={handleProgressDragEnd}
+                      onPointerDown={(e) => {
+                        setIsDragging(true)
+                        seekToClientX(e.clientX)
+                      }}
+                      onPointerMove={(e) => {
+                        if (isDragging) seekToClientX(e.clientX)
+                      }}
+                      onPointerUp={() => setIsDragging(false)}
+                      onPointerLeave={() => setIsDragging(false)}
                       onKeyDown={handleKeyDown}
                       tabIndex={canSeek ? 0 : -1}
                       role="slider"
@@ -594,13 +621,13 @@ export default function VoicemailMessage({
                       aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
                     >
                       <div 
-                        className={`bg-blue-600 h-2 rounded-full transition-all ${isDragging ? 'duration-0' : 'duration-100'} ${canSeek ? 'group-hover:bg-blue-700' : ''}`}
+                        className={`bg-blue-600 h-2 rounded-full transition-all ${isDragging ? 'duration-0' : 'duration-100'}`}
                         style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                       />
-                      {/* Enhanced Progress Handle */}
+                      {/* Always Visible Progress Handle */}
                       {canSeek && (
                         <div 
-                          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110"
+                          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-md transition-all ${isDragging ? 'scale-125' : 'hover:scale-110'}`}
                           style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 8px)` }}
                         />
                       )}
@@ -610,8 +637,14 @@ export default function VoicemailMessage({
                   {/* Hidden Native Audio Element */}
                   <audio
                     ref={audioRef}
+                    src={audioUrl || undefined}
                     preload="none"
                     className="hidden"
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onTimeUpdate={handleTimeUpdate}
+                    onDurationChange={handleDurationChange}
+                    onEnded={handleEnded}
+                    onError={handleError}
                   />
                 </div>
               )}
