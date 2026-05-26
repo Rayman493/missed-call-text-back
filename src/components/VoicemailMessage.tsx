@@ -64,6 +64,7 @@ export default function VoicemailMessage({
   useEffect(() => {
     const initializeAudioUrl = async () => {
       if (recording.recording_status !== 'completed' || !recording.recording_url) {
+        console.log('[VOICEMAIL FRONTEND] Skipping initialization - status:', recording.recording_status, 'has URL:', !!recording.recording_url)
         return
       }
 
@@ -72,14 +73,32 @@ export default function VoicemailMessage({
 
       try {
         const recordingSid = extractRecordingSid(recording.recording_url)
+        
+        // COMPREHENSIVE FRONTEND LOGGING
+        console.log('[VOICEMAIL FRONTEND] Voicemail Data:', {
+          voicemailId: recording.id,
+          recordingSid: recordingSid,
+          recordingUrl: recording.recording_url,
+          recordingStatus: recording.recording_status,
+          recordingDuration: recording.recording_duration
+        })
+
         if (!recordingSid) {
+          console.error('[VOICEMAIL FRONTEND] Failed to extract recording SID from URL:', recording.recording_url)
           throw new Error('Invalid recording URL format')
         }
 
         const secureUrl = await createSecureAudioUrl(recordingSid)
+        
+        console.log('[VOICEMAIL FRONTEND] Generated secure URL:', {
+          recordingSid,
+          secureUrl,
+          expectedApiCall: `/api/voicemail/${recordingSid}`
+        })
+        
         setAudioUrl(secureUrl)
       } catch (error) {
-        console.error('Failed to initialize audio URL:', error)
+        console.error('[VOICEMAIL FRONTEND] Failed to initialize audio URL:', error)
         setAudioError('Unable to load voicemail recording.')
       } finally {
         setIsLoading(false)
@@ -127,19 +146,29 @@ export default function VoicemailMessage({
 
   const togglePlayPause = async () => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) {
+      console.error('[VOICEMAIL FRONTEND] Audio ref not available')
+      return
+    }
 
     if (isPlaying) {
+      console.log('[VOICEMAIL FRONTEND] Pausing audio')
       audio.pause()
       setIsPlaying(false)
     } else {
+      console.log('[VOICEMAIL FRONTEND] Starting audio playback')
+      
       try {
         // Set up authenticated request before playing
         if (audioUrl) {
+          console.log('[VOICEMAIL FRONTEND] Attempting to fetch audio from:', audioUrl)
+          
           const supabase = createBrowserClient()
           if (supabase) {
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.access_token) {
+              console.log('[VOICEMAIL FRONTEND] Making authenticated request to:', audioUrl)
+              
               // Create a new request with authentication headers
               const response = await fetch(audioUrl, {
                 headers: {
@@ -147,9 +176,18 @@ export default function VoicemailMessage({
                 }
               })
               
+              console.log('[VOICEMAIL FRONTEND] API Response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                headers: Object.fromEntries(response.headers.entries())
+              })
+              
               if (response.ok) {
                 const audioBlob = await response.blob()
                 const objectUrl = URL.createObjectURL(audioBlob)
+                
+                console.log('[VOICEMAIL FRONTEND] Created blob URL:', objectUrl)
                 
                 // Set the audio source and load it
                 audio.src = objectUrl
@@ -157,6 +195,7 @@ export default function VoicemailMessage({
                 
                 // Clean up object URL when audio finishes
                 const handleEnded = () => {
+                  console.log('[VOICEMAIL FRONTEND] Audio playback ended')
                   URL.revokeObjectURL(objectUrl)
                   audio.removeEventListener('ended', handleEnded)
                 }
@@ -164,6 +203,7 @@ export default function VoicemailMessage({
                 
                 // Also clean up on error
                 const handleError = () => {
+                  console.error('[VOICEMAIL FRONTEND] Audio playback error')
                   URL.revokeObjectURL(objectUrl)
                   audio.removeEventListener('error', handleError)
                 }
@@ -171,33 +211,35 @@ export default function VoicemailMessage({
                 
                 // Wait for audio to load before playing
                 audio.addEventListener('canplay', () => {
+                  console.log('[VOICEMAIL FRONTEND] Audio can play, starting playback')
                   audio.play().then(() => {
+                    console.log('[VOICEMAIL FRONTEND] Audio playback started successfully')
                     setIsPlaying(true)
                   }).catch(error => {
-                    console.error('Failed to play audio after load:', error)
+                    console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)
                     setAudioError('Unable to play voicemail recording.')
                   })
                 }, { once: true })
                 
                 return // Exit early, play will be called in the canplay event
               } else {
-                console.error('Failed to fetch audio blob:', response.status, response.statusText)
+                console.error('[VOICEMAIL FRONTEND] Failed to fetch audio blob:', response.status, response.statusText)
                 setAudioError('Unable to load voicemail recording.')
               }
             } else {
-              console.error('No session or access token available')
+              console.error('[VOICEMAIL FRONTEND] No session or access token available')
               setAudioError('Authentication required.')
             }
           } else {
-            console.error('Failed to create Supabase client')
+            console.error('[VOICEMAIL FRONTEND] Failed to create Supabase client')
             setAudioError('Unable to initialize authentication.')
           }
         } else {
-          console.error('No audio URL available')
+          console.error('[VOICEMAIL FRONTEND] No audio URL available')
           setAudioError('Voicemail URL not available.')
         }
       } catch (error) {
-        console.error('Failed to play audio:', error)
+        console.error('[VOICEMAIL FRONTEND] Failed to play audio:', error)
         setAudioError('Unable to play voicemail recording.')
       }
     }

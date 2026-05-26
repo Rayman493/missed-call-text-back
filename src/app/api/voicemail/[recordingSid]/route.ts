@@ -64,11 +64,11 @@ export async function GET(
       .select(`
         *,
         businesses!inner (
-          owner_id
+          user_id
         )
       `)
       .eq('recording_sid', recordingSid)
-      .eq('businesses.owner_id', user.id)
+      .eq('businesses.user_id', user.id)
       .single()
 
     if (recordingError || !recording) {
@@ -78,6 +78,29 @@ export async function GET(
         recordingError: recordingError?.message,
         hasRecording: !!recording
       })
+
+      // Debug: Log latest 5 recording_sid values if not found
+      if (!recording) {
+        console.log('[VOICEMAIL PLAYBACK] DEBUG: Fetching latest 5 recording_sid values for debugging')
+        const { data: latestRecordings, error: latestError } = await supabaseAdmin
+          .from('voicemail_recordings')
+          .select('recording_sid, business_id, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5)
+        
+        if (!latestError && latestRecordings) {
+          console.log('[VOICEMAIL PLAYBACK] DEBUG: Latest 5 recording_sid values:', {
+            recordings: latestRecordings.map(r => ({
+              recordingSid: r.recording_sid,
+              businessId: r.business_id,
+              createdAt: r.created_at
+            }))
+          })
+        } else {
+          console.log('[VOICEMAIL PLAYBACK] DEBUG: Failed to fetch latest recordings:', latestError?.message)
+        }
+      }
+
       return NextResponse.json(
         { error: 'Recording not found or access denied' },
         { status: 404 }
@@ -115,33 +138,30 @@ export async function GET(
     const credentials = Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64')
     const twilioAuthHeader = `Basic ${credentials}`
 
-    // Try with .mp3 extension first, then fallback to original URL
-    let twilioUrl = recording.recording_url
-    if (!twilioUrl.includes('.mp3') && !twilioUrl.includes('.wav')) {
-      // Add .mp3 extension to the URL
-      twilioUrl = `${twilioUrl}.mp3`
-      console.log('[VOICEMAIL PLAYBACK] Added .mp3 extension to recording URL')
-    }
-
-    // Alternative: Build Twilio URL directly if needed
-    if (!twilioUrl.includes('api.twilio.com')) {
-      twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Recordings/${recordingSid}.mp3`
-      console.log('[VOICEMAIL PLAYBACK] Built Twilio URL directly:', twilioUrl)
-    }
-
+    // Build Twilio URL directly for reliable access
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Recordings/${recordingSid}.mp3`
+    
     console.log('[VOICEMAIL PLAYBACK] Fetching from Twilio:', {
       originalUrl: recording.recording_url,
       finalUrl: twilioUrl,
-      recordingSid: recording.recording_sid
+      recordingSid: recording.recording_sid,
+      twilioAccountSid: twilioAccountSid.substring(0, 8) + '...' // Log partial SID for security
     })
 
-    // Fetch the recording from Twilio
+    // Fetch the recording from Twilio with Basic Auth
     const recordingResponse = await fetch(twilioUrl, {
       method: 'GET',
       headers: {
         'Authorization': twilioAuthHeader,
         'User-Agent': 'ReplyFlow/1.0'
       }
+    })
+
+    console.log('[VOICEMAIL PLAYBACK] Twilio fetch status:', {
+      status: recordingResponse.status,
+      statusText: recordingResponse.statusText,
+      contentType: recordingResponse.headers.get('content-type'),
+      recordingSid: recording.recording_sid
     })
 
     if (!recordingResponse.ok) {
@@ -157,18 +177,18 @@ export async function GET(
       )
     }
 
-    console.log('[VOICEMAIL PLAYBACK] Successfully fetched recording from Twilio:', {
-      status: recordingResponse.status,
-      contentType: recordingResponse.headers.get('content-type'),
-      recordingSid: recording.recording_sid
-    })
-
     // Get the audio data and content type
     const audioData = await recordingResponse.arrayBuffer()
     const contentType = recordingResponse.headers.get('content-type') || 'audio/mpeg'
 
+    console.log('[VOICEMAIL PLAYBACK] Successfully fetched recording from Twilio:', {
+      audioDataSize: audioData.byteLength,
+      contentType: contentType,
+      recordingSid: recording.recording_sid
+    })
+
     // Log access for audit purposes
-    console.log('Voicemail recording accessed securely:', {
+    console.log('[VOICEMAIL PLAYBACK] Recording accessed successfully:', {
       recordingSid,
       userId: user.id,
       businessId: recording.business_id,
@@ -176,12 +196,12 @@ export async function GET(
       timestamp: new Date().toISOString()
     })
 
-    // Stream the audio back to the browser
+    // Stream the audio back to the browser with proper headers
     return new NextResponse(audioData, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'private, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'private, max-age=300', // Cache for 5 minutes
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY'
       }
