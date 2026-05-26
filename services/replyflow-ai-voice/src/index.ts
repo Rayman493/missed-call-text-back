@@ -70,13 +70,25 @@ wss.on('connection', (ws, req) => {
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
+    let firstFrameLogged = false;
     let debugMessageCount = 0;
     const DEBUG_MESSAGE_LIMIT = 20;
+    let openaiInitAttempted = false;
+    let openaiInitSucceeded = false;
+    let openaiInitFailed = false;
+
+    log(LogLevel.INFO, '[AI POC] attaching message listener');
 
     // Override handleMessage to capture customParameters from start event
     const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
     (twilioHandler as any).handleMessage = (data: any) => {
       try {
+        // Log FIRST websocket frame only
+        if (!firstFrameLogged) {
+          log(LogLevel.INFO, '[AI POC] first websocket frame', data.toString());
+          firstFrameLogged = true;
+        }
+
         // LOW-LEVEL INSPECTION: Log raw frame before any processing
         if (debugMessageCount < DEBUG_MESSAGE_LIMIT) {
           log(LogLevel.INFO, '[RAW WS]', { type: typeof data, data: data.toString() });
@@ -100,6 +112,7 @@ wss.on('connection', (ws, req) => {
 
         // TEMPORARILY DISABLED: OpenAI initialization and media processing
         // This is a debugging pass to see what Twilio is actually sending
+        log(LogLevel.INFO, '[AI POC] OpenAI initialization: NOT attempted');
 
         // Call original handler for basic logging only
         originalHandleMessage(data);
@@ -110,12 +123,23 @@ wss.on('connection', (ws, req) => {
 
     // Handle WebSocket close
     ws.on('close', (code, reason) => {
-      log(LogLevel.INFO, '[WS CLOSED]', { code, reason: reason?.toString() });
+      log(LogLevel.INFO, '[AI POC] websocket closed');
+      log(LogLevel.INFO, '[AI POC] websocket close details', { code, reason: reason?.toString() });
+      log(LogLevel.INFO, '[AI POC] OpenAI initialization status', {
+        attempted: openaiInitAttempted,
+        succeeded: openaiInitSucceeded,
+        failed: openaiInitFailed,
+      });
     });
 
     // Handle WebSocket error
     ws.on('error', (error) => {
-      log(LogLevel.ERROR, '[WS ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
+      log(LogLevel.ERROR, '[AI POC] websocket error', error as Error);
+      log(LogLevel.INFO, '[AI POC] OpenAI initialization status', {
+        attempted: openaiInitAttempted,
+        succeeded: openaiInitSucceeded,
+        failed: openaiInitFailed,
+      });
     });
 
     // Handle Twilio connection
@@ -123,6 +147,7 @@ wss.on('connection', (ws, req) => {
 
   } catch (error) {
     log(LogLevel.ERROR, '[WS FATAL ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
+    log(LogLevel.INFO, '[AI POC] closing websocket due to fatal error');
     ws.close(1011, 'Internal server error');
   }
 });
