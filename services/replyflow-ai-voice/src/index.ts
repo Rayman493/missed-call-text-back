@@ -173,6 +173,108 @@ const server = createServer((req, res) => {
     return;
   }
 
+  // Debug OpenAI Realtime without Twilio
+  if (req.url === '/debug-openai-realtime') {
+    console.log('[DEBUG OPENAI] starting debug test');
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    const headers = {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'OpenAI-Beta': 'realtime=v1',
+    };
+
+    console.log('[DEBUG OPENAI] websocket URL:', wsUrl);
+    console.log('[DEBUG OPENAI] headers keys:', Object.keys(headers));
+
+    const debugWs = new WebSocket(wsUrl, { headers });
+    console.log('[DEBUG OPENAI] websocket created, readyState:', debugWs.readyState);
+
+    const events: any[] = [];
+    let opened = false;
+    let errored = false;
+    let closed = false;
+
+    debugWs.on('open', () => {
+      opened = true;
+      console.log('[DEBUG OPENAI] websocket open');
+      events.push({ type: 'open', timestamp: Date.now() });
+
+      // Send simplest GA-compatible request
+      const testMessage = {
+        type: 'response.create',
+        response: {
+          instructions: 'Hello from ReplyFlow.',
+        },
+      };
+      console.log('[DEBUG OPENAI] outbound payload:', JSON.stringify(testMessage, null, 2));
+      debugWs.send(JSON.stringify(testMessage));
+      events.push({ type: 'outbound_message', timestamp: Date.now(), payload: testMessage });
+    });
+
+    debugWs.on('message', (data) => {
+      console.log('[DEBUG OPENAI] inbound message');
+      
+      let message;
+      try {
+        message = JSON.parse(data.toString());
+      } catch (err) {
+        console.log('[DEBUG OPENAI] JSON parse failed', err);
+        return;
+      }
+
+      console.log('[DEBUG OPENAI] inbound message type:', message.type);
+      events.push({ type: 'inbound_message', timestamp: Date.now(), messageType: message.type });
+
+      if (message.type === 'error') {
+        console.log('[DEBUG OPENAI] error full payload:', JSON.stringify(message, null, 2));
+        events.push({ type: 'error', timestamp: Date.now(), payload: message });
+      }
+
+      if (message.type === 'response.output_audio.delta' && message.delta) {
+        console.log('[DEBUG OPENAI] audio delta received, length:', message.delta.length);
+        events.push({ type: 'audio_delta', timestamp: Date.now(), length: message.delta.length });
+      }
+    });
+
+    debugWs.on('error', (error) => {
+      errored = true;
+      console.log('[DEBUG OPENAI] error:', String(error));
+      events.push({ type: 'error_event', timestamp: Date.now(), error: String(error) });
+    });
+
+    debugWs.on('close', (code, reason) => {
+      closed = true;
+      console.log('[DEBUG OPENAI] close code:', code, 'reason:', reason?.toString());
+      events.push({ type: 'close', timestamp: Date.now(), code, reason: reason?.toString() });
+
+      const responseBody = JSON.stringify({
+        ok: opened && !errored,
+        opened,
+        errored,
+        closed,
+        finalState: {
+          readyState: debugWs.readyState,
+        },
+        events: events,
+      });
+
+      res.end(responseBody);
+    });
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      if (!closed) {
+        console.log('[DEBUG OPENAI] timeout after 10s');
+        events.push({ type: 'timeout', timestamp: Date.now() });
+        debugWs.close();
+      }
+    }, 10000);
+
+    return;
+  }
+
   // 404 for other routes
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
