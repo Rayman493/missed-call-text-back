@@ -710,17 +710,18 @@ export default function VoicemailMessage({
         </div>
 
         {/* Voicemail Card */}
-        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 shadow-sm">
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-5 shadow-md">
           {/* Voicemail Header */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center shadow-sm">
+              <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Voicemail Received</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">
+              <p className="font-semibold text-blue-900 dark:text-blue-100 text-base">Voicemail Received</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                 {recording.recording_duration ? `${recording.recording_duration} seconds` : 'Processing duration...'}
               </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{formatRelativeTime(recording.created_at)}</p>
             </div>
           </div>
 
@@ -757,13 +758,13 @@ export default function VoicemailMessage({
                       <button
                         onClick={togglePlayPause}
                         disabled={!audioUrl}
-                        className="w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
+                        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-md"
                         aria-label={isPlaying ? 'Pause' : 'Play'}
                       >
                         {isPlaying ? (
-                          <Pause className="w-5 h-5" />
+                          <Pause className="w-6 h-6" />
                         ) : (
-                          <Play className="w-5 h-5 ml-0.5" />
+                          <Play className="w-6 h-6 ml-0.5" />
                         )}
                       </button>
 
@@ -882,11 +883,12 @@ export default function VoicemailMessage({
 
           {/* Transcription (Future Ready) */}
           {recording.transcription_text && (
-            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-              <p className="text-xs text-blue-800 dark:text-blue-200 italic leading-relaxed">
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+              <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">Transcript</p>
+              <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
                 "{recording.transcription_text}"
               </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                 AI Transcription
               </p>
             </div>

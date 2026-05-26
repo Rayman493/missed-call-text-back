@@ -1258,6 +1258,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="flex gap-6">
             {/* Left Column - Conversation (70%) */}
             <div className="flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
+              {/* Quick Actions Bar */}
+              <div className="border-b border-border/50 px-4 sm:px-5 lg:px-6 py-3 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    title="Call customer"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                    </svg>
+                    <span className="hidden sm:inline">Call</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const composer = document.querySelector('textarea')
+                      if (composer) composer.focus()
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+                    title="Send text message"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span className="hidden sm:inline">Send Text</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCustomerInfoModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors border border-gray-200 dark:border-gray-800"
+                    title="Add note"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span className="hidden sm:inline">Add Note</span>
+                  </button>
+                  <button
+                    disabled={true}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/20 text-gray-400 dark:text-gray-600 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-800 cursor-not-allowed"
+                    title="Coming Soon"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="hidden sm:inline">Follow-Up</span>
+                  </button>
+                </div>
+              </div>
               {/* Message Thread */}
               <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
                 {loading ? (
@@ -1314,7 +1362,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Customer Information Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
+                <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
                 <button
                   onClick={() => setShowCustomerInfoModal(true)}
                   className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
@@ -1323,33 +1371,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
               <div className="space-y-3">
-                {leadData?.contact_name ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Name</span>
-                    <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Name</span>
-                    <span className="text-sm text-muted-foreground">Not set</span>
-                  </div>
-                )}
-                {leadData?.company_name ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Company</span>
-                    <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Company</span>
-                    <span className="text-sm text-muted-foreground">Not set</span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Phone</span>
                   <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
                 </div>
-                {leadData?.tags && leadData.tags.length > 0 ? (
+                {leadData?.contact_name && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Name</span>
+                    <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
+                  </div>
+                )}
+                {leadData?.company_name && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Company</span>
+                    <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
+                  </div>
+                )}
+                {leadData?.tags && leadData.tags.length > 0 && (
                   <div>
                     <span className="text-xs text-muted-foreground">Tags</span>
                     <div className="flex flex-wrap gap-1 mt-1">
@@ -1360,29 +1398,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Tags</span>
-                    <span className="text-sm text-muted-foreground">None</span>
-                  </div>
                 )}
-                {leadData?.notes ? (
+                {leadData?.notes && (
                   <div>
                     <span className="text-xs text-muted-foreground">Notes</span>
                     <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Notes</span>
-                    <span className="text-sm text-muted-foreground">None</span>
+                )}
+                {!leadData?.contact_name && !leadData?.company_name && !leadData?.tags && !leadData?.notes && (
+                  <div className="text-center py-2">
+                    <p className="text-xs text-muted-foreground">No customer details added yet.</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Lead Details Card */}
+            {/* Lead Health Card */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Lead Details</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-4">Lead Health</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
@@ -1395,67 +1428,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     />
                   </div>
                 </div>
-                {leadData?.created_at && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Created</span>
-                    <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Messages</span>
+                  <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Voicemails</span>
+                  <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
+                </div>
                 {leadData?.last_message_at && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Last Activity</span>
                     <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Messages</span>
-                  <span className="text-sm text-foreground">{messagesArray.length}</span>
-                </div>
               </div>
             </div>
 
-            {/* Follow-Ups Section */}
+            {/* Follow-Up Automation Section */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Ups</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Up Automation</h3>
               <div className="space-y-3">
-                {/* Follow-up Stats */}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
+                {followUpJobs?.find((job: any) => job.status === 'pending') ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Next Follow-Up</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
+                      </span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground">Active</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
+                    <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                      Edit Follow-Ups
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-center py-2">
+                      <p className="text-xs text-muted-foreground">No active follow-ups</p>
                     </div>
-                    <div className="text-[10px] text-muted-foreground">Done</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-red-600 dark:text-red-400">
-                      {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">Cancel</div>
-                  </div>
-                </div>
-                {followUpJobs?.find((job: any) => job.status === 'pending') && (
-                  <div className="text-xs text-muted-foreground text-center">
-                    Next: {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
-                  </div>
-                )}
-
-                {/* Voicemail */}
-                {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 && (
-                  <div className="pt-2 border-t border-border/50">
-                    <h4 className="text-xs font-medium text-foreground mb-2">Voicemail</h4>
-                    {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
-                      <div key={voicemail.id} className="flex items-center gap-2">
-                        <span className="text-amber-600 dark:text-amber-400">📞</span>
-                        <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
-                      </div>
-                    ))}
-                  </div>
+                    <button className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors">
+                      Configure Follow-Ups
+                    </button>
+                  </>
                 )}
               </div>
             </div>
