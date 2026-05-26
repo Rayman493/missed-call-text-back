@@ -1,0 +1,119 @@
+/**
+ * AI Call Assistant Prompts (Phase 0 - QA Only)
+ * 
+ * Simple intake script for collecting customer information
+ */
+
+/**
+ * System prompt for OpenAI Realtime API
+ */
+export function getSystemPrompt(businessName: string): string {
+  return `You are an automated call assistant for ${businessName}.
+
+Your role is to:
+1. Greet the caller professionally
+2. Collect 4 pieces of information:
+   - Caller's name
+   - Reason for calling
+   - Urgency level (high/medium/low)
+   - Best callback number
+3. Thank the caller and end the call
+
+Important guidelines:
+- Be polite and professional
+- Keep responses brief (1-2 sentences)
+- Do not make up information you don't have
+- If the caller is unclear, ask for clarification
+- Do not promise anything beyond taking a message
+- End the call gracefully after collecting all information
+
+Greeting: "Hi, thanks for calling ${businessName}. I'm the automated assistant. I can take a quick message for the team. May I get your name?"
+
+Closing: "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
+}
+
+/**
+ * Intake questions in order
+ */
+export const INTAKE_QUESTIONS = [
+  {
+    field: 'name',
+    question: "May I get your name?",
+    prompt: "Ask for the caller's name"
+  },
+  {
+    field: 'reason',
+    question: "What's the reason for your call today?",
+    prompt: "Ask for the reason for the call"
+  },
+  {
+    field: 'urgency',
+    question: "How urgent is this matter? Is it high, medium, or low priority?",
+    prompt: "Ask for urgency level"
+  },
+  {
+    field: 'callback_number',
+    question: "What's the best callback number for the team to reach you?",
+    prompt: "Ask for callback number"
+  }
+]
+
+/**
+ * Function calling schema for extracting customer information
+ */
+export const EXTRACTION_FUNCTION = {
+  name: 'extract_customer_info',
+  description: 'Extract customer information from the conversation',
+  parameters: {
+    type: 'object',
+    properties: {
+      caller_name: {
+        type: 'string',
+        description: "The caller's full name"
+      },
+      reason_for_call: {
+        type: 'string',
+        description: "Brief description of why the customer is calling"
+      },
+      urgency: {
+        type: 'string',
+        enum: ['high', 'medium', 'low'],
+        description: "Urgency level of the call"
+      },
+      callback_number: {
+        type: 'string',
+        description: "Phone number for callback"
+      }
+    },
+    required: ['caller_name', 'reason_for_call', 'urgency', 'callback_number']
+  }
+}
+
+/**
+ * Generate greeting message
+ */
+export function getGreeting(businessName: string): string {
+  return `Hi, thanks for calling ${businessName}. I'm the automated assistant. I can take a quick message for the team. May I get your name?`
+}
+
+/**
+ * Generate closing message
+ */
+export function getClosing(): string {
+  return "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."
+}
+
+/**
+ * Generate summary from extracted data
+ */
+export function generateSummary(data: {
+  caller_name: string
+  reason_for_call: string
+  urgency: string
+  callback_number: string
+}): string {
+  return `Name: ${data.caller_name}
+Need: ${data.reason_for_call}
+Urgency: ${data.urgency}
+Callback: ${data.callback_number}`
+}

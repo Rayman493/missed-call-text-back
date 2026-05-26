@@ -1,0 +1,36 @@
+{
+  "name": "replyflow-ai-voice",
+  "version": "1.0.0",
+  "description": "AI Voice Service for ReplyFlowHQ - Phase 1A POC",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "twilio",
+    "openai",
+    "websocket",
+    "voice",
+    "ai"
+  ],
+  "author": "ReplyFlowHQ",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.16.0",
+    "dotenv": "^16.4.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

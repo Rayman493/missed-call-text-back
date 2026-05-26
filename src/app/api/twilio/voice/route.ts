@@ -10,6 +10,7 @@ import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
+import { checkAllGuards } from '@/lib/ai-call-assistant/config';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -318,6 +319,36 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
+
+    // AI CALL ASSISTANT: Check if AI should handle this call
+    // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
+    // Phase 1A POC: /api/twilio/ai-assistant/poc-start (routes to Fly.io)
+    // This is a minimal, safe check that does NOT affect production customers
+    console.log('[AI CALL ASSISTANT] Checking if AI should handle this call')
+    const guardResult = checkAllGuards(business.id)
+    
+    if (guardResult.passed) {
+      console.log('[AI CALL ASSISTANT] All guards passed - redirecting to AI assistant', {
+        businessId: business.id,
+        callSid: CallSid,
+        reason: guardResult.reason
+      })
+      
+      // Choose route based on environment variable
+      const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true'
+      const aiRoute = usePOC ? '/api/twilio/ai-assistant/poc-start' : '/api/twilio/ai-assistant/start'
+      
+      console.log('[AI CALL ASSISTANT] Using route', { route: aiRoute, usePOC })
+      
+      const aiStartUrl = new URL(aiRoute, request.url)
+      return NextResponse.redirect(aiStartUrl)
+    } else {
+      console.log('[AI CALL ASSISTANT] Guards failed - continuing with existing voicemail flow', {
+        businessId: business.id,
+        reason: guardResult.reason
+      })
+    }
+    // END AI CALL ASSISTANT CHECK
 
     // MISSED CALL TIMING: Log voice webhook received
     console.log('[MISSED CALL TIMING] voice webhook received', {
