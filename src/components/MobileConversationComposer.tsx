@@ -49,7 +49,7 @@ export default function MobileConversationComposer({
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          {/* Main Composer Row */}
+          {/* UPDATED LEAD COMPOSER COMPONENT - Main Composer Row */}
           <div className="flex items-center gap-3">
             {/* Message Input */}
             <div className="flex-1 relative">
@@ -60,7 +60,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={sending}
-                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-tight h-11 py-0 mt-0 mb-0 flex items-center"
+                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-none h-11 py-0 mt-0 mb-0 flex items-center"
                 rows={1}
               />
               
@@ -72,7 +72,7 @@ export default function MobileConversationComposer({
               )}
             </div>
             
-            {/* Send Button */}
+            {/* UPDATED LEAD COMPOSER COMPONENT - Send Button */}
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
@@ -107,7 +107,7 @@ export default function MobileConversationComposer({
           )}
         </div>
         
-        {/* Helper Text - separated from main composer row */}
+        {/* UPDATED LEAD COMPOSER COMPONENT - Helper Text - separated from main composer row */}
         <div className="mt-3 flex items-center justify-between hidden sm:flex">
           <div className="text-xs text-muted-foreground">
             Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Shift+Enter</kbd> for new line

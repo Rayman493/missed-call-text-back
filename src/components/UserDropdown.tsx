@@ -97,6 +97,7 @@ export default function UserDropdown() {
     <div className="relative" ref={dropdownRef}>
       {isValidSession && user ? (
         <>
+          {/* UPDATED HEADER COMPONENT - Account button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`group flex items-center gap-2 h-9 px-3 text-sm font-medium rounded-lg transition-all duration-200 text-center relative justify-center md:h-9 md:px-3 md:gap-2 md:flex md:items-center md:justify-center h-10 w-10 md:h-auto md:w-auto ${

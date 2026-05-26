@@ -54,7 +54,7 @@ export default function AppHeader({
             </div>
           </div>
           
-          {/* Right side - Utility actions grouped together */}
+          {/* UPDATED HEADER COMPONENT - Right side - Utility actions grouped together */}
           <div className="flex items-center gap-2">
             {/* Notifications - visible on all screen sizes */}
             <NavbarNotifications />
