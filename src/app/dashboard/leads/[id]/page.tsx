@@ -1031,40 +1031,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-start gap-4 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight truncate">
+                <div className="flex items-center gap-4 mb-3">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
                   
                   {/* Modern Status Badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                    <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
                 </div>
                 
                 {/* Enhanced Lead Meta */}
-                <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
                   </div>
                   {lead?.last_message_at && (
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <span>Last activity {formatRelativeTime(lead.last_message_at)}</span>
+                      <span className="font-medium">Last Activity {formatRelativeTime(lead.last_message_at)}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
-                    <span>{messagesArray.length} messages</span>
+                    <span className="font-medium">{messagesArray.length} Messages</span>
                   </div>
                 </div>
               </div>
@@ -1169,7 +1169,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
         <div className="hidden lg:flex lg:gap-6">
           {/* Left Column - Conversation (70%) */}
-          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col h-[calc(100vh-260px)]">
+          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col h-[calc(100vh-340px)]">
             {/* Message Thread */}
             <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
               {loading ? (
@@ -1224,9 +1224,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Right Column - Simplified Lead Panel (30%) */}
           <div className="lg:flex-[0.3] overflow-y-auto space-y-2">
             {/* Lead Details Card */}
-            <div className="bg-card border border-border rounded-xl p-3">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Lead Details</h3>
-              <div className="space-y-2">
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Lead Details</h3>
+              <div className="space-y-3">
                 {leadData?.phone_number && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Phone</span>
@@ -1264,9 +1264,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Automation & Voicemail Card */}
-            <div className="bg-card border border-border rounded-xl p-3">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Activity</h3>
-              <div className="space-y-3">
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Activity</h3>
+              <div className="space-y-4">
                 {/* Follow-up Stats */}
                 <div>
                   <h4 className="text-xs font-medium text-foreground mb-2">Follow-ups</h4>
@@ -1328,16 +1328,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
               <div className="space-y-2">
                 <button
-                  onClick={() => setShowLeadInfo(true)}
+                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
                   className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  View Full Details
+                  Call Lead
                 </button>
                 <button
-                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                  onClick={() => setShowLeadInfo(true)}
                   className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
                 >
-                  Call Lead
+                  View Full Details
                 </button>
                 <button
                   className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
@@ -1358,7 +1358,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="lg:hidden">
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 min-h-[200px] sm:min-h-[250px] lg:min-h-[300px] h-auto max-h-[calc(100vh-140px)] overflow-y-auto scroll-smooth">
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 min-h-[55vh] max-h-[60vh] overflow-y-auto scroll-smooth">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

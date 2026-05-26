@@ -49,8 +49,8 @@ export default function MobileConversationComposer({
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
-          {/* UPDATED LEAD COMPOSER COMPONENT - Main Composer Row */}
-          <div className="flex items-center gap-3">
+          {/* iPhone-style Composer Row */}
+          <div className="flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2 shadow-sm">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -58,38 +58,33 @@ export default function MobileConversationComposer({
                 value={message}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
+                placeholder="Type a message..."
                 disabled={sending}
-                className="w-full px-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-tight h-11 py-0 mt-0 mb-0 flex items-center"
+                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed py-2 px-1 max-h-20 disabled:opacity-50 disabled:cursor-not-allowed"
                 rows={1}
+                style={{ fieldSizing: 'content' }}
               />
               
               {/* Character Count (optional) */}
               {message.length > 1000 && (
-                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                <div className="absolute bottom-1 right-1 text-xs text-muted-foreground">
                   {message.length}/1600
                 </div>
               )}
             </div>
             
-            {/* UPDATED LEAD COMPOSER COMPONENT - Send Button */}
+            {/* iPhone-style Send Button */}
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center justify-center gap-2.5 sm:gap-3 min-w-[100px] sm:min-w-[120px] font-semibold text-sm sm:text-base h-11 self-center mt-0 mb-0"
+              className="flex-shrink-0 w-8 h-8 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center"
             >
               {sending ? (
-                <>
-                  <div className="w-4 h-4 sm:w-4.5 sm:h-4.5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
-                  <span className="text-sm sm:text-sm font-medium">Sending</span>
-                </>
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
               ) : (
-                <>
-                  <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  <span className="text-sm sm:text-sm font-medium">Send</span>
-                </>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
               )}
             </button>
           </div>

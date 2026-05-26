@@ -63,82 +63,70 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-end gap-2 mb-4 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
-            {/* Avatar - Only show when sender changes */}
-            {shouldShowAvatar && (
-              <div className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm ${
-                isInbound 
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                  : 'bg-gradient-to-br from-slate-400 to-slate-500 text-white'
-              }`}>
-                {isInbound ? '👤' : '🤖'}
+            {/* Avatar - Only show customer avatar for inbound messages */}
+            {shouldShowAvatar && isInbound && (
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-sm font-medium shadow-sm">
+                👤
               </div>
             )}
             
             {/* Spacer when avatar is hidden */}
-            {!shouldShowAvatar && (
-              <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8"></div>
+            {(!shouldShowAvatar || !isInbound) && (
+              <div className="flex-shrink-0 w-8"></div>
             )}
             
             {/* Message Content */}
-            <div className={`max-w-[70%] ${isOutbound ? 'text-right' : ''}`}>
-              {/* Message Header - Lighter timestamp */}
-              <div className="flex items-center gap-2 mb-1.5 justify-end flex-wrap">
-                <span className="text-[10px] sm:text-xs text-muted-foreground/50 font-medium" title={new Date(msg.created_at).toLocaleString()}>
-                  {formatRelativeTime(msg.created_at)}
-                </span>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%]`}>
+              {/* Message Bubble - Modern messaging app styling */}
+              <div
+                className={`rounded-2xl px-4 py-3 shadow-sm ${
+                  isInbound
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-slate-700/50'
+                    : isOptimistic && isSending
+                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 shadow-md border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 shadow-md border border-blue-700'
+                }`}
+              >
+                <p className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                  {msg.body || 'No content'}
+                </p>
+              </div>
+              
+              {/* Message Status/Timestamp - Beneath bubble */}
+              <div className={`mt-1 flex items-center gap-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
-                      <span className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[11px] sm:text-xs rounded-full font-medium border border-emerald-200 dark:border-emerald-800/30 flex items-center gap-1">
-                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Delivered
-                      </span>
+                      <>
+                        <span className="text-[11px] text-muted-foreground">Delivered</span>
+                        <span className="text-[11px] text-muted-foreground">•</span>
+                      </>
                     )}
                     {msg.status === 'sent' && (
-                      <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] sm:text-xs rounded-full font-medium border border-blue-200 dark:border-blue-800/30 flex items-center gap-1">
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        Sent
-                      </span>
+                      <>
+                        <span className="text-[11px] text-muted-foreground">Sent</span>
+                        <span className="text-[11px] text-muted-foreground">•</span>
+                      </>
                     )}
                     {msg.status === 'failed' && (
-                      <span className="px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] sm:text-xs rounded-full font-medium border border-red-200 dark:border-red-800/30 flex items-center gap-1">
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Failed
-                      </span>
+                      <>
+                        <span className="text-[11px] text-red-500">Failed</span>
+                        <span className="text-[11px] text-muted-foreground">•</span>
+                      </>
+                    )}
+                    {isOptimistic && (
+                      <>
+                        <span className="text-[11px] text-blue-500">Sending</span>
+                        <span className="text-[11px] text-muted-foreground">•</span>
+                      </>
                     )}
                   </>
                 )}
-                {isOptimistic && (
-                  <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] sm:text-xs rounded-full font-medium border border-blue-200 dark:border-blue-800/30 flex items-center gap-1">
-                    <svg className="w-2.5 h-2.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Sending
-                  </span>
-                )}
-              </div>
-              
-              {/* Message Bubble - Modern chat styling */}
-              <div
-                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm max-w-[70%] sm:max-w-[80%] max-sm:max-w-[90%] ${
-                  isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm hover:shadow-md border border-slate-200 dark:border-slate-700/50'
-                    : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 hover:shadow-md border border-blue-700'
-                }`}
-              >
-                <p className="text-sm sm:text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                  {msg.body || 'No content'}
-                </p>
+                <span className="text-[11px] text-muted-foreground" title={new Date(msg.created_at).toLocaleString()}>
+                  {formatRelativeTime(msg.created_at)}
+                </span>
               </div>
               
               {/* Error State */}
