@@ -153,10 +153,10 @@ export default function NavbarNotifications() {
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+        className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors h-9 md:h-9 flex items-center justify-center"
         aria-label="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-4 h-4" />
         
         {/* Unread count badge */}
         {notificationCount.unread > 0 && (
