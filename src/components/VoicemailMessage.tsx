@@ -53,6 +53,7 @@ export default function VoicemailMessage({
   showAvatar = true 
 }: VoicemailMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isEnded, setIsEnded] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(recording.recording_duration || 0)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -158,12 +159,23 @@ export default function VoicemailMessage({
   const handleEnded = () => {
     console.log('[VOICEMAIL PLAYER] audio ended')
     setIsPlaying(false)
-    setCurrentTime(0)
+    setIsEnded(true)
+    // Keep currentTime at duration to show progress at the end
+  }
+
+  const handleSeeked = () => {
+    console.log('[VOICEMAIL PLAYER] audio seeked')
+    // Reset isEnded state when user seeks
+    if (isEnded) {
+      setIsEnded(false)
+    }
   }
 
   const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     console.error('[VOICEMAIL PLAYER] audio error:', e)
     setAudioError('Unable to load voicemail recording.')
+    setIsPlaying(false)
+    setIsEnded(false)
   }
 
   const togglePlayPause = async () => {
@@ -179,6 +191,14 @@ export default function VoicemailMessage({
       setIsPlaying(false)
     } else {
       console.log('[VOICEMAIL FRONTEND] Starting audio playback')
+      
+      // Reset to beginning only if audio has ended
+      if (isEnded) {
+        console.log('[VOICEMAIL FRONTEND] Audio ended, resetting to beginning')
+        audio.currentTime = 0
+        setCurrentTime(0)
+        setIsEnded(false)
+      }
       
       try {
         // Set up authenticated request before playing
@@ -644,6 +664,7 @@ export default function VoicemailMessage({
                     onTimeUpdate={handleTimeUpdate}
                     onDurationChange={handleDurationChange}
                     onEnded={handleEnded}
+                    onSeeked={handleSeeked}
                     onError={handleError}
                   />
                 </div>

@@ -319,6 +319,14 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
 
+    // MISSED CALL TIMING: Log voice webhook received
+    console.log('[MISSED CALL TIMING] voice webhook received', {
+      businessId: business.id,
+      callSid: CallSid,
+      callerPhone: From,
+      timestamp: new Date().toISOString()
+    });
+
     // Check if this is a setup completion call (caller matches business phone number)
     const normalizedCallerPhone = normalizePhoneNumber(From);
     const businessPhoneNumber = business.business_phone_number ? normalizePhoneNumber(business.business_phone_number) : null;
@@ -566,186 +574,36 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Send auto-reply SMS if appropriate and not blocked
+    // MISSED CALL TIMING: Schedule SMS for later (don't send immediately)
     if (shouldSendSms && lead) {
-      console.log('[Twilio Voice] Preparing auto-reply SMS for lead:', lead.id);
+      console.log('[MISSED CALL TIMING] SMS scheduled for voicemail completion', {
+        businessId: business.id,
+        callSid: CallSid,
+        leadId: lead.id,
+        callerPhone: From,
+        timestamp: new Date().toISOString()
+      });
       
+      // Store SMS sending intent in call_events for voicemail callback to process
       try {
-        // Ensure conversation exists before sending SMS
-        console.log('[Voice] Checking for existing conversation for lead:', lead.id);
-        let conversation = await db.getOpenConversationForLead(lead.id, business.id);
-        
-        if (!conversation) {
-          console.log('[Voice] No existing conversation, creating new conversation:', {
-            lead_id: lead.id,
-            business_id: business.id,
-            status: 'open',
-            source: 'missed_call'
-          });
+        await supabaseAdmin
+          .from('call_events')
+          .update({
+            sms_pending: true,
+            sms_scheduled_at: new Date().toISOString()
+          })
+          .eq('twilio_call_sid', CallSid);
           
-          conversation = await db.createConversation({
-            lead_id: lead.id,
-            business_id: business.id,
-            status: 'open',
-            source: 'missed_call',
-            started_at: new Date().toISOString(),
-            last_activity_at: new Date().toISOString(),
-          });
-          
-          if (conversation) {
-            console.log('[Voice] Conversation created:', conversation.id);
-            await timelineEvents.conversationCreated(business.id, lead.id, conversation.id);
-          } else {
-            console.error('[Voice] Persistence failed: Conversation creation returned null');
-            console.error('[Voice] Returning safe TwiML response without SMS');
-            
-            const twiml = generateTwiMLResponse(business.name);
-            return new NextResponse(twiml, {
-              status: 200,
-              headers: { 
-                "Content-Type": "text/xml",
-                "X-ReplyFlow-Voice-Version": "v2"
-              },
-            });
-          }
-        } else {
-          console.log('[Voice] Reusing existing conversation:', conversation.id);
-          if (isRepeatCaller) {
-            console.log('[Repeat Caller] Reusing existing conversation for repeat call');
-          }
-        }
-        
-        // Prepare fixed SMS message (simplified approach)
-        let messageToSend: string;
-        
-        // Use business custom auto-reply message if configured
-        if (business.auto_reply_message && business.auto_reply_message.trim()) {
-          console.log('[SMS] Using business custom auto-reply message');
-          messageToSend = business.auto_reply_message;
-        } else {
-          // Use fixed generic message
-          messageToSend = `Hi, this is ${business.name || 'My Business'}. We received your call and will get back to you shortly. You can also reply to this text with any additional details. Reply STOP to opt out.`;
-          console.log('[SMS] Using fixed generic message');
-        }
-        
-        // Use after-hours message if outside business hours (overrides fixed message)
-        if ((business as any)._useAfterHoursMessage && business.after_hours_message && business.after_hours_message.trim()) {
-          console.log('[QA - Business Hours] Using after-hours message for SMS');
-          messageToSend = business.after_hours_message;
-        }
-        
-        // Replace business name placeholder if present
-        const personalizedMessage = messageToSend.replace('{{business_name}}', business.name || 'My Business');
-        
-        console.log('[Voice] Sending SMS:', {
-          to: From,
-          lead_id: lead.id,
-          conversation_id: conversation?.id,
-          business_id: business.id
-        });
-        
-        // Send SMS using centralized sendSms function
-        const messageSid = await sendSms(business, From, personalizedMessage, {
-          lead_id: lead.id,
-          conversation_id: conversation?.id,
-        });
-        
-        if (messageSid) {
-          console.log('[Voice] SMS sent:', messageSid);
-          console.log('[Voice] Outbound message saved via sendSms function');
-          await timelineEvents.messageSent(business.id, lead.id, conversation?.id, '', messageSid);
-
-          // Mark forwarding as verified after SMS is successfully sent
-          if (shouldMarkForwardingVerified) {
-            console.log(`[Twilio Voice] Marking forwarding as verified for business ${business.id} after successful SMS`);
-            try {
-              const { error: updateError } = await supabase
-                .from('businesses')
-                .update({ 
-                  forwarding_verified: true, 
-                  forwarding_verified_at: new Date().toISOString(),
-                  phone_setup_completed_at: new Date().toISOString(),
-                  onboarding_status: 'completed'
-                })
-                .eq('id', business.id);
-
-              if (updateError) {
-                console.error('[Twilio Voice] Error updating forwarding verification:', updateError);
-              } else {
-                console.log(`[Twilio Voice] Forwarding verified successfully for business ${business.id}`);
-              }
-            } catch (verificationError) {
-              console.error('[Twilio Voice] Exception updating forwarding verification:', verificationError);
-            }
-          }
-
-          // Create follow-up jobs after successful auto-reply SMS (prevent duplicates for repeat callers)
-          try {
-            // Check for existing active follow-up jobs to prevent duplicates
-            if (isRepeatCaller) {
-              console.log('[Repeat Caller] Checking for existing follow-up jobs before creating duplicates');
-              
-              const { data: existingJobs, error: jobsError } = await supabaseAdmin
-                .from('follow_up_jobs')
-                .select('id')
-                .eq('lead_id', lead.id)
-                .in('status', ['pending', 'scheduled'])
-                .limit(1);
-              
-              if (jobsError) {
-                console.error('[Repeat Caller] Error checking existing follow-up jobs:', jobsError);
-              } else if (existingJobs && existingJobs.length > 0) {
-                console.log('[Repeat Caller] Follow-up scheduling skipped: active follow-ups already exist');
-                console.log('[Repeat Caller] Existing job count:', existingJobs.length);
-              } else {
-                console.log('[Repeat Caller] No existing follow-up jobs found, creating new ones');
-                
-                const followUpJobs = await createFollowUpJobs({
-                  businessId: business.id,
-                  leadId: lead.id,
-                  conversationId: conversation?.id,
-                  businessName: business.name
-                });
-                
-                console.log(`[Repeat Caller] Created ${followUpJobs.length} follow-up jobs for repeat caller: ${lead.id}`);
-              }
-            } else {
-              // New caller - always create follow-up jobs
-              const followUpJobs = await createFollowUpJobs({
-                businessId: business.id,
-                leadId: lead.id,
-                conversationId: conversation?.id,
-                businessName: business.name
-              });
-              
-              console.log(`[Voice] Created ${followUpJobs.length} follow-up jobs for new lead: ${lead.id}`);
-            }
-          } catch (followUpError) {
-            console.error('[Voice] Error creating follow-up jobs:', followUpError);
-            // Don't fail the voice webhook - follow-up creation is secondary
-          }
-        } else {
-          console.log('[Voice] SMS send failed but was logged in database - this is expected behavior');
-          // Do not mark forwarding as verified if SMS failed
-          if (shouldMarkForwardingVerified) {
-            console.log('[Voice] SMS failed, not marking forwarding as verified');
-          }
-        }
-        
-      } catch (smsError: any) {
-        console.error('[Twilio Voice] SMS sending failed with error:', {
-          error: smsError.message,
-          stack: smsError.stack,
-          leadId: lead.id
-        });
-        // Don't crash the voice webhook - continue with TwiML response
-        console.log('[Twilio Voice] Continuing with voice response despite SMS failure');
+        console.log('[MISSED CALL TIMING] SMS intent stored in call_events');
+      } catch (storeError) {
+        console.error('[MISSED CALL TIMING] Failed to store SMS intent:', storeError);
       }
     } else {
-      console.log('[Twilio Voice] SMS skipped - conditions not met:', {
+      console.log('[MISSED CALL TIMING] SMS not scheduled - conditions not met:', {
         shouldSendSms,
         leadExists: !!lead,
-        leadId: lead?.id
+        leadId: lead?.id,
+        businessId: business.id
       });
     }
     
