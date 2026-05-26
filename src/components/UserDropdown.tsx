@@ -99,10 +99,10 @@ export default function UserDropdown() {
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`group flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 text-center relative h-9 md:h-9 ${
+            className={`group flex items-center gap-2 h-9 px-3 text-sm font-medium rounded-lg transition-all duration-200 text-center relative justify-center md:h-9 md:px-3 md:gap-2 md:flex md:items-center md:justify-center h-10 w-10 md:h-auto md:w-auto ${
               isOpen 
-                ? 'text-white' 
-                : 'text-gray-400 hover:text-white'
+                ? 'text-white bg-slate-800/70' 
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
             }`}
           >
             {/* User Icon - always visible */}

@@ -55,15 +55,15 @@ export default function AppHeader({
           </div>
           
           {/* Right side - Utility actions grouped together */}
-          <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="flex items-center gap-2">
             {/* Notifications - visible on all screen sizes */}
             <NavbarNotifications />
             
             {/* Settings gear icon - visible on all screen sizes */}
             <Link
               href="/dashboard/settings"
-              className={`p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors h-9 md:h-9 flex items-center justify-center ${
-                pathname?.startsWith('/dashboard/settings') ? 'text-white' : ''
+              className={`h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors md:h-9 md:w-9 h-10 w-10 md:h-auto md:w-auto ${
+                pathname?.startsWith('/dashboard/settings') ? 'text-white bg-slate-800/70' : ''
               }`}
               aria-label="Settings"
             >
