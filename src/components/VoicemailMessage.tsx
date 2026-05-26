@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import { Phone, Play, Pause, Volume2 } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface VoicemailMessageProps {
   recording: {
@@ -18,6 +19,34 @@ interface VoicemailMessageProps {
   showAvatar?: boolean
 }
 
+// Helper function to extract recording SID from Twilio URL
+function extractRecordingSid(url: string): string | null {
+  if (!url) return null
+  
+  // Twilio recording URLs typically end with the recording SID
+  // Example: https://api.twilio.com/2010-04-01/Accounts/ACxxx/Recordings/RExxx.mp3
+  const match = url.match(/\/Recordings\/(RE[a-zA-Z0-9]+)/)
+  return match ? match[1] : null
+}
+
+// Helper function to create secure audio URL with authentication
+async function createSecureAudioUrl(recordingSid: string): Promise<string> {
+  const supabase = createBrowserClient()
+  if (!supabase) {
+    throw new Error('Unable to initialize authentication')
+  }
+
+  // Get current session
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  
+  if (sessionError || !session?.access_token) {
+    throw new Error('Authentication required')
+  }
+
+  // Create secure URL with Bearer token
+  return `/api/voicemail/${recordingSid}`
+}
+
 export default function VoicemailMessage({ 
   recording, 
   isInbound = true, 
@@ -26,7 +55,39 @@ export default function VoicemailMessage({
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(recording.recording_duration || 0)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioError, setAudioError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Initialize secure audio URL when component mounts
+  useEffect(() => {
+    const initializeAudioUrl = async () => {
+      if (recording.recording_status !== 'completed' || !recording.recording_url) {
+        return
+      }
+
+      setIsLoading(true)
+      setAudioError(null)
+
+      try {
+        const recordingSid = extractRecordingSid(recording.recording_url)
+        if (!recordingSid) {
+          throw new Error('Invalid recording URL format')
+        }
+
+        const secureUrl = await createSecureAudioUrl(recordingSid)
+        setAudioUrl(secureUrl)
+      } catch (error) {
+        console.error('Failed to initialize audio URL:', error)
+        setAudioError('Unable to load voicemail recording.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeAudioUrl()
+  }, [recording.recording_status, recording.recording_url])
 
   // Update duration when metadata loads
   useEffect(() => {
@@ -46,18 +107,25 @@ export default function VoicemailMessage({
       setCurrentTime(0)
     }
 
+    const handleLoadError = () => {
+      console.error('Audio loading error')
+      setAudioError('Unable to load voicemail recording.')
+    }
+
     audio.addEventListener('loadedmetadata', handleLoadedMetadata)
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('error', handleLoadError)
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('error', handleLoadError)
     }
   }, [recording.recording_duration])
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     const audio = audioRef.current
     if (!audio) return
 
@@ -65,8 +133,42 @@ export default function VoicemailMessage({
       audio.pause()
       setIsPlaying(false)
     } else {
-      audio.play()
-      setIsPlaying(true)
+      try {
+        // Set up authenticated request before playing
+        if (audioUrl) {
+          const supabase = createBrowserClient()
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.access_token) {
+              // Create a new request with authentication headers
+              const response = await fetch(audioUrl, {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              })
+              
+              if (response.ok) {
+                const audioBlob = await response.blob()
+                const objectUrl = URL.createObjectURL(audioBlob)
+                audio.src = objectUrl
+                
+                // Clean up object URL when audio finishes
+                const handleEnded = () => {
+                  URL.revokeObjectURL(objectUrl)
+                  audio.removeEventListener('ended', handleEnded)
+                }
+                audio.addEventListener('ended', handleEnded)
+              }
+            }
+          }
+        }
+        
+        await audio.play()
+        setIsPlaying(true)
+      } catch (error) {
+        console.error('Failed to play audio:', error)
+        setAudioError('Unable to play voicemail recording.')
+      }
     }
   }
 
@@ -150,44 +252,68 @@ export default function VoicemailMessage({
           {/* Audio Player */}
           {recording.recording_status === 'completed' && recording.recording_url && (
             <div className="space-y-3">
-              {/* Custom Audio Controls */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlayPause}
-                  className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4 ml-0.5" />
-                  )}
-                </button>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>/</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5">
-                    <div 
-                      className="bg-blue-600 h-1.5 rounded-full transition-all duration-100"
-                      style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                    />
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    Loading voicemail...
                   </div>
                 </div>
-                
-                <Volume2 className="w-4 h-4 text-muted-foreground" />
-              </div>
+              )}
 
-              {/* Hidden Native Audio Element */}
-              <audio
-                ref={audioRef}
-                src={recording.recording_url}
-                preload="metadata"
-                className="hidden"
-              />
+              {/* Error State */}
+              {audioError && (
+                <div className="text-center py-4">
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {audioError}
+                  </p>
+                </div>
+              )}
+
+              {/* Audio Controls */}
+              {!isLoading && !audioError && (
+                <div className="space-y-3">
+                  {/* Custom Audio Controls */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={togglePlayPause}
+                      disabled={!audioUrl}
+                      className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
+                      aria-label={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4 ml-0.5" />
+                      )}
+                    </button>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>/</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+                      <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5">
+                        <div 
+                          className="bg-blue-600 h-1.5 rounded-full transition-all duration-100"
+                          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <Volume2 className="w-4 h-4 text-muted-foreground" />
+                  </div>
+
+                  {/* Hidden Native Audio Element */}
+                  <audio
+                    ref={audioRef}
+                    preload="none"
+                    className="hidden"
+                  />
+                </div>
+              )}
             </div>
           )}
 
