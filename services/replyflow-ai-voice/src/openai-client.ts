@@ -78,10 +78,12 @@ export class OpenAIRealtimeClient {
       });
 
       try {
+        console.log('[STREAM OPENAI] creating websocket');
         console.log('[OPENAI] constructor calling');
         this.ws = new WebSocket(wsUrl, {
           headers: headers,
         });
+        console.log('[OPENAI] websocket object created, identity:', this.ws);
         console.log('[OPENAI] constructor returned');
 
         console.log('[OPENAI] attaching listeners');
@@ -117,6 +119,7 @@ export class OpenAIRealtimeClient {
         }, 1000);
 
         this.ws.on('open', () => {
+          console.log('[STREAM OPENAI] websocket open event fired');
           console.log('[OPENAI] open event fired');
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket open event fired');
@@ -136,6 +139,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('error', (error) => {
+          console.log('[STREAM OPENAI] websocket error event fired', error);
           console.log('[OPENAI] error event fired', error);
           clearInterval(readyStateInterval);
           log(LogLevel.ERROR, '[OPENAI] websocket error event fired', error as Error);
@@ -147,6 +151,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('close', (code, reason) => {
+          console.log('[STREAM OPENAI] websocket close event fired', { code, reason: reason?.toString() });
           console.log('[OPENAI] close event fired (raw args)', { code, reason: reason?.toString(), reasonType: typeof reason, reasonLength: reason?.length });
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket close event fired');
