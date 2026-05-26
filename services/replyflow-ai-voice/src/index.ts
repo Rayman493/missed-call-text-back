@@ -298,9 +298,11 @@ wss.on('connection', (ws, req) => {
           log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
 
           try {
+            console.log('[OPENAI AUDIT] websocket library import:', 'ws package');
             console.log('[OPENAI AUDIT] websocket URL:', 'wss://api.openai.com/v1/realtime?model=gpt-realtime');
             console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
             console.log('[OPENAI AUDIT] headers keys:', ['Authorization']);
+            console.log('[OPENAI AUDIT] OpenAI-Beta header:', 'NOT PRESENT');
             console.log('[STREAM OPENAI] creating websocket');
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             const headers = {
@@ -308,6 +310,23 @@ wss.on('connection', (ws, req) => {
             };
             openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
+            
+            // Log readyState at intervals
+            setTimeout(() => {
+              if (openAiWs) {
+                console.log('[OPENAI AUDIT] readyState after 1 second:', openAiWs.readyState);
+              }
+            }, 1000);
+            setTimeout(() => {
+              if (openAiWs) {
+                console.log('[OPENAI AUDIT] readyState after 3 seconds:', openAiWs.readyState);
+              }
+            }, 3000);
+            setTimeout(() => {
+              if (openAiWs) {
+                console.log('[OPENAI AUDIT] readyState after 5 seconds:', openAiWs.readyState);
+              }
+            }, 5000);
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
@@ -418,6 +437,17 @@ wss.on('connection', (ws, req) => {
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
             });
             console.log('[OPENAI AUDIT] close listener attached');
+
+            console.log('[OPENAI AUDIT] attaching unexpected-response listener');
+            openAiWs.on('unexpected-response', (request, response) => {
+              console.log('[OPENAI AUDIT] unexpected-response listener attached');
+              console.log('[OPENAI RAW] unexpected-response', { statusCode: response.statusCode });
+              console.log('[OPENAI AUDIT] unexpected-response details', { 
+                statusCode: response.statusCode, 
+                headers: response.headers 
+              });
+            });
+            console.log('[OPENAI AUDIT] unexpected-response listener attached');
 
             log(LogLevel.INFO, '[AI POC] OpenAI websocket created directly');
             openaiInitSucceeded = true;
