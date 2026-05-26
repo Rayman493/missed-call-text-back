@@ -305,29 +305,26 @@ wss.on('connection', (ws, req) => {
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'OpenAI-Beta': 'realtime=v1',
             };
             console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
-            console.log('[OPENAI AUDIT] OpenAI-Beta header:', 'PRESENT');
             openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
             
-            // Log readyState at intervals
-            setTimeout(() => {
+            // Log readyState every second for first 5 seconds
+            for (let i = 1; i <= 5; i++) {
+              setTimeout(() => {
+                if (openAiWs) {
+                  console.log('[OPENAI WATCHDOG] readyState after', i, 'seconds:', openAiWs.readyState);
+                }
+              }, i * 1000);
+            }
+            
+            // Add watchdog every 3 seconds
+            setInterval(() => {
               if (openAiWs) {
-                console.log('[OPENAI AUDIT] readyState after 1 second:', openAiWs.readyState);
-              }
-            }, 1000);
-            setTimeout(() => {
-              if (openAiWs) {
-                console.log('[OPENAI AUDIT] readyState after 3 seconds:', openAiWs.readyState);
+                console.log('[OPENAI WATCHDOG] readyState:', openAiWs.readyState);
               }
             }, 3000);
-            setTimeout(() => {
-              if (openAiWs) {
-                console.log('[OPENAI AUDIT] readyState after 5 seconds:', openAiWs.readyState);
-              }
-            }, 5000);
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
