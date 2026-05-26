@@ -150,7 +150,10 @@ export default function VoicemailMessage({
               if (response.ok) {
                 const audioBlob = await response.blob()
                 const objectUrl = URL.createObjectURL(audioBlob)
+                
+                // Set the audio source and load it
                 audio.src = objectUrl
+                audio.load()
                 
                 // Clean up object URL when audio finishes
                 const handleEnded = () => {
@@ -158,13 +161,41 @@ export default function VoicemailMessage({
                   audio.removeEventListener('ended', handleEnded)
                 }
                 audio.addEventListener('ended', handleEnded)
+                
+                // Also clean up on error
+                const handleError = () => {
+                  URL.revokeObjectURL(objectUrl)
+                  audio.removeEventListener('error', handleError)
+                }
+                audio.addEventListener('error', handleError)
+                
+                // Wait for audio to load before playing
+                audio.addEventListener('canplay', () => {
+                  audio.play().then(() => {
+                    setIsPlaying(true)
+                  }).catch(error => {
+                    console.error('Failed to play audio after load:', error)
+                    setAudioError('Unable to play voicemail recording.')
+                  })
+                }, { once: true })
+                
+                return // Exit early, play will be called in the canplay event
+              } else {
+                console.error('Failed to fetch audio blob:', response.status, response.statusText)
+                setAudioError('Unable to load voicemail recording.')
               }
+            } else {
+              console.error('No session or access token available')
+              setAudioError('Authentication required.')
             }
+          } else {
+            console.error('Failed to create Supabase client')
+            setAudioError('Unable to initialize authentication.')
           }
+        } else {
+          console.error('No audio URL available')
+          setAudioError('Voicemail URL not available.')
         }
-        
-        await audio.play()
-        setIsPlaying(true)
       } catch (error) {
         console.error('Failed to play audio:', error)
         setAudioError('Unable to play voicemail recording.')
