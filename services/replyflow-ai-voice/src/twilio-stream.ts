@@ -7,6 +7,7 @@
 
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
+import { OpenAIRealtimeClient } from './openai-client';
 
 export interface StreamConfig {
   sessionId: string;
@@ -17,9 +18,18 @@ export interface StreamConfig {
 export class TwilioStreamHandler {
   private ws: WebSocket | null = null;
   private config: StreamConfig;
+  private openAiClient: OpenAIRealtimeClient | null = null;
 
-  constructor(config: StreamConfig) {
+  constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
+    this.openAiClient = openAiClient || null;
+  }
+
+  /**
+   * Set the OpenAI client after initialization
+   */
+  setOpenAIClient(client: OpenAIRealtimeClient) {
+    this.openAiClient = client;
   }
 
   /**
@@ -57,10 +67,30 @@ export class TwilioStreamHandler {
           log(LogLevel.INFO, 'Twilio stream started', message);
           break;
         case 'media':
+          log(LogLevel.INFO, '[MEDIA] entered media handler');
+          log(LogLevel.INFO, '[MEDIA] openAiWs exists', { exists: !!this.openAiClient });
+          
+          if (!this.openAiClient) {
+            log(LogLevel.INFO, '[MEDIA] returning because OpenAI client not initialized');
+            break;
+          }
+
           // Audio data received from Twilio
           log(LogLevel.INFO, 'Audio data received from Twilio', {
             size: message.media?.payload?.length,
           });
+
+          log(LogLevel.INFO, '[MEDIA] before audio append');
+          
+          // Decode base64 audio and forward to OpenAI
+          const audioPayload = message.media?.payload;
+          if (audioPayload) {
+            const audioBuffer = Buffer.from(audioPayload, 'base64');
+            this.openAiClient.sendAudio(audioBuffer);
+            log(LogLevel.INFO, '[MEDIA] after audio append');
+          } else {
+            log(LogLevel.INFO, '[MEDIA] skipping because no audio payload');
+          }
           break;
         case 'stop':
           log(LogLevel.INFO, 'Twilio stream stopped');

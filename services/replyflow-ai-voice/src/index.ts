@@ -162,6 +162,10 @@ wss.on('connection', (ws, req) => {
               voice: 'alloy',
             });
 
+            // Set OpenAI client on Twilio handler to enable audio forwarding
+            twilioHandler.setOpenAIClient(openaiClient);
+            log(LogLevel.INFO, '[AI POC] OpenAI client set on Twilio handler');
+
             openaiClient
               .connect()
               .then(() => {
