@@ -18,6 +18,7 @@ export interface OpenAIConfig {
   voice?: string;
   onAudioDelta?: (delta: string) => void;
   onOpen?: () => void;
+  onSessionUpdated?: () => void;
 }
 
 enum ConnectionState {
@@ -252,15 +253,24 @@ export class OpenAIRealtimeClient {
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
     log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-realtime' });
 
-    // Configure session with g711_ulaw audio format for Twilio compatibility
+    // Configure session with full configuration for Twilio compatibility
     const sessionUpdate = {
       type: 'session.update',
       session: {
         input_audio_format: 'g711_ulaw',
         output_audio_format: 'g711_ulaw',
+        voice: this.config.voice || 'alloy',
+        instructions: 'You are a helpful AI assistant. Respond naturally and concisely.',
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+        },
       },
     };
 
+    console.log('[OPENAI SESSION] session.update sent');
     log(LogLevel.INFO, '[AI POC] OPENAI SESSION UPDATE', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] COMPLETE session.update payload', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
@@ -312,7 +322,12 @@ export class OpenAIRealtimeClient {
   private handleMessage(message: any) {
     switch (message.type) {
       case 'session.updated':
+        console.log('[OPENAI SESSION] session.updated received');
         log(LogLevel.INFO, '[AI POC] OpenAI session updated');
+        // Call onSessionUpdated callback to notify listeners
+        if (this.config.onSessionUpdated) {
+          this.config.onSessionUpdated();
+        }
         break;
       case 'response.output_audio.delta':
         console.log('[AUDIO OUT] received OpenAI delta', { length: message.delta?.length });

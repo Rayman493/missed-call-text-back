@@ -301,8 +301,8 @@ wss.on('connection', (ws, req) => {
               apiKey: OPENAI_API_KEY,
               model: 'gpt-4o',
               voice: 'alloy',
-              onOpen: () => {
-                console.log('[STREAM] OpenAI websocket opened, marking ready');
+              onSessionUpdated: () => {
+                console.log('[STREAM] openAiReady true after session.updated');
                 twilioHandler.setOpenAiReady();
               },
               onAudioDelta: (delta: string) => {
