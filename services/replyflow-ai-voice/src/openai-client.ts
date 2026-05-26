@@ -62,20 +62,15 @@ export class OpenAIRealtimeClient {
         length: this.config.apiKey?.length,
       });
 
-      const wsUrl = 'wss://api.openai.com/v1/realtime';
+      // Use gpt-realtime model in URL query string for GA API
+      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
-        'OpenAI-Beta': 'realtime=v1',
       };
 
-      log(LogLevel.INFO, '[AI POC] Creating OpenAI websocket', {
-        url: wsUrl,
-        model: this.config.model,
-      });
-
-      log(LogLevel.INFO, '[AI POC] Request headers', {
+      log(LogLevel.INFO, '[AI POC] OPENAI URL FINAL', { url: wsUrl });
+      log(LogLevel.INFO, '[AI POC] OPENAI HEADERS FINAL', {
         'Authorization': headers.Authorization ? '[REDACTED]' : undefined,
-        'OpenAI-Beta': headers['OpenAI-Beta'],
       });
 
       try {
@@ -85,7 +80,7 @@ export class OpenAIRealtimeClient {
 
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
-        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: this.config.model });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
         // Log readyState every second for 10 seconds
         let readyStateCheckCount = 0;
@@ -134,6 +129,7 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('close', (code, reason) => {
           clearInterval(readyStateInterval);
+          log(LogLevel.INFO, '[AI POC] OPENAI CLOSE', { code, reason: reason?.toString() });
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket closed', {
             code,
             reason: reason?.toString(),
@@ -144,6 +140,7 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('message', (data) => {
           const message = JSON.parse(data.toString());
+          log(LogLevel.INFO, '[AI POC] OPENAI MESSAGE RECEIVED', JSON.stringify(message, null, 2));
           log(LogLevel.INFO, '[AI POC] OPENAI INBOUND MESSAGE', JSON.stringify(message, null, 2));
           this.handleMessage(message);
         });
@@ -191,7 +188,7 @@ export class OpenAIRealtimeClient {
     }
 
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
-    log(LogLevel.INFO, '[AI POC] exact model being used', { model: this.config.model });
+    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
     // Minimal session.update to isolate the offending field
     const sessionUpdate = {
@@ -199,6 +196,7 @@ export class OpenAIRealtimeClient {
       session: {},
     };
 
+    log(LogLevel.INFO, '[AI POC] OPENAI SESSION UPDATE MINIMAL', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] COMPLETE session.update payload', JSON.stringify(sessionUpdate, null, 2));
     log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
     this.ws.send(JSON.stringify(sessionUpdate));
