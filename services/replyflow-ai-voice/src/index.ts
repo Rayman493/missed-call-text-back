@@ -46,9 +46,15 @@ wss.on('connection', (ws, req) => {
   try {
     // Extract parameters from URL
     const url = new URL(req.url || '', `http://${req.headers.host}`);
+    
+    log(LogLevel.INFO, '[AI POC] raw request url:', req.url);
+    
     const sessionId = url.searchParams.get('session_id');
     const businessId = url.searchParams.get('business_id');
     const callSid = url.searchParams.get('call_sid');
+
+    log(LogLevel.INFO, '[AI POC] parsed sessionId:', sessionId);
+    log(LogLevel.INFO, '[AI POC] parsed callSid:', callSid);
 
     if (!sessionId || !callSid) {
       log(LogLevel.WARN, 'Missing required parameters', { sessionId, callSid });

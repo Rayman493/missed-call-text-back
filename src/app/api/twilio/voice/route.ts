@@ -353,30 +353,30 @@ export async function POST(request: NextRequest) {
           if (!session) {
             console.log('[AI CALL ASSISTANT] Failed to create session, falling back to voicemail')
           } else {
-            console.log('[AI CALL ASSISTANT] Session created', {
-              session_id: session.id,
-              call_sid: session.call_sid
-            })
+            console.log('[AI POC] session created:', session.id)
+            console.log('[AI POC] callSid:', CallSid)
 
             // Get Fly.io WebSocket URL from environment
             const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
 
-            console.log('[AI CALL ASSISTANT] Routing to Fly.io WebSocket service', {
-              ws_url: flyWsUrl,
-              session_id: session.id
-            })
+            // Build URL with query parameters for Fly.io parsing
+            const streamUrl = `${flyWsUrl}?session_id=${session.id}&call_sid=${CallSid}&business_id=${business.id}`
+            
+            console.log('[AI POC] final stream url:', streamUrl)
 
             // Return TwiML with Media Stream to Fly.io
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${flyWsUrl}">
+    <Stream url="${streamUrl}">
       <Parameter name="session_id" value="${session.id}" />
       <Parameter name="business_id" value="${business.id}" />
       <Parameter name="call_sid" value="${CallSid}" />
     </Stream>
   </Connect>
 </Response>`
+
+            console.log('[AI POC] returning TwiML')
 
             return new NextResponse(twiml, {
               status: 200,
