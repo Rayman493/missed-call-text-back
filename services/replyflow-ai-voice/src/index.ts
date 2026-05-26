@@ -15,9 +15,15 @@ import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
+import { createClient } from '@supabase/supabase-js';
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+
+// Initialize Supabase client
+const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 if (!OPENAI_API_KEY) {
   log(LogLevel.ERROR, 'OPENAI_API_KEY environment variable is required');
@@ -327,7 +333,7 @@ wss.on('connection', (ws, req) => {
 
     // Override handleMessage to capture customParameters from start event
     const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
-    (twilioHandler as any).handleMessage = (data: any) => {
+    (twilioHandler as any).handleMessage = async (data: any) => {
       try {
         // Log FIRST websocket frame only
         if (!firstFrameLogged) {
@@ -390,6 +396,59 @@ wss.on('connection', (ws, req) => {
           const businessId = customParams.businessId || urlBusinessId;
 
           log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId });
+
+          // Fetch business data if businessId is available
+          let businessName = 'ReplyFlow';
+          let businessType = '';
+          let customGreeting = '';
+          
+          if (businessId && supabase) {
+            try {
+              console.log('[AI] fetching business data', { businessId });
+              const { data: business, error } = await supabase
+                .from('businesses')
+                .select('name, type, custom_greeting')
+                .eq('id', businessId)
+                .single();
+              
+              if (error) {
+                console.log('[AI] business fetch error', error);
+              } else if (business) {
+                businessName = business.name || businessName;
+                businessType = business.type || '';
+                customGreeting = business.custom_greeting || '';
+                console.log('[AI] business loaded', { businessName, businessType, hasCustomGreeting: !!customGreeting });
+              }
+            } catch (err) {
+              console.log('[AI] business fetch failed', err);
+            }
+          } else {
+            console.log('[AI] no businessId or supabase client, using default greeting');
+          }
+
+          // Build dynamic instructions
+          let instructions = '';
+          if (customGreeting) {
+            instructions = customGreeting;
+          } else {
+            instructions = `You are the virtual receptionist for ${businessName}.
+
+A caller reached this line after the business was unavailable.
+
+Greet the caller and say:
+
+'Thanks for calling ${businessName}. We missed your call, but I'd be happy to take a message and let the team know what you need.'
+
+Then ask:
+'Can I get your name and the reason for your call?'
+
+Be concise and friendly.`;
+          }
+          
+          console.log('[AI] greeting instructions created', { instructionsLength: instructions.length });
+          
+          // Store instructions for use in OpenAI response
+          (ws as any).aiInstructions = instructions;
 
           // Check for required parameters
           if (!sessionId || !callSid) {
@@ -479,11 +538,12 @@ wss.on('connection', (ws, req) => {
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Send test message (matching debug endpoint exactly)
+              // Send test message with dynamic instructions
+              const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
               const testMessage = {
                 type: 'response.create',
                 response: {
-                  instructions: 'Hello from ReplyFlow.',
+                  instructions: instructions,
                 },
               };
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
