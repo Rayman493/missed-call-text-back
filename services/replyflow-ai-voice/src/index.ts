@@ -298,6 +298,9 @@ wss.on('connection', (ws, req) => {
           log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
 
           try {
+            console.log('[OPENAI AUDIT] websocket URL:', 'wss://api.openai.com/v1/realtime?model=gpt-realtime');
+            console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
+            console.log('[OPENAI AUDIT] headers keys:', ['Authorization']);
             console.log('[STREAM OPENAI] creating websocket');
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             const headers = {
@@ -321,9 +324,22 @@ wss.on('connection', (ws, req) => {
               }
             }, 5000);
 
+            // Add 5-second timer to check CONNECTING state
+            setTimeout(() => {
+              if (openAiWs && openAiWs.readyState === 0) {
+                console.log('[OPENAI AUDIT] stuck in CONNECTING state');
+                console.log('[OPENAI AUDIT] websocket URL:', wsUrl);
+                console.log('[OPENAI AUDIT] readyState:', openAiWs.readyState);
+                console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
+                console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
+              }
+            }, 5000);
+
             // Attach listeners exactly like /test-openai
+            console.log('[OPENAI AUDIT] attaching open listener');
             openAiWs.on('open', () => {
               opened = true;
+              console.log('[OPENAI AUDIT] open listener attached');
               console.log('[OPENAI RAW] open');
               console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
@@ -343,8 +359,11 @@ wss.on('connection', (ws, req) => {
               }
               console.log('[OPENAI TEST] test message sent');
             });
+            console.log('[OPENAI AUDIT] open listener attached');
 
+            console.log('[OPENAI AUDIT] attaching message listener');
             openAiWs.on('message', (data) => {
+              console.log('[OPENAI AUDIT] message listener attached');
               console.log('[OPENAI RAW] message');
               
               // Parse message
@@ -381,17 +400,24 @@ wss.on('connection', (ws, req) => {
                 console.log('[AUDIO OUT] sent media to Twilio');
               }
             });
+            console.log('[OPENAI AUDIT] message listener attached');
 
+            console.log('[OPENAI AUDIT] attaching error listener');
             openAiWs.on('error', (error) => {
+              console.log('[OPENAI AUDIT] error listener attached');
               console.log('[OPENAI RAW] error', { error: String(error) });
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
             });
+            console.log('[OPENAI AUDIT] error listener attached');
 
+            console.log('[OPENAI AUDIT] attaching close listener');
             openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
             });
+            console.log('[OPENAI AUDIT] close listener attached');
 
             log(LogLevel.INFO, '[AI POC] OpenAI websocket created directly');
             openaiInitSucceeded = true;
