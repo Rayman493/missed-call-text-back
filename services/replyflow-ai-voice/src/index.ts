@@ -322,7 +322,6 @@ wss.on('connection', (ws, req) => {
             console.log('[STREAM OPENAI] creating websocket');
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'OpenAI-Beta': 'realtime=v1',
             };
             console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
             openAiWs = new WebSocket(wsUrl, { headers });
@@ -384,7 +383,6 @@ wss.on('connection', (ws, req) => {
               const testMessage = {
                 type: 'response.create',
                 response: {
-                  modalities: ['audio', 'text'],
                   instructions: 'Say hello from ReplyFlow.',
                 },
               };
