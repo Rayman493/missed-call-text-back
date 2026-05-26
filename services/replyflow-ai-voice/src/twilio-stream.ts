@@ -27,24 +27,6 @@ export class TwilioStreamHandler {
    */
   handleConnection(ws: WebSocket, req: any) {
     this.ws = ws;
-    
-    log(LogLevel.INFO, 'Twilio connected', {
-      sessionId: this.config.sessionId,
-      callSid: this.config.callSid,
-    });
-
-    // Extract parameters from URL
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const sessionId = url.searchParams.get('session_id');
-
-    if (!sessionId) {
-      log(LogLevel.WARN, 'Missing session_id parameter');
-      ws.close(1008, 'Missing session_id');
-      return;
-    }
-
-    // Send connected event
-    ws.send(JSON.stringify({ event: 'connected' }));
 
     // Handle media stream events
     ws.on('message', (data) => {

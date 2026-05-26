@@ -70,18 +70,39 @@ wss.on('connection', (ws, req) => {
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
+    // Set 5-second timeout for start event
+    const startTimeout = setTimeout(() => {
+      log(LogLevel.WARN, '[AI POC] Timeout: No start event received within 5 seconds');
+      ws.close(1000, 'No start event received');
+    }, 5000);
+
+    let startEventReceived = false;
+
     // Override handleMessage to capture customParameters from start event
     const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
     (twilioHandler as any).handleMessage = (data: any) => {
       try {
+        log(LogLevel.INFO, '[AI POC] first websocket message');
+
         const message = JSON.parse(data.toString());
 
+        log(LogLevel.INFO, '[AI POC] parsed Twilio message:', message.event);
+
         if (message.event === 'start') {
-          log(LogLevel.INFO, '[AI POC] Twilio start event received');
+          if (startEventReceived) {
+            // Already processed start event, just call original handler
+            originalHandleMessage(data);
+            return;
+          }
+
+          startEventReceived = true;
+          clearTimeout(startTimeout);
+
+          log(LogLevel.INFO, '[AI POC] parsed Twilio start event');
 
           const customParams = message.start?.customParameters || {};
 
-          log(LogLevel.INFO, '[AI POC] customParameters:', customParams);
+          log(LogLevel.INFO, '[AI POC] extracted customParameters:', customParams);
 
           const sessionId = customParams.sessionId || urlSessionId;
           const callSid = customParams.callSid || urlCallSid;
@@ -105,8 +126,17 @@ wss.on('connection', (ws, req) => {
 
           log(LogLevel.INFO, '[AI POC] Connection parameters validated', { sessionId, callSid });
 
+          // Now log Twilio connected after parameters are validated
+          log(LogLevel.INFO, 'Twilio connected', {
+            sessionId,
+            callSid,
+          });
+
+          // Send connected event
+          ws.send(JSON.stringify({ event: 'connected' }));
+
           // Now connect to OpenAI after receiving start event
-          log(LogLevel.INFO, '[AI POC] connecting to OpenAI after start event');
+          log(LogLevel.INFO, '[AI POC] initializing OpenAI after start event');
 
           const openaiClient = new OpenAIRealtimeClient({
             apiKey: OPENAI_API_KEY,
