@@ -164,14 +164,21 @@ export class OpenAIRealtimeClient {
       return;
     }
 
+    log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
+
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        modalities: ['text', 'audio'],
         instructions: 'You are a test AI assistant. Say: "Hello. This is the ReplyFlow AI Assistant test environment." Then end the call.',
         voice: this.config.voice,
-        input_audio_format: 'g711_ulaw',
-        output_audio_format: 'g711_ulaw',
+        audio: {
+          input: {
+            format: 'g711_ulaw',
+          },
+          output: {
+            format: 'g711_ulaw',
+          },
+        },
       },
     };
 
