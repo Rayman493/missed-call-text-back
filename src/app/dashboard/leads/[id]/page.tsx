@@ -1028,10 +1028,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Desktop Enhanced */}
-            <div className="flex items-start gap-6 flex-1 min-w-0">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
                   </h1>
@@ -1171,7 +1171,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Left Column - Conversation (70%) */}
           <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth min-h-[220px] max-h-[420px]">
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth min-h-[180px] max-h-[420px]">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1224,13 +1224,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Right Column - Simplified Lead Panel (30%) */}
           <div className="lg:flex-[0.3] overflow-y-auto space-y-2">
             {/* Lead Details Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-xl p-3">
               <h3 className="text-sm font-semibold text-foreground mb-3">Lead Details</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Phone</span>
-                  <span className="text-sm font-medium text-foreground">{leadData ? formatPhoneNumber(leadData.phone_number) : '—'}</span>
-                </div>
+              <div className="space-y-2">
+                {leadData?.phone_number && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Phone</span>
+                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData.phone_number)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
                   <div className="flex-shrink-0">
@@ -1242,21 +1244,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Created</span>
-                  <span className="text-sm text-foreground">{leadData ? formatRelativeTime(leadData.created_at) : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Last Activity</span>
-                  <span className="text-sm text-foreground">{leadData?.last_message_at ? formatRelativeTime(leadData.last_message_at) : '—'}</span>
-                </div>
+                {leadData?.created_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Created</span>
+                    <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
+                  </div>
+                )}
+                {leadData?.last_message_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Last Activity</span>
+                    <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Automation & Voicemail Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-xl p-3">
               <h3 className="text-sm font-semibold text-foreground mb-3">Activity</h3>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Follow-up Stats */}
                 <div>
                   <h4 className="text-xs font-medium text-foreground mb-2">Follow-ups</h4>

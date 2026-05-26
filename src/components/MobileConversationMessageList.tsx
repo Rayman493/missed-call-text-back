@@ -128,7 +128,7 @@ export default function MobileConversationMessageList({
               
               {/* Message Bubble - Modern chat styling */}
               <div
-                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm max-w-[70%] ${
+                className={`rounded-2xl px-4 py-3 relative transition-all duration-300 ease-out shadow-sm max-w-[70%] sm:max-w-[80%] max-sm:max-w-[90%] ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm hover:shadow-md border border-slate-200 dark:border-slate-700/50'
                     : isOptimistic && isSending
