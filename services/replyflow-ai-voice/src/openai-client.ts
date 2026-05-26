@@ -8,6 +8,10 @@
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 
+// Log ws package version
+console.log('[OPENAI] ws package version:', require('ws/package.json').version);
+console.log('[OPENAI] import statement:', 'import WebSocket from "ws"');
+
 export interface OpenAIConfig {
   apiKey: string;
   model?: string;
@@ -80,6 +84,8 @@ export class OpenAIRealtimeClient {
           headers: headers,
         });
 
+        console.log('[OPENAI] listeners attaching');
+        
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
         log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-realtime' });
@@ -111,6 +117,7 @@ export class OpenAIRealtimeClient {
         }, 1000);
 
         this.ws.on('open', () => {
+          console.log('[OPENAI] open event fired');
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket open event fired');
           log(LogLevel.INFO, '[AI POC] OpenAI connected');
@@ -129,6 +136,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('error', (error) => {
+          console.log('[OPENAI] error event fired', error);
           clearInterval(readyStateInterval);
           log(LogLevel.ERROR, '[OPENAI] websocket error event fired', error as Error);
           log(LogLevel.ERROR, '[OPENAI] full error object', JSON.stringify(error, null, 2));
@@ -139,6 +147,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('close', (code, reason) => {
+          console.log('[OPENAI] close event fired', { code, reason: reason?.toString() });
           clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[OPENAI] websocket close event fired');
           log(LogLevel.INFO, '[AI POC] OPENAI CLOSE', { code, reason: reason?.toString() });
@@ -149,6 +158,38 @@ export class OpenAIRealtimeClient {
           this.connectionState = ConnectionState.CLOSED;
           this.clearTimeout();
         });
+
+        this.ws.on('unexpected-response', (request, response) => {
+          console.log('[OPENAI] unexpected-response event fired', { statusCode: response.statusCode, headers: response.headers });
+          log(LogLevel.ERROR, '[OPENAI] unexpected-response event fired', {
+            statusCode: response.statusCode,
+            headers: response.headers,
+          });
+        });
+
+        console.log('[OPENAI] listeners attached');
+
+        // Check websocket state after 5 seconds
+        setTimeout(() => {
+          if (this.ws) {
+            const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+            console.log('[OPENAI] state after 5s', {
+              readyState: this.ws.readyState,
+              state: states[this.ws.readyState] || 'UNKNOWN',
+            });
+          }
+        }, 5000);
+
+        // Check websocket state after 15 seconds
+        setTimeout(() => {
+          if (this.ws) {
+            const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+            console.log('[OPENAI] state after 15s', {
+              readyState: this.ws.readyState,
+              state: states[this.ws.readyState] || 'UNKNOWN',
+            });
+          }
+        }, 15000);
 
         this.ws.on('message', (data) => {
           const message = JSON.parse(data.toString());

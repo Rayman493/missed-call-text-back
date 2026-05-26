@@ -11,6 +11,7 @@
 
 import { createServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
+import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
@@ -29,6 +30,62 @@ const server = createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'healthy', service: 'ai-voice-poc' }));
+    return;
+  }
+
+  // Test OpenAI websocket connection endpoint
+  if (req.url === '/test-openai') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.write('Testing OpenAI websocket connection...\n\n');
+
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    const headers = {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'OpenAI-Beta': 'realtime=v1',
+    };
+
+    const testWs = new WebSocket(wsUrl, { headers });
+    let opened = false;
+    let errored = false;
+    let closed = false;
+
+    testWs.on('open', () => {
+      opened = true;
+      res.write('[TEST] WebSocket OPEN event fired\n');
+      res.write('[TEST] Connection successful\n');
+      testWs.close();
+    });
+
+    testWs.on('error', (error) => {
+      errored = true;
+      res.write('[TEST] WebSocket ERROR event fired\n');
+      res.write(`[TEST] Error: ${error}\n`);
+    });
+
+    testWs.on('close', (code, reason) => {
+      closed = true;
+      res.write(`[TEST] WebSocket CLOSE event fired (code: ${code}, reason: ${reason?.toString()})\n`);
+      res.write(`[TEST] Final state - opened: ${opened}, errored: ${errored}\n`);
+      res.end();
+    });
+
+    testWs.on('unexpected-response', (request, response) => {
+      res.write(`[TEST] WebSocket UNEXPECTED-RESPONSE event fired (status: ${response.statusCode})\n`);
+      res.write(`[TEST] Headers: ${JSON.stringify(response.headers)}\n`);
+      res.end();
+    });
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      if (!closed) {
+        res.write(`[TEST] Timeout after 10 seconds - opened: ${opened}, errored: ${errored}\n`);
+        if (testWs) {
+          testWs.close();
+        }
+        res.end();
+      }
+    }, 10000);
+
     return;
   }
 
