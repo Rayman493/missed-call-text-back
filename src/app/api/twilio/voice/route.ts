@@ -177,9 +177,11 @@ export async function POST(request: NextRequest) {
       console.error('[Twilio Voice] Missing required fields:', { From, To });
       
       const twiml = generateTwiMLResponse();
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=normal-voicemail');
+      console.log('[AI POC FINAL TWIML]', twiml);
       return new NextResponse(twiml, {
         status: 200,
-        headers: { 
+        headers: {
           "Content-Type": "text/xml",
           "X-ReplyFlow-Voice-Version": "v2"
         },
@@ -224,9 +226,11 @@ export async function POST(request: NextRequest) {
       const twiml = generateTwiMLResponse();
 
       console.log('[Voice] Returning fallback TwiML for no business found');
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=no-business-found');
+      console.log('[AI POC FINAL TWIML]', twiml);
       return new NextResponse(twiml, {
         status: 200,
-        headers: { 
+        headers: {
           "Content-Type": "text/xml",
           "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
         },
@@ -375,6 +379,8 @@ export async function POST(request: NextRequest) {
 </Response>`
 
             console.log('[AI POC] final TwiML:', twiml)
+            console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc')
+            console.log('[AI POC FINAL TWIML]', twiml)
 
             return new NextResponse(twiml, {
               status: 200,
@@ -479,9 +485,11 @@ export async function POST(request: NextRequest) {
 
       // Still return valid TwiML so the call doesn't error
       const twiml = generateTwiMLResponse(business.name);
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=error-fallback-1');
+      console.log('[AI POC FINAL TWIML]', twiml);
       return new NextResponse(twiml, {
         status: 200,
-        headers: { 
+        headers: {
           "Content-Type": "text/xml",
           "X-ReplyFlow-Voice-Version": "v2"
         },
@@ -527,11 +535,13 @@ export async function POST(request: NextRequest) {
       } else {
         console.error('[Voice] Persistence failed: Lead creation returned null');
         console.error('[Voice] Returning safe TwiML response without SMS');
-        
+
         const twiml = generateTwiMLResponse(business.name);
+        console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=persistence-failed');
+        console.log('[AI POC FINAL TWIML]', twiml);
         return new NextResponse(twiml, {
           status: 200,
-          headers: { 
+          headers: {
             "Content-Type": "text/xml",
             "X-ReplyFlow-Voice-Version": "v2"
           },
@@ -707,9 +717,11 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice]', twiml);
     console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING END =====');
     console.log('[Twilio Voice] Generated final TwiML response');
+    console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=main-fallback');
+    console.log('[AI POC FINAL TWIML]', twiml);
     return new NextResponse(twiml, {
       status: 200,
-      headers: { 
+      headers: {
         "Content-Type": "text/xml",
         "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
       },
@@ -720,9 +732,11 @@ export async function POST(request: NextRequest) {
     const twiml = generateTwiMLResponse();
 
     console.log('[Twilio Voice] Returning fallback TwiML due to error');
+    console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=error-catch-all');
+    console.log('[AI POC FINAL TWIML]', twiml);
     return new NextResponse(twiml, {
       status: 200,
-      headers: { 
+      headers: {
         "Content-Type": "text/xml",
         "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
       },
