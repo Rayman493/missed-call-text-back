@@ -104,6 +104,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
+  const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1032,9 +1033,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-4 mb-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight truncate">
-                    {formatPhoneNumber(lead?.caller_phone || '')}
-                  </h1>
+                  <div className="flex flex-col gap-1">
+                    {leadData?.contact_name && (
+                      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                        {leadData.contact_name}
+                      </h1>
+                    )}
+                    <h2 className="text-xl sm:text-2xl font-medium text-slate-700 dark:text-slate-300 leading-tight truncate">
+                      {formatPhoneNumber(lead?.caller_phone || '')}
+                    </h2>
+                  </div>
                   
                   {/* Modern Status Badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1043,6 +1051,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </span>
                   </div>
                 </div>
+                
+                {/* Company Name */}
+                {leadData?.company_name && (
+                  <div className="mb-3">
+                    <p className="text-base text-slate-600 dark:text-slate-400 truncate">
+                      {leadData.company_name}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Enhanced Lead Meta */}
                 <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -1223,16 +1240,79 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Right Column - Simplified Lead Panel (30%) */}
           <div className="lg:flex-[0.3] overflow-y-auto space-y-2">
+            {/* Customer Information Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
+                <button
+                  onClick={() => setShowCustomerInfoModal(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+              <div className="space-y-3">
+                {leadData?.contact_name ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Name</span>
+                    <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Name</span>
+                    <span className="text-sm text-muted-foreground">Not set</span>
+                  </div>
+                )}
+                {leadData?.company_name ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Company</span>
+                    <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Company</span>
+                    <span className="text-sm text-muted-foreground">Not set</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Phone</span>
+                  <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                </div>
+                {leadData?.tags && leadData.tags.length > 0 ? (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Tags</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {leadData.tags.map((tag: string, index: number) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Tags</span>
+                    <span className="text-sm text-muted-foreground">None</span>
+                  </div>
+                )}
+                {leadData?.notes ? (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Notes</span>
+                    <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Notes</span>
+                    <span className="text-sm text-muted-foreground">None</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Lead Details Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-4">Lead Details</h3>
               <div className="space-y-3">
-                {leadData?.phone_number && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Phone</span>
-                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData.phone_number)}</span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
                   <div className="flex-shrink-0">
@@ -1705,6 +1785,119 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ) : (
                   'Remove Lead'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Customer Info Modal */}
+      {showCustomerInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Edit Customer Information
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Contact Name
+                </label>
+                <input
+                  type="text"
+                  value={leadData?.contact_name || ''}
+                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, contact_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
+                  placeholder="Enter contact name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={leadData?.company_name || ''}
+                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, company_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
+                  placeholder="Enter company name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Tags
+                </label>
+                <input
+                  type="text"
+                  value={leadData?.tags?.join(', ') || ''}
+                  onChange={(e) => setLeadData((prev: any) => ({ 
+                    ...prev, 
+                    tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+                  }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
+                  placeholder="Enter tags separated by commas"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Separate multiple tags with commas
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={leadData?.notes || ''}
+                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, notes: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
+                  rows={3}
+                  placeholder="Enter notes about this customer"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setShowCustomerInfoModal(false)}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  // Save customer info
+                  const supabase = createBrowserClient()
+                  const { data: { session } } = await supabase.auth.getSession()
+                  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+                  if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`
+                  }
+
+                  try {
+                    const response = await fetch(`/api/leads/${lead?.id}`, {
+                      method: 'PUT',
+                      headers,
+                      body: JSON.stringify({
+                        contact_name: leadData?.contact_name || null,
+                        company_name: leadData?.company_name || null,
+                        tags: leadData?.tags || [],
+                        notes: leadData?.notes || null
+                      })
+                    })
+
+                    if (response.ok) {
+                      setShowCustomerInfoModal(false)
+                      // Refresh lead data
+                      const updatedData = await getLeadDetails(lead?.id)
+                      if (updatedData) {
+                        setLeadData(updatedData)
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error saving customer info:', error)
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Save
               </button>
             </div>
           </div>

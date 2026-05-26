@@ -780,18 +780,32 @@ export default function LeadsPage() {
                                 <span className="text-lg sm:text-xl">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                {/* Phone Number and Status Badges */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  <p className={`font-bold text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
-                                    isUnread ? 'font-extrabold' : ''
-                                  }`}>
-                                    {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
-                                  </p>
-                                  {isNewLead && (
-                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                                {/* Contact Name and Phone Number */}
+                                <div className="flex flex-col gap-1 mb-2">
+                                  {lead.contact_name && (
+                                    <p className={`font-bold text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
+                                      isUnread ? 'font-extrabold' : ''
+                                    }`}>
+                                      {lead.contact_name}
+                                    </p>
                                   )}
-                                  {needsResponse && (
-                                    <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                                  <div className="flex items-center gap-2">
+                                    <p className={`font-medium text-base sm:text-lg text-slate-700 dark:text-muted-foreground truncate ${
+                                      isUnread ? 'font-semibold' : ''
+                                    }`}>
+                                      {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
+                                    </p>
+                                    {isNewLead && (
+                                      <span className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                                    )}
+                                    {needsResponse && (
+                                      <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                                    )}
+                                  </div>
+                                  {lead.company_name && (
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {lead.company_name}
+                                    </p>
                                   )}
                                 </div>
                                 
