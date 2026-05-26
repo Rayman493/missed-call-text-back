@@ -83,9 +83,32 @@ export class OpenAIRealtimeClient {
           headers: headers,
         });
 
-        log(LogLevel.INFO, '[AI POC] OpenAI websocket object created');
+        log(LogLevel.INFO, '[OPENAI] websocket object created');
+        log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: this.config.model });
+
+        // Log readyState every second for 10 seconds
+        let readyStateCheckCount = 0;
+        const readyStateInterval = setInterval(() => {
+          if (!this.ws) {
+            clearInterval(readyStateInterval);
+            return;
+          }
+          const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+          readyStateCheckCount++;
+          log(LogLevel.INFO, '[OPENAI] readyState', {
+            state: states[this.ws.readyState] || 'UNKNOWN',
+            readyState: this.ws.readyState,
+            seconds: readyStateCheckCount,
+          });
+          if (readyStateCheckCount >= 10) {
+            clearInterval(readyStateInterval);
+            log(LogLevel.ERROR, '[OPENAI] readyState check timeout after 10 seconds');
+          }
+        }, 1000);
 
         this.ws.on('open', () => {
+          clearInterval(readyStateInterval);
           log(LogLevel.INFO, '[AI POC] OpenAI connected');
 
           // Clear timeout on successful connection
@@ -102,6 +125,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('error', (error) => {
+          clearInterval(readyStateInterval);
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket error', error as Error);
           this.connectionState = ConnectionState.ERROR;
           this.clearTimeout();
@@ -109,6 +133,7 @@ export class OpenAIRealtimeClient {
         });
 
         this.ws.on('close', (code, reason) => {
+          clearInterval(readyStateInterval);
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket closed', {
             code,
             reason: reason?.toString(),
@@ -125,6 +150,7 @@ export class OpenAIRealtimeClient {
 
         // 10 second timeout with cleanup
         this.timeoutId = setTimeout(() => {
+          clearInterval(readyStateInterval);
           log(LogLevel.ERROR, 'OpenAI connection timeout');
 
           // Cleanup: close WebSocket if it exists
