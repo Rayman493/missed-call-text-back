@@ -1169,7 +1169,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
         <div className="hidden lg:flex lg:gap-6">
           {/* Left Column - Conversation (70%) */}
-          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col h-[calc(100vh-340px)]">
+          <div className="lg:flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
             {/* Message Thread */}
             <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
               {loading ? (
@@ -1263,63 +1263,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Automation & Voicemail Card */}
+            {/* Follow-Ups Section */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Activity</h3>
-              <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Ups</h3>
+              <div className="space-y-3">
                 {/* Follow-up Stats */}
-                <div>
-                  <h4 className="text-xs font-medium text-foreground mb-2">Follow-ups</h4>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                        {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">Active</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                      {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">Done</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-red-600 dark:text-red-400">
-                        {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">Cancel</div>
-                    </div>
+                    <div className="text-[10px] text-muted-foreground">Active</div>
                   </div>
-                  {followUpJobs?.find((job: any) => job.status === 'pending') && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Next: {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
+                  <div>
+                    <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
                     </div>
-                  )}
+                    <div className="text-[10px] text-muted-foreground">Done</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-red-600 dark:text-red-400">
+                      {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Cancel</div>
+                  </div>
                 </div>
+                {followUpJobs?.find((job: any) => job.status === 'pending') && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    Next: {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
+                  </div>
+                )}
 
                 {/* Voicemail */}
-                <div>
-                  <h4 className="text-xs font-medium text-foreground mb-2">Voicemail</h4>
-                  {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 ? (
-                    <div className="space-y-2">
-                      {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
-                        <div key={voicemail.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">📞</span>
-                            <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
-                          </div>
-                          <button className="px-2 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[10px] font-medium rounded transition-colors">
-                            Play
-                          </button>
+                {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 && (
+                  <div className="pt-2 border-t border-border/50">
+                    <h4 className="text-xs font-medium text-foreground mb-2">Voicemail</h4>
+                    {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
+                      <div key={voicemail.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-600 dark:text-amber-400">📞</span>
+                          <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-2">
-                      <span className="text-xs text-muted-foreground">No voicemail</span>
-                    </div>
-                  )}
-                </div>
+                        <button className="px-2 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[10px] font-medium rounded transition-colors">
+                          Play
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1358,7 +1349,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="lg:hidden">
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 min-h-[55vh] max-h-[60vh] overflow-y-auto scroll-smooth">
+            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh - 280px)' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

@@ -63,7 +63,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-end gap-2 mb-4 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 mb-3 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
@@ -72,13 +72,8 @@ export default function MobileConversationMessageList({
               </div>
             )}
             
-            {/* Spacer when avatar is hidden */}
-            {(!shouldShowAvatar || !isInbound) && (
-              <div className="flex-shrink-0 w-8"></div>
-            )}
-            
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%]`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%] ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
                 className={`rounded-2xl px-4 py-3 shadow-sm ${
@@ -94,7 +89,7 @@ export default function MobileConversationMessageList({
                 </p>
               </div>
               
-              {/* Message Status/Timestamp - Beneath bubble */}
+              {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
               <div className={`mt-1 flex items-center gap-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
