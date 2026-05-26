@@ -305,6 +305,7 @@ wss.on('connection', (ws, req) => {
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'OpenAI-Beta': 'realtime=v1',
             };
             console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
             openAiWs = new WebSocket(wsUrl, { headers });
