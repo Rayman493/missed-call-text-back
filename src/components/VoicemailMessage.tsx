@@ -208,6 +208,12 @@ export default function VoicemailMessage({
         setIsEnded(false)
       }
       
+      // Prevent multiple play requests on the same audio element
+      if (!audio.paused) {
+        console.log('[VOICEMAIL FRONTEND] Audio already playing, ignoring duplicate play request')
+        return
+      }
+      
       try {
         // Set up authenticated request before playing
         if (audioUrl) {
@@ -342,14 +348,45 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio || !audioUrl) return
 
+    console.log('[VoicemailMessage] Registering with audio manager:', recording.id, 'audio element:', audio);
     audioManager.registerAudio(recording.id, audio)
-    console.log('[VoicemailMessage] Registered with audio manager:', recording.id)
 
+    // Cleanup function for unmount
     return () => {
-      audioManager.unregisterAudio(recording.id)
-      console.log('[VoicemailMessage] Unregistered from audio manager:', recording.id)
+      console.log('[VoicemailMessage] Component unmounting, cleaning up voicemail:', recording.id);
+      audioManager.unregisterAudio(recording.id);
+      
+      // Also pause the audio element directly as a safety measure
+      try {
+        if (!audio.paused) {
+          console.log('[VoicemailMessage] Direct pause during unmount:', recording.id);
+          audio.pause();
+        }
+      } catch (error) {
+        console.error('[VoicemailMessage] Error pausing audio during unmount:', error);
+      }
     }
   }, [recording.id, audioUrl])
+
+  // Additional cleanup when component unmounts or page unloads
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('[VoicemailMessage] Page unloading, pausing voicemail:', recording.id);
+      const audio = audioRef.current;
+      if (audio && !audio.paused) {
+        try {
+          audio.pause();
+        } catch (error) {
+          console.error('[VoicemailMessage] Error pausing audio on page unload:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [recording.id])
 
   // Handle playback state changes from audio manager
   useEffect(() => {

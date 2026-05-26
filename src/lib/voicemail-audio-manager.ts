@@ -10,17 +10,54 @@ class VoicemailAudioManager {
 
   // Register an audio element with the manager
   registerAudio(voicemailId: string, audioElement: HTMLAudioElement): void {
-    console.log('[VoicemailAudioManager] Registering audio element:', voicemailId);
+    console.log('[VoicemailAudioManager] Registering audio element:', voicemailId, 'element:', audioElement);
+    
+    // Check for duplicate registration
+    const existingAudio = this.audioRegistry.get(voicemailId);
+    if (existingAudio && existingAudio !== audioElement) {
+      console.warn('[VoicemailAudioManager] DUPLICATE DETECTED - Pausing existing audio element for:', voicemailId, 'existing:', existingAudio, 'new:', audioElement);
+      
+      // Pause the existing audio element before replacing
+      try {
+        existingAudio.pause();
+        this.notifyListeners(voicemailId, false);
+        console.log('[VoicemailAudioManager] Paused duplicate audio element for:', voicemailId);
+      } catch (error) {
+        console.error('[VoicemailAudioManager] Error pausing duplicate audio element:', error);
+      }
+    } else if (existingAudio === audioElement) {
+      console.log('[VoicemailAudioManager] Audio element already registered for:', voicemailId, 'skipping duplicate');
+      return;
+    }
+    
     this.audioRegistry.set(voicemailId, audioElement);
+    console.log('[VoicemailAudioManager] Audio element registered successfully:', voicemailId, 'total registered:', this.audioRegistry.size);
   }
 
   // Unregister an audio element from the manager
   unregisterAudio(voicemailId: string): void {
     console.log('[VoicemailAudioManager] Unregistering audio element:', voicemailId);
+    
+    const audioElement = this.audioRegistry.get(voicemailId);
+    if (audioElement) {
+      // Pause the audio element before unregistering
+      try {
+        if (!audioElement.paused) {
+          console.log('[VoicemailAudioManager] Pausing audio element before unregister:', voicemailId);
+          audioElement.pause();
+          this.notifyListeners(voicemailId, false);
+        }
+      } catch (error) {
+        console.error('[VoicemailAudioManager] Error pausing audio element during unregister:', error);
+      }
+    }
+    
     this.audioRegistry.delete(voicemailId);
+    console.log('[VoicemailAudioManager] Audio element unregistered:', voicemailId, 'remaining registered:', this.audioRegistry.size);
     
     // Clear current playing if this was the active one
     if (this.currentPlayingId === voicemailId) {
+      console.log('[VoicemailAudioManager] Clearing current playing ID:', voicemailId);
       this.currentPlayingId = null;
     }
   }
@@ -48,27 +85,43 @@ class VoicemailAudioManager {
 
   // Pause all audio elements except the specified one
   private pauseAllExcept(voicemailId: string): void {
-    console.log('[VoicemailAudioManager] Pausing all except:', voicemailId, 'currently playing:', this.currentPlayingId);
+    console.log('[VoicemailAudioManager] Pausing all except:', voicemailId, 'currently playing:', this.currentPlayingId, 'total registered:', this.audioRegistry.size);
     
-    // If there's a currently playing voicemail, pause it
+    let pausedCount = 0;
+    
+    // First, pause the currently playing voicemail if different
     if (this.currentPlayingId && this.currentPlayingId !== voicemailId) {
       const currentAudio = this.audioRegistry.get(this.currentPlayingId);
       if (currentAudio) {
         console.log('[VoicemailAudioManager] Pausing current playing voicemail:', this.currentPlayingId);
-        currentAudio.pause();
-        this.notifyListeners(this.currentPlayingId, false);
+        try {
+          currentAudio.pause();
+          this.notifyListeners(this.currentPlayingId, false);
+          pausedCount++;
+        } catch (error) {
+          console.error('[VoicemailAudioManager] Error pausing current playing voicemail:', this.currentPlayingId, error);
+        }
       }
       this.currentPlayingId = null;
     }
 
-    // Pause any other playing audio elements (defensive check)
+    // Then, pause any other playing audio elements (defensive check)
     this.audioRegistry.forEach((audio, id) => {
-      if (id !== voicemailId && !audio.paused) {
-        console.log('[VoicemailAudioManager] Defensive pause of playing voicemail:', id);
-        audio.pause();
-        this.notifyListeners(id, false);
+      if (id !== voicemailId) {
+        try {
+          if (!audio.paused) {
+            console.log('[VoicemailAudioManager] Defensive pause of playing voicemail:', id);
+            audio.pause();
+            this.notifyListeners(id, false);
+            pausedCount++;
+          }
+        } catch (error) {
+          console.error('[VoicemailAudioManager] Error in defensive pause of voicemail:', id, error);
+        }
       }
     });
+    
+    console.log('[VoicemailAudioManager] Paused', pausedCount, 'audio elements, keeping:', voicemailId);
   }
 
   // Request to play a specific voicemail
@@ -150,6 +203,44 @@ class VoicemailAudioManager {
   // Get the audio element for a specific voicemail
   getAudioElement(voicemailId: string): HTMLAudioElement | undefined {
     return this.audioRegistry.get(voicemailId);
+  }
+
+  // Pause all audio elements (for cleanup when leaving page)
+  pauseAll(): void {
+    console.log('[VoicemailAudioManager] Pausing all audio elements for cleanup, total:', this.audioRegistry.size);
+    
+    let pausedCount = 0;
+    this.audioRegistry.forEach((audio, id) => {
+      try {
+        if (!audio.paused) {
+          console.log('[VoicemailAudioManager] Cleanup pause of voicemail:', id);
+          audio.pause();
+          this.notifyListeners(id, false);
+          pausedCount++;
+        }
+      } catch (error) {
+        console.error('[VoicemailAudioManager] Error in cleanup pause of voicemail:', id, error);
+      }
+    });
+    
+    this.currentPlayingId = null;
+    console.log('[VoicemailAudioManager] Cleanup completed, paused', pausedCount, 'audio elements');
+  }
+
+  // Get debug information
+  getDebugInfo(): { [key: string]: any } {
+    return {
+      currentPlayingId: this.currentPlayingId,
+      registeredCount: this.audioRegistry.size,
+      registeredIds: Array.from(this.audioRegistry.keys()),
+      listenerCount: this.listeners.size,
+      playingStates: Array.from(this.audioRegistry.entries()).map(([id, audio]) => ({
+        id,
+        paused: audio.paused,
+        currentTime: audio.currentTime,
+        duration: audio.duration
+      }))
+    };
   }
 }
 
