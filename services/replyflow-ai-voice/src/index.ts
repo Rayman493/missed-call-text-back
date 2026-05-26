@@ -301,8 +301,8 @@ wss.on('connection', (ws, req) => {
               apiKey: OPENAI_API_KEY,
               model: 'gpt-4o',
               voice: 'alloy',
-              onSessionUpdated: () => {
-                console.log('[STREAM] openAiReady true after session.updated');
+              onOpen: () => {
+                console.log('[STREAM] OpenAI websocket opened, marking ready immediately for test');
                 twilioHandler.setOpenAiReady();
               },
               onAudioDelta: (delta: string) => {
@@ -335,13 +335,6 @@ wss.on('connection', (ws, req) => {
               .then(() => {
                 log(LogLevel.INFO, '[AI POC] initializeOpenAI completed');
                 openaiInitSucceeded = true;
-
-                // Wait a moment for session to be established before sending greeting
-                setTimeout(() => {
-                  log(LogLevel.INFO, 'Sending greeting...');
-                  openaiClient.sendGreeting();
-                  log(LogLevel.INFO, 'Greeting sent');
-                }, 500);
               })
               .catch((error: Error) => {
                 log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed', error);

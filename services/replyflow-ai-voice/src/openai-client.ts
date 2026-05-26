@@ -91,6 +91,25 @@ export class OpenAIRealtimeClient {
 
         console.log('[OPENAI] attaching listeners');
         
+        // Low-level ws listeners for debugging
+        this.ws.on('open', () => {
+          console.log('[OPENAI RAW] open');
+        });
+        
+        this.ws.on('message', (data) => {
+          console.log('[OPENAI RAW] message', { first200: data.toString().substring(0, 200) });
+        });
+        
+        this.ws.on('error', (error) => {
+          console.log('[OPENAI RAW] error', { error: String(error) });
+        });
+        
+        this.ws.on('close', (code, reason) => {
+          console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
+        });
+        
+        console.log('[OPENAI LISTENERS] attached to ws instance');
+        
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
         log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-realtime' });
@@ -128,29 +147,21 @@ export class OpenAIRealtimeClient {
           log(LogLevel.INFO, '[OPENAI] websocket open event fired');
           log(LogLevel.INFO, '[AI POC] OpenAI connected');
 
-          // Call onOpen callback to notify listeners
-          if (this.config.onOpen) {
-            this.config.onOpen();
+          // Send minimal test message
+          const testMessage = {
+            type: 'response.create',
+            response: {
+              modalities: ['audio', 'text'],
+              instructions: 'Say exactly: Hello from ReplyFlow.',
+            },
+          };
+          console.log('[OPENAI TEST] sending test message');
+          if (this.ws) {
+            this.ws.send(JSON.stringify(testMessage));
           }
-
-          // Set timeout for session.updated
-          this.sessionUpdateTimeoutId = setTimeout(() => {
-            if (!this.sessionUpdatedReceived) {
-              console.log('[OPENAI SESSION] session.updated timeout');
-              log(LogLevel.ERROR, '[AI POC] session.updated timeout');
-            }
-          }, 3000);
-
-          // Clear timeout on successful connection
-          if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-            this.timeoutId = null;
-          }
+          console.log('[OPENAI TEST] test message sent');
 
           this.connectionState = ConnectionState.CONNECTED;
-
-          // Send session configuration
-          this.sendSessionUpdate();
           resolve();
         });
 
