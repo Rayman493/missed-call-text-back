@@ -118,9 +118,7 @@ export class TwilioStreamHandler {
             const audioBuffer = Buffer.from(audioPayload, 'base64');
             
             if (this.openAiReady) {
-              // DISABLED FOR INITIAL HELLO TEST
               // Send directly if OpenAI is ready
-              /*
               const openAiWs = (this as any).openAiWs;
               if (openAiWs) {
                 const audioMessage = {
@@ -130,8 +128,7 @@ export class TwilioStreamHandler {
                 openAiWs.send(JSON.stringify(audioMessage));
                 log(LogLevel.INFO, '[OPENAI OUTBOUND] input_audio_buffer.append');
               }
-              */
-              log(LogLevel.INFO, '[MEDIA] audio append DISABLED for hello test');
+              log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
               if (this.mediaBuffer.length < 100) {
