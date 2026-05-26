@@ -301,13 +301,14 @@ wss.on('connection', (ws, req) => {
             console.log('[OPENAI AUDIT] websocket library import:', 'ws package');
             console.log('[OPENAI AUDIT] websocket URL:', 'wss://api.openai.com/v1/realtime?model=gpt-realtime');
             console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
-            console.log('[OPENAI AUDIT] headers keys:', ['Authorization']);
-            console.log('[OPENAI AUDIT] OpenAI-Beta header:', 'NOT PRESENT');
             console.log('[STREAM OPENAI] creating websocket');
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'OpenAI-Beta': 'realtime=v1',
             };
+            console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
+            console.log('[OPENAI AUDIT] OpenAI-Beta header:', 'PRESENT');
             openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
             
