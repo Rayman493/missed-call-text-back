@@ -34,7 +34,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-6" data-desktop-layout>
+    <div className="space-y-6" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle voicemail items - always render with full audio player for desktop
         if (item.type === 'voicemail') {

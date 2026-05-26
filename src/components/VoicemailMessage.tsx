@@ -464,6 +464,12 @@ export default function VoicemailMessage({
         inSidebar: !!audio.closest("[data-sidebar]"),
         inMobileLayout: !!audio.closest("[data-mobile-layout]"),
         inDesktopLayout: !!audio.closest("[data-desktop-layout]"),
+        inActiveConversation: !!audio.closest("[data-active-conversation-list]"),
+        inCompactVoicemail: !!audio.closest("[data-compact-voicemail]"),
+        closestDataId: audio.closest("[data-voicemail-id]")?.getAttribute("data-voicemail-id"),
+        elementId: (audio as HTMLAudioElement).id,
+        parentElementTag: audio.parentElement?.tagName,
+        parentElementClass: audio.parentElement?.className,
       }))
     );
     

@@ -1492,7 +1492,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         )}
 
-        {/* Mobile Layout - Single Column */}
+        {/* Mobile Layout - Single Column - Disabled to prevent duplicate audio elements */}
+        {false && (
         <div className="lg:hidden">
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Message Thread */}
@@ -1754,6 +1755,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             />
           </div>
         </div>
+        )}
       </div>
 
       {/* Mobile Bottom Sheet for Lead Details */}
