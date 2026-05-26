@@ -423,17 +423,29 @@ export default function VoicemailMessage({
   // Debug logging function for all audio elements
   const logAllAudioElements = () => {
     const allAudio = document.querySelectorAll("audio")
-    console.log(
-      "[VOICEMAIL DEBUG] all audio elements",
-      Array.from(allAudio).map((audio) => ({
-        voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
-        src: (audio as HTMLAudioElement).src,
-        currentTime: (audio as HTMLAudioElement).currentTime,
-        paused: (audio as HTMLAudioElement).paused,
-        ended: (audio as HTMLAudioElement).ended,
-        readyState: (audio as HTMLAudioElement).readyState,
-      }))
-    )
+    const audioElements = Array.from(allAudio).map((audio) => ({
+      voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
+      src: (audio as HTMLAudioElement).src,
+      currentTime: (audio as HTMLAudioElement).currentTime,
+      paused: (audio as HTMLAudioElement).paused,
+      ended: (audio as HTMLAudioElement).ended,
+      readyState: (audio as HTMLAudioElement).readyState,
+    }))
+    
+    console.log("[VOICEMAIL DEBUG] all audio elements", audioElements)
+    
+    // Count voicemail audio elements (those with data-voicemail-id)
+    const voicemailAudioElements = audioElements.filter(audio => audio.voicemailId)
+    const expectedCount = document.querySelectorAll('[data-voicemail-id]').length
+    
+    if (voicemailAudioElements.length > expectedCount) {
+      console.warn(
+        `[VOICEMAIL WARNING] Audio element count mismatch! ` +
+        `Found ${voicemailAudioElements.length} voicemail audio elements, ` +
+        `expected ${expectedCount} based on voicemail cards. ` +
+        `This may cause echo/overlap issues.`
+      )
+    }
   }
 
   // Handle playback state changes from audio manager
