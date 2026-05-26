@@ -14,26 +14,45 @@ import { createAISession, failAISession } from '@/lib/ai-call-assistant/session'
  * 2. Creates session record
  * 3. Returns TwiML with WebSocket URL for Fly.io service
  * 4. Falls back to voicemail on any error
+ * 
+ * Supports both POST (direct from Twilio) and GET (redirect from /api/twilio/voice)
  */
-export async function POST(request: NextRequest) {
+async function handlePOCStart(request: NextRequest, method: string) {
   try {
-    console.log('[AI POC] POC start route hit')
+    console.log('[AI POC START] method:', method)
 
-    // Read body for Twilio params
-    const rawBody = await request.text()
-    const contentType = request.headers.get('content-type') || ''
-    const params = Object.fromEntries(new URLSearchParams(rawBody))
+    // Read Twilio params from searchParams (GET) or body (POST)
+    let params: Record<string, string>
+    let rawBody = ''
+    let contentType = ''
 
-    // Validate Twilio signature
-    const isValid = requireTwilioAuth(request, params, rawBody.length, contentType)
+    if (method === 'GET') {
+      // GET: read from URL searchParams
+      const url = new URL(request.url)
+      params = Object.fromEntries(url.searchParams)
+    } else {
+      // POST: read from body
+      rawBody = await request.text()
+      contentType = request.headers.get('content-type') || ''
+      params = Object.fromEntries(new URLSearchParams(rawBody))
+    }
+
+    // Validate Twilio signature (skip for GET redirects - already validated at source)
+    let isValid = true
+    if (method === 'POST') {
+      isValid = requireTwilioAuth(request, params, rawBody.length, contentType)
+    }
+    
     if (!isValid) {
-      console.log('[AI POC] Invalid Twilio signature')
+      console.log('[AI POC START] Invalid Twilio signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const From = params.From
     const To = params.To
     const CallSid = params.CallSid
+
+    console.log('[AI POC START] callSid:', CallSid)
 
     if (!From || !To || !CallSid) {
       console.log('[AI POC] Missing required params')
@@ -81,10 +100,7 @@ export async function POST(request: NextRequest) {
     // Get Fly.io WebSocket URL from environment
     const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
 
-    console.log('[AI POC] Routing to Fly.io WebSocket service', {
-      ws_url: flyWsUrl,
-      session_id: session.id
-    })
+    console.log('[AI POC START] fly websocket url:', flyWsUrl)
 
     // Return TwiML with Media Stream to Fly.io
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -98,6 +114,8 @@ export async function POST(request: NextRequest) {
   </Connect>
 </Response>`
 
+    console.log('[AI POC START] returning TwiML')
+
     return new NextResponse(twiml, {
       status: 200,
       headers: {
@@ -110,6 +128,14 @@ export async function POST(request: NextRequest) {
     console.error('[AI POC] Error in POC start route:', error)
     return generateFallbackTwiML('unexpected_error')
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handlePOCStart(request, 'GET')
+}
+
+export async function POST(request: NextRequest) {
+  return handlePOCStart(request, 'POST')
 }
 
 /**

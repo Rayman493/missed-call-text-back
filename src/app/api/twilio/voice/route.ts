@@ -11,6 +11,7 @@ import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
 import { checkAllGuards } from '@/lib/ai-call-assistant/config';
+import { createAISession } from '@/lib/ai-call-assistant/session';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -322,13 +323,13 @@ export async function POST(request: NextRequest) {
 
     // AI CALL ASSISTANT: Check if AI should handle this call
     // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
-    // Phase 1A POC: /api/twilio/ai-assistant/poc-start (routes to Fly.io)
+    // Phase 1A POC: Direct TwiML return (routes to Fly.io)
     // This is a minimal, safe check that does NOT affect production customers
     console.log('[AI CALL ASSISTANT] Checking if AI should handle this call')
     const guardResult = checkAllGuards(business.id)
     
     if (guardResult.passed) {
-      console.log('[AI CALL ASSISTANT] All guards passed - redirecting to AI assistant', {
+      console.log('[AI CALL ASSISTANT] All guards passed', {
         businessId: business.id,
         callSid: CallSid,
         reason: guardResult.reason
@@ -336,12 +337,65 @@ export async function POST(request: NextRequest) {
       
       // Choose route based on environment variable
       const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true'
-      const aiRoute = usePOC ? '/api/twilio/ai-assistant/poc-start' : '/api/twilio/ai-assistant/start'
       
-      console.log('[AI CALL ASSISTANT] Using route', { route: aiRoute, usePOC })
-      
-      const aiStartUrl = new URL(aiRoute, request.url)
-      return NextResponse.redirect(aiStartUrl)
+      if (usePOC) {
+        // Phase 1A POC: Generate TwiML directly to avoid redirect issues
+        console.log('[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML directly')
+        
+        try {
+          // Create AI session
+          const session = await createAISession({
+            business_id: business.id,
+            lead_id: null, // Phase 1A: no lead creation yet
+            call_sid: CallSid,
+          })
+
+          if (!session) {
+            console.log('[AI CALL ASSISTANT] Failed to create session, falling back to voicemail')
+          } else {
+            console.log('[AI CALL ASSISTANT] Session created', {
+              session_id: session.id,
+              call_sid: session.call_sid
+            })
+
+            // Get Fly.io WebSocket URL from environment
+            const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
+
+            console.log('[AI CALL ASSISTANT] Routing to Fly.io WebSocket service', {
+              ws_url: flyWsUrl,
+              session_id: session.id
+            })
+
+            // Return TwiML with Media Stream to Fly.io
+            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Connect>
+    <Stream url="${flyWsUrl}">
+      <Parameter name="session_id" value="${session.id}" />
+      <Parameter name="business_id" value="${business.id}" />
+      <Parameter name="call_sid" value="${CallSid}" />
+    </Stream>
+  </Connect>
+</Response>`
+
+            return new NextResponse(twiml, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/xml',
+                'X-AI-POC': 'phase-1a'
+              },
+            })
+          }
+        } catch (error) {
+          console.error('[AI CALL ASSISTANT] Error generating POC TwiML:', error)
+          // Fall through to existing voicemail flow
+        }
+      } else {
+        // Phase 0: Redirect to start route
+        console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant')
+        const aiStartUrl = new URL('/api/twilio/ai-assistant/start', request.url)
+        return NextResponse.redirect(aiStartUrl)
+      }
     } else {
       console.log('[AI CALL ASSISTANT] Guards failed - continuing with existing voicemail flow', {
         businessId: business.id,
