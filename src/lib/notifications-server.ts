@@ -1,5 +1,4 @@
-import { createBrowserClient } from '@/lib/supabase/browser'
-import { Business } from '@/lib/types'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export interface Notification {
   id: string
@@ -78,12 +77,10 @@ export const NOTIFICATION_TEMPLATES = {
   })
 }
 
-export class NotificationService {
-  private supabase = createBrowserClient()
-
+export class NotificationServiceServer {
   async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
     console.log('[NOTIFICATIONS] Fetching notifications for business:', businessId, 'limit:', limit)
-    const { data, error } = await this.supabase
+    const { data, error } = await supabaseAdmin
       .from('notifications')
       .select('*')
       .eq('business_id', businessId)
@@ -101,7 +98,7 @@ export class NotificationService {
 
   async getNotificationCount(businessId: string): Promise<NotificationCount> {
     console.log('[NOTIFICATIONS] Fetching notification count for business:', businessId)
-    const { data, error } = await this.supabase
+    const { data, error } = await supabaseAdmin
       .from('notifications')
       .select('read')
       .eq('business_id', businessId)
@@ -121,25 +118,25 @@ export class NotificationService {
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await supabaseAdmin
       .from('notifications')
       .update({ read: true })
       .eq('id', notificationId)
 
     if (error) {
-      console.error('Error marking notification as read:', error)
+      console.error('[NOTIFICATIONS] Error marking notification as read:', error)
     }
   }
 
   async markAllAsRead(businessId: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await supabaseAdmin
       .from('notifications')
       .update({ read: true })
       .eq('business_id', businessId)
       .eq('read', false)
 
     if (error) {
-      console.error('Error marking all notifications as read:', error)
+      console.error('[NOTIFICATIONS] Error marking all notifications as read:', error)
     }
   }
 
@@ -158,7 +155,8 @@ export class NotificationService {
       notificationData = template(data || {})
     }
 
-    const { error } = await this.supabase
+    console.log('[NOTIFICATIONS] Creating notification:', { businessId, type, message })
+    const { error } = await supabaseAdmin
       .from('notifications')
       .insert({
         business_id: businessId,
@@ -173,7 +171,9 @@ export class NotificationService {
       })
 
     if (error) {
-      console.error('Error creating notification:', error)
+      console.error('[NOTIFICATIONS] Error creating notification:', error)
+    } else {
+      console.log('[NOTIFICATIONS] Notification created successfully')
     }
   }
 
@@ -205,6 +205,15 @@ export class NotificationService {
     )
   }
 
+  async notifyVoicemailReceived(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<void> {
+    await this.createNotification(
+      businessId,
+      'voicemail_received',
+      '',
+      { leadName, leadPhone, leadId }
+    )
+  }
+
   async notifyTrialEnding(businessId: string, daysLeft: number): Promise<void> {
     await this.createNotification(
       businessId,
@@ -224,4 +233,4 @@ export class NotificationService {
   }
 }
 
-export const notificationService = new NotificationService()
+export const notificationServiceServer = new NotificationServiceServer()

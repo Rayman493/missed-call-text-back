@@ -2,6 +2,7 @@ import { db } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export interface ProcessInboundSmsParams {
   messageSid: string
@@ -284,6 +285,19 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.error(`[SMS Processing] Failed to save message`)
   } else {
     console.log(`[SMS Processing] Saved inbound message: ${message.id}`)
+    
+    // Create notification for customer reply
+    try {
+      await notificationServiceServer.notifyCustomerReply(
+        business.id,
+        'Customer',
+        sanitizedBody,
+        lead.id
+      );
+      console.log('[SMS Processing] Notification created for customer reply');
+    } catch (error) {
+      console.error('[SMS Processing] Failed to create notification:', error);
+    }
   }
   
   // Return success response

@@ -5,6 +5,7 @@ import { normalizePhoneNumber, sendSms } from '@/lib/twilio';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
+import { notificationServiceServer } from '@/lib/notifications-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +113,19 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[VOICEMAIL] Lead created:', lead.id);
+      
+      // Create notification for new lead
+      try {
+        await notificationServiceServer.notifyNewLead(
+          business.id,
+          'New Customer',
+          normalizedCallerPhone,
+          lead.id
+        );
+        console.log('[VOICEMAIL] Notification created for new lead');
+      } catch (error) {
+        console.error('[VOICEMAIL] Failed to create notification:', error);
+      }
     } else {
       console.log('[VOICEMAIL] Using existing lead:', lead.id);
     }
@@ -169,6 +183,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[VOICEMAIL] Recording saved:', voicemail.id);
+
+    // Create notification for voicemail
+    try {
+      await notificationServiceServer.notifyVoicemailReceived(
+        business.id,
+        'Customer',
+        normalizedCallerPhone,
+        lead.id
+      );
+      console.log('[VOICEMAIL] Notification created for voicemail');
+    } catch (error) {
+      console.error('[VOICEMAIL] Failed to create voicemail notification:', error);
+    }
 
     // MISSED CALL TIMING: Check if SMS needs to be sent after voicemail completion
     console.log('[MISSED CALL TIMING] voicemail completed', {

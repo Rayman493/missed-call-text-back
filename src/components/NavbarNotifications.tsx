@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
+import { Phone } from 'lucide-react'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard } from 'lucide-react'
 
 // Hook to detect mobile breakpoint
@@ -111,6 +112,8 @@ export default function NavbarNotifications() {
       case 'trial_ending':
       case 'subscription_issue':
         return <CreditCard className="w-4 h-4 text-amber-600" />
+      case 'voicemail_received':
+        return <Phone className="w-4 h-4 text-blue-600" />
       default:
         return <Bell className="w-4 h-4 text-gray-600" />
     }
@@ -132,6 +135,8 @@ export default function NavbarNotifications() {
       case 'trial_ending':
       case 'subscription_issue':
         return 'bg-amber-50 dark:bg-amber-900/20'
+      case 'voicemail_received':
+        return 'bg-blue-50 dark:bg-blue-900/20'
       default:
         return 'bg-gray-50 dark:bg-gray-800/50'
     }
