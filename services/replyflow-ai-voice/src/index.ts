@@ -49,11 +49,11 @@ wss.on('connection', (ws, req) => {
   log(LogLevel.INFO, '[WS ENTRY] waiting for first message');
 
   try {
-    // Extract parameters from URL (fallback)
+    // Extract parameters from URL (fallback - not required)
     const url = new URL(req.url || '', `http://${req.headers.host}`);
-    
+
     log(LogLevel.INFO, '[AI POC] raw websocket request url:', req.url);
-    
+
     const urlSessionId = url.searchParams.get('sessionId');
     const urlBusinessId = url.searchParams.get('businessId');
     const urlCallSid = url.searchParams.get('callSid');
@@ -68,6 +68,8 @@ wss.on('connection', (ws, req) => {
       callSid: urlCallSid || '',
     });
 
+    log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
+
     // Override handleMessage to capture customParameters from start event
     const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
     (twilioHandler as any).handleMessage = (data: any) => {
@@ -75,17 +77,21 @@ wss.on('connection', (ws, req) => {
         const message = JSON.parse(data.toString());
 
         if (message.event === 'start') {
+          log(LogLevel.INFO, '[AI POC] Twilio start event received');
+
           const customParams = message.start?.customParameters || {};
+
+          log(LogLevel.INFO, '[AI POC] customParameters:', customParams);
+
           const sessionId = customParams.sessionId || urlSessionId;
           const callSid = customParams.callSid || urlCallSid;
           const businessId = customParams.businessId || urlBusinessId;
 
-          log(LogLevel.INFO, '[AI POC] Twilio start event customParameters:', customParams);
           log(LogLevel.INFO, '[AI POC] parsed sessionId:', sessionId);
           log(LogLevel.INFO, '[AI POC] parsed callSid:', callSid);
 
           if (!sessionId || !callSid) {
-            log(LogLevel.WARN, '[AI POC] Missing required parameters from both URL and customParameters');
+            log(LogLevel.WARN, '[AI POC] Missing Twilio start customParameters');
             ws.close(1008, 'Missing required parameters');
             return;
           }
@@ -98,6 +104,45 @@ wss.on('connection', (ws, req) => {
           };
 
           log(LogLevel.INFO, '[AI POC] Connection parameters validated', { sessionId, callSid });
+
+          // Now connect to OpenAI after receiving start event
+          log(LogLevel.INFO, '[AI POC] connecting to OpenAI after start event');
+
+          const openaiClient = new OpenAIRealtimeClient({
+            apiKey: OPENAI_API_KEY,
+            model: 'gpt-4o',
+            voice: 'alloy',
+          });
+
+          openaiClient
+            .connect()
+            .then(() => {
+              log(LogLevel.INFO, 'OpenAI connected successfully');
+
+              // Send greeting
+              log(LogLevel.INFO, 'Sending greeting...');
+              openaiClient.sendGreeting();
+              log(LogLevel.INFO, 'Greeting sent');
+            })
+            .catch((error) => {
+              log(LogLevel.ERROR, 'Failed to connect to OpenAI', error);
+
+              // Fallback: close connection, Twilio will redirect to voicemail
+              log(LogLevel.INFO, 'Falling back to voicemail');
+              ws.close(1011, 'OpenAI connection failed');
+            });
+
+          // Handle WebSocket close
+          ws.on('close', (code, reason) => {
+            log(LogLevel.INFO, '[WS CLOSED]', { code, reason: reason?.toString() });
+            openaiClient.disconnect();
+          });
+
+          // Handle WebSocket error
+          ws.on('error', (error) => {
+            log(LogLevel.ERROR, '[WS ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
+            openaiClient.disconnect();
+          });
         }
 
         // Call original handler
@@ -109,45 +154,6 @@ wss.on('connection', (ws, req) => {
 
     // Handle Twilio connection
     twilioHandler.handleConnection(ws, req);
-
-    // Connect to OpenAI Realtime
-    const openaiClient = new OpenAIRealtimeClient({
-      apiKey: OPENAI_API_KEY,
-      model: 'gpt-4o',
-      voice: 'alloy',
-    });
-
-    log(LogLevel.INFO, 'Connecting to OpenAI...');
-
-    openaiClient
-      .connect()
-      .then(() => {
-        log(LogLevel.INFO, 'OpenAI connected successfully');
-        
-        // Send greeting
-        log(LogLevel.INFO, 'Sending greeting...');
-        openaiClient.sendGreeting();
-        log(LogLevel.INFO, 'Greeting sent');
-      })
-      .catch((error) => {
-        log(LogLevel.ERROR, 'Failed to connect to OpenAI', error);
-        
-        // Fallback: close connection, Twilio will redirect to voicemail
-        log(LogLevel.INFO, 'Falling back to voicemail');
-        ws.close(1011, 'OpenAI connection failed');
-      });
-
-    // Handle WebSocket close
-    ws.on('close', (code, reason) => {
-      log(LogLevel.INFO, '[WS CLOSED]', { code, reason: reason?.toString() });
-      openaiClient.disconnect();
-    });
-
-    // Handle WebSocket error
-    ws.on('error', (error) => {
-      log(LogLevel.ERROR, '[WS ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
-      openaiClient.disconnect();
-    });
 
   } catch (error) {
     log(LogLevel.ERROR, '[WS FATAL ERROR]', { message: (error as Error).message, stack: (error as Error).stack });
