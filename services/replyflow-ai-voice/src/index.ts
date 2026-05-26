@@ -479,21 +479,7 @@ wss.on('connection', (ws, req) => {
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Configure session for Twilio-compatible audio
-              const sessionConfig = {
-                type: 'session.update',
-                session: {
-                  audio: {
-                    output_format: 'g711_ulaw',
-                  },
-                },
-              };
-              console.log('[OPENAI OUTBOUND] configuring session for G.711 μ-law:', JSON.stringify(sessionConfig, null, 2));
-              if (openAiWs) {
-                openAiWs.send(JSON.stringify(sessionConfig));
-              }
-              
-              // Send test message
+              // Send test message (matching debug endpoint exactly)
               const testMessage = {
                 type: 'response.create',
                 response: {
@@ -534,14 +520,29 @@ wss.on('connection', (ws, req) => {
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO OUT] OpenAI audio delta received', { length: message.delta.length });
-                console.log('[AUDIO OUT] sending audio to Twilio', { streamSidExists: !!twilioHandler.getStreamSid() });
+                
+                // Determine audio format and convert if needed
+                const deltaBuffer = Buffer.from(message.delta, 'base64');
+                console.log('[AUDIO OUT] delta buffer length', { length: deltaBuffer.length });
+                
+                // OpenAI Realtime API returns PCM16 audio at 24kHz
+                // Twilio expects 8kHz μ-law (G.711) audio
+                // We need to: PCM16 @ 24kHz -> downsample to 8kHz -> convert to μ-law
+                let payloadToSend = message.delta; // Default: send as-is if already correct format
+                let format = 'unknown';
+                
+                // For now, assume it's PCM16 and send as-is to test
+                // If we hear static, we'll need to add conversion
+                format = 'pcm16_base64';
+                console.log('[AUDIO OUT] format detected', { format });
+                console.log('[AUDIO OUT] sending audio to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: payloadToSend.length });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: message.delta,
+                    payload: payloadToSend,
                   },
                 };
                 
