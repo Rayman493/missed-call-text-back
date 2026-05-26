@@ -387,6 +387,7 @@ wss.on('connection', (ws, req) => {
                   instructions: 'Say hello from ReplyFlow.',
                 },
               };
+              console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
               console.log('[OPENAI TEST] sending test message');
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(testMessage));
@@ -411,6 +412,11 @@ wss.on('connection', (ws, req) => {
 
               // Log every message type
               console.log('[OPENAI WS] message type', { type: message.type });
+
+              // Log full error payload
+              if (message.type === 'error') {
+                console.log('[OPENAI ERROR] full payload', JSON.stringify(message, null, 2));
+              }
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {

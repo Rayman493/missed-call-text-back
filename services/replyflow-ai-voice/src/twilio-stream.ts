@@ -121,10 +121,12 @@ export class TwilioStreamHandler {
               // Send directly if OpenAI is ready
               const openAiWs = (this as any).openAiWs;
               if (openAiWs) {
-                openAiWs.send(JSON.stringify({
+                const audioMessage = {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
-                }));
+                };
+                openAiWs.send(JSON.stringify(audioMessage));
+                log(LogLevel.INFO, '[OPENAI OUTBOUND] input_audio_buffer.append');
               }
               log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
             } else {
