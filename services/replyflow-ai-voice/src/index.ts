@@ -315,10 +315,11 @@ wss.on('connection', (ws, req) => {
 
           try {
             console.log('[OPENAI AUDIT] websocket library import:', 'ws package');
-            console.log('[OPENAI AUDIT] websocket URL:', 'wss://api.openai.com/v1/realtime?model=gpt-realtime');
-            console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
-            console.log('[STREAM OPENAI] creating websocket');
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+            console.log('[OPENAI AUDIT] websocket URL:', wsUrl);
+            console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
+            console.log('[OPENAI AUDIT] OpenAI API version:', 'v1/realtime');
+            console.log('[STREAM OPENAI] creating websocket');
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
               'OpenAI-Beta': 'realtime=v1',
@@ -465,7 +466,17 @@ wss.on('connection', (ws, req) => {
               console.log('[OPENAI RAW] unexpected-response', { statusCode: response.statusCode });
               console.log('[OPENAI AUDIT] unexpected-response details', { 
                 statusCode: response.statusCode, 
+                statusMessage: response.statusMessage,
                 headers: response.headers 
+              });
+              
+              // Try to read response body
+              let body = '';
+              response.on('data', (chunk) => {
+                body += chunk.toString();
+              });
+              response.on('end', () => {
+                console.log('[OPENAI AUDIT] unexpected-response body', body);
               });
             });
             console.log('[OPENAI AUDIT] unexpected-response listener attached');
