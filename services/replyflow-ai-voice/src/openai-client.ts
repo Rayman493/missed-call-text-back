@@ -174,6 +174,7 @@ export class OpenAIRealtimeClient {
       },
     };
 
+    log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(sessionUpdate, null, 2));
     this.ws.send(JSON.stringify(sessionUpdate));
     log(LogLevel.INFO, 'Session update sent to OpenAI');
   }
@@ -185,7 +186,7 @@ export class OpenAIRealtimeClient {
     // For Phase 1A, we'll use text-to-speech via the API
     // This is a simplified approach for the POC
     log(LogLevel.INFO, 'Sending greeting via OpenAI');
-    
+
     // Send a text message that will be converted to speech
     const message = {
       type: 'conversation.item.create',
@@ -202,14 +203,16 @@ export class OpenAIRealtimeClient {
     };
 
     if (this.ws?.readyState === WebSocket.OPEN) {
+      log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(message, null, 2));
       this.ws.send(JSON.stringify(message));
-      
+
       // Request response generation
       const createResponse = {
         type: 'response.create',
       };
+      log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(createResponse, null, 2));
       this.ws.send(JSON.stringify(createResponse));
-      
+
       log(LogLevel.INFO, 'Greeting sent to OpenAI');
     }
   }
@@ -246,6 +249,7 @@ export class OpenAIRealtimeClient {
         type: 'input_audio_buffer.append',
         audio: audioData.toString('base64'),
       };
+      log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(message, null, 2));
       this.ws.send(JSON.stringify(message));
     }
   }
