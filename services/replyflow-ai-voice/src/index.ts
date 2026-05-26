@@ -182,7 +182,6 @@ const server = createServer((req, res) => {
     const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[DEBUG OPENAI] websocket URL:', wsUrl);
