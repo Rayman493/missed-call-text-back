@@ -305,7 +305,6 @@ wss.on('connection', (ws, req) => {
             };
             openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
-            console.log('[OPENAI REF] websocket assigned');
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
@@ -314,11 +313,18 @@ wss.on('connection', (ws, req) => {
             
             console.log('[STREAM OPENAI] listeners attaching');
 
-            // Attach raw listeners directly
+            // Add open timeout
+            let opened = false;
+            setTimeout(() => {
+              if (!opened) {
+                console.log('[OPENAI RAW] open timeout (5 seconds)');
+              }
+            }, 5000);
+
+            // Attach listeners exactly like /test-openai
             openAiWs.on('open', () => {
-              console.log('[OPENAI WS] socket open');
-              console.log('[OPENAI WS] readyState', openAiWs?.readyState);
-              console.log('[STREAM] OpenAI websocket opened, marking ready immediately for test');
+              opened = true;
+              console.log('[OPENAI RAW] open');
               console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
@@ -328,7 +334,7 @@ wss.on('connection', (ws, req) => {
                 type: 'response.create',
                 response: {
                   modalities: ['audio', 'text'],
-                  instructions: 'Say exactly: Hello from ReplyFlow.',
+                  instructions: 'Say hello from ReplyFlow.',
                 },
               };
               console.log('[OPENAI TEST] sending test message');
@@ -339,9 +345,7 @@ wss.on('connection', (ws, req) => {
             });
 
             openAiWs.on('message', (data) => {
-              console.log('[OPENAI WS] message received');
-              const dataStr = data.toString();
-              console.log('[OPENAI WS] message length', { length: dataStr.length });
+              console.log('[OPENAI RAW] message');
               
               // Parse message
               let message;
@@ -354,26 +358,6 @@ wss.on('connection', (ws, req) => {
 
               // Log every message type
               console.log('[OPENAI WS] message type', { type: message.type });
-
-              // Log specific message types
-              if (message.type === 'session.created') {
-                console.log('[OPENAI WS] session.created');
-              }
-              if (message.type === 'session.updated') {
-                console.log('[OPENAI WS] session.updated');
-              }
-              if (message.type === 'error') {
-                console.log('[OPENAI WS] error', { error: message.error });
-              }
-              if (message.type === 'response.created') {
-                console.log('[OPENAI WS] response.created');
-              }
-              if (message.type === 'response.output_audio.delta') {
-                console.log('[OPENAI WS] response.output_audio.delta');
-              }
-              if (message.type === 'response.done') {
-                console.log('[OPENAI WS] response.done');
-              }
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
@@ -399,13 +383,13 @@ wss.on('connection', (ws, req) => {
             });
 
             openAiWs.on('error', (error) => {
-              console.log('[OPENAI WS] error', { error: String(error) });
+              console.log('[OPENAI RAW] error', { error: String(error) });
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
             });
 
             openAiWs.on('close', (code, reason) => {
-              console.log('[OPENAI WS] close', { code, reason: reason?.toString() });
+              console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
             });
 
