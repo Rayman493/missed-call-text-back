@@ -45,7 +45,7 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 sticky bottom-0 z-20 pb-safe">
+    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 pb-6 sm:pb-8 sticky bottom-0 z-20">
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
@@ -59,7 +59,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={sending}
-                className="w-full px-4 sm:px-5 py-4 sm:py-4.5 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed min-h-[56px] sm:min-h-[60px] max-h-[140px]"
+                className="w-full px-4 sm:px-5 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed h-10 sm:h-11 max-h-[140px]"
                 rows={1}
               />
               
@@ -75,7 +75,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-6 py-4 sm:px-7 sm:py-4.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center gap-2.5 sm:gap-3 min-w-[100px] sm:min-w-[120px] justify-center font-semibold text-sm sm:text-base"
+              className="flex-shrink-0 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center gap-2.5 sm:gap-3 min-w-[100px] sm:min-w-[120px] justify-center font-semibold text-sm sm:text-base h-10 sm:h-11"
             >
               {sending ? (
                 <>
