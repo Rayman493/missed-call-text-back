@@ -118,7 +118,9 @@ export class TwilioStreamHandler {
             const audioBuffer = Buffer.from(audioPayload, 'base64');
             
             if (this.openAiReady) {
+              // DISABLED FOR AUDIO FORMAT DEBUGGING
               // Send directly if OpenAI is ready
+              /*
               const openAiWs = (this as any).openAiWs;
               if (openAiWs) {
                 const audioMessage = {
@@ -129,6 +131,8 @@ export class TwilioStreamHandler {
                 log(LogLevel.INFO, '[OPENAI OUTBOUND] input_audio_buffer.append');
               }
               log(LogLevel.INFO, '[MEDIA] after audio append (sent directly)');
+              */
+              log(LogLevel.INFO, '[MEDIA] caller audio DISABLED for audio format debugging');
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
               if (this.mediaBuffer.length < 100) {

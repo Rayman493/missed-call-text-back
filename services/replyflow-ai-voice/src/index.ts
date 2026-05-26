@@ -479,6 +479,20 @@ wss.on('connection', (ws, req) => {
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
+              // Configure session for Twilio-compatible audio
+              const sessionConfig = {
+                type: 'session.update',
+                session: {
+                  audio: {
+                    output_format: 'g711_ulaw',
+                  },
+                },
+              };
+              console.log('[OPENAI OUTBOUND] configuring session for G.711 μ-law:', JSON.stringify(sessionConfig, null, 2));
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify(sessionConfig));
+              }
+              
               // Send test message
               const testMessage = {
                 type: 'response.create',
