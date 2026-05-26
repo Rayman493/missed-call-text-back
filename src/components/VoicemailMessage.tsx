@@ -74,6 +74,9 @@ export default function VoicemailMessage({
   const audioRef = useRef<HTMLAudioElement>(null)
   const volumeSliderRef = useRef<HTMLDivElement>(null)
   const progressBarRef = useRef<HTMLDivElement>(null)
+  
+  // Cache blob URL to prevent recreation
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
 
   // Initialize secure audio URL when component mounts
   useEffect(() => {
@@ -111,6 +114,8 @@ export default function VoicemailMessage({
           expectedApiCall: `/api/voicemail/${recordingSid}`
         })
         
+        console.log('[VOICEMAIL DEBUG] Recording URL for testing:', secureUrl)
+        
         setAudioUrl(secureUrl)
       } catch (error) {
         console.error('[VOICEMAIL FRONTEND] Failed to initialize audio URL:', error)
@@ -122,6 +127,17 @@ export default function VoicemailMessage({
 
     initializeAudioUrl()
   }, [recording.recording_status, recording.recording_url])
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        console.log('[VOICEMAIL DEBUG] Revoking blob URL on unmount:', recording.id)
+        URL.revokeObjectURL(blobUrl)
+        setBlobUrl(null)
+      }
+    }
+  }, [blobUrl, recording.id])
 
   // Audio event handlers
   const handleLoadedMetadata = () => {
@@ -186,6 +202,9 @@ export default function VoicemailMessage({
   }
 
   const togglePlayPause = async () => {
+    console.log('[VOICEMAIL DEBUG] play clicked for voicemail:', recording.id)
+    logAllAudioElements()
+    
     const audio = audioRef.current
     if (!audio) {
       console.error('[VOICEMAIL FRONTEND] Audio ref not available')
@@ -240,19 +259,29 @@ export default function VoicemailMessage({
               })
               
               if (response.ok) {
-                const audioBlob = await response.blob()
-                const objectUrl = URL.createObjectURL(audioBlob)
+                let objectUrl = blobUrl
                 
-                console.log('[VOICEMAIL FRONTEND] Created blob URL:', objectUrl)
+                // Create blob URL only if not cached
+                if (!objectUrl) {
+                  const audioBlob = await response.blob()
+                  objectUrl = URL.createObjectURL(audioBlob)
+                  setBlobUrl(objectUrl)
+                  console.log('[VOICEMAIL FRONTEND] Created new blob URL:', objectUrl)
+                } else {
+                  console.log('[VOICEMAIL FRONTEND] Reusing cached blob URL:', objectUrl)
+                }
                 
                 // Set the audio source and load it
                 audio.src = objectUrl
                 audio.load()
                 
-                // Clean up object URL when audio finishes
+                // Clean up object URL when audio finishes (only if we created it)
                 const handleEnded = () => {
                   console.log('[VOICEMAIL FRONTEND] Audio playback ended')
-                  URL.revokeObjectURL(objectUrl)
+                  if (blobUrl === objectUrl) {
+                    URL.revokeObjectURL(objectUrl)
+                    setBlobUrl(null)
+                  }
                   audio.removeEventListener('ended', handleEnded)
                 }
                 audio.addEventListener('ended', handleEnded)
@@ -260,7 +289,10 @@ export default function VoicemailMessage({
                 // Also clean up on error
                 const handleError = () => {
                   console.error('[VOICEMAIL FRONTEND] Audio playback error')
-                  URL.revokeObjectURL(objectUrl)
+                  if (blobUrl === objectUrl) {
+                    URL.revokeObjectURL(objectUrl)
+                    setBlobUrl(null)
+                  }
                   audio.removeEventListener('error', handleError)
                 }
                 audio.addEventListener('error', handleError)
@@ -388,12 +420,29 @@ export default function VoicemailMessage({
     };
   }, [recording.id])
 
+  // Debug logging function for all audio elements
+  const logAllAudioElements = () => {
+    const allAudio = document.querySelectorAll("audio")
+    console.log(
+      "[VOICEMAIL DEBUG] all audio elements",
+      Array.from(allAudio).map((audio) => ({
+        voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
+        src: (audio as HTMLAudioElement).src,
+        currentTime: (audio as HTMLAudioElement).currentTime,
+        paused: (audio as HTMLAudioElement).paused,
+        ended: (audio as HTMLAudioElement).ended,
+        readyState: (audio as HTMLAudioElement).readyState,
+      }))
+    )
+  }
+
   // Handle playback state changes from audio manager
   useEffect(() => {
     const handlePlaybackStateChange = (voicemailId: string, isPlaying: boolean) => {
       if (voicemailId === recording.id) {
         console.log('[VoicemailMessage] Received playback state change from audio manager:', isPlaying)
         setIsPlaying(isPlaying)
+        logAllAudioElements()
       }
     }
 
@@ -736,12 +785,15 @@ export default function VoicemailMessage({
                     src={audioUrl || undefined}
                     preload="none"
                     className="hidden"
+                    data-voicemail-id={recording.id}
                     onLoadedMetadata={handleLoadedMetadata}
                     onTimeUpdate={handleTimeUpdate}
                     onDurationChange={handleDurationChange}
                     onEnded={handleEnded}
                     onSeeked={handleSeeked}
                     onError={handleError}
+                    onPlay={() => console.log('[VOICEMAIL DEBUG] native play event fired for:', recording.id)}
+                    onPause={() => console.log('[VOICEMAIL DEBUG] native pause event fired for:', recording.id)}
                   />
                 </div>
               )}

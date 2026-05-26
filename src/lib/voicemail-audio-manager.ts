@@ -15,15 +15,27 @@ class VoicemailAudioManager {
     // Check for duplicate registration
     const existingAudio = this.audioRegistry.get(voicemailId);
     if (existingAudio && existingAudio !== audioElement) {
-      console.warn('[VoicemailAudioManager] DUPLICATE DETECTED - Pausing existing audio element for:', voicemailId, 'existing:', existingAudio, 'new:', audioElement);
+      console.warn('[VoicemailAudioManager] DUPLICATE DETECTED - Cleaning up stale audio element for:', voicemailId, 'existing:', existingAudio, 'new:', audioElement);
       
-      // Pause the existing audio element before replacing
+      // Clean up the stale audio element before replacing
       try {
         existingAudio.pause();
         this.notifyListeners(voicemailId, false);
-        console.log('[VoicemailAudioManager] Paused duplicate audio element for:', voicemailId);
+        
+        // Remove src if it's a stale duplicate
+        if (existingAudio.src && existingAudio.src.startsWith('blob:')) {
+          console.log('[VoicemailAudioManager] Revoking stale blob URL for:', voicemailId);
+          URL.revokeObjectURL(existingAudio.src);
+          existingAudio.src = '';
+        }
+        
+        // Clear any event listeners by cloning the node
+        const clone = existingAudio.cloneNode(false) as HTMLAudioElement;
+        existingAudio.parentNode?.replaceChild(clone, existingAudio);
+        
+        console.log('[VoicemailAudioManager] Cleaned up stale duplicate audio element for:', voicemailId);
       } catch (error) {
-        console.error('[VoicemailAudioManager] Error pausing duplicate audio element:', error);
+        console.error('[VoicemailAudioManager] Error cleaning up duplicate audio element:', error);
       }
     } else if (existingAudio === audioElement) {
       console.log('[VoicemailAudioManager] Audio element already registered for:', voicemailId, 'skipping duplicate');
@@ -120,13 +132,34 @@ class VoicemailAudioManager {
         }
       }
     });
+
+    // DOM-level safety fallback: pause any other audio elements in the DOM
+    const allAudioElements = document.querySelectorAll('audio');
+    console.log('[VoicemailAudioManager] DOM safety fallback: found', allAudioElements.length, 'audio elements in DOM');
     
-    console.log('[VoicemailAudioManager] Paused', pausedCount, 'audio elements, keeping:', voicemailId);
+    allAudioElements.forEach((audioElement) => {
+      const htmlAudio = audioElement as HTMLAudioElement;
+      const elementVoicemailId = htmlAudio.dataset.voicemailId;
+      
+      if (elementVoicemailId && elementVoicemailId !== voicemailId) {
+        try {
+          if (!htmlAudio.paused) {
+            console.log('[VoicemailAudioManager] DOM safety fallback: pausing voicemail:', elementVoicemailId);
+            htmlAudio.pause();
+            pausedCount++;
+          }
+        } catch (error) {
+          console.error('[VoicemailAudioManager] Error in DOM safety fallback pause:', elementVoicemailId, error);
+        }
+      }
+    });
+    
+    console.log('[VoicemailAudioManager] Total paused', pausedCount, 'audio elements, keeping:', voicemailId);
   }
 
   // Request to play a specific voicemail
   async requestPlay(voicemailId: string): Promise<boolean> {
-    console.log('[VoicemailAudioManager] Requesting play for voicemail:', voicemailId);
+    console.log('[VOICEMAIL DEBUG] requestPlay called for voicemail:', voicemailId);
     
     const audioElement = this.audioRegistry.get(voicemailId);
     if (!audioElement) {
