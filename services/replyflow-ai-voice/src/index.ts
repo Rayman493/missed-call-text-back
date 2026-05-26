@@ -24,6 +24,22 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
+// Add process-level error handlers
+process.on('uncaughtException', (error) => {
+  console.error('[PROCESS] uncaughtException', error);
+  console.error('[PROCESS] stack trace', error.stack);
+  log(LogLevel.ERROR, '[PROCESS] uncaughtException', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[PROCESS] unhandledRejection', reason);
+  console.error('[PROCESS] promise', promise);
+  if (reason instanceof Error) {
+    console.error('[PROCESS] stack trace', reason.stack);
+  }
+  log(LogLevel.ERROR, '[PROCESS] unhandledRejection', { reason, promise });
+});
+
 // Create HTTP server for health checks
 const server = createServer((req, res) => {
   // Health check endpoint
@@ -48,21 +64,26 @@ const server = createServer((req, res) => {
 
     console.log('[TEST OPENAI] creating websocket');
     const testWs = new WebSocket(wsUrl, { headers });
+    console.log('[TEST OPENAI] websocket created, readyState:', testWs.readyState);
+    
     let opened = false;
     let errored = false;
     let closed = false;
     let result = '';
     let errorMessage = '';
+    let events = [];
 
     console.log('[TEST OPENAI] listeners attaching');
     testWs.on('open', () => {
       opened = true;
       result = 'open';
-      console.log('[TEST OPENAI] open');
+      console.log('[TEST OPENAI] open event fired');
+      events.push({ type: 'open', timestamp: Date.now() });
       const response = JSON.stringify({
         ok: true,
         result: 'open',
         readyState: testWs.readyState,
+        events: events,
       });
       res.end(response);
       testWs.close();
@@ -72,12 +93,14 @@ const server = createServer((req, res) => {
       errored = true;
       result = 'error';
       errorMessage = String(error);
-      console.log('[TEST OPENAI] error', error);
+      console.log('[TEST OPENAI] error event fired', error);
+      events.push({ type: 'error', timestamp: Date.now(), error: errorMessage });
       const response = JSON.stringify({
         ok: false,
         result: 'error',
         error: errorMessage,
         readyState: testWs.readyState,
+        events: events,
       });
       res.end(response);
     });
@@ -87,40 +110,53 @@ const server = createServer((req, res) => {
       if (!opened && !errored) {
         result = 'close';
       }
-      console.log('[TEST OPENAI] close', { code, reason: reason?.toString() });
+      console.log('[TEST OPENAI] close event fired', { code, reason: reason?.toString(), readyState: testWs.readyState });
+      events.push({ type: 'close', timestamp: Date.now(), code, reason: reason?.toString(), readyState: testWs.readyState });
       const response = JSON.stringify({
         ok: false,
         result: result || 'close',
         readyState: testWs.readyState,
+        events: events,
       });
       res.end(response);
     });
 
     testWs.on('unexpected-response', (request, response) => {
       result = 'unexpected-response';
-      console.log('[TEST OPENAI] unexpected-response', { statusCode: response.statusCode });
+      console.log('[TEST OPENAI] unexpected-response event fired', { statusCode: response.statusCode });
+      events.push({ type: 'unexpected-response', timestamp: Date.now(), statusCode: response.statusCode });
       const responseBody = JSON.stringify({
         ok: false,
         result: 'unexpected-response',
         statusCode: response.statusCode,
         headers: response.headers,
         readyState: testWs.readyState,
+        events: events,
       });
       res.end(responseBody);
     });
 
     console.log('[TEST OPENAI] listeners attached');
 
+    // Log readyState every 3 seconds
+    const stateCheckInterval = setInterval(() => {
+      console.log('[TEST OPENAI] periodic state check', { readyState: testWs.readyState, eventsCount: events.length });
+      events.push({ type: 'state_check', timestamp: Date.now(), readyState: testWs.readyState });
+    }, 3000);
+
     // Timeout after 15 seconds
     setTimeout(() => {
+      clearInterval(stateCheckInterval);
       if (!closed && !opened && !errored) {
         result = 'timeout';
-        console.log('[TEST OPENAI] timeout');
-        console.log('[TEST OPENAI] readyState', testWs.readyState);
+        console.log('[TEST OPENAI] timeout after 15s');
+        console.log('[TEST OPENAI] final readyState', testWs.readyState);
+        events.push({ type: 'timeout', timestamp: Date.now(), readyState: testWs.readyState });
         const response = JSON.stringify({
           ok: false,
           result: 'timeout',
           readyState: testWs.readyState,
+          events: events,
         });
         res.end(response);
         if (testWs) {
