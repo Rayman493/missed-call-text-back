@@ -517,37 +517,70 @@ wss.on('connection', (ws, req) => {
                 console.log('[OPENAI ERROR] full payload', JSON.stringify(message, null, 2));
               }
 
+              // PCM16 to μ-law conversion function
+              const pcm16ToMulaw = (pcm16: number): number => {
+                // μ-law encoding formula
+                const BIAS = 0x84;
+                const CLIP = 32635;
+                const SIGN_BIT = 0x80;
+                
+                let sample = Math.max(-CLIP, Math.min(CLIP, pcm16));
+                const sign = (sample >> 8) & SIGN_BIT;
+                if (sign !== 0) {
+                  sample = -sample;
+                }
+                
+                sample += BIAS;
+                let exponent = 7;
+                for (; exponent > 0; exponent--) {
+                  if ((sample & 0x4000) !== 0) break;
+                  sample <<= 1;
+                }
+                
+                const mantissa = (sample >> 4) & 0x0F;
+                return (sign | (exponent << 4) | mantissa) ^ 0xFF;
+              };
+
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO OUT] OpenAI audio delta received', { length: message.delta.length });
                 
-                // Determine audio format and convert if needed
-                const deltaBuffer = Buffer.from(message.delta, 'base64');
-                console.log('[AUDIO OUT] delta buffer length', { length: deltaBuffer.length });
+                // Decode base64 to PCM16 buffer
+                const pcmBuffer = Buffer.from(message.delta, 'base64');
+                console.log('[AUDIO CONVERT] pcm bytes', { length: pcmBuffer.length });
                 
-                // OpenAI Realtime API returns PCM16 audio at 24kHz
-                // Twilio expects 8kHz μ-law (G.711) audio
-                // We need to: PCM16 @ 24kHz -> downsample to 8kHz -> convert to μ-law
-                let payloadToSend = message.delta; // Default: send as-is if already correct format
-                let format = 'unknown';
+                // OpenAI Realtime API returns PCM16 at 24kHz
+                // Twilio expects 8kHz μ-law (G.711)
+                // Downsample: 24kHz -> 8kHz (take every 3rd sample)
+                const sampleCount = Math.floor(pcmBuffer.length / 2);
+                const downsampledSamples: Int16Array = new Int16Array(Math.floor(sampleCount / 3));
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  downsampledSamples[i] = pcmBuffer.readInt16LE(i * 6);
+                }
+                console.log('[AUDIO CONVERT] downsampled to 8kHz', { originalSamples: sampleCount, downsampledSamples: downsampledSamples.length });
                 
-                // For now, assume it's PCM16 and send as-is to test
-                // If we hear static, we'll need to add conversion
-                format = 'pcm16_base64';
-                console.log('[AUDIO OUT] format detected', { format });
-                console.log('[AUDIO OUT] sending audio to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: payloadToSend.length });
+                // Convert PCM16 to μ-law
+                const mulawBytes = Buffer.alloc(downsampledSamples.length);
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  mulawBytes[i] = pcm16ToMulaw(downsampledSamples[i]);
+                }
+                console.log('[AUDIO CONVERT] mulaw bytes', { length: mulawBytes.length });
+                
+                // Base64 encode μ-law bytes
+                const mulawBase64 = mulawBytes.toString('base64');
+                console.log('[AUDIO OUT] sending converted mulaw to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: mulawBase64.length });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: payloadToSend,
+                    payload: mulawBase64,
                   },
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
-                console.log('[AUDIO OUT] audio sent to Twilio');
+                console.log('[AUDIO OUT] sent converted mulaw to Twilio');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
