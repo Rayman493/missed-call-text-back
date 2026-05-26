@@ -60,6 +60,7 @@ import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
 import TodaysActivity from '@/components/TodaysActivity'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
+import RecentActivityCard from '@/components/RecentActivityCard'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1318,6 +1319,12 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
+                    {/* Recent Activity Card - Priority 5 */}
+                    <SectionErrorBoundary sectionName="RecentActivityCard">
+                      <div className="mb-4 transition-opacity duration-300">
+                        <RecentActivityCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
                     
                     {/* Follow-Up Activity Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">

@@ -1075,11 +1075,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="w-10 h-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-center"
-                  title="Refresh"
+                  className="w-10 h-10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-md border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 flex items-center justify-center"
+                  title="Refresh conversation"
                 >
                   {refreshing ? (
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"></div>
                   ) : (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1091,7 +1091,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="w-10 h-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-center"
+                    className="w-10 h-10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 flex items-center justify-center"
                     title="More actions"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1167,7 +1167,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Thread - 2 Column Layout */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-1 sm:py-2 lg:py-3">
-        <div className="hidden lg:flex lg:gap-6 lg:h-[calc(100vh-200px)]">
+        <div className="hidden lg:flex lg:gap-6 lg:h-[calc(100vh-140px)]">
           {/* Left Column - Conversation (70%) */}
           <div className="lg:flex-[0.7] bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden flex flex-col">
             {/* Message Thread */}
@@ -1221,62 +1221,101 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          {/* Right Column - Sidebar (30%) */}
-          <div className="lg:flex-[0.3] space-y-4 overflow-y-auto">
+          {/* Right Column - Simplified Lead Panel (30%) */}
+          <div className="lg:flex-[0.3] overflow-y-auto space-y-4">
             {/* Lead Details Card */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Lead Details</h3>
-              {leadData && (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
-                    <p className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData.phone_number)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Lead Details</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Phone</span>
+                  <span className="text-sm font-medium text-foreground">{leadData ? formatPhoneNumber(leadData.phone_number) : '—'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Status</span>
+                  <div className="flex-shrink-0">
                     <LeadStatusDropdown 
-                  currentStatus={leadData.status || 'new'} 
-                  onStatusChange={async (newStatus) => {
-                    // Handle status change if needed
-                  }}
-                />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Created</p>
-                    <p className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</p>
+                      currentStatus={leadData?.status || 'new'} 
+                      onStatusChange={async (newStatus) => {
+                        // Handle status change if needed
+                      }}
+                    />
                   </div>
                 </div>
-              )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Created</span>
+                  <span className="text-sm text-foreground">{leadData ? formatRelativeTime(leadData.created_at) : '—'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Last Activity</span>
+                  <span className="text-sm text-foreground">{leadData?.last_message_at ? formatRelativeTime(leadData.last_message_at) : '—'}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Follow-Up Status Card */}
+            {/* Automation & Voicemail Card */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Follow-Up Status</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Active</span>
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                    {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
-                  </span>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Activity</h3>
+              <div className="space-y-4">
+                {/* Follow-up Stats */}
+                <div>
+                  <h4 className="text-xs font-medium text-foreground mb-2">Follow-ups</h4>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                        {followUpJobs?.filter((job: any) => job.status === 'pending').length || 0}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Active</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Done</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-red-600 dark:text-red-400">
+                        {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Cancel</div>
+                    </div>
+                  </div>
+                  {followUpJobs?.find((job: any) => job.status === 'pending') && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Next: {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Completed</span>
-                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                    {followUpJobs?.filter((job: any) => job.status === 'completed').length || 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Cancelled</span>
-                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                    {followUpJobs?.filter((job: any) => job.status === 'cancelled').length || 0}
-                  </span>
+
+                {/* Voicemail */}
+                <div>
+                  <h4 className="text-xs font-medium text-foreground mb-2">Voicemail</h4>
+                  {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 ? (
+                    <div className="space-y-2">
+                      {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
+                        <div key={voicemail.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">📞</span>
+                            <span className="text-xs text-foreground">{voicemail.recording_duration}s</span>
+                          </div>
+                          <button className="px-2 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[10px] font-medium rounded transition-colors">
+                            Play
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-2">
+                      <span className="text-xs text-muted-foreground">No voicemail</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Actions Card */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Actions</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
               <div className="space-y-2">
                 <button
                   onClick={() => setShowLeadInfo(true)}
@@ -1290,29 +1329,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 >
                   Call Lead
                 </button>
+                <button
+                  className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Mark Closed
+                </button>
+                <button
+                  className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Block Contact
+                </button>
               </div>
-            </div>
-
-            {/* Voicemail Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Voicemail</h3>
-              {leadData?.voicemailRecordings && leadData.voicemailRecordings.length > 0 ? (
-                <div className="space-y-2">
-                  {leadData.voicemailRecordings.slice(0, 1).map((voicemail: any) => (
-                    <div key={voicemail.id} className="text-sm">
-                      <p className="text-amber-600 dark:text-amber-400 font-medium">📞 Voicemail Available</p>
-                      <p className="text-muted-foreground">{voicemail.recording_duration}s • {formatRelativeTime(voicemail.created_at)}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                    📞
-                  </div>
-                  <p className="text-sm text-muted-foreground">No voicemail recorded yet</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

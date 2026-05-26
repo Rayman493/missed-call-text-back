@@ -314,22 +314,22 @@ export default function LeadsPage() {
                 {/* Leads Preview Content */}
                 <div className="space-y-4 sm:space-y-6">
                   {/* Lifecycle Summary Cards Preview */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">New Leads</p>
-                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-1.5 sm:p-2">
+                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">New Leads</p>
+                      <p className="text-base sm:text-lg font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Active</p>
-                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-1.5 sm:p-2">
+                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Active</p>
+                      <p className="text-base sm:text-lg font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Completed</p>
-                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-1.5 sm:p-2">
+                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Completed</p>
+                      <p className="text-base sm:text-lg font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-2 sm:p-3">
-                      <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">Ignored</p>
-                      <p className="text-lg sm:text-2xl font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-1.5 sm:p-2">
+                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">Ignored</p>
+                      <p className="text-base sm:text-lg font-extrabold text-slate-300 dark:text-slate-600 tracking-tight">—</p>
                     </div>
                   </div>
 
@@ -364,71 +364,72 @@ export default function LeadsPage() {
                   {/* Sample Leads Preview */}
                   <div className="space-y-2 sm:space-y-3">
                     {/* Sample Lead 1 */}
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
-                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
-                          <span className="text-base sm:text-lg">📱</span>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-2 sm:p-2.5 border-l-2 border-l-orange-500">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-orange-100 dark:bg-orange-900/30">
+                          <span className="text-sm">📱</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
-                              Sarah M.
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-sm text-slate-900 dark:text-foreground truncate">
+                              +1 (555) 123-4567
                             </p>
-                            <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
-                            <span className="px-1.5 sm:px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                            <span className="text-[10px] text-slate-500 dark:text-muted-foreground/70">5m ago</span>
                           </div>
-                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">5 minutes ago</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 text-[9px] font-medium rounded-full">New</span>
+                            <span className="px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300 text-[9px] font-medium rounded-full">Needs Response</span>
+                            <p className="text-xs text-slate-600 dark:text-muted-foreground/80 truncate">
+                              Customer: Hi, I'm interested in your services...
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="ml-11 sm:ml-13">
-                        <p className="text-xs sm:text-sm truncate text-slate-600 dark:text-muted-foreground/80 font-semibold">
-                          Customer: Hi, I'm interested in your services. Can you call me back?
-                        </p>
                       </div>
                     </div>
 
                     {/* Sample Lead 2 */}
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-blue-500">
-                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-blue-50 border-blue-200">
-                          <span className="text-base sm:text-lg">📞</span>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-2 sm:p-2.5 border-l-2 border-l-blue-500">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
+                          <span className="text-sm">📞</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
-                              John's Plumbing
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-sm text-slate-900 dark:text-foreground truncate">
+                              +1 (555) 987-6543
                             </p>
-                            <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                            <span className="text-[10px] text-slate-500 dark:text-muted-foreground/70">12m ago</span>
                           </div>
-                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">12 minutes ago</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 text-[9px] font-medium rounded-full">New</span>
+                            <p className="text-xs text-slate-600 dark:text-muted-foreground/80 truncate">
+                              Customer: We have a pipe emergency at our office...
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="ml-11 sm:ml-13">
-                        <p className="text-xs sm:text-sm truncate text-slate-600 dark:text-muted-foreground/80 font-semibold">
-                          Customer: We have a pipe emergency at our office. Need help ASAP.
-                        </p>
                       </div>
                     </div>
 
                     {/* Sample Lead 3 */}
-                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-xl shadow-sm p-3 sm:p-4 border-l-4 border-l-green-500">
-                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm bg-green-50 border-green-200">
-                          <span className="text-base sm:text-lg">📱</span>
+                    <div className="bg-card border border-slate-200 dark:border-border/60 rounded-lg shadow-sm p-2 sm:p-2.5 border-l-2 border-l-green-500">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-green-100 dark:bg-green-900/30">
+                          <span className="text-sm">📱</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                            <p className="font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate">
-                              Mike's Auto Repair
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-sm text-slate-900 dark:text-foreground truncate">
+                              +1 (555) 456-7890
+                            </p>
+                            <span className="text-[10px] text-slate-500 dark:text-muted-foreground/70">1h ago</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300 text-[9px] font-medium rounded-full">Completed</span>
+                            <p className="text-xs text-slate-600 dark:text-muted-foreground/80 truncate">
+                              You: Thanks for reaching out! We'll call...
                             </p>
                           </div>
-                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">1 hour ago</p>
                         </div>
-                      </div>
-                      <div className="ml-11 sm:ml-13">
-                        <p className="text-xs sm:text-sm truncate text-blue-600 dark:text-blue-400/90">
-                          You: Thanks for reaching out! We'll have someone call you back shortly.
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -767,52 +768,55 @@ export default function LeadsPage() {
                           <div className="absolute top-4 left-3.5 sm:top-5 sm:left-4 w-2 h-2 bg-blue-600 rounded-full shadow-sm"></div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm ${
+                            <div className="flex items-start gap-3 sm:gap-4">
+                              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm ${
                                 messageStatus.color === 'green' ? 'bg-green-50 border-green-200' :
                                 messageStatus.color === 'red' ? 'bg-red-50 border-red-200' :
                                 messageStatus.color === 'orange' ? 'bg-orange-50 border-orange-200' :
                                 'bg-blue-50 border-blue-200'
                               }`}>
-                                <span className="text-base sm:text-lg">{messageStatus.icon}</span>
+                                <span className="text-lg sm:text-xl">{messageStatus.icon}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                                  <p className={`font-bold text-base sm:text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
+                                {/* Phone Number and Status Badges */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <p className={`font-bold text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
                                     isUnread ? 'font-extrabold' : ''
                                   }`}>
                                     {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                   {isNewLead && (
-                                    <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
+                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
                                   )}
                                   {needsResponse && (
-                                    <span className="px-1.5 sm:px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
+                                    <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
                                   )}
                                 </div>
-                                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-muted-foreground/70">{formatRelativeTime(lastActivity)}</p>
+                                
+                                {/* Time */}
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground/70 mb-2">{formatRelativeTime(lastActivity)}</p>
+                                
+                                {/* Message Preview */}
+                                {latestMessage && (
+                                  <p className={`text-sm sm:text-base truncate ${
+                                    latestMessage.direction === 'inbound'
+                                      ? 'text-slate-600 dark:text-muted-foreground/80'
+                                      : 'text-blue-600 dark:text-blue-400/90'
+                                  } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
+                                    {latestMessage.direction === 'inbound' && 'Customer: '}
+                                    {latestMessage.body}
+                                  </p>
+                                )}
                               </div>
                             </div>
-                            {latestMessage && (
-                              <div className="ml-11 sm:ml-13">
-                                <p className={`text-xs sm:text-sm truncate ${
-                                  latestMessage.direction === 'inbound'
-                                    ? 'text-slate-600 dark:text-muted-foreground/80'
-                                    : 'text-blue-600 dark:text-blue-400/90'
-                                } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
-                                  {latestMessage.direction === 'inbound' && 'Customer: '}
-                                  {latestMessage.body}
-                                </p>
-                              </div>
-                            )}
                           </div>
-                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusClasses}`}>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusClasses}`}>
                               {statusBadge}
                             </span>
-                            <div className="text-blue-400 hover:text-blue-300 text-xs sm:text-sm font-medium whitespace-nowrap">
+                            <div className="text-blue-400 hover:text-blue-300 text-sm sm:text-base font-medium whitespace-nowrap">
                               View →
                             </div>
                           </div>

@@ -57,9 +57,9 @@ export default function MobileConversationComposer({
                 value={message}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your reply here..."
+                placeholder="Type your message..."
                 disabled={sending}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm leading-relaxed min-h-[44px] sm:min-h-[48px] max-h-[120px]"
+                className="w-full px-4 sm:px-5 py-3.5 sm:py-4 bg-background border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed min-h-[52px] sm:min-h-[56px] max-h-[140px]"
                 rows={1}
               />
               
@@ -75,7 +75,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className="flex-shrink-0 px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center gap-2 sm:gap-2.5 min-w-[80px] sm:min-w-[100px] justify-center font-medium"
+              className="flex-shrink-0 px-5 py-3.5 sm:px-6 sm:py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-background flex items-center gap-2.5 sm:gap-3 min-w-[90px] sm:min-w-[110px] justify-center font-semibold text-sm sm:text-base"
             >
               {sending ? (
                 <>
