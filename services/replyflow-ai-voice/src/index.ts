@@ -44,32 +44,63 @@ wss.on('connection', (ws, req) => {
   log(LogLevel.INFO, 'WebSocket connection received');
 
   try {
-    // Extract parameters from URL
+    // Extract parameters from URL (fallback)
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     
-    log(LogLevel.INFO, '[AI POC] raw request url:', req.url);
+    log(LogLevel.INFO, '[AI POC] raw websocket request url:', req.url);
     
-    const sessionId = url.searchParams.get('session_id');
-    const businessId = url.searchParams.get('business_id');
-    const callSid = url.searchParams.get('call_sid');
+    const urlSessionId = url.searchParams.get('sessionId');
+    const urlBusinessId = url.searchParams.get('businessId');
+    const urlCallSid = url.searchParams.get('callSid');
 
-    log(LogLevel.INFO, '[AI POC] parsed sessionId:', sessionId);
-    log(LogLevel.INFO, '[AI POC] parsed callSid:', callSid);
+    log(LogLevel.INFO, '[AI POC] URL params', { sessionId: urlSessionId, callSid: urlCallSid });
 
-    if (!sessionId || !callSid) {
-      log(LogLevel.WARN, 'Missing required parameters', { sessionId, callSid });
-      ws.close(1008, 'Missing required parameters');
-      return;
-    }
-
-    log(LogLevel.INFO, 'Connection parameters', { sessionId, businessId, callSid });
-
-    // Create Twilio stream handler
+    // Create Twilio stream handler with placeholder parameters
+    // Real parameters will come from Twilio's "start" event
     const twilioHandler = new TwilioStreamHandler({
-      sessionId,
-      businessId: businessId || '',
-      callSid,
+      sessionId: urlSessionId || '',
+      businessId: urlBusinessId || '',
+      callSid: urlCallSid || '',
     });
+
+    // Override handleMessage to capture customParameters from start event
+    const originalHandleMessage = (twilioHandler as any).handleMessage.bind(twilioHandler);
+    (twilioHandler as any).handleMessage = (data: any) => {
+      try {
+        const message = JSON.parse(data.toString());
+
+        if (message.event === 'start') {
+          const customParams = message.start?.customParameters || {};
+          const sessionId = customParams.sessionId || urlSessionId;
+          const callSid = customParams.callSid || urlCallSid;
+          const businessId = customParams.businessId || urlBusinessId;
+
+          log(LogLevel.INFO, '[AI POC] Twilio start event customParameters:', customParams);
+          log(LogLevel.INFO, '[AI POC] parsed sessionId:', sessionId);
+          log(LogLevel.INFO, '[AI POC] parsed callSid:', callSid);
+
+          if (!sessionId || !callSid) {
+            log(LogLevel.WARN, '[AI POC] Missing required parameters from both URL and customParameters');
+            ws.close(1008, 'Missing required parameters');
+            return;
+          }
+
+          // Update handler config with real parameters
+          (twilioHandler as any).config = {
+            sessionId,
+            businessId: businessId || '',
+            callSid,
+          };
+
+          log(LogLevel.INFO, '[AI POC] Connection parameters validated', { sessionId, callSid });
+        }
+
+        // Call original handler
+        originalHandleMessage(data);
+      } catch (error) {
+        log(LogLevel.ERROR, '[AI POC] Error parsing Twilio message', error);
+      }
+    };
 
     // Handle Twilio connection
     twilioHandler.handleConnection(ws, req);
