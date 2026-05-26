@@ -119,6 +119,7 @@ export class OpenAIRealtimeClient {
 
         this.ws.on('message', (data) => {
           const message = JSON.parse(data.toString());
+          log(LogLevel.INFO, '[AI POC] OPENAI INBOUND MESSAGE', JSON.stringify(message, null, 2));
           this.handleMessage(message);
         });
 
@@ -223,20 +224,25 @@ export class OpenAIRealtimeClient {
   private handleMessage(message: any) {
     switch (message.type) {
       case 'session.updated':
-        log(LogLevel.INFO, 'OpenAI session updated');
+        log(LogLevel.INFO, '[AI POC] OpenAI session updated');
         break;
       case 'response.audio.delta':
-        log(LogLevel.INFO, 'Audio delta received from OpenAI');
+        log(LogLevel.INFO, '[AI POC] OpenAI response.audio.delta received', {
+          deltaLength: message.delta?.length,
+        });
+        break;
+      case 'response.audio.done':
+        log(LogLevel.INFO, '[AI POC] OpenAI response.audio.done received');
         break;
       case 'response.done':
-        log(LogLevel.INFO, 'OpenAI response completed');
+        log(LogLevel.INFO, '[AI POC] OpenAI response.done received');
         break;
       case 'error':
-        log(LogLevel.ERROR, 'OpenAI error', message.error);
+        log(LogLevel.ERROR, '[AI POC] OpenAI error', message.error);
         break;
       default:
         // Log other message types for debugging
-        log(LogLevel.INFO, `OpenAI message type: ${message.type}`);
+        log(LogLevel.INFO, `[AI POC] OpenAI message type: ${message.type}`);
     }
   }
 
@@ -249,6 +255,10 @@ export class OpenAIRealtimeClient {
         type: 'input_audio_buffer.append',
         audio: audioData.toString('base64'),
       };
+      log(LogLevel.INFO, '[AI POC] appended Twilio audio to OpenAI', {
+        audioLength: audioData.length,
+        base64Length: message.audio?.length,
+      });
       log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(message, null, 2));
       this.ws.send(JSON.stringify(message));
     }
