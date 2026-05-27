@@ -588,15 +588,16 @@ Be concise and friendly.`;
                 return;
               }
 
-              // Log every message type
+              // Log every message type with full details
               console.log('[OPENAI WS] message type', { type: message.type });
+              console.log('[OPENAI WS] message payload', JSON.stringify(message, null, 2));
 
               // Log input audio events
               if (message.type === 'input_audio_buffer.speech_started') {
-                console.log('[OPENAI IN] input_audio_buffer.speech_started');
+                console.log('[VAD] speech started');
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
-                console.log('[OPENAI IN] input_audio_buffer.speech_stopped');
+                console.log('[VAD] speech stopped');
               }
               if (message.type === 'response.created') {
                 console.log('[OPENAI IN] response.created');
@@ -606,6 +607,14 @@ Be concise and friendly.`;
               }
               if (message.type === 'response.done') {
                 console.log('[AI TURN] response triggered after caller speech');
+              }
+
+              // Log session configuration
+              if (message.type === 'session.created') {
+                console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
+              }
+              if (message.type === 'session.updated') {
+                console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
               }
 
               // Log full error payload

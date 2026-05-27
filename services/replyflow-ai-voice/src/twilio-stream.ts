@@ -22,6 +22,8 @@ export class TwilioStreamHandler {
   private streamSid: string | null = null;
   private openAiReady: boolean = false;
   private mediaBuffer: Buffer[] = [];
+  private turnDetectionTimer: NodeJS.Timeout | null = null;
+  private lastAudioTime: number = 0;
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -127,6 +129,32 @@ export class TwilioStreamHandler {
                 };
                 openAiWs.send(JSON.stringify(audioMessage));
                 log(LogLevel.INFO, '[CALLER AUDIO] sent to OpenAI', { payloadLength: audioMessage.audio.length });
+                
+                // Manual turn detection fallback
+                this.lastAudioTime = Date.now();
+                
+                // Clear existing timer
+                if (this.turnDetectionTimer) {
+                  clearTimeout(this.turnDetectionTimer);
+                }
+                
+                // Set timer to commit after 1.5 seconds of silence
+                this.turnDetectionTimer = setTimeout(() => {
+                  if (openAiWs && this.lastAudioTime > 0) {
+                    const commitMessage = {
+                      type: 'input_audio_buffer.commit',
+                    };
+                    openAiWs.send(JSON.stringify(commitMessage));
+                    log(LogLevel.INFO, '[TURN] commit sent');
+                    
+                    // Send response.create
+                    const responseMessage = {
+                      type: 'response.create',
+                    };
+                    openAiWs.send(JSON.stringify(responseMessage));
+                    log(LogLevel.INFO, '[TURN] response.create sent');
+                  }
+                }, 1500);
               }
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
