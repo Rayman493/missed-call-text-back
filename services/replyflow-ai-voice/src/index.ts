@@ -700,27 +700,16 @@ Do not continue chatting after intake is complete.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Configure session for Twilio-compatible audio and turn detection
+              // Configure session with minimal fields to prove session.update works
               const sessionConfig = {
                 type: 'session.update',
                 session: {
-                  type: 'realtime',
-                  audio: {
-                    input: {
-                      format: { type: 'audio/pcmu' },
-                      turn_detection: { type: 'server_vad' },
-                    },
-                    output: {
-                      format: { type: 'audio/pcm', rate: 24000 },
-                    },
-                  },
+                  instructions: 'You are an English-speaking receptionist.',
+                  voice: AI_VOICE,
                 },
               };
-              console.log('[OPENAI SEND PAYLOAD] session.update:', JSON.stringify(sessionConfig, null, 2));
-              console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
-              console.log('[AUDIO CONFIG] output format: audio/pcm (PCM16 24000Hz)');
-              console.log('[AUDIO CONFIG] conversion enabled: true (PCM → μ-law)');
-              console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
+              console.log('[OPENAI SEND PAYLOAD] session.update (MINIMAL):', JSON.stringify(sessionConfig, null, 2));
+              console.log('[SESSION MINIMAL] testing session.update with instructions and voice only');
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(sessionConfig));
               }
@@ -805,7 +794,19 @@ Do not continue chatting after intake is complete.`;
               }
               if (message.type === 'session.updated') {
                 console.log('[OPENAI RECV] session.updated');
-                console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
+                console.log('[SESSION UPDATED] received configuration:', JSON.stringify(message.session, null, 2));
+                console.log('[SESSION COMPARE] instructions:', {
+                  outbound: 'You are an English-speaking receptionist.',
+                  returned: message.session?.instructions
+                });
+                console.log('[SESSION COMPARE] voice:', {
+                  outbound: AI_VOICE,
+                  returned: message.session?.voice
+                });
+                console.log('[SESSION COMPARE] audio format:', {
+                  outbound: 'not set (minimal test)',
+                  returned: message.session?.audio
+                });
               }
 
               // Log full error payload
