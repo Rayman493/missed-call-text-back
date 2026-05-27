@@ -664,12 +664,16 @@ Do not continue chatting after intake is complete.`;
             (twilioHandler as any).openAiWs = openAiWs;
             console.log('[STREAM CLONED] websocket set on Twilio handler');
             
+            // Startup gate to prevent media flood during initialization
+            let streamReady = false;
+            const audioBuffer: Buffer[] = [];
+            
             // Add open timeout
             let opened = false;
             let greetingSent = false;
             let responseCreatedReceived = false;
             let sessionCreated = false;
-            let sessionUpdated = false;
+            let sessionUpdatedReceived = false;
             setTimeout(() => {
               if (!opened) {
                 console.log('[OPENAI RAW] open timeout (5 seconds)');
@@ -714,30 +718,8 @@ Do not continue chatting after intake is complete.`;
                 openAiWs.send(JSON.stringify(sessionConfig));
               }
               
-              // Send greeting with English-only instructions
-              const businessName = (ws as any).businessName || 'ReplyFlow';
-              const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
-              
-              const testMessage = {
-                type: 'response.create',
-                response: {
-                  instructions: englishInstructions,
-                  voice: AI_VOICE,
-                },
-              };
-              console.log('[OPENAI SEND PAYLOAD] response.create:', JSON.stringify(testMessage, null, 2));
-              greetingSent = true;
-              console.log('[OPENAI SEND] response.create');
-              console.log('[GREETING] sent with English-only instructions');
-              console.log('[GREETING] instructions:', englishInstructions);
-              console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
-              if (openAiWs) {
-                openAiWs.send(JSON.stringify(testMessage));
-              }
-              console.log('[OPENAI TEST] test message sent');
-              
-              // Set flag to enable manual fallback after greeting
-              twilioHandler.setGreetingSent();
+              // Greeting will be sent after session.updated is received
+              console.log('[SESSION] waiting for session.updated before sending greeting');
             });
             console.log('[OPENAI AUDIT] open listener attached');
 
@@ -794,6 +776,8 @@ Do not continue chatting after intake is complete.`;
               }
               if (message.type === 'session.updated') {
                 console.log('[OPENAI RECV] session.updated');
+                console.log('[SESSION UPDATED RECEIVED]');
+                sessionUpdatedReceived = true;
                 console.log('[SESSION UPDATED] received configuration:', JSON.stringify(message.session, null, 2));
                 console.log('[SESSION COMPARE] instructions:', {
                   outbound: 'You are an English-speaking receptionist.',
@@ -807,6 +791,51 @@ Do not continue chatting after intake is complete.`;
                   outbound: 'not set (minimal test)',
                   returned: message.session?.audio
                 });
+                
+                // Now send greeting after session.updated
+                const businessName = (ws as any).businessName || 'ReplyFlow';
+                const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
+                
+                const testMessage = {
+                  type: 'response.create',
+                  response: {
+                    instructions: englishInstructions,
+                    voice: AI_VOICE,
+                  },
+                };
+                console.log('[OPENAI SEND PAYLOAD] response.create:', JSON.stringify(testMessage, null, 2));
+                greetingSent = true;
+                console.log('[GREETING SENT]');
+                console.log('[OPENAI SEND] response.create');
+                console.log('[GREETING] sent with English-only instructions');
+                console.log('[GREETING] instructions:', englishInstructions);
+                console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
+                if (openAiWs) {
+                  openAiWs.send(JSON.stringify(testMessage));
+                }
+                console.log('[OPENAI TEST] test message sent');
+                
+                // Set flag to enable manual fallback after greeting
+                twilioHandler.setGreetingSent();
+                
+                // After greeting is sent, set streamReady and flush buffer
+                streamReady = true;
+                console.log('[STREAM READY] true - now accepting caller audio');
+                (twilioHandler as any).streamReady = true;
+                if (audioBuffer.length > 0) {
+                  console.log('[BUFFER FLUSH] sending buffered audio', { count: audioBuffer.length });
+                  const openAiWs = (twilioHandler as any).openAiWs;
+                  if (openAiWs) {
+                    for (const buffer of audioBuffer) {
+                      const audioMessage = {
+                        type: 'input_audio_buffer.append',
+                        audio: buffer.toString('base64'),
+                      };
+                      openAiWs.send(JSON.stringify(audioMessage));
+                    }
+                  }
+                  console.log('[BUFFER FLUSH] complete');
+                }
               }
 
               // Log full error payload

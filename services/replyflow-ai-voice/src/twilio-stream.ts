@@ -127,6 +127,17 @@ export class TwilioStreamHandler {
             const audioBuffer = Buffer.from(audioPayload, 'base64');
             
             if (this.openAiReady) {
+              // Check if stream is ready to accept audio
+              const streamReady = (this as any).streamReady || false;
+              if (!streamReady) {
+                // Buffer audio until streamReady
+                const audioBufferList = (this as any).audioBuffer || [];
+                audioBufferList.push(audioBuffer);
+                (this as any).audioBuffer = audioBufferList;
+                log(LogLevel.INFO, '[MEDIA] audio buffered', { bufferSize: audioBufferList.length });
+                return;
+              }
+              
               // Send caller audio to OpenAI
               const openAiWs = (this as any).openAiWs;
               const greetingSent = (this as any).greetingSent || false;
