@@ -94,7 +94,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {/* Mobile Dashboard Link */}
                       <Link
                         href="/dashboard"
-                        className={`sm:hidden text-xs font-medium px-3 py-1.5 rounded-full ${isPublicPage && !forceDark ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} transition-colors`}
+                        className={`sm:hidden text-sm font-medium px-2 py-1 ${isPublicPage && !forceDark ? 'text-slate-300 dark:text-slate-300 hover:text-blue-400 dark:hover:text-blue-400 hover:underline' : 'text-slate-300 hover:text-blue-400 hover:underline'} transition-colors`}
                       >
                         Dashboard
                       </Link>
@@ -131,7 +131,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {/* Mobile navigation */}
                       <Link
                         href="/dashboard"
-                        className={`sm:hidden text-xs font-medium px-3 py-1.5 rounded-full ${isPublicPage && !forceDark ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} transition-colors`}
+                        className={`sm:hidden text-sm font-medium px-2 py-1 ${isPublicPage && !forceDark ? 'text-slate-300 dark:text-slate-300 hover:text-blue-400 dark:hover:text-blue-400 hover:underline' : 'text-slate-300 hover:text-blue-400 hover:underline'} transition-colors`}
                       >
                         Dashboard
                       </Link>
