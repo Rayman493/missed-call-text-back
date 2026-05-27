@@ -801,11 +801,10 @@ Do not continue chatting after intake is complete.`;
                 const testMessage = {
                   type: 'response.create',
                   response: {
-                    modalities: ['audio'],
                     instructions: 'Thanks for calling ReplyFlow. May I have your name?',
                   },
                 };
-                console.log('[OPENAI SEND PAYLOAD] response.create:', JSON.stringify(testMessage, null, 2));
+                console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
                 greetingSent = true;
                 console.log('[GREETING SENT]');
                 if (openAiWs) {
@@ -880,6 +879,9 @@ Do not continue chatting after intake is complete.`;
               };
 
               // Handle audio delta
+              if (message.type === 'response.output_audio.delta') {
+                console.log('[OPENAI RECV] response.output_audio.delta');
+              }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO DELTA RECEIVED]');
                 
