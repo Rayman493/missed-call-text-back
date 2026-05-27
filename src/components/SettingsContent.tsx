@@ -733,7 +733,7 @@ export default function SettingsContent() {
 
             {/* Main Content */}
             <div className="flex-1 pt-2 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
-              <div className="max-w-[1600px] mx-auto">
+              <div className="max-w-[1180px] mx-auto">
 
             {/* Back to Dashboard Link */}
             <div className="mb-3 sm:mb-6">
@@ -760,8 +760,8 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-4 sm:mb-6 sticky top-16 z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
-              <nav className="flex items-center gap-1 overflow-x-auto">
+            <div className="mb-4 sm:mb-6 sticky top-[4.5rem] z-50 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
+              <nav className="flex items-center gap-1 overflow-x-auto max-w-[1180px] mx-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
@@ -819,10 +819,11 @@ export default function SettingsContent() {
             <div className="space-y-2 sm:space-y-3 pb-40">
               {/* Business Info Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
-                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-0.5">Business Info</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Business Info</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your business identity and contact information.</p>
                 <div className="space-y-1 sm:space-y-1.5">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                    <label className="block text-[10px] sm:text-xs font-semibold text-slate-900 dark:text-foreground mb-0.5">
                       Business Name
                     </label>
                     <input
@@ -865,8 +866,9 @@ export default function SettingsContent() {
               {/* Messaging Settings */}
               <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
                 <div className="flex items-center justify-between mb-0.5">
-                  <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Customize automatic text responses for missed calls.</p>
                 <div className="space-y-1 sm:space-y-1.5">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
@@ -897,8 +899,9 @@ export default function SettingsContent() {
               <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
                 <div className="mb-1 sm:mb-2">
                   <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-                    <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
                   </div>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Control when ReplyFlow sends instant responses to missed calls.</p>
                 </div>
                 
                 <div className="space-y-1.5 sm:space-y-2">
@@ -1227,7 +1230,8 @@ export default function SettingsContent() {
 
               {/* Integrations Section */}
               <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
-                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-0.5">Integrations</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Integrations</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Connect third-party services to extend ReplyFlow's capabilities.</p>
                 
                 {/* Google Calendar Card */}
                 <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
@@ -1285,7 +1289,8 @@ export default function SettingsContent() {
               <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-24">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Prevent employee, personal, vendor, or spam numbers from becoming leads.</p>
                   </div>
                   <button
                     onClick={() => setShowAddModal(true)}
@@ -1296,18 +1301,18 @@ export default function SettingsContent() {
                 </div>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
-                    <div className="flex items-center justify-center py-3 sm:py-4">
-                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-blue-600"></div>
+                    <div className="flex items-center justify-center py-2 sm:py-3">
+                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-3 sm:py-4 bg-muted/40 rounded-lg border border-border/50">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1.5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center py-2 sm:py-3 bg-muted/40 rounded-lg border border-border/50">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
-                      <p className="text-[10px] text-slate-600 dark:text-muted-foreground max-w-xs mx-auto">
+                      <h3 className="text-[9px] sm:text-[10px] font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
+                      <p className="text-[9px] text-slate-600 dark:text-muted-foreground max-w-[200px] mx-auto">
                         Add employee, vendor, or spam numbers to prevent unwanted leads.
                       </p>
                     </div>
@@ -1360,7 +1365,8 @@ export default function SettingsContent() {
               
               {/* Security Section */}
               <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
-                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
                 <div className="space-y-1.5 sm:space-y-2">
                   {/* Change Password Section */}
                   <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
@@ -1374,128 +1380,94 @@ export default function SettingsContent() {
                       </button>
                     </div>
                   </div>
-                  
-                  {/* Delete Account Section */}
-                  <div className="bg-red-50/60 dark:bg-red-900/20 rounded-lg border border-red-200/50 dark:border-red-800/30 p-2 sm:p-3">
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-0.5 sm:mb-1">Delete Account</h3>
-                      <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-1 sm:mb-2">
-                        Permanently delete your account and all data. Cannot be undone.
-                      </p>
-                      <button
-                        onClick={() => setShowDeleteModal(true)}
-                        className="px-3 py-1 sm:px-4 sm:py-1.5 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
-                      >
-                        Delete Account
-                      </button>
-                    </div>
+                </div>
+              </div>
+
+              {/* Danger Zone Section */}
+              <div className="mt-6 sm:mt-8">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 sm:mb-3 uppercase tracking-wider">Danger Zone</p>
+                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-2 sm:p-3.5">
+                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-2 sm:mb-3">
+                    Permanent destructive actions that cannot be undone.
+                  </p>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-0.5 sm:mb-1">Delete Account</h3>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="px-3 py-1 sm:px-4 sm:py-1.5 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                    >
+                      Delete Account
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* Subscription Section */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
-                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Manage your subscription and billing.</p>
                 <div className="space-y-2 sm:space-y-3">
                   <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-2 sm:p-3">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h4 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
-                      <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold ${
-                        isInTrialPeriod(business?.subscription_status) 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
-                          : hasActiveSubscription(business)
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      }`}>
-                        {getSubscriptionStatusText(business?.subscription_status)}
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <p className="text-base sm:text-lg font-black text-slate-900 dark:text-foreground">
-                        {getPricingDisplay()}
-                        {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
-                      </p>
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                          isInTrialPeriod(business?.subscription_status)
-                            ? 'bg-blue-500 animate-pulse'
-                            : hasActiveSubscription(business)
-                              ? 'bg-green-500'
-                              : 'bg-amber-500'
-                        }`}></div>
-                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground font-medium">
-                          {isInTrialPeriod(business?.subscription_status) 
-                            ? 'Trial active'
-                            : hasActiveSubscription(business)
-                              ? business?.subscription_status === 'beta' || business?.subscription_status === 'comped'
-                                ? 'Complimentary access'
-                                : 'Subscription active'
-                              : 'Subscription inactive'
-                          }
+                    <div className="flex items-center justify-between gap-2 sm:gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-[10px] sm:text-xs font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
+                          <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            isInTrialPeriod(business?.subscription_status) 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                              : hasActiveSubscription(business)
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                          }`}>
+                            {getSubscriptionStatusText(business?.subscription_status)}
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base font-black text-slate-900 dark:text-foreground">
+                          {getPricingDisplay()}
+                          {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                         </p>
                       </div>
-                      {/* BETA/COMPED: Show special description for beta/comped users */}
-                      {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') && (
-                        <div className="mt-2 p-1.5 sm:p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                          <p className="text-[10px] sm:text-xs text-green-700 dark:text-green-300">
-                            {business?.subscription_status === 'beta' 
-                              ? 'This account has complimentary beta access.'
-                              : 'This account has complimentary access.'
-                            }
+                      <div className="flex-shrink-0">
+                        {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
+                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 text-right">
+                            Billing not required
                           </p>
-                        </div>
-                      )}
+                        ) : (
+                          <button
+                            onClick={() => handleBillingActionClick('portal')}
+                            disabled={isOpeningPortal}
+                            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
+                          >
+                            Manage Billing
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  {/* BETA/COMPED: Hide billing buttons for beta/comped users */}
-                  {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 text-center">
-                        Billing not required for this account.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                      <button
-                        onClick={() => handleBillingActionClick('portal')}
-                        disabled={isOpeningPortal}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
-                      >
-                        Manage Billing
-                      </button>
-                      {needsUpgrade(business?.subscription_status) && (
-                        <button
-                          onClick={() => handleBillingActionClick('upgrade')}
-                          disabled={isStartingCheckout}
-                          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
-                        >
-                          Upgrade Plan
-                        </button>
-                      )}
-                    </div>
+                  {needsUpgrade(business?.subscription_status) && (
+                    <button
+                      onClick={() => handleBillingActionClick('upgrade')}
+                      disabled={isStartingCheckout}
+                      className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
+                    >
+                      Upgrade Plan
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Profile Section */}
               <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
-                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Profile</h2>
-                <div className="space-y-1.5 sm:space-y-2">
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground mb-0.5">
-                      Email
-                    </label>
-                    <div className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                      {user?.email}
-                    </div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Profile</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account details and status.</p>
+                <div className="space-y-1 sm:space-y-1.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">Email:</span>
+                    <span className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{user?.email}</span>
                   </div>
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground mb-0.5">
-                      Account Status
-                    </label>
-                    <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
-                      {getSubscriptionStatusText(business?.subscription_status)}
-                    </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">Status:</span>
+                    <span className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
                   </div>
                 </div>
               </div>
