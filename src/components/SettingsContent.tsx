@@ -816,7 +816,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-2 sm:space-y-3 pb-40">
+            <div className="space-y-2 sm:space-y-2.5 pb-40">
               {/* Business Info Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Business Info</h2>
