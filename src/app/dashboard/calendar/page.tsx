@@ -43,37 +43,47 @@ export default function CalendarPage() {
   }
 
   const fetchCalendarStatus = async () => {
+    console.log('[Calendar Page] Fetching calendar status...')
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
+        console.log('[Calendar Page] No session token')
         setCalendarConnected(false)
         return
       }
 
+      console.log('[Calendar Page] Requesting status from API')
       const response = await fetch('/api/google/calendar/status?provider=google', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
+      console.log('[Calendar Page] Status response:', response.status, response.statusText)
+
       if (!response.ok) {
         if (response.status === 401) {
+          console.log('[Calendar Page] Unauthorized response')
           setCalendarConnected(false)
           return
         }
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Calendar Page] Status error:', errorData)
         throw new Error('Failed to fetch calendar status')
       }
 
       const data = await response.json()
+      console.log('[Calendar Page] Status data:', { connected: data.connected, provider: data.provider })
       setCalendarConnected(data.connected || false)
 
       if (data.connected) {
+        console.log('[Calendar Page] Calendar connected, fetching events')
         await fetchEvents()
       }
     } catch (error) {
-      console.error('Error fetching calendar status:', error)
+      console.error('[Calendar Page] Error fetching calendar status:', error)
       setCalendarConnected(false)
     } finally {
       setIsLoading(false)
@@ -81,29 +91,37 @@ export default function CalendarPage() {
   }
 
   const fetchEvents = async () => {
+    console.log('[Calendar Page] Fetching events...')
     setIsLoadingEvents(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
+        console.log('[Calendar Page] No session token for events')
         throw new Error('Not authenticated')
       }
 
+      console.log('[Calendar Page] Requesting events from API')
       const response = await fetch('/api/google/calendar/events', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
+      console.log('[Calendar Page] Events response:', response.status, response.statusText)
+
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Calendar Page] Events error:', errorData)
         throw new Error('Failed to fetch events')
       }
 
       const data = await response.json()
+      console.log('[Calendar Page] Events data:', { eventCount: data.events?.length || 0, calendarEmail: data.calendarEmail })
       setEvents(data.events || [])
     } catch (error) {
-      console.error('Error fetching events:', error)
+      console.error('[Calendar Page] Error fetching events:', error)
       showToast('Failed to fetch calendar events', 'error')
     } finally {
       setIsLoadingEvents(false)

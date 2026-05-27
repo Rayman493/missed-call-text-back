@@ -2,17 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  console.log('[Google Calendar Events] Request received')
+  
   try {
     // Get the user's session
     const supabase = createServerSupabaseClient()
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError || !session) {
+    if (sessionError) {
+      console.error('[Google Calendar Events] Session error:', sessionError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+
+    if (!session) {
+      console.log('[Google Calendar Events] No session found')
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    console.log('[Google Calendar Events] Authenticated user:', session.user.id)
 
     // Get the user's business
     const { data: business, error: businessError } = await supabase
@@ -21,12 +34,23 @@ export async function GET(request: NextRequest) {
       .eq('user_id', session.user.id)
       .single()
 
-    if (businessError || !business) {
+    if (businessError) {
+      console.error('[Google Calendar Events] Business lookup error:', businessError)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
+
+    if (!business) {
+      console.log('[Google Calendar Events] No business found for user:', session.user.id)
+      return NextResponse.json(
+        { error: 'Business not found' },
+        { status: 404 }
+      )
+    }
+
+    console.log('[Google Calendar Events] Business found:', business.id)
 
     // Get the calendar integration
     const { data: integration, error: integrationError } = await supabase
@@ -36,24 +60,39 @@ export async function GET(request: NextRequest) {
       .eq('provider', 'google')
       .single()
 
-    if (integrationError || !integration) {
+    if (integrationError) {
+      console.error('[Google Calendar Events] Integration lookup error:', integrationError)
       return NextResponse.json(
         { error: 'Calendar not connected' },
         { status: 404 }
       )
     }
 
+    if (!integration) {
+      console.log('[Google Calendar Events] No integration found')
+      return NextResponse.json(
+        { error: 'Calendar not connected' },
+        { status: 404 }
+      )
+    }
+
+    console.log('[Google Calendar Events] Integration found:', integration.id)
+
     // Check if token is expired and refresh if needed
     let accessToken = integration.access_token
     if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
+      console.log('[Google Calendar Events] Token expired, attempting refresh')
+      
       // Token expired, refresh it
       if (!integration.refresh_token) {
+        console.error('[Google Calendar Events] No refresh token available')
         return NextResponse.json(
           { error: 'Cannot refresh token: no refresh token available' },
           { status: 401 }
         )
       }
 
+      console.log('[Google Calendar Events] Refreshing token')
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -68,6 +107,8 @@ export async function GET(request: NextRequest) {
       })
 
       if (!refreshResponse.ok) {
+        const errorText = await refreshResponse.text()
+        console.error('[Google Calendar Events] Token refresh failed:', refreshResponse.status, errorText)
         return NextResponse.json(
           { error: 'Failed to refresh token' },
           { status: 401 }
@@ -76,19 +117,28 @@ export async function GET(request: NextRequest) {
 
       const tokenData = await refreshResponse.json()
       accessToken = tokenData.access_token
+      console.log('[Google Calendar Events] Token refreshed successfully')
 
       // Update the integration with new token
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-      await supabase
+      console.log('[Google Calendar Events] Updating integration with new token')
+      
+      const { error: updateError } = await supabase
         .from('calendar_integrations')
         .update({
           access_token: tokenData.access_token,
           expires_at: expiresAt,
         })
         .eq('id', integration.id)
+
+      if (updateError) {
+        console.error('[Google Calendar Events] Failed to update integration:', updateError)
+        // Continue anyway, we have the new token
+      }
     }
 
     // Fetch events from Google Calendar
+    console.log('[Google Calendar Events] Fetching events from Google Calendar API')
     const eventsResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
       `timeMin=${new Date().toISOString()}&` +
@@ -103,7 +153,8 @@ export async function GET(request: NextRequest) {
     )
 
     if (!eventsResponse.ok) {
-      console.error('Google Calendar API error:', await eventsResponse.text())
+      const errorText = await eventsResponse.text()
+      console.error('[Google Calendar Events] Google Calendar API error:', eventsResponse.status, errorText)
       return NextResponse.json(
         { error: 'Failed to fetch calendar events' },
         { status: 500 }
@@ -111,6 +162,7 @@ export async function GET(request: NextRequest) {
     }
 
     const eventsData = await eventsResponse.json()
+    console.log('[Google Calendar Events] Fetched events:', eventsData.items?.length || 0)
 
     // Return safe event fields only
     const events = (eventsData.items || []).map((event: any) => ({
@@ -128,7 +180,7 @@ export async function GET(request: NextRequest) {
       calendarEmail: integration.calendar_email || null
     })
   } catch (error) {
-    console.error('Error fetching calendar events:', error)
+    console.error('[Google Calendar Events] Unexpected error:', error)
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }
