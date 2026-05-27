@@ -138,14 +138,14 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-foreground">Business Snapshot</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 animate-pulse">
+            <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 animate-pulse">
               <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
               <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded"></div>
             </div>
@@ -156,26 +156,26 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-3.5">
+      <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-lg font-semibold text-foreground">Business Snapshot</h3>
         <div className="text-xs text-muted-foreground">Last {kpiData.period}</div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
         {kpiItems.map((item) => (
           <div
             key={item.type}
-            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-3 hover:border-white/12 transition-all duration-200"
+            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-2.5 hover:border-white/12 transition-all duration-200"
           >
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <div className={`w-4 h-4 ${getKPIColor(item.type)}`}>
                 {getKPIIcon(item.type)}
               </div>
               <div className="text-xs text-muted-foreground/80 font-medium">{item.label}</div>
             </div>
             
-            <div className={`text-2xl font-black ${getKPIColor(item.type)} mb-2`}>
+            <div className={`text-2xl font-black ${getKPIColor(item.type)} mb-1.5`}>
               {item.value.toLocaleString()}
             </div>
             
@@ -187,7 +187,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       </div>
 
       {/* Summary Stats */}
-      <div className="mt-4 pt-4 border-t border-border">
+      <div className="mt-3 pt-3 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <div className="text-muted-foreground">
             Response Rate
@@ -200,7 +200,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
           </div>
         </div>
         
-        <div className="flex items-center justify-between text-sm mt-2">
+        <div className="flex items-center justify-between text-sm mt-1.5">
           <div className="text-muted-foreground">
             Lead Conversion
           </div>

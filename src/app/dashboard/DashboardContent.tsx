@@ -207,42 +207,13 @@ const isOnboardingExpanded = (() => {
 })()
 
 export default function DashboardContent() {
-  console.log('[HOOK ORDER CHECK] dashboard render start')
-  
   // Track dashboard routes for smart redirect
   useDashboardRouteTracking()
-  
-  // Trace log at dashboard component mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[TRACE Dashboard Mounted]', {
-        pathname: window.location.pathname,
-        search: window.location.search
-      })
-    }
-  }, [])
 
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  // Trace log on Dashboard render
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href)
-      const checkoutSuccess = url.searchParams.get('checkout') === 'success'
-      console.log('[TRACE Dashboard Render]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        checkoutSuccess,
-        sessionExists: !!user,
-        userExists: !!user,
-        businessStatus: business?.subscription_status,
-        subscriptionStatus: business?.subscription_status
-      })
-    }
-  }, [user, business])
 
   // Check if user is admin based on email allowlist
   const isAdmin = isAdminUser(user?.email)
@@ -403,35 +374,11 @@ export default function DashboardContent() {
   // BETA/COMPED ACCESS: Include beta and comped users for full dashboard access
   const isSubscriptionActive = hasActiveAccess(business)
   
-  console.log('[Render Guard] DashboardContent subscription check', {
-    subscription_status: business?.subscription_status,
-    isSubscriptionActive,
-    loading: businessLoading,
-    fetchComplete: businessFetchComplete
-  })
-
   // Add state resolving flag - wait for business fetch to complete AND subscription state to be stable
   // This prevents flicker by not rendering onboarding UI until state is fully resolved
   const isStateResolving = businessLoading || webhookConfirming
   const isSubscriptionStateResolved = businessFetchComplete && (business?.subscription_status !== null || business?.subscription_status !== undefined)
   const shouldShowLoadingState = isStateResolving || (!isSubscriptionStateResolved && !loadingTimeout)
-
-  // Log state resolution for debugging
-  useEffect(() => {
-    console.log('[Dashboard State Resolution]', {
-      businessLoading,
-      businessFetchComplete,
-      webhookConfirming,
-      isStateResolving,
-      isSubscriptionStateResolved,
-      shouldShowLoadingState,
-      loadingTimeout,
-      subscription_status: business?.subscription_status,
-      twilio_phone_number: business?.twilio_phone_number,
-      provisioning_status: business?.provisioning_status,
-      derivedOnboardingState: onboardingState?.state
-    })
-  }, [businessLoading, businessFetchComplete, webhookConfirming, isStateResolving, isSubscriptionStateResolved, shouldShowLoadingState, loadingTimeout, business?.subscription_status, business?.twilio_phone_number, business?.provisioning_status, onboardingState?.state])
 
   // Initialize setup banner dismissal state from sessionStorage
   useEffect(() => {
@@ -453,14 +400,10 @@ export default function DashboardContent() {
     console.log('[Checkout Recovery] Starting recovery window for checkout=success')
     setIsRecoveringSession(true)
 
-    const sessionId = searchParams?.get('session_id')
-    console.log('[Checkout Recovery] Session ID:', sessionId)
-
     // Clean up localStorage markers
     if (typeof window !== 'undefined') {
       localStorage.removeItem('replyflow_checkout_in_progress')
       localStorage.removeItem('replyflow_checkout_return')
-      console.log('[Checkout Recovery] Cleaned up localStorage markers')
     }
 
     const RECOVERY_TIMEOUT = 8000 // 8 seconds
@@ -470,29 +413,24 @@ export default function DashboardContent() {
 
     const attemptSessionRecovery = async (): Promise<boolean> => {
       recoveryAttempts++
-      console.log(`[Checkout Recovery] Attempt ${recoveryAttempts} to restore session`)
 
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.log('[Checkout Recovery] getSession error:', error.message)
+          console.error('[Checkout Recovery] getSession error:', error.message)
           return false
         }
 
         if (session && session.user) {
-          console.log('[Checkout Recovery] Session restored successfully', {
-            userId: session.user.id,
-            email: session.user.email
-          })
+          console.log('[Checkout Recovery] Session restored successfully')
           sessionRestored = true
           return true
         }
 
-        console.log('[Checkout Recovery] Session not yet available')
         return false
       } catch (error) {
-        console.log('[Checkout Recovery] getSession exception:', error)
+        console.error('[Checkout Recovery] getSession exception:', error)
         return false
       }
     }
@@ -519,7 +457,6 @@ export default function DashboardContent() {
         setIsRecoveringSession(false)
         router.push('/auth/signin?redirect=/dashboard')
       } else {
-        console.log('[Checkout Recovery] Timeout reached but session was restored')
         setIsRecoveringSession(false)
         router.replace('/dashboard')
       }
@@ -1028,8 +965,8 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
-              <div className="max-w-[1200px] mx-auto space-y-2 sm:space-y-4">
+            <div className="flex-1 pt-3 sm:pt-4 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-16 relative z-10">
+              <div className="max-w-[1200px] mx-auto space-y-2 sm:space-y-3">
                         
                 {/* Determine if onboarding is fully complete */}
                 {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
@@ -1086,11 +1023,7 @@ export default function DashboardContent() {
                 {/* Payment Issue Warning - High Priority */}
                 {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
                   <SectionErrorBoundary sectionName="PaymentIssueBanner">
-                    {(() => {
-                      console.log('[Render Child] PaymentIssueBanner')
-                      return null
-                    })()}
-                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-3">
+                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2.5">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <span className="text-xl">⚠️</span>
@@ -1132,7 +1065,7 @@ export default function DashboardContent() {
                         const formattedDate = formatDate(endDate)
                         
                         return (
-                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-4">
+                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-2.5">
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3">
                                 <span className="text-xl">⏰</span>
@@ -1180,9 +1113,9 @@ export default function DashboardContent() {
                 {/* Pre-trial activation CTA - compact, not hero-sized */}
                 {!hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-3 sm:p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div>
                             <h3 className="text-base font-semibold text-foreground mb-1">
                               {eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now')}
@@ -1190,10 +1123,7 @@ export default function DashboardContent() {
                             <p className="text-sm text-muted-foreground">
                               {eligibilityLoading 
                                 ? 'Determining your subscription options...'
-                                : (checkoutMode === 'trial' 
-                                  ? 'Activate ReplyFlow to begin capturing missed calls automatically.'
-                                  : 'Activate ReplyFlow to begin capturing missed calls automatically.'
-                                )
+                                : 'Activate ReplyFlow to begin capturing missed calls automatically.'
                               }
                             </p>
                           </div>
@@ -1257,20 +1187,9 @@ export default function DashboardContent() {
                   <>
                     {/* Live Activity Section - Top Priority */}
                     <SectionErrorBoundary sectionName="LiveActivity">
-                      {(() => {
-                        console.log('[SECTION RENDER]', {
-                          section: 'LiveActivity',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status
-                        })
-                        console.log('[Render Child] LiveActivity')
-                        return null
-                      })()}
                       {/* Hide LiveActivity when Setup Progress is visible to avoid redundant messaging */}
                       {!(!isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="mb-4 transition-opacity duration-300">
+                        <div className="mb-3 transition-opacity duration-300">
                           <LiveActivity 
                             isOnboardingComplete={isOnboardingComplete}
                             provisioningStatus={business?.provisioning_status || 'pending'}
@@ -1282,20 +1201,9 @@ export default function DashboardContent() {
 
                     {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
-                      {(() => {
-                        console.log('[SECTION RENDER]', {
-                          section: 'RecentLeadsSection',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status
-                        })
-                        console.log('[Render Child] RecentLeadsSection')
-                        return null
-                      })()}
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-4">
+                        <div className="transition-opacity duration-300 mb-3">
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 
@@ -1311,35 +1219,35 @@ export default function DashboardContent() {
 
                     {/* Needs Attention Card - Priority 3 */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <NeedsAttentionCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Business Snapshot - Priority 4 */}
                     <SectionErrorBoundary sectionName="BusinessSnapshot">
-                      <div className="mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <BusinessSnapshot business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Recent Activity Card - Priority 5 */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className="mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
                     
                     {/* Follow-Up Activity Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Business Wins Card - Priority 7 */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <div className="mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <BusinessWinsCard business={business} />
                       </div>
                     </SectionErrorBoundary>

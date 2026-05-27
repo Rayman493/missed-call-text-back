@@ -300,7 +300,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   if (loading) {
     return (
       <DashboardErrorBoundary>
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-6">
+        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
               <svg className="w-5 h-5 text-muted-foreground animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,16 +320,16 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   return (
     <DashboardErrorBoundary>
       {/* Latest Lead */}
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md dark:shadow-md hover:shadow-lg dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-md dark:shadow-md hover:shadow-lg dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-foreground">Latest Lead</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-foreground">Latest Lead</h2>
               <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 <div className="flex justify-center mb-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full flex items-center justify-center">
                     <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                 </div>
@@ -357,7 +357,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {leads.slice(0, 5).map((lead) => {
               const nextFollowUp = getNextFollowUp(lead)
               const status = getLeadStatus(lead)
@@ -367,7 +367,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 hover:shadow-md transition-all duration-300 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -376,8 +376,8 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-foreground">{formatPhoneNumber(lead.phone_number)}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <p className="font-medium text-slate-900 dark:text-foreground text-sm">{formatPhoneNumber(lead.phone_number)}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
                             <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               status === 'Awaiting Response' 
                                 ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'

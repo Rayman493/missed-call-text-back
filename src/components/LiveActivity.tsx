@@ -29,8 +29,8 @@ export default function LiveActivity({
   forwardingVerified = false 
 }: LiveActivityProps) {
   return (
-    <section className="rounded-xl border border-white/10 bg-slate-900/50 p-4">
-      <div className="mb-3 flex items-center justify-between">
+    <section className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+      <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
         <span className="text-xs text-slate-500">Live</span>
       </div>
@@ -40,7 +40,7 @@ export default function LiveActivity({
           Activity will appear here as ReplyFlow handles missed calls.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {items.map((item) => {
             const Icon = iconMap[item.type];
 
