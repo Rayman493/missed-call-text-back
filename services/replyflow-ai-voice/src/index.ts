@@ -329,6 +329,13 @@ wss.on('connection', (ws, req) => {
     let startEventProcessed = false;
     let openAiWs: WebSocket | null = null;
 
+    // Transcript capture
+    let transcript: string[] = [];
+    let callerPhone: string = '';
+    let sessionId: string = '';
+    let businessId: string = '';
+    let callSid: string = '';
+
     log(LogLevel.INFO, '[AI POC] attaching message listener');
 
     // Override handleMessage to capture customParameters from start event
@@ -419,8 +426,15 @@ wss.on('connection', (ws, req) => {
           const sessionId = customParams.sessionId || urlSessionId;
           const callSid = customParams.callSid || urlCallSid;
           const businessId = customParams.businessId || urlBusinessId;
+          const callerPhone = customParams.callerPhone || callInfo.caller || '';
 
-          log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId });
+          // Set session variables for ingestion
+          (ws as any).sessionId = sessionId;
+          (ws as any).businessId = businessId;
+          (ws as any).callSid = callSid;
+          (ws as any).callerPhone = callerPhone;
+
+          log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId, callerPhone });
 
           // Fetch business data if businessId is available
           let businessName = 'ReplyFlow';
@@ -679,6 +693,12 @@ Do not continue chatting after intake is complete.`;
               if (message.type === 'response.done') {
                 console.log('[AI TURN] response triggered after caller speech');
               }
+              if (message.type === 'response.content') {
+                console.log('[TRANSCRIPT] response.content', { content: message.content });
+                if (message.content) {
+                  transcript.push(`AI: ${message.content}`);
+                }
+              }
 
               // Log session configuration
               if (message.type === 'session.created') {
@@ -767,6 +787,204 @@ Do not continue chatting after intake is complete.`;
               console.log('[OPENAI RAW] error', { error: String(error) });
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
+            });
+
+            // Ingestion function to save call data
+            const ingestCallData = async () => {
+              const sessionSessionId = (ws as any).sessionId || '';
+              const sessionBusinessId = (ws as any).businessId || '';
+              const sessionCallSid = (ws as any).callSid || '';
+              const sessionCallerPhone = (ws as any).callerPhone || '';
+              
+              console.log('[AI INGEST] call ended');
+              console.log('[AI INGEST] transcript captured', { transcriptLength: transcript.length });
+              console.log('[AI INGEST] session data', { sessionId: sessionSessionId, businessId: sessionBusinessId, callSid: sessionCallSid, callerPhone: sessionCallerPhone });
+              
+              const fullTranscript = transcript.join('\n');
+              console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+              
+              try {
+                // Extract structured fields from transcript
+                console.log('[AI INGEST] extracting fields...');
+                const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: name, reason_for_call, service_address, urgency, callback_phone, callback_time, notes. If a field is not found, set it to null.
+
+Transcript:
+${fullTranscript}
+
+Return only JSON, no other text.`;
+
+                const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                      { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
+                      { role: 'user', content: extractionPrompt },
+                    ],
+                    temperature: 0,
+                  }),
+                });
+
+                const extractionData = await extractionResponse.json();
+                const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+                console.log('[AI INGEST] extracted fields', extractedFields);
+
+                // Upsert lead
+                if (!supabase) {
+                  console.log('[AI INGEST] supabase client not available');
+                  return;
+                }
+                console.log('[AI INGEST] lead upserting...');
+                const { data: lead, error: leadError } = await supabase
+                  .from('leads')
+                  .upsert({
+                    business_id: sessionBusinessId,
+                    phone: sessionCallerPhone,
+                    name: extractedFields.name || null,
+                    source: 'ai_voice',
+                    status: 'new',
+                  }, {
+                    onConflict: 'business_id,phone',
+                  })
+                  .select()
+                  .single();
+
+                if (leadError) {
+                  console.log('[AI INGEST] lead upsert error', leadError);
+                  throw leadError;
+                }
+                console.log('[AI INGEST] lead upserted', { leadId: lead.id });
+
+                // Create or update conversation
+                console.log('[AI INGEST] conversation updating...');
+                const { data: conversation, error: conversationError } = await supabase
+                  .from('conversations')
+                  .upsert({
+                    lead_id: lead.id,
+                    business_id: sessionBusinessId,
+                    call_sid: sessionCallSid,
+                    status: 'active',
+                  }, {
+                    onConflict: 'lead_id,call_sid',
+                  })
+                  .select()
+                  .single();
+
+                if (conversationError) {
+                  console.log('[AI INGEST] conversation update error', conversationError);
+                  throw conversationError;
+                }
+                console.log('[AI INGEST] conversation updated', { conversationId: conversation.id });
+
+                // Save summary message
+                console.log('[AI INGEST] summary saving...');
+                const summaryMessage = `AI call summary:
+Name: ${extractedFields.name || 'Not provided'}
+Reason: ${extractedFields.reason_for_call || 'Not provided'}
+Address: ${extractedFields.service_address || 'Not provided'}
+Urgency: ${extractedFields.urgency || 'Not provided'}
+Callback: ${extractedFields.callback_phone || 'Not provided'} at ${extractedFields.callback_time || 'Not provided'}
+Notes: ${extractedFields.notes || 'None'}`;
+
+                const { error: messageError } = await supabase
+                  .from('messages')
+                  .insert({
+                    conversation_id: conversation.id,
+                    lead_id: lead.id,
+                    business_id: sessionBusinessId,
+                    sender: 'system',
+                    content: summaryMessage,
+                    message_type: 'summary',
+                    structured_data: extractedFields,
+                  });
+
+                if (messageError) {
+                  console.log('[AI INGEST] message save error', messageError);
+                  throw messageError;
+                }
+                console.log('[AI INGEST] summary saved');
+
+                // Save transcript message
+                console.log('[AI INGEST] transcript saving...');
+                const { error: transcriptError } = await supabase
+                  .from('messages')
+                  .insert({
+                    conversation_id: conversation.id,
+                    lead_id: lead.id,
+                    business_id: sessionBusinessId,
+                    sender: 'system',
+                    content: fullTranscript,
+                    message_type: 'transcript',
+                  });
+
+                if (transcriptError) {
+                  console.log('[AI INGEST] transcript save error', transcriptError);
+                  throw transcriptError;
+                }
+                console.log('[AI INGEST] transcript saved');
+
+              } catch (error) {
+                console.log('[AI INGEST] extraction failed, saving raw transcript as fallback', error);
+                // Fallback: save raw transcript as a note
+                if (!supabase) {
+                  console.log('[AI INGEST] supabase client not available for fallback');
+                  return;
+                }
+                try {
+                  const { data: lead } = await supabase
+                    .from('leads')
+                    .upsert({
+                      business_id: sessionBusinessId,
+                      phone: sessionCallerPhone,
+                      source: 'ai_voice',
+                      status: 'new',
+                    }, {
+                      onConflict: 'business_id,phone',
+                    })
+                    .select()
+                    .single();
+
+                  const { data: conversation } = await supabase
+                    .from('conversations')
+                    .upsert({
+                      lead_id: lead.id,
+                      business_id: sessionBusinessId,
+                      call_sid: sessionCallSid,
+                      status: 'active',
+                    }, {
+                      onConflict: 'lead_id,call_sid',
+                    })
+                    .select()
+                    .single();
+
+                  await supabase
+                    .from('messages')
+                    .insert({
+                      conversation_id: conversation.id,
+                      lead_id: lead.id,
+                      business_id: sessionBusinessId,
+                      sender: 'system',
+                      content: `AI call transcript (extraction failed):\n${fullTranscript}`,
+                      message_type: 'transcript',
+                    });
+
+                  console.log('[AI INGEST] fallback transcript saved');
+                } catch (fallbackError) {
+                  console.log('[AI INGEST] fallback also failed', fallbackError);
+                }
+              }
+            };
+
+            // Call ingestion when WebSocket closes
+            openAiWs.on('close', () => {
+              console.log('[OPENAI AUDIT] close listener attached');
+              console.log('[OPENAI RAW] close');
+              log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
+              ingestCallData();
             });
             console.log('[OPENAI AUDIT] error listener attached');
 
