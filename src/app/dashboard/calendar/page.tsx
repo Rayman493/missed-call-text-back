@@ -13,6 +13,7 @@ import { Calendar as CalendarIcon, Plus } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
+import DayDetailModal from '@/components/calendar/DayDetailModal'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
@@ -39,6 +40,7 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
+  const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -83,6 +85,28 @@ export default function CalendarPage() {
       return
     }
     setIsEventComposerOpen(true)
+  }
+
+  const handleDayClick = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return
+    
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const clickedDate = new Date(year, month, day)
+    setSelectedDay(clickedDate)
+    setIsDayDetailOpen(true)
+  }
+
+  const getEventsForDay = (date: Date) => {
+    const dayKey = date.toISOString().split('T')[0]
+    return events.filter(event => {
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return false
+      const eventDayKey = eventDateRaw.includes('T')
+        ? eventDateRaw.split('T')[0]
+        : eventDateRaw
+      return eventDayKey === dayKey
+    })
   }
 
   const fetchCalendarStatus = async () => {
@@ -329,6 +353,7 @@ export default function CalendarPage() {
                         onNextMonth={goToNextMonth}
                         onToday={goToToday}
                         onAddEvent={handleAddEvent}
+                        onDayClick={handleDayClick}
                         renderEvent={(event, day) => (
                           <EventPill
                             title={event.summary}
@@ -361,6 +386,17 @@ export default function CalendarPage() {
                     onSave={handleCreateEvent}
                     selectedDate={selectedDay}
                   />
+
+                  {/* Day Detail Modal */}
+                  {selectedDay && (
+                    <DayDetailModal
+                      isOpen={isDayDetailOpen}
+                      onClose={() => setIsDayDetailOpen(false)}
+                      date={selectedDay}
+                      events={getEventsForDay(selectedDay)}
+                      onAddEvent={handleAddEvent}
+                    />
+                  )}
                 </>
               )}
             </div>

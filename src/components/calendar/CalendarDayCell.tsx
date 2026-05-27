@@ -5,6 +5,7 @@ interface CalendarDayCellProps {
   isCurrentMonth: boolean
   isToday: boolean
   events?: ReactNode
+  overflowCount?: number
   onClick?: () => void
 }
 
@@ -13,6 +14,7 @@ export default function CalendarDayCell({
   isCurrentMonth, 
   isToday, 
   events,
+  overflowCount,
   onClick 
 }: CalendarDayCellProps) {
   return (
@@ -49,6 +51,11 @@ export default function CalendarDayCell({
       </div>
       <div className="space-y-0.5 sm:space-y-1">
         {events}
+        {overflowCount && overflowCount > 0 && (
+          <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 pl-1 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+            +{overflowCount} more
+          </div>
+        )}
       </div>
     </div>
   )
