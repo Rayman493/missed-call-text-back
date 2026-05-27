@@ -105,22 +105,10 @@ export class TwilioStreamHandler {
           log(LogLevel.INFO, '[STREAM] streamSid extracted', { streamSid: this.streamSid });
           break;
         case 'media':
-          log(LogLevel.INFO, '[MEDIA] entered media handler');
-          log(LogLevel.INFO, '[MEDIA] openAiWs exists', { exists: !!((this as any).openAiWs) });
-          log(LogLevel.INFO, '[MEDIA] openAiReady', { ready: this.openAiReady });
-          
           if (!(this as any).openAiWs) {
-            log(LogLevel.INFO, '[MEDIA] returning because OpenAI websocket not initialized');
             break;
           }
 
-          // Audio data received from Twilio
-          log(LogLevel.INFO, 'Audio data received from Twilio', {
-            size: message.media?.payload?.length,
-          });
-
-          log(LogLevel.INFO, '[MEDIA] before audio append');
-          
           // Decode base64 audio
           const audioPayload = message.media?.payload;
           if (audioPayload) {
@@ -134,7 +122,6 @@ export class TwilioStreamHandler {
                 const audioBufferList = (this as any).audioBuffer || [];
                 audioBufferList.push(audioBuffer);
                 (this as any).audioBuffer = audioBufferList;
-                log(LogLevel.INFO, '[MEDIA] audio buffered', { bufferSize: audioBufferList.length });
                 return;
               }
               
@@ -146,9 +133,7 @@ export class TwilioStreamHandler {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
                 };
-                console.log('[OPENAI SEND PAYLOAD] input_audio_buffer.append length:', audioMessage.audio.length);
                 openAiWs.send(JSON.stringify(audioMessage));
-                log(LogLevel.INFO, '[CALLER AUDIO] sent to OpenAI', { payloadLength: audioMessage.audio.length });
                 
                 // DISABLED FOR AUDIO FORMAT DEBUGGING
                 // Manual turn detection fallback after greeting
