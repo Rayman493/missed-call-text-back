@@ -154,7 +154,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 min-h-[140px]">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
         <div className="text-xs text-muted-foreground">Last 7 days</div>

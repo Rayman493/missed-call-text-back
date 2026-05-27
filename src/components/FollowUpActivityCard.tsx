@@ -107,7 +107,7 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4 min-h-[140px]">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-foreground">Follow-Up Activity</h3>
         <div className="text-xs text-muted-foreground">

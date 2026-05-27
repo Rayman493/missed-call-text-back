@@ -156,7 +156,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-3.5">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-3.5 min-h-[200px]">
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-base font-semibold text-foreground">Business Snapshot</h3>
         <div className="text-xs text-muted-foreground">Last {kpiData.period}</div>

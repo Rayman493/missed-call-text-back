@@ -29,7 +29,7 @@ export default function LiveActivity({
   forwardingVerified = false 
 }: LiveActivityProps) {
   return (
-    <section className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+    <section className="rounded-xl border border-white/10 bg-slate-900/50 p-3 min-h-[140px]">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
         <span className="text-xs text-slate-500">Live</span>
