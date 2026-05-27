@@ -629,11 +629,27 @@ Do not continue chatting after intake is complete.`;
 
             // Add open timeout
             let opened = false;
+            let greetingSent = false;
+            let responseCreatedReceived = false;
             setTimeout(() => {
               if (!opened) {
                 console.log('[OPENAI RAW] open timeout (5 seconds)');
               }
             }, 5000);
+            
+            // Add timeout to detect if greeting is never triggered
+            setTimeout(() => {
+              if (opened && !greetingSent) {
+                console.log('[MISSING] greeting not triggered');
+              }
+            }, 10000);
+            
+            // Add timeout to detect if OpenAI ignores response.create
+            setTimeout(() => {
+              if (greetingSent && !responseCreatedReceived) {
+                console.log('[MISSING] OpenAI ignored response.create');
+              }
+            }, 15000);
 
             // Add 5-second timer to check CONNECTING state
             setTimeout(() => {
@@ -655,6 +671,9 @@ Do not continue chatting after intake is complete.`;
               console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
+              
+              // Log exact location of greeting trigger
+              console.log('[GREETING TRIGGER] About to send greeting in open listener');
               
               // Send test message with dynamic instructions
               const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
@@ -690,6 +709,7 @@ Do not continue chatting after intake is complete.`;
                   voice: AI_VOICE,
                 },
               };
+              greetingSent = true;
               console.log('[OPENAI SEND] response.create');
               console.log('[GREETING] response.create sent');
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
@@ -730,7 +750,11 @@ Do not continue chatting after intake is complete.`;
                 console.log('[VAD] speech stopped');
               }
               if (message.type === 'response.created') {
+                responseCreatedReceived = true;
                 console.log('[OPENAI RECV] response.created');
+              }
+              if (message.type === 'response.output_item.added') {
+                console.log('[OPENAI RECV] response.output_item.added');
               }
               if (message.type === 'response.output_audio.delta') {
                 console.log('[OPENAI RECV] response.output_audio.delta');
@@ -786,6 +810,7 @@ Do not continue chatting after intake is complete.`;
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
+                console.log('[AUDIO] delta received');
                 console.log('[GREETING] first audio delta received');
                 console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
                 
