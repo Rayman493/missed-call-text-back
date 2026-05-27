@@ -5,6 +5,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { AlertTriangle, CheckCircle, MessageSquare, Phone, Clock, X } from 'lucide-react'
 import Link from 'next/link'
+import { useSetupHealth } from '@/hooks/useSetupHealth'
 
 interface AttentionItem {
   type: 'lead_awaiting' | 'customer_replied' | 'forwarding_issue' | 'followup_failed' | 'healthy'
@@ -22,6 +23,7 @@ interface NeedsAttentionCardProps {
 export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps) {
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
+  const { requiredIssues } = useSetupHealth()
 
   useEffect(() => {
     if (!business) return
@@ -98,10 +100,23 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           items.push({
             type: 'followup_failed',
             title: 'Follow-Ups Require Review',
-            description: `${failedFollowUps.length} follow-up${failedFollowUps.length !== 1 ? 's' : ''} require review`,
+            description: `${failedFollowUps.length} follow-up${failedFollowUps.length !== 1 ? 's' : ''} failed in the last 24 hours`,
             priority: 'medium',
-            link: '/dashboard/settings/follow-ups',
-            linkText: 'Manage Follow-Ups'
+            link: '/dashboard/leads',
+            linkText: 'View Leads'
+          })
+        }
+
+        // Add top required health issue if any
+        if (requiredIssues.length > 0) {
+          const topIssue = requiredIssues[0]
+          items.push({
+            type: 'forwarding_issue',
+            title: topIssue.name,
+            description: topIssue.description,
+            priority: 'high',
+            link: topIssue.actionUrl,
+            linkText: topIssue.actionText
           })
         }
 
