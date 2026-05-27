@@ -1,5 +1,6 @@
 import CalendarDayCell from './CalendarDayCell'
 import { ReactNode } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface CalendarGridProps {
   month: Date
@@ -9,9 +10,19 @@ interface CalendarGridProps {
     start: { dateTime?: string; date?: string }
   }>
   renderEvent: (event: any, day: Date) => ReactNode
+  onPreviousMonth?: () => void
+  onNextMonth?: () => void
+  onToday?: () => void
 }
 
-export default function CalendarGrid({ month, events, renderEvent }: CalendarGridProps) {
+export default function CalendarGrid({ 
+  month, 
+  events, 
+  renderEvent,
+  onPreviousMonth,
+  onNextMonth,
+  onToday
+}: CalendarGridProps) {
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   
@@ -81,9 +92,33 @@ export default function CalendarGrid({ month, events, renderEvent }: CalendarGri
   return (
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-          {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-        </h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onPreviousMonth}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+            {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </h2>
+          <button
+            onClick={onNextMonth}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+        </div>
+        {onToday && (
+          <button
+            onClick={onToday}
+            className="px-3 py-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+          >
+            Today
+          </button>
+        )}
       </div>
       
       {/* Day headers */}

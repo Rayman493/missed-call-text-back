@@ -163,6 +163,26 @@ export default function CalendarPage() {
     showToast('Appointment creation coming soon', 'info')
   }
 
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev)
+      newMonth.setMonth(newMonth.getMonth() - 1)
+      return newMonth
+    })
+  }
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev)
+      newMonth.setMonth(newMonth.getMonth() + 1)
+      return newMonth
+    })
+  }
+
+  const goToToday = () => {
+    setCurrentMonth(new Date())
+  }
+
   if (!business) {
     return (
       <AuthGuard>
@@ -238,6 +258,9 @@ export default function CalendarPage() {
                         <CalendarGrid
                           month={currentMonth}
                           events={events}
+                          onPreviousMonth={goToPreviousMonth}
+                          onNextMonth={goToNextMonth}
+                          onToday={goToToday}
                           renderEvent={(event, day) => (
                             <EventPill
                               title={event.summary}
