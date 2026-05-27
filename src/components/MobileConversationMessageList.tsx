@@ -36,7 +36,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-2.5" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-2.5 pb-4" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle voicemail items - render with full audio player only if renderAudio is true
         if (item.type === 'voicemail') {

@@ -1253,7 +1253,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             
             {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-3 sm:p-4 lg:p-5 overflow-y-auto scroll-smooth pb-4" style={{ minHeight: '200px', maxHeight: 'calc(100vh - 320px)' }}>
+            <div ref={conversationContainerRef} className="p-3 sm:p-4 lg:p-5 overflow-y-auto scroll-smooth pb-4" style={{ minHeight: '200px', maxHeight: 'calc(100dvh - 320px)' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
