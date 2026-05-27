@@ -4,8 +4,11 @@ import { db } from '@/lib/supabase/admin'
 import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
+import { isIgnoredContact } from '@/lib/ignored-contacts'
 
 export async function POST(req: NextRequest) {
+  console.log('[ROUTE HIT - TWILIO VOICE-STATUS]')
+  
   try {
     // Read raw body exactly once for validation
     const rawBody = await req.text();
@@ -135,8 +138,37 @@ export async function POST(req: NextRequest) {
       lead = existingLead
       console.log("[Twilio Voice Status Webhook] Using existing lead:", lead.id)
     } else {
+      // Check if caller is in ignored contacts before creating lead
+      console.log('[IGNORED CONTACT CHECK VOICE-STATUS]', {
+        businessId: business.id,
+        callerPhone: normalizedCallerPhone,
+        timestamp: new Date().toISOString()
+      })
+      
+      const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
+      
+      if (isIgnored) {
+        console.log('[IGNORED CONTACT BLOCKED DB WRITE]', {
+          businessId: business.id,
+          phoneNumber: normalizedCallerPhone,
+          source: 'voice-status',
+          timestamp: new Date().toISOString()
+        })
+        
+        // Return success without creating lead or any other database writes
+        return new Response("OK", { status: 200 })
+      }
+      
       // Insert new lead with safe error handling
       console.log(`[Twilio Voice Status Webhook] Creating new lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
+      console.log('[DB WRITE ATTEMPT - LEADS]', {
+        route: '/api/twilio/voice-status',
+        businessId: business.id,
+        fromPhone: normalizedCallerPhone,
+        toPhone: normalizedTo,
+        callSid: CallSid,
+        timestamp: new Date().toISOString()
+      })
       
       try {
         const { data: newLead, error: leadInsertError } = await supabase
@@ -314,6 +346,16 @@ export async function POST(req: NextRequest) {
       console.log(`[Twilio Voice Status Webhook] Business has messaging_service_sid: ${!!business.twilio_messaging_service_sid}`)
       
       try {
+        console.log('[SMS SEND ATTEMPT]', {
+          route: '/api/twilio/voice-status',
+          businessId: business.id,
+          fromPhone: From,
+          toPhone: To,
+          callSid: CallSid,
+          messageBody: autoReplyMessage?.substring(0, 100) + '...',
+          timestamp: new Date().toISOString()
+        })
+        
         messageSid = await sendSms(business, From, autoReplyMessage, {
           lead_id: lead.id,
           conversation_id: conversation?.id,
