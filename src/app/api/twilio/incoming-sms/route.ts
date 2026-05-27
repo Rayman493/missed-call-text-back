@@ -24,9 +24,14 @@ export async function POST(req: NextRequest) {
     
     const From = params.From
     const To = params.To
-    const Body = params.Body
+    const Body = params.Body || ''
     const MessageSid = params.MessageSid
     const NumMedia = params.NumMedia
+    
+    // MMS Debug logging
+    console.log('[MMS DEBUG] NumMedia:', NumMedia)
+    console.log('[MMS DEBUG] MediaUrl0 present:', !!params['MediaUrl0'])
+    console.log('[MMS DEBUG] MediaContentType0:', params['MediaContentType0'])
     
     // Extract MMS media if present
     const media: Array<{ url: string; contentType: string }> = []
@@ -36,8 +41,10 @@ export async function POST(req: NextRequest) {
         const mediaContentType = params[`MediaContentType${i}`]
         if (mediaUrl && mediaContentType) {
           media.push({ url: mediaUrl, contentType: mediaContentType })
+          console.log(`[MMS DEBUG] Media ${i}: type=${mediaContentType}`)
         }
       }
+      console.log('[MMS DEBUG] Total media extracted:', media.length)
     }
     
     // Rate limiting check (phone number-based)
@@ -59,12 +66,20 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    if (!From || !To || !Body || !MessageSid) {
-      console.error('[SYSTEM] [INCOMING-SMS] Missing required fields:', { From, To, Body, MessageSid })
+    // Validate required fields - allow empty body if media is present
+    const hasContent = (Body && Body.length > 0) || (media && media.length > 0)
+    if (!From || !To || !MessageSid || !hasContent) {
+      console.error('[SYSTEM] [INCOMING-SMS] Missing required fields or no content:', { 
+        From, 
+        To, 
+        BodyLength: Body?.length || 0,
+        MediaCount: media?.length || 0,
+        MessageSid 
+      })
       
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Error: Missing required fields</Message>
+  <Message>Error: Missing required fields or no content</Message>
 </Response>`
 
       return new Response(errorTwiml, {

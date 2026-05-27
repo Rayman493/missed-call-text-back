@@ -96,6 +96,33 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Messages fetched:", messages?.length || 0)
 
+    // Fetch media for all messages
+    const messageIds = messages?.map(m => m.id) || []
+    let messageMediaMap: Record<string, any[]> = {}
+    
+    if (messageIds.length > 0) {
+      const { data: messageMedia, error: mediaError } = await supabase
+        .from("message_media")
+        .select("*")
+        .in("message_id", messageIds)
+        .order("created_at", { ascending: true })
+
+      if (mediaError) {
+        console.log("[lead-details API] Media error:", mediaError)
+      } else {
+        console.log("[MMS DEBUG] Media rows fetched:", messageMedia?.length || 0)
+        // Group media by message_id
+        messageMediaMap = (messageMedia || []).reduce((acc: Record<string, any[]>, media: any) => {
+          if (!acc[media.message_id]) {
+            acc[media.message_id] = []
+          }
+          acc[media.message_id].push(media)
+          return acc
+        }, {})
+        console.log("[MMS DEBUG] Messages with media:", Object.keys(messageMediaMap).length)
+      }
+    }
+
     // Fetch voicemail recordings for this lead with RLS protection
     const { data: voicemailRecordings, error: voicemailError } = await supabase
       .from("voicemail_recordings")
@@ -116,13 +143,22 @@ export async function GET(request: NextRequest) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
 
+    // Attach media to messages
+    const messagesWithMedia = (messages || []).map(message => ({
+      ...message,
+      media: messageMediaMap[message.id] || []
+    }))
+
+    console.log("[MMS DEBUG] Messages with media after attachment:", 
+      messagesWithMedia.filter(m => m.media && m.media.length > 0).length)
+
     // Return enhanced response
     return NextResponse.json({ 
       ok: true, 
       lead: {
         ...lead,
         conversation,
-        messages: messages || [],
+        messages: messagesWithMedia,
         voicemailRecordings: voicemailRecordings || [],
         followUpJobs: followUpJobs || []
       }

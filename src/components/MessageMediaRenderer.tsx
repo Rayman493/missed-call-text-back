@@ -8,6 +8,16 @@ interface MessageMediaRendererProps {
   isInbound?: boolean
 }
 
+// Helper function to convert Twilio media URL to proxy URL
+function getProxiedMediaUrl(originalUrl: string): string {
+  // If it's already a proxy URL, return as-is
+  if (originalUrl.includes('/api/twilio/media')) {
+    return originalUrl
+  }
+  // Otherwise, proxy through our API
+  return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
+}
+
 export default function MessageMediaRenderer({ media, isInbound = false }: MessageMediaRendererProps) {
   const [expandedMedia, setExpandedMedia] = useState<string | null>(null)
 
@@ -30,14 +40,16 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
     <>
       <div className="flex flex-col gap-2 mt-2">
         {media.map((mediaItem) => {
+          const proxiedUrl = getProxiedMediaUrl(mediaItem.media_url)
+          
           if (isImage(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group">
                 <img
-                  src={mediaItem.media_url}
+                  src={proxiedUrl}
                   alt="Message attachment"
                   className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => handleMediaClick(mediaItem.media_url)}
+                  onClick={() => handleMediaClick(proxiedUrl)}
                   loading="lazy"
                 />
               </div>
@@ -48,7 +60,7 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
             return (
               <div key={mediaItem.id} className="relative group">
                 <video
-                  src={mediaItem.media_url}
+                  src={proxiedUrl}
                   controls
                   className="max-w-full h-auto rounded-lg"
                   preload="metadata"
@@ -64,7 +76,7 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               <a
-                href={mediaItem.media_url}
+                href={proxiedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline"

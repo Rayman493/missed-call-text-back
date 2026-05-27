@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
+import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 
 // Helper function to extract recording SID from URL
 function extractRecordingSid(url: string): string | null {
@@ -100,9 +101,15 @@ export default function DesktopConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 shadow-md border border-blue-700'
                 }`}
               >
-                <p className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                  {msg.body || 'No content'}
-                </p>
+                {msg.body && (
+                  <p className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    {msg.body}
+                  </p>
+                )}
+                {/* Render media attachments */}
+                {msg.media && msg.media.length > 0 && (
+                  <MessageMediaRenderer media={msg.media} isInbound={isInbound} />
+                )}
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
