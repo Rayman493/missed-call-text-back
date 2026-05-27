@@ -206,7 +206,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       </div>
 
       {topItem ? (
-        <div className={`flex items-start gap-3 p-2.5 rounded-lg border ${getPriorityColor(topItem.priority)}`}>
+        <div className={`flex items-start gap-3 p-2.5 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${getPriorityColor(topItem.priority)}`}>
           <div className="flex-shrink-0 mt-0.5">
             {getPriorityIcon(topItem.type)}
           </div>

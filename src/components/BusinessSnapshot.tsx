@@ -166,7 +166,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         {kpiItems.map((item) => (
           <div
             key={item.type}
-            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-2.5 hover:border-white/12 transition-all duration-200"
+            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-2.5 hover:border-white/20 hover:bg-slate-800/50 transition-all duration-200"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className={`w-4 h-4 ${getKPIColor(item.type)}`}>

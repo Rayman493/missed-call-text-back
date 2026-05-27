@@ -167,7 +167,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
       ) : (
         <div className="space-y-2">
           {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start gap-2">
+            <div key={activity.id} className="flex items-start gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded-lg p-2 -mx-2 transition-colors">
               <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${activity.color}`}>
                 {activity.icon}
               </div>
