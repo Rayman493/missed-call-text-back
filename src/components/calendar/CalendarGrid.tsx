@@ -27,8 +27,6 @@ export default function CalendarGrid({
   onAddEvent,
   onDayClick
 }: CalendarGridProps) {
-  console.log('[GRID EVENTS RECEIVED]', events.length, events.slice(0, 5))
-  
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   
@@ -94,14 +92,6 @@ export default function CalendarGrid({
     const maxVisible = typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2
     const visibleEvents = allMatchedEvents.slice(0, maxVisible)
     const overflowCount = Math.max(0, allMatchedEvents.length - maxVisible)
-    
-    console.log('[CALENDAR GRID DEBUG]', {
-      dayKey,
-      totalEvents: allMatchedEvents.length,
-      visibleEvents: visibleEvents.length,
-      overflowCount,
-      sampleEvents: visibleEvents.slice(0, 2).map(e => ({ id: e.id, summary: e.summary, start: e.start }))
-    })
     
     return { events: visibleEvents, overflowCount }
   }
@@ -174,10 +164,6 @@ export default function CalendarGrid({
         {days.map((dayInfo, index) => {
           const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
-          
-          if (dayEvents.length > 0) {
-            console.log('[DAY CELL EVENTS]', dayInfo.day, dayInfo.isCurrentMonth, dayEvents.length, dayEvents)
-          }
           
           return (
             <CalendarDayCell
