@@ -161,7 +161,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-3">
+        <div className="text-center py-2">
           <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
           </div>

@@ -89,8 +89,8 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-foreground">Follow-Up Activity</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
@@ -107,8 +107,8 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-foreground">Follow-Up Activity</h3>
         <div className="text-xs text-muted-foreground">
           {hasActivity ? 'This week' : 'No activity'}
@@ -154,7 +154,7 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
       )}
 
       {hasActivity && (
-        <div className="mt-4 text-center">
+        <div className="mt-3 text-center">
           <Link
             href="/dashboard/settings/follow-ups"
             className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"

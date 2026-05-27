@@ -181,8 +181,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-foreground">Needs Attention</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
@@ -197,8 +197,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   const topItem = attentionItems[0]
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-foreground">Needs Attention</h3>
         <div className="text-xs text-muted-foreground">
           {attentionItems.length > 1 ? `${attentionItems.length} items` : 'Top priority'}
@@ -206,17 +206,17 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       </div>
 
       {topItem ? (
-        <div className={`flex items-start gap-3 p-3 rounded-lg border ${getPriorityColor(topItem.priority)}`}>
+        <div className={`flex items-start gap-3 p-2.5 rounded-lg border ${getPriorityColor(topItem.priority)}`}>
           <div className="flex-shrink-0 mt-0.5">
             {getPriorityIcon(topItem.type)}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">{topItem.title}</p>
-            <p className="text-xs opacity-75 mt-1">{topItem.description}</p>
+            <p className="text-xs opacity-75 mt-0.5">{topItem.description}</p>
             {topItem.link && (
               <Link
                 href={topItem.link}
-                className="inline-flex items-center gap-1 text-xs font-medium mt-2 hover:opacity-80 transition-opacity"
+                className="inline-flex items-center gap-1 text-xs font-medium mt-1.5 hover:opacity-80 transition-opacity"
               >
                 {topItem.linkText}
               </Link>
@@ -224,13 +224,13 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 p-3 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <div className="flex items-center gap-3 p-2.5 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
           <div className="flex-shrink-0">
             <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-green-700 dark:text-green-300">Everything is running normally</p>
-            <p className="text-xs opacity-75 mt-1 text-green-600 dark:text-green-400">
+            <p className="text-xs opacity-75 mt-0.5 text-green-600 dark:text-green-400">
               ReplyFlow is actively monitoring and engaging missed callers
             </p>
           </div>
@@ -238,7 +238,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       )}
 
       {attentionItems.length > 1 && (
-        <div className="mt-3 text-center">
+        <div className="mt-2 text-center">
           <p className="text-xs text-muted-foreground">
             {attentionItems.length - 1} additional item{attentionItems.length - 1 !== 1 ? 's' : ''} need attention
           </p>
