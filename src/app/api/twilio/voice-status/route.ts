@@ -337,9 +337,80 @@ export async function POST(req: NextRequest) {
     if (!hasRecentOutbound && lead) {
       console.log(`[Twilio Voice Status Webhook] Auto-reply send attempt - no recent outbound found`)
       
-      // Use business auto_reply_message or fallback
-      const autoReplyMessage = business.auto_reply_message || 
-        `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
+      // Business hours check
+      const businessHoursEnabled = business.business_hours_enabled || false
+      const businessHoursStart = business.business_hours_start || '09:00'
+      const businessHoursEnd = business.business_hours_end || '17:00'
+      const businessTimezone = business.business_hours_timezone || 'America/New_York'
+      const afterHoursMessage = business.after_hours_message || ''
+      
+      let withinBusinessHours = true
+      let nowLocal = ''
+      let dayOfWeek = ''
+      
+      if (businessHoursEnabled) {
+        // Get current time in business timezone
+        const now = new Date()
+        const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
+        
+        nowLocal = nowInTimezone.toISOString()
+        dayOfWeek = nowInTimezone.toLocaleDateString('en-US', { weekday: 'long' })
+        
+        // Parse business hours (format: "HH:MM")
+        const [startHour, startMin] = businessHoursStart.split(':').map(Number)
+        const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
+        
+        const currentHour = nowInTimezone.getHours()
+        const currentMin = nowInTimezone.getMinutes()
+        const currentTimeInMinutes = currentHour * 60 + currentMin
+        const startTimeInMinutes = startHour * 60 + startMin
+        const endTimeInMinutes = endHour * 60 + endMin
+        
+        // Check if current time is within business hours (Monday-Friday only)
+        const dayIndex = nowInTimezone.getDay() // 0 = Sunday, 6 = Saturday
+        const isWeekday = dayIndex >= 1 && dayIndex <= 5
+        
+        withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
+        
+        console.log('[BUSINESS HOURS CHECK]', {
+          businessId: business.id,
+          timezone: businessTimezone,
+          openTime: businessHoursStart,
+          closeTime: businessHoursEnd,
+          nowLocal,
+          dayOfWeek,
+          businessHoursEnabled,
+          withinBusinessHours,
+          isWeekday,
+          currentTimeInMinutes,
+          startTimeInMinutes,
+          endTimeInMinutes
+        })
+      } else {
+        console.log('[BUSINESS HOURS CHECK]', {
+          businessId: business.id,
+          businessHoursEnabled,
+          withinBusinessHours: true,
+          reason: 'Business hours disabled'
+        })
+      }
+      
+      // Select message based on business hours
+      let autoReplyMessage
+      if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
+        autoReplyMessage = afterHoursMessage
+        console.log('[AFTER HOURS MESSAGE SELECTED]', {
+          businessId: business.id,
+          messageBody: autoReplyMessage
+        })
+      } else {
+        autoReplyMessage = business.auto_reply_message || 
+          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
+        console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
+          businessId: business.id,
+          messageBody: autoReplyMessage
+        })
+      }
       
       console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${autoReplyMessage}`)
       console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
