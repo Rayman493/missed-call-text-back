@@ -281,6 +281,59 @@ const server = createServer((req, res) => {
     return;
   }
 
+  // Minimal test endpoint to verify ws.on("open") fires
+  if (req.url === '/debug-openai-realtime-minimal') {
+    console.log('[MINIMAL TEST] starting minimal websocket test');
+    console.log('[MINIMAL TEST] WebSocket package:', 'ws');
+    console.log('[MINIMAL TEST] API key exists:', !!OPENAI_API_KEY);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    console.log('[MINIMAL TEST] creating websocket to:', wsUrl);
+    
+    const testWs = new WebSocket(wsUrl, {
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+    });
+    
+    console.log('[MINIMAL TEST] websocket created, readyState:', testWs.readyState);
+    
+    testWs.on('open', () => {
+      console.log('[MINIMAL TEST] OPEN event fired');
+    });
+    
+    testWs.on('message', (msg) => {
+      const msgLength = Buffer.isBuffer(msg) ? msg.length : msg instanceof ArrayBuffer ? msg.byteLength : 0;
+      console.log('[MINIMAL TEST] MESSAGE received, length:', msgLength);
+    });
+    
+    testWs.on('error', (err) => {
+      console.log('[MINIMAL TEST] ERROR event:', String(err));
+    });
+    
+    testWs.on('close', (code, reason) => {
+      console.log('[MINIMAL TEST] CLOSE event, code:', code, 'reason:', reason);
+    });
+    
+    // Log readyState every second for 10 seconds
+    for (let i = 1; i <= 10; i++) {
+      setTimeout(() => {
+        console.log(`[MINIMAL TEST] after ${i}s readyState:`, testWs.readyState);
+      }, i * 1000);
+    }
+    
+    // Close after 10 seconds
+    setTimeout(() => {
+      console.log('[MINIMAL TEST] closing websocket after 10s');
+      testWs.close();
+    }, 10000);
+    
+    res.end(JSON.stringify({ status: 'minimal test started', url: wsUrl }));
+    return;
+  }
+
   // 404 for other routes
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
