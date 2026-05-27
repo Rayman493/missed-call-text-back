@@ -494,6 +494,8 @@ Rules:
 - Do not have long conversations
 - Focus on collecting lead information
 - Sound like a professional receptionist
+- Always speak in English unless the caller explicitly asks to use another language
+- If there is silence or unclear audio, do not change languages
 
 Start with: "Thanks for calling ${businessName}. What's your name?"
 
@@ -657,6 +659,7 @@ Do not continue chatting after intake is complete.`;
                   voice: AI_VOICE,
                 },
               };
+              console.log('[GREETING] response.create sent');
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
               console.log('[OPENAI TEST] sending test message');
               if (openAiWs) {
@@ -749,6 +752,7 @@ Do not continue chatting after intake is complete.`;
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
+                console.log('[GREETING] first audio delta received');
                 console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
                 
                 // Since we configured OpenAI to output audio/pcmu (g711_ulaw), send directly to Twilio
@@ -766,6 +770,7 @@ Do not continue chatting after intake is complete.`;
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
+                console.log('[GREETING] first audio sent to Twilio');
                 console.log('[AUDIO OUT] sent to Twilio');
               }
             });
