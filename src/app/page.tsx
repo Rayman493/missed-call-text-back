@@ -376,14 +376,6 @@ export default function Home() {
               >
                 {getPrimaryCTA().text}
               </Link>
-              
-              {/* Secondary CTA - Context-aware based on user state */}
-              <Link
-                href={getSecondaryCTA().href}
-                className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-white dark:bg-secondary text-slate-700 dark:text-secondary-foreground font-semibold rounded-xl border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-secondary/80 hover:border-slate-300 dark:hover:border-border transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                {getSecondaryCTA().text}
-              </Link>
             </div>
 
             {/* Trust/Simplicity Bar */}
@@ -519,7 +511,7 @@ export default function Home() {
               viewport={{ once: true }}
               className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
             >
-              See how ReplyFlow helps you capture leads automatically
+              Here's what your customers experience after a missed call
             </motion.p>
           </div>
           
@@ -530,42 +522,42 @@ export default function Home() {
             viewport={{ once: true }}
             className="max-w-2xl mx-auto"
           >
-            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
+            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
               {/* Business Message 1 - ReplyFlow sends first text */}
-              <div className="flex justify-end mb-4">
-                <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+              <div className="flex justify-end mb-5">
+                <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
                   <p className="text-sm text-white">Sorry we missed your call — this is Wolfie Plumbing. How can we help?</p>
                   <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
                 </div>
               </div>
               
               {/* Customer Message 1 */}
-              <div className="flex justify-start mb-4">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+              <div className="flex justify-start mb-5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
                   <p className="text-sm text-slate-800 dark:text-slate-200">Do you install water heaters?</p>
                   <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
                 </div>
               </div>
               
               {/* Business Message 2 */}
-              <div className="flex justify-end mb-4">
-                <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+              <div className="flex justify-end mb-5">
+                <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
                   <p className="text-sm text-white">Yes, we do. What size water heater do you need?</p>
                   <p className="text-xs text-blue-200 mt-1">2:36 PM</p>
                 </div>
               </div>
               
               {/* Customer Message 2 */}
-              <div className="flex justify-start mb-4">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
+              <div className="flex justify-start mb-5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
                   <p className="text-sm text-slate-800 dark:text-slate-200">50 gallon gas</p>
                   <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:37 PM</p>
                 </div>
               </div>
               
               {/* Business Message 3 */}
-              <div className="flex justify-end mb-4">
-                <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
+              <div className="flex justify-end mb-5">
+                <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
                   <p className="text-sm text-white">Perfect — we can help with that. What zip code are you located in?</p>
                   <p className="text-xs text-blue-200 mt-1">2:38 PM</p>
                 </div>
