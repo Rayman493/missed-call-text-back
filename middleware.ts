@@ -74,13 +74,9 @@ export async function middleware(req: NextRequest) {
     timestamp: new Date().toISOString()
   })
 
-  // Public routes - no authentication required (except homepage for authenticated users)
+  // Public routes - no authentication required
   const publicRoutes = [
-    '/signup',
-    '/login',
     '/auth',
-    '/auth/signin',
-    '/auth/signup',
     '/debug',
     '/privacy',
     '/terms',
@@ -94,6 +90,15 @@ export async function middleware(req: NextRequest) {
   if (isPublicRoute) {
     console.log('[Middleware] Public route, allowing access')
     return res
+  }
+
+  // Auth page redirect - redirect authenticated users to dashboard
+  const authRoutes = ['/signup', '/login', '/auth/signin', '/auth/signup']
+  const isAuthRoute = authRoutes.some(route => pathname === route || pathname === route + '/')
+
+  if (isAuthRoute && session) {
+    console.log('[Middleware] Authenticated user on auth page, redirecting to dashboard')
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // Special handling for homepage - redirect authenticated users
