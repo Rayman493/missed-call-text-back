@@ -135,7 +135,7 @@ export default function MobileConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[80%] sm:max-w-[75%] ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl px-3 py-2 shadow-sm ${
+                className={`rounded-2xl shadow-sm ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-slate-700/50'
                     : isOptimistic && isSending
@@ -143,15 +143,17 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 shadow-md border border-blue-700'
                 }`}
               >
-                {msg.body && (
-                  <p className="text-sm leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                    {msg.body}
-                  </p>
-                )}
-                {/* Render media attachments */}
-                {msg.media && msg.media.length > 0 && (
-                  <MessageMediaRenderer media={msg.media} isInbound={isInbound} />
-                )}
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-3 py-2'}`}>
+                  {msg.body && (
+                    <p className="text-sm leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                      {msg.body}
+                    </p>
+                  )}
+                  {/* Render media attachments */}
+                  {msg.media && msg.media.length > 0 && (
+                    <MessageMediaRenderer media={msg.media} isInbound={isInbound} />
+                  )}
+                </div>
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
