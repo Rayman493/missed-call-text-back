@@ -1,16 +1,11 @@
-'use client'
-
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import { motion } from 'framer-motion'
-import { useAuth } from '@/contexts/AuthContext'
-import { useBusiness } from '@/contexts/BusinessContext'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@/lib/supabase/browser'
-import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -41,40 +36,6 @@ function StructuredData() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteData) }}
       />
     </>
-  )
-}
-
-// Temporary debug banner component (only in development)
-function DebugBanner() {
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-  
-  useEffect(() => {
-    const supabase = createBrowserClient()
-    const gatherDebugInfo = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setDebugInfo({
-        pathname: window.location.pathname,
-        hasSession: !!session,
-        sessionUserId: session?.user?.id,
-      })
-    }
-    gatherDebugInfo()
-  }, [])
-  
-  if (!debugInfo) return null
-  
-  // Only show in development or if ?debug=true
-  if (process.env.NODE_ENV !== 'development' && !window.location.search.includes('debug=true')) {
-    return null
-  }
-  
-  return (
-    <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-xs p-2 z-50 font-mono">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <span>DEBUG: pathname={debugInfo.pathname} | session={debugInfo.hasSession ? 'YES' : 'NO'} | userId={debugInfo.sessionUserId || 'none'}</span>
-        <button onClick={() => window.location.reload()} className="underline">Reload</button>
-      </div>
-    </div>
   )
 }
 
@@ -177,158 +138,56 @@ function HomepageFooter() {
   )
 }
 
-export default function Home() {
-  const { user } = useAuth()
-  const { business } = useBusiness()
-  const router = useRouter()
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const supabase = createBrowserClient()
+export default async function Home() {
+  console.log('[HOMEPAGE AUTH REDIRECT CHECK] Starting auth check')
   
-  // Trace log at homepage mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[TRACE Homepage Mounted]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        referrer: document.referrer
-      })
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+      },
     }
-  }, [])
+  )
 
-  // Check if user is authenticated and has active trial/subscription
-  const isAuthenticated = !!user
-  // Only consider account active if subscription is trialing or active, not just business existence
-  const hasActiveAccount = isAuthenticated && business && business.subscription_status && ['trialing', 'active'].includes(business.subscription_status)
-  
-  // Check if onboarding is complete
-  const isOnboardingComplete = isAuthenticated && business && business.onboarding_status === 'completed'
-  
-  // Determine CTA logic based on user state
-  const getPrimaryCTA = () => {
-    if (!isAuthenticated) {
-      return { text: "Start Free Trial", href: "/signup" }
-    }
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (session?.user) {
+    console.log('[HOMEPAGE AUTH REDIRECT CHECK] User is authenticated')
     
-    // Authenticated users always go to dashboard
-    return { text: "Go To Dashboard", href: "/dashboard" }
-  }
-  
-  const getSecondaryCTA = () => {
-    if (!isAuthenticated) {
-      return { text: "View Demo", href: "/demo" }
+    // Check if user has a business
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single()
+
+    console.log('[HOMEPAGE AUTH REDIRECT CHECK] Business check', {
+      hasBusiness: !!business,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status
+    })
+
+    // Redirect to dashboard if business exists and setup is complete
+    if (business) {
+      console.log('[HOMEPAGE REDIRECT TO DASHBOARD] Redirecting to dashboard')
+      redirect('/dashboard')
+    } else {
+      console.log('[HOMEPAGE REDIRECT TO ONBOARDING] Redirecting to onboarding')
+      redirect('/onboarding')
     }
-    
-    // Authenticated users see demo as secondary option
-    return { text: "Watch Demo", href: "/demo" }
   }
+
+  console.log('[HOMEPAGE PUBLIC RENDER] Rendering public homepage')
   
-  // Trace log on Homepage render
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href)
-      const checkoutSuccess = url.searchParams.get('checkout') === 'success'
-      
-      // Log pre-checkout routing decision
-      console.log('[Pre Checkout Routing Decision]', {
-        pathname: window.location.pathname,
-        destination: hasActiveAccount ? '/dashboard' : (isAuthenticated ? '/onboarding' : '/signup'),
-        subscriptionStatus: business?.subscription_status,
-        onboardingStatus: business?.onboarding_status,
-        hasBusiness: !!business,
-        hasBasicProfile: !!(business?.name && business?.business_phone_number),
-        reason: hasActiveAccount ? 'Active subscription allows dashboard' : 
-                isAuthenticated ? 'Authenticated but no active subscription' : 
-                'Not authenticated'
-      })
-      
-      console.log('[TRACE Homepage Render]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        href: window.location.href,
-        referrer: document.referrer,
-        checkoutSuccess,
-        authState: {
-          isAuthenticated,
-          hasActiveAccount,
-          hasUser: !!user,
-          hasBusiness: !!business
-        }
-      })
-    }
-  }, [isAuthenticated, hasActiveAccount, user, business])
-  
-  // Clear anonymous app state for logged-out users
-  useEffect(() => {
-    if (!isAuthenticated) {
-      console.log('[Anonymous State Cleanup] User not authenticated, clearing ReplyFlow local state')
-      
-      // Log all storage keys before clearing for diagnostics
-      const storageKeysToCheck = ['onboarding', 'business', 'setup', 'dashboard', 'checkout', 'signup', 'trial', 'redirect', 'replyflow', 'supabase']
-      
-      console.log('[Storage Diagnostics] === LOCAL STORAGE BEFORE CLEAR ===')
-      if (typeof window !== 'undefined' && window.localStorage) {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key) {
-            const keyLower = key.toLowerCase()
-            const isRelevant = storageKeysToCheck.some(keyword => keyLower.includes(keyword.toLowerCase()))
-            if (isRelevant) {
-              const value = localStorage.getItem(key)
-              console.log(`[Storage Diagnostics] localStorage: ${key} = ${value}`)
-            }
-          }
-        }
-      }
-      
-      console.log('[Storage Diagnostics] === SESSION STORAGE BEFORE CLEAR ===')
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i)
-          if (key) {
-            const keyLower = key.toLowerCase()
-            const isRelevant = storageKeysToCheck.some(keyword => keyLower.includes(keyword.toLowerCase()))
-            if (isRelevant) {
-              const value = sessionStorage.getItem(key)
-              console.log(`[Storage Diagnostics] sessionStorage: ${key} = ${value}`)
-            }
-          }
-        }
-      }
-      
-      const { clearedKeys } = clearAnonymousAppState()
-      console.log('[Anonymous State Cleanup]', {
-        hasSession: false,
-        pathname: window.location.pathname,
-        clearedKeys,
-      })
-    }
-  }, [isAuthenticated])
-  
-  // Homepage always shows public marketing page
-  // Do NOT auto-redirect authenticated users to onboarding from homepage
-  // Users can access onboarding via: Start Free Trial button, Dashboard link, or direct URL
-  useEffect(() => {
-    console.log('[Homepage] Rendering public homepage (no automatic redirects)')
-    setIsCheckingAuth(false)
-  }, [])
-  
-  // Show loading state while checking auth
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Please wait</p>
-        </div>
-      </div>
-    )
-  }
-  
+  // Render public homepage for unauthenticated users
   return (
     <>
       <StructuredData />
-      <DebugBanner />
       <PageBackground>
         <SSRSafeNavbar forceDark={true} />
       
@@ -349,13 +208,6 @@ export default function Home() {
               ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
             </p>
             
-            {/* Personalization for authenticated users */}
-            {isAuthenticated && (
-              <div className="mt-4 text-sm text-green-600 dark:text-green-400 font-medium">
-                ReplyFlow is actively monitoring your business line.
-              </div>
-            )}
-            
             {/* Pricing Information */}
             <div className="flex flex-col items-center gap-2 mt-4">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
@@ -369,12 +221,12 @@ export default function Home() {
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              {/* Primary CTA - Context-aware based on user state */}
+              {/* Primary CTA */}
               <Link
-                href={getPrimaryCTA().href}
+                href="/signup"
                 className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
               >
-                {getPrimaryCTA().text}
+                Start Free Trial
               </Link>
             </div>
 
