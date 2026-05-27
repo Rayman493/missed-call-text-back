@@ -767,7 +767,7 @@ export default function SettingsContent() {
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'general'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   General
@@ -777,7 +777,7 @@ export default function SettingsContent() {
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Automation
@@ -787,7 +787,7 @@ export default function SettingsContent() {
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'integrations'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Integrations
@@ -797,7 +797,7 @@ export default function SettingsContent() {
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Contacts
@@ -807,7 +807,7 @@ export default function SettingsContent() {
                   className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Account

@@ -238,13 +238,13 @@ export default function NavbarNotifications() {
             ref={dropdownRef}
             className={`${
             isMobile 
-              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-[1000] max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
-              : 'fixed bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-[1000] animate-in fade-in slide-in-from-top-2 duration-200'
+              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-2xl z-[1000] max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
+              : 'fixed bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-[1000] animate-in fade-in slide-in-from-top-2 duration-200'
           }`}
-          style={!isMobile ? { top: `${buttonPosition.top + 8}px`, right: `${buttonPosition.right}px`, width: '320px' } : undefined}
+          style={!isMobile ? { top: `${buttonPosition.top + 4}px`, right: `${buttonPosition.right}px`, width: '280px' } : undefined}
           >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center justify-between p-3 border-b border-border">
             <h3 className="font-semibold text-foreground">Notifications</h3>
             
             {notificationCount.unread > 0 && (
@@ -264,9 +264,10 @@ export default function NavbarNotifications() {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-4">
-                <Bell className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">You're all caught up</p>
+              <div className="text-center py-3">
+                <Bell className="w-6 h-6 text-muted-foreground/50 mx-auto mb-1.5" />
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">No new notifications</p>
+                <p className="text-[10px] text-muted-foreground/70">New leads and replies will appear here</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -338,7 +339,7 @@ export default function NavbarNotifications() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-4 border-t border-border">
+            <div className="p-3 border-t border-border">
               <Link
                 href="/dashboard/notifications"
                 onClick={() => setIsOpen(false)}

@@ -96,7 +96,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showNavigation={true} />
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-foreground">Notifications</h1>

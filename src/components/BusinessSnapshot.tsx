@@ -3,26 +3,26 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Phone, Users, MessageSquare, Reply } from 'lucide-react'
+import { Phone, Users, MessageSquare, Reply, Clock } from 'lucide-react'
 
 interface BusinessSnapshotProps {
   business: Business | null
 }
 
 interface KPIData {
-  callsProcessed: number
-  leadsCaptured: number
+  leadsRecovered: number
   textsSent: number
   repliesReceived: number
+  activeFollowUps: number
   period: string
 }
 
 export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   const [kpiData, setKpiData] = useState<KPIData>({
-    callsProcessed: 0,
-    leadsCaptured: 0,
+    leadsRecovered: 0,
     textsSent: 0,
     repliesReceived: 0,
+    activeFollowUps: 0,
     period: '30 days'
   })
   const [loading, setLoading] = useState(true)
@@ -37,7 +37,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         // Get data from the last 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
         
-        // Fetch leads (calls processed)
+        // Fetch leads (leads recovered)
         const { data: leads } = await supabase
           .from('leads')
           .select('created_at')
@@ -51,17 +51,24 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
           .eq('from_phone', business.twilio_phone_number || '')
           .gte('created_at', thirtyDaysAgo)
 
+        // Fetch active follow-ups
+        const { data: followUpJobs } = await supabase
+          .from('follow_up_jobs')
+          .select('id')
+          .eq('business_id', business.id)
+          .in('status', ['pending', 'scheduled', 'in_progress'])
+
         // Calculate KPIs
-        const callsProcessed = leads?.length || 0
-        const leadsCaptured = leads?.length || 0
+        const leadsRecovered = leads?.length || 0
         const textsSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const repliesReceived = messages?.filter((m: any) => m.direction === 'inbound').length || 0
+        const activeFollowUps = followUpJobs?.length || 0
 
         setKpiData({
-          callsProcessed,
-          leadsCaptured,
+          leadsRecovered,
           textsSent,
           repliesReceived,
+          activeFollowUps,
           period: '30 days'
         })
       } catch (error) {
@@ -76,14 +83,14 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
   const getKPIIcon = (type: string) => {
     switch (type) {
-      case 'calls':
-        return <Phone className="w-5 h-5" />
       case 'leads':
         return <Users className="w-5 h-5" />
       case 'texts':
         return <MessageSquare className="w-5 h-5" />
       case 'replies':
         return <Reply className="w-5 h-5" />
+      case 'followups':
+        return <Clock className="w-5 h-5" />
       default:
         return null
     }
@@ -91,14 +98,14 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
   const getKPIColor = (type: string) => {
     switch (type) {
-      case 'calls':
-        return 'text-blue-600 dark:text-blue-400'
       case 'leads':
         return 'text-green-600 dark:text-green-400'
       case 'texts':
         return 'text-blue-600 dark:text-blue-400'
       case 'replies':
         return 'text-amber-600 dark:text-amber-400'
+      case 'followups':
+        return 'text-purple-600 dark:text-purple-400'
       default:
         return 'text-gray-600 dark:text-gray-400'
     }
@@ -111,28 +118,28 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
   const kpiItems = [
     {
-      type: 'calls',
-      label: 'Missed Calls Captured',
-      value: kpiData.callsProcessed,
-      description: 'Business opportunities captured'
-    },
-    {
       type: 'leads',
-      label: 'Recovered Leads',
-      value: kpiData.leadsCaptured,
-      description: 'Customers successfully engaged'
+      label: 'Leads Recovered',
+      value: kpiData.leadsRecovered,
+      description: 'Customers engaged'
     },
     {
       type: 'texts',
       label: 'Texts Sent',
       value: kpiData.textsSent,
-      description: 'Automated outreach messages'
+      description: 'Outreach messages'
     },
     {
       type: 'replies',
-      label: 'Customer Replies',
+      label: 'Replies',
       value: kpiData.repliesReceived,
-      description: 'Customers who responded'
+      description: 'Customer responses'
+    },
+    {
+      type: 'followups',
+      label: 'Active Follow-Ups',
+      value: kpiData.activeFollowUps,
+      description: 'In progress'
     }
   ]
 
@@ -156,7 +163,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-3.5 min-h-[200px]">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-slate-300 dark:border-slate-700/60 rounded-xl p-2 sm:p-3 min-h-[180px] shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300">
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-base font-semibold text-foreground">Business Snapshot</h3>
         <div className="text-xs text-muted-foreground">Last {kpiData.period}</div>
@@ -184,35 +191,6 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Summary Stats */}
-      <div className="mt-3 pt-3 border-t border-border">
-        <div className="flex items-center justify-between text-sm">
-          <div className="text-muted-foreground">
-            Response Rate
-          </div>
-          <div className="font-medium text-foreground">
-            {kpiData.textsSent > 0 
-              ? `${Math.round((kpiData.repliesReceived / kpiData.textsSent) * 100)}%`
-              : 'N/A'
-            }
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between text-sm mt-1.5">
-          <div className="text-muted-foreground">
-            Lead Conversion
-          </div>
-          <div className="font-medium text-foreground">
-            {kpiData.callsProcessed > 0 && kpiData.repliesReceived > 0
-              ? `${Math.round((kpiData.repliesReceived / kpiData.callsProcessed) * 100)}%`
-              : kpiData.callsProcessed > 0
-              ? 'Not enough data'
-              : 'N/A'
-            }
-          </div>
-        </div>
       </div>
     </div>
   )
