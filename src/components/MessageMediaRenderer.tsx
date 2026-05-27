@@ -70,18 +70,6 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
           if (isImage(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group">
-                {/* Loading skeleton */}
-                {!isLoaded && !isFailed && (
-                  <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
-                )}
-                
-                {/* Error state */}
-                {isFailed && (
-                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
-                  </div>
-                )}
-                
                 {/* Image */}
                 {!isFailed && (
                   <img
@@ -91,13 +79,25 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
                       cursor-pointer rounded-lg transition-all
                       hover:scale-[1.02] hover:shadow-lg
                       max-h-[320px] md:max-h-[420px] object-contain w-full
-                      ${isLoaded ? 'block' : 'hidden'}
+                      block
                     `}
                     onClick={() => handleMediaClick(proxiedUrl)}
                     onLoad={() => handleImageLoad(mediaItem.id)}
                     onError={() => handleImageError(mediaItem.id)}
                     loading="lazy"
                   />
+                )}
+                
+                {/* Loading skeleton - only show before image loads */}
+                {!isLoaded && !isFailed && (
+                  <div className="absolute inset-0 aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse -z-10" />
+                )}
+                
+                {/* Error state */}
+                {isFailed && (
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
+                  </div>
                 )}
                 
                 {/* Hover affordance */}
