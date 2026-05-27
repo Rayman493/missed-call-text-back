@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { processInboundSms } from '@/lib/sms-processing'
 import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
+import { notificationService } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   // CRITICAL: Log IMMEDIATELY to verify route is being hit
@@ -157,6 +158,21 @@ export async function POST(req: NextRequest) {
     if (result.message) {
       console.log('[INBOUND SMS] Message inserted:', result.message.id)
       console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
+      
+      // Create notification for customer reply
+      if (result.lead && result.lead.business_id) {
+        try {
+          await notificationService.notifyCustomerReply(
+            result.lead.business_id,
+            result.lead.caller_phone || 'Unknown',
+            Body || 'Media message',
+            result.lead.id
+          );
+          console.log('[INBOUND SMS] Notification created for customer reply');
+        } catch (error) {
+          console.error('[INBOUND SMS] Error creating notification:', error);
+        }
+      }
     }
     
     // Return the TwiML response

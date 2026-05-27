@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import { Phone } from 'lucide-react'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard } from 'lucide-react'
 
@@ -34,6 +35,7 @@ export default function NavbarNotifications() {
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
+  const supabase = createBrowserClient()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -80,6 +82,40 @@ export default function NavbarNotifications() {
     }, 30000) // Refresh every 30 seconds
 
     return () => clearInterval(interval)
+  }, [business])
+
+  // Subscribe to real-time notification updates
+  useEffect(() => {
+    if (!business) return
+
+    const channel = supabase
+      .channel(`notifications:${business.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `business_id=eq.${business.id}`
+        },
+        async (payload: any) => {
+          console.log('[NOTIFICATIONS] Real-time update received:', payload)
+          
+          // Refresh notifications and count
+          const [notificationsData, countData] = await Promise.all([
+            notificationService.getNotifications(business.id, 10),
+            notificationService.getNotificationCount(business.id)
+          ])
+          
+          setNotifications(notificationsData)
+          setNotificationCount(countData)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [business])
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -177,14 +213,14 @@ export default function NavbarNotifications() {
           {/* Mobile backdrop */}
           {isMobile && (
             <div 
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 animate-in fade-in duration-200"
               onClick={() => setIsOpen(false)}
             />
           )}
           <div className={`${
             isMobile 
-              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden'
-              : 'absolute right-0 mt-2 w-80 bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50'
+              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
+              : 'absolute right-0 mt-2 w-80 bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200'
           }`}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -207,39 +243,40 @@ export default function NavbarNotifications() {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-8">
-                <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No notifications</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  We'll notify you when something important happens
-                </p>
+              <div className="text-center py-4">
+                <Bell className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">You're all caught up</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 ${getNotificationColor(notification.type, notification.read)} hover:bg-muted/50 transition-colors`}
+                    className={`p-2.5 sm:p-3 ${getNotificationColor(notification.type, notification.read)} hover:bg-muted/50 transition-colors cursor-pointer`}
+                    onClick={() => notification.action_url && router.push(notification.action_url)}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       {/* Icon */}
-                      <div className="mt-1">
+                      <div className="mt-0.5 flex-shrink-0">
                         {getNotificationIcon(notification.type)}
                       </div>
                       
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="text-sm font-medium text-foreground truncate">
+                        <div className="flex items-start justify-between gap-2 mb-0.5">
+                          <h4 className="text-xs sm:text-sm font-medium text-foreground truncate">
                             {notification.title}
                           </h4>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
                               {formatTime(notification.created_at)}
                             </span>
                             {!notification.read && (
                               <button
-                                onClick={() => handleMarkAsRead(notification.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleMarkAsRead(notification.id)
+                                }}
                                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                 title="Mark as read"
                               >
@@ -249,7 +286,7 @@ export default function NavbarNotifications() {
                           </div>
                         </div>
                         
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 line-clamp-2">
                           {notification.message}
                         </p>
                         
@@ -257,11 +294,12 @@ export default function NavbarNotifications() {
                         {notification.action_url && notification.action_text && (
                           <Link
                             href={notification.action_url}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setIsOpen(false)
                               handleMarkAsRead(notification.id)
                             }}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                           >
                             {notification.action_text}
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
