@@ -302,7 +302,7 @@ export default function LeadsPage() {
             <AppHeader title="Leads" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20 relative z-10">
+          <main className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-16 relative z-10">
             <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
@@ -319,7 +319,7 @@ export default function LeadsPage() {
 
             {/* Pre-trial locked preview - show what users will unlock */}
             {!hasActiveAccess(business) && (
-              <div className="relative mb-6 sm:mb-8">
+              <div className="relative mb-4 sm:mb-6">
                 {/* Leads Preview Content */}
                 <div className="space-y-4 sm:space-y-6">
                   {/* Lifecycle Summary Cards Preview */}
@@ -645,7 +645,7 @@ export default function LeadsPage() {
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
                           No active leads
                         </h3>
-                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
+                        <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
                           <p>Activate your free trial to begin setting up ReplyFlow and start capturing missed calls automatically.</p>
                         </div>
                       </>
@@ -665,7 +665,7 @@ export default function LeadsPage() {
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
                           No active leads
                         </h3>
-                        <div className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
+                        <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
                           <p>Complete your final missed-call test to activate live monitoring and begin capturing customer conversations automatically.</p>
                         </div>
                         <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-5 text-xs sm:text-sm">
