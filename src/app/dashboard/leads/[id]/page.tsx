@@ -1506,6 +1506,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <h3 className="text-sm font-semibold text-foreground mb-4">Lead Health</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Source</span>
+                  <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
                   <div className="flex-shrink-0">
                     <LeadStatusDropdown 
@@ -1515,6 +1519,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }}
                     />
                   </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Follow-up Status</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
+                     followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
+                     'None'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Messages</span>
