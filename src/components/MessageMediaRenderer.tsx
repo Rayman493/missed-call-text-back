@@ -80,16 +80,16 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           
           if (isImage(mediaItem.mime_type)) {
             return (
-              <div key={mediaItem.id} className="relative group">
+              <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
                 {/* Image */}
                 {!isFailed && (
                   <img
                     src={proxiedUrl}
                     alt="Message attachment"
                     className={`
-                      cursor-pointer rounded-lg transition-all
-                      hover:scale-[1.02] hover:shadow-lg
-                      max-h-[320px] md:max-h-[420px] object-contain w-full
+                      cursor-pointer rounded-xl transition-all
+                      hover:scale-[1.02] hover:shadow-xl
+                      max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
                     `}
                     onClick={() => handleMediaClick(proxiedUrl)}
@@ -101,29 +101,29 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 
                 {/* Loading skeleton - only show before image loads */}
                 {!isLoaded && !isFailed && (
-                  <div className="absolute inset-0 aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse -z-10" />
+                  <div className="absolute inset-0 aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse -z-10" />
                 )}
                 
                 {/* Error state */}
                 {isFailed && (
-                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
                   </div>
                 )}
                 
                 {/* Hover affordance */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg pointer-events-none" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl pointer-events-none" />
               </div>
             )
           }
 
           if (isVideo(mediaItem.mime_type)) {
             return (
-              <div key={mediaItem.id} className="relative group">
+              <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
                 <video
                   src={proxiedUrl}
                   controls
-                  className="rounded-lg max-h-[320px] md:max-h-[420px] w-full object-contain"
+                  className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                   preload="metadata"
                 />
               </div>
