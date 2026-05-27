@@ -384,25 +384,34 @@ export default function SettingsContent() {
     
     setIsLoadingCalendar(true)
     try {
-      const { data, error } = await supabase
-        .from('calendar_integrations')
-        .select('id')
-        .eq('business_id', business.id)
-        .eq('provider', 'google')
-        .single()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No integration found
-          setCalendarConnected(false)
-        } else {
-          console.error('Error fetching calendar status:', error)
-        }
-      } else {
-        setCalendarConnected(!!data)
+      if (!token) {
+        setCalendarConnected(false)
+        return
       }
+
+      const response = await fetch('/api/google/calendar/status?provider=google', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Unauthorized
+          setCalendarConnected(false)
+          return
+        }
+        throw new Error('Failed to fetch calendar status')
+      }
+
+      const data = await response.json()
+      setCalendarConnected(data.connected || false)
     } catch (error) {
       console.error('Error fetching calendar status:', error)
+      setCalendarConnected(false)
     } finally {
       setIsLoadingCalendar(false)
     }
