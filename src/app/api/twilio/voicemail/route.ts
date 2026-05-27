@@ -6,6 +6,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { notificationServiceServer } from '@/lib/notifications-server';
+import { isIgnoredContact } from '@/lib/ignored-contacts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,7 +96,21 @@ export async function POST(request: NextRequest) {
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
     if (!lead) {
-      console.log('[VOICEMAIL] No existing lead found, creating new lead');
+      // Check if phone number is in ignored contacts before creating lead
+      const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
+      
+      if (isIgnored) {
+        console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
+          businessId: business.id,
+          phoneNumber: normalizedCallerPhone,
+          source: 'voicemail'
+        })
+        
+        // Return success without creating lead or processing voicemail
+        return new NextResponse('OK', { status: 200 })
+      }
+      
+      console.log('[VOICEMAIL] No existing lead found, creating new lead')
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,

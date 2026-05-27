@@ -3,6 +3,7 @@ import { normalizePhoneNumber } from '@/lib/twilio'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { isIgnoredContact } from '@/lib/ignored-contacts'
 
 export interface ProcessInboundSmsParams {
   messageSid: string
@@ -70,6 +71,27 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   }
   
   if (!lead) {
+    // Check if phone number is in ignored contacts before creating lead
+    const isIgnored = await isIgnoredContact(business.id, normalizedCustomerPhone)
+    
+    if (isIgnored) {
+      console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
+        businessId: business.id,
+        phoneNumber: normalizedCustomerPhone,
+        source: 'inbound-sms'
+      })
+      
+      // Return valid TwiML response without creating lead
+      return {
+        success: true,
+        ignored: true,
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Thanks - we received your message.</Message>
+</Response>`
+      }
+    }
+    
     // Create new lead with status 'contacted' since customer replied
     console.log(`[SMS Processing] No existing lead, creating new lead`)
     lead = await db.createLead({

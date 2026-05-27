@@ -12,6 +12,7 @@ import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
 import { checkAllGuards } from '@/lib/ai-call-assistant/config';
 import { createAISession } from '@/lib/ai-call-assistant/session';
+import { isIgnoredContact } from '@/lib/ignored-contacts';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -468,19 +469,13 @@ export async function POST(request: NextRequest) {
 
     // Check if caller is in ignored contacts
     console.log('[Twilio Voice] Checking if caller is in ignored contacts:', normalizedCallerPhone);
-    const { data: ignoredContact, error: ignoredCheckError } = await supabase
-      .from('ignored_contacts')
-      .select('*')
-      .eq('business_id', business.id)
-      .eq('phone_number', normalizedCallerPhone)
-      .single();
+    
+    const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone);
 
-    if (ignoredContact) {
-      console.log('[Twilio Voice] Ignored contact detected - skipping automation:', {
+    if (isIgnored) {
+      console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
         businessId: business.id,
         phoneNumber: normalizedCallerPhone,
-        label: ignoredContact.label,
-        reason: ignoredContact.reason
       });
 
       // Still return valid TwiML so the call doesn't error
@@ -494,10 +489,6 @@ export async function POST(request: NextRequest) {
           "X-ReplyFlow-Voice-Version": "v2"
         },
       });
-    }
-
-    if (ignoredCheckError && ignoredCheckError.code !== 'PGRST116') {
-      console.error('[Twilio Voice] Error checking ignored contacts:', ignoredCheckError);
     }
 
     // Check if lead already exists
