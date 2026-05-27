@@ -225,7 +225,6 @@ export async function POST(request: NextRequest) {
         business = result.business;
         lookupSource = result.source;
         console.log('[Voice] Business found:', business.id, business.name, 'via', lookupSource, 'using', candidate);
-        await timelineEvents.callReceived(business.id, '', '', From, To);
         break;
       }
     }
@@ -247,7 +246,7 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts
+    // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts BEFORE ANY DB write
     console.log('[IGNORED CONTACT CHECK EARLIEST]', {
       businessId: business.id,
       callerPhone: normalizedFrom,
@@ -263,7 +262,7 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       })
       
-      // Return minimal TwiML - no Record, no voicemail callback, no recordingStatusCallback
+      // Return minimal TwiML - no Record, no voicemail callback, no recordingStatusCallback, no timeline logging
       const twiml = `<Response><Hangup/></Response>`
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
       console.log('[AI POC FINAL TWIML]', twiml)
@@ -275,6 +274,9 @@ export async function POST(request: NextRequest) {
         },
       })
     }
+    
+    // Only log timeline event if NOT ignored
+    await timelineEvents.callReceived(business.id, '', '', From, To);
     
     console.log('[Voice] Business twilio_phone_number:', business.twilio_phone_number);
     console.log('[Voice] Business business_phone_number:', business.business_phone_number);
@@ -481,6 +483,12 @@ export async function POST(request: NextRequest) {
     
     // Create call event for analytics (every call counts)
     const callSid = params.CallSid
+    console.log('[CALL EVENTS WRITE ATTEMPT]', {
+      businessId: business.id,
+      callerPhone: normalizedCallerPhone,
+      callSid,
+      timestamp: new Date().toISOString()
+    })
     try {
       const callEvent = await db.createCallEvent({
         business_id: business.id,
@@ -514,6 +522,11 @@ export async function POST(request: NextRequest) {
     let isRepeatCaller = false;
     
     if (!existingLead) {
+      console.log('[LEAD WRITE ATTEMPT]', {
+        businessId: business.id,
+        callerPhone: normalizedCallerPhone,
+        timestamp: new Date().toISOString()
+      })
       console.log('[Voice] No existing lead found, creating new lead');
       console.log('[Voice] Creating lead:', {
         business_id: business.id,
@@ -674,6 +687,12 @@ export async function POST(request: NextRequest) {
     
     // MISSED CALL TIMING: Schedule SMS for later (don't send immediately)
     if (shouldSendSms && lead) {
+      console.log('[SMS SCHEDULE ATTEMPT]', {
+        businessId: business.id,
+        leadId: lead.id,
+        callerPhone: From,
+        timestamp: new Date().toISOString()
+      })
       console.log('[MISSED CALL TIMING] SMS scheduled for voicemail completion', {
         businessId: business.id,
         callSid: CallSid,
