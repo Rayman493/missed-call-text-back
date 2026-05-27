@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendSms } from '@/lib/twilio'
 import { db } from '@/lib/supabase/admin'
 import { checkCronRateLimit } from '@/lib/rate-limit'
+import { notificationService } from '@/lib/notifications'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -437,6 +438,18 @@ export async function POST(req: NextRequest) {
         }
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
+
+        // Create notification for follow-up sent
+        try {
+          await notificationService.notifyFollowupSent(
+            business.id,
+            lead.caller_phone || 'Unknown',
+            lead.id
+          )
+          console.log('[send-followups] Notification created for follow-up sent')
+        } catch (error) {
+          console.error('[send-followups] Error creating notification:', error)
+        }
         
         // Update conversation activity only if conversation exists
         if (conversation) {
@@ -837,6 +850,18 @@ export async function GET(req: NextRequest) {
         }
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
         sent++
+
+        // Create notification for follow-up sent
+        try {
+          await notificationService.notifyFollowupSent(
+            business.id,
+            lead.caller_phone || 'Unknown',
+            lead.id
+          )
+          console.log('[send-followups] Notification created for follow-up sent')
+        } catch (error) {
+          console.error('[send-followups] Error creating notification:', error)
+        }
         
         // Update conversation activity only if conversation exists
         if (conversation) {

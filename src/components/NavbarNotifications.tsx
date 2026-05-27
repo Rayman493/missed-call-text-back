@@ -87,25 +87,10 @@ export default function NavbarNotifications() {
     }
 
     fetchNotifications()
-  }, [business])
 
-  // Refresh notifications periodically
-  useEffect(() => {
-    if (!business) return
-
-    const interval = setInterval(() => {
-      notificationService.getNotificationCount(business.id).then(setNotificationCount)
-    }, 30000) // Refresh every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [business])
-
-  // Subscribe to real-time notification updates
-  useEffect(() => {
-    if (!business) return
-
+    // Subscribe to realtime notification updates
     const channel = supabase
-      .channel(`notifications:${business.id}`)
+      .channel('notifications-channel')
       .on(
         'postgres_changes',
         {
@@ -114,17 +99,9 @@ export default function NavbarNotifications() {
           table: 'notifications',
           filter: `business_id=eq.${business.id}`
         },
-        async (payload: any) => {
-          console.log('[NOTIFICATIONS] Real-time update received:', payload)
-          
-          // Refresh notifications and count
-          const [notificationsData, countData] = await Promise.all([
-            notificationService.getNotifications(business.id, 10),
-            notificationService.getNotificationCount(business.id)
-          ])
-          
-          setNotifications(notificationsData)
-          setNotificationCount(countData)
+        async () => {
+          // Refresh notifications when changes occur
+          await fetchNotifications()
         }
       )
       .subscribe()
@@ -218,7 +195,7 @@ export default function NavbarNotifications() {
         
         {/* Unread count badge */}
         {notificationCount.unread > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-medium rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-medium rounded-full flex items-center justify-center animate-pulse">
             {notificationCount.unread > 99 ? '99+' : notificationCount.unread}
           </span>
         )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notificationService } from '@/lib/notifications'
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -100,6 +101,29 @@ export async function POST(req: NextRequest) {
         message_sid: MessageSid,
         status: MessageStatus.toLowerCase()
       })
+
+      // Create notification for SMS failure
+      if (MessageStatus === 'failed' || MessageStatus === 'undelivered') {
+        try {
+          // Fetch lead and business for notification
+          const { data: lead } = await supabase
+            .from('leads')
+            .select('*, businesses(*)')
+            .eq('id', message.lead_id)
+            .single()
+
+          if (lead && lead.businesses) {
+            await notificationService.notifySmsFailed(
+              lead.businesses.id,
+              lead.caller_phone || 'Unknown',
+              lead.id
+            )
+            console.log('[twilio] Notification created for SMS failure')
+          }
+        } catch (error) {
+          console.error('[twilio] Error creating SMS failure notification:', error)
+        }
+      }
     }
     
     return new Response('OK', { status: 200 })

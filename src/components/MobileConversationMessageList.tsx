@@ -118,8 +118,13 @@ export default function MobileConversationMessageList({
         const prevItem = conversationTimeline[index - 1]
         const shouldShowAvatar = index === 0 || 
           (prevItem?.type === 'message' && prevItem.data?.direction !== msg.direction) ||
-          (prevItem?.type === 'voicemail') ||
-          (prevItem?.type === 'message' && msg.direction === 'inbound')
+          (prevItem?.type === 'voicemail')
+        
+        // Check if we should show timestamp (only when significant time gap)
+        const prevMessageTime = prevItem?.type === 'message' ? new Date(prevItem.data?.created_at) : null
+        const currentMessageTime = new Date(msg.created_at)
+        const timeGapMinutes = prevMessageTime ? (currentMessageTime.getTime() - prevMessageTime.getTime()) / (1000 * 60) : Infinity
+        const shouldShowTimestamp = !prevMessageTime || timeGapMinutes > 5 || prevItem?.type !== 'message' || prevItem.data?.direction !== msg.direction
         
         return (
           <div

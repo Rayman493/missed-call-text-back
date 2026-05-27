@@ -4,7 +4,7 @@ import { Business } from '@/lib/types'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received'
   title: string
   message: string
   data?: any
@@ -38,6 +38,13 @@ export const NOTIFICATION_TEMPLATES = {
   followup_completed: (data: { leadName: string; leadId: string }) => ({
     title: 'Follow-up Sequence Completed',
     message: `All follow-ups sent to ${data.leadName}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  followup_sent: (data: { leadName: string; leadId: string }) => ({
+    title: 'Follow-up Sent',
+    message: `Message sent to ${data.leadName}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
   }),
@@ -200,6 +207,15 @@ export class NotificationService {
     await this.createNotification(
       businessId,
       'followup_completed',
+      '',
+      { leadName, leadId }
+    )
+  }
+
+  async notifyFollowupSent(businessId: string, leadName: string, leadId: string): Promise<void> {
+    await this.createNotification(
+      businessId,
+      'followup_sent',
       '',
       { leadName, leadId }
     )
