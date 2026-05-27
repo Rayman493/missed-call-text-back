@@ -489,9 +489,23 @@ Ask: "Does everything I have look correct?"
 
 If caller confirms, say: "Perfect. I've passed your information along to the team. Someone will contact you as soon as possible. Thank you for calling ${businessName}."
 
-After that, end the conversation naturally.
+After that:
 
-If the caller remains silent for 5 seconds after the confirmation message, politely say: "Thank you for calling. Have a great day." Then terminate the call.
+1. Wait 3 seconds for any response.
+
+2. If caller says nothing, say: "Have a great day."
+
+3. Wait another 3 seconds.
+
+4. If caller still says nothing, end the conversation naturally.
+
+If caller speaks during either pause:
+- Do not immediately hang up
+- Respond briefly
+- If the caller is simply saying "Thanks", "Okay", "Sounds good", etc., reply: "You're welcome. Have a great day."
+- Then wait 3 seconds again and end the conversation if no further response
+
+Create a natural receptionist-style ending instead of an abrupt hangup.
 
 Do not continue chatting after intake is complete.`;
           }
