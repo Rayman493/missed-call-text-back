@@ -801,14 +801,13 @@ Do not continue chatting after intake is complete.`;
                 const testMessage = {
                   type: 'response.create',
                   response: {
+                    modalities: ['audio'],
                     instructions: 'Thanks for calling ReplyFlow. May I have your name?',
-                    voice: AI_VOICE,
                   },
                 };
                 console.log('[OPENAI SEND PAYLOAD] response.create:', JSON.stringify(testMessage, null, 2));
                 greetingSent = true;
                 console.log('[GREETING SENT]');
-                console.log('[OPENAI SEND] response.create');
                 if (openAiWs) {
                   openAiWs.send(JSON.stringify(testMessage));
                 }
@@ -919,8 +918,7 @@ Do not continue chatting after intake is complete.`;
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
-                console.log('[GREETING] first audio sent to Twilio');
-                console.log('[AUDIO OUT] sent to Twilio');
+                console.log('[AUDIO OUT SENT TO TWILIO]');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
