@@ -59,6 +59,7 @@ export default function SettingsContent() {
   const [isAdding, setIsAdding] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [label, setLabel] = useState('')
+  const [contactType, setContactType] = useState('spam')
   const [reason, setReason] = useState('')
 
   // Change password modal state
@@ -177,26 +178,6 @@ export default function SettingsContent() {
     updateBusiness(updatedBusiness)
   }
 
-  // Helper to get form value for blocked numbers
-  const getBlockedNumbersText = () => {
-    const settings = getAutomationSettings()
-    // If numbers are stored space-separated (legacy format), split them first
-    const numbers = settings.blockedNumbers.flatMap((n: string) => {
-      // Check if this is a space-separated string (legacy format)
-      if (n.includes(' ')) {
-        return n.split(' ').filter((x: string) => x.trim())
-      }
-      return [n]
-    })
-    return numbers.join('\n')
-  }
-
-  // Helper to update blocked numbers
-  const updateBlockedNumbers = (text: string) => {
-    const numbers = text.split('\n').filter((n: string) => n.trim()).map((n: string) => n.trim())
-    updateAutomationSetting('blockedNumbers', numbers)
-  }
-
   // Handler to toggle spam filtering with immediate visual feedback
   const handleToggleSpamFiltering = async () => {
     const newValue = !spamFilteringEnabled
@@ -275,7 +256,7 @@ export default function SettingsContent() {
 
       // Update local state
       setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
-      showToast('Contact unignored successfully', 'success')
+      showToast('Contact removed from ignore list', 'success')
     } catch (error) {
       console.error('Error removing ignored contact:', error)
       showToast('Failed to remove ignored contact', 'error')
@@ -307,6 +288,7 @@ export default function SettingsContent() {
         body: JSON.stringify({
           phoneNumber,
           label: label.trim() || null,
+          type: contactType,
           reason: reason.trim() || 'Added manually in settings'
         })
       })
@@ -323,10 +305,11 @@ export default function SettingsContent() {
       // Reset form
       setPhoneNumber('')
       setLabel('')
+      setContactType('spam')
       setReason('')
       setShowAddModal(false)
       
-      showToast('Contact added to ignored contacts', 'success')
+      showToast('Contact added to ignore list', 'success')
     } catch (error) {
       console.error('Error adding ignored contact:', error)
       showToast(error instanceof Error ? error.message : 'Failed to add ignored contact', 'error')
@@ -1041,25 +1024,6 @@ export default function SettingsContent() {
                             />
                           </button>
                         </div>
-
-                        {/* Blocked Numbers List */}
-                        <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                          <div className="mb-1.5 sm:mb-2">
-                            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
-                              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Blocked Numbers</h4>
-                            </div>
-                          </div>
-                          <textarea
-                            value={getBlockedNumbersText()}
-                            onChange={(e) => updateBlockedNumbers(e.target.value)}
-                            rows={2}
-                            placeholder="+14125551234"
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground text-xs sm:text-sm font-mono"
-                          />
-                          <div className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                            One phone number per line. Example: <span className="font-mono">+14125551234</span>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1332,48 +1296,54 @@ export default function SettingsContent() {
                 </div>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
-                    <div className="flex items-center justify-center py-4 sm:py-6">
-                      <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-blue-600"></div>
+                    <div className="flex items-center justify-center py-3 sm:py-4">
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-4 sm:py-6 bg-muted/40 rounded-xl border border-border/50">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center py-3 sm:py-4 bg-muted/40 rounded-lg border border-border/50">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1.5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No ignored contacts yet</h3>
-                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground max-w-sm mx-auto">
+                      <h3 className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
+                      <p className="text-[10px] text-slate-600 dark:text-muted-foreground max-w-xs mx-auto">
                         Add employee, vendor, or spam numbers to prevent unwanted leads.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-1.5 sm:space-y-2">
+                    <div className="space-y-1 sm:space-y-1.5">
                       {ignoredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className="flex items-center justify-between p-2 sm:p-3 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-1.5 sm:p-2 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
+                              <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground">
                                 {formatPhoneNumber(contact.phone_number)}
                               </span>
                               {contact.label && (
-                                <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
                                   {contact.label}
                                 </span>
                               )}
-                            </div>
-                            <div className="text-xs text-slate-600 dark:text-muted-foreground">
-                              {contact.reason && `Reason: ${contact.reason}`}
-                              {contact.reason && contact.created_at && ' • '}
-                              {contact.created_at && `Added ${new Date(contact.created_at).toLocaleDateString()}`}
+                              {contact.type && (
+                                <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                  contact.type === 'spam' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                                  contact.type === 'personal' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                  contact.type === 'employee' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                  contact.type === 'vendor' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                  'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                }`}>
+                                  {contact.type === 'existing_customer' ? 'Customer' : contact.type}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-3 sm:ml-4 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
+                            className="ml-2 sm:ml-3 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
                           >
                             Remove
                           </button>
@@ -1630,8 +1600,24 @@ export default function SettingsContent() {
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
-                      placeholder="Optional label (e.g., 'Spam', 'Personal')"
+                      placeholder="Optional label (e.g., 'John Doe')"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                      Type
+                    </label>
+                    <select
+                      value={contactType}
+                      onChange={(e) => setContactType(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground"
+                    >
+                      <option value="spam">Spam</option>
+                      <option value="personal">Personal</option>
+                      <option value="employee">Employee</option>
+                      <option value="vendor">Vendor</option>
+                      <option value="existing_customer">Existing Customer</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
@@ -1640,9 +1626,9 @@ export default function SettingsContent() {
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      rows={3}
+                      rows={2}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground resize-none"
-                      placeholder="Personal contact, employee, vendor, etc."
+                      placeholder="Optional notes"
                     />
                   </div>
                 </div>
@@ -1652,6 +1638,7 @@ export default function SettingsContent() {
                       setShowAddModal(false)
                       setPhoneNumber('')
                       setLabel('')
+                      setContactType('spam')
                       setReason('')
                     }}
                     disabled={isAdding}
