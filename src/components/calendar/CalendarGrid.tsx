@@ -1,6 +1,6 @@
 import CalendarDayCell from './CalendarDayCell'
 import { ReactNode } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 interface CalendarGridProps {
   month: Date
@@ -13,6 +13,7 @@ interface CalendarGridProps {
   onPreviousMonth?: () => void
   onNextMonth?: () => void
   onToday?: () => void
+  onAddEvent?: () => void
 }
 
 export default function CalendarGrid({ 
@@ -21,7 +22,8 @@ export default function CalendarGrid({
   renderEvent,
   onPreviousMonth,
   onNextMonth,
-  onToday
+  onToday,
+  onAddEvent
 }: CalendarGridProps) {
   console.log('[GRID EVENTS RECEIVED]', events.length, events.slice(0, 5))
   
@@ -126,14 +128,25 @@ export default function CalendarGrid({
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </button>
-          {onToday && (
-            <button
-              onClick={onToday}
-              className="px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 ml-auto"
-            >
-              Today
-            </button>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {onToday && (
+              <button
+                onClick={onToday}
+                className="px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 hidden sm:block"
+              >
+                Today
+              </button>
+            )}
+            {onAddEvent && (
+              <button
+                onClick={onAddEvent}
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors active:scale-95 flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Add event</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
       

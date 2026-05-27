@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
+import EventComposer from '@/components/calendar/EventComposer'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
@@ -36,6 +37,8 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -45,6 +48,41 @@ export default function CalendarPage() {
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
+
+  const handleCreateEvent = async (eventData: any) => {
+    try {
+      const response = await fetch('/api/google/calendar/create-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create event')
+      }
+
+      const data = await response.json()
+      showToast('Event added successfully', 'success')
+      
+      // Refresh calendar events
+      await fetchEvents()
+    } catch (error) {
+      console.error('Failed to create event:', error)
+      showToast('Failed to create event', 'error')
+      throw error
+    }
+  }
+
+  const handleAddEvent = () => {
+    if (!calendarConnected) {
+      showToast('Please connect Google Calendar first', 'error')
+      return
+    }
+    setIsEventComposerOpen(true)
   }
 
   const fetchCalendarStatus = async () => {
@@ -290,6 +328,7 @@ export default function CalendarPage() {
                         onPreviousMonth={goToPreviousMonth}
                         onNextMonth={goToNextMonth}
                         onToday={goToToday}
+                        onAddEvent={handleAddEvent}
                         renderEvent={(event, day) => (
                           <EventPill
                             title={event.summary}
@@ -303,8 +342,25 @@ export default function CalendarPage() {
                           />
                         )}
                       />
+                      
+                      {/* Floating Add Event button for mobile */}
+                      <button
+                        onClick={handleAddEvent}
+                        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40"
+                        aria-label="Add event"
+                      >
+                        <Plus className="w-6 h-6" />
+                      </button>
                     </div>
                   )}
+
+                  {/* Event Composer Modal */}
+                  <EventComposer
+                    isOpen={isEventComposerOpen}
+                    onClose={() => setIsEventComposerOpen(false)}
+                    onSave={handleCreateEvent}
+                    selectedDate={selectedDay}
+                  />
                 </>
               )}
             </div>
