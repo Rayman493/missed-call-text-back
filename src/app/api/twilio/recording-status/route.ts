@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
+import { isIgnoredContact } from '@/lib/ignored-contacts';
+import { normalizePhoneNumber } from '@/lib/twilio';
 
 export async function POST(request: NextRequest) {
+  console.log('[RECORDING STATUS ROUTE HIT]')
+  
   try {
     console.log('[RECORDING STATUS] Recording status callback received');
     
@@ -56,6 +60,59 @@ export async function POST(request: NextRequest) {
     if (!recordingSid) {
       console.error('[RECORDING STATUS] Missing RecordingSid');
       return new NextResponse('Missing RecordingSid', { status: 400 });
+    }
+
+    // Check if this recording is from an ignored contact
+    console.log('[IGNORED CONTACT RECORDING STATUS CHECK]', {
+      recordingSid,
+      timestamp: new Date().toISOString()
+    })
+
+    try {
+      // Look up the voicemail recording to get the call_sid
+      const { data: voicemailRecording } = await supabaseAdmin
+        .from('voicemail_recordings')
+        .select('call_sid')
+        .eq('recording_sid', recordingSid)
+        .single()
+
+      if (voicemailRecording?.call_sid) {
+        // Look up the call event to get the caller phone
+        const { data: callEvent } = await supabaseAdmin
+          .from('call_events')
+          .select('from_phone')
+          .eq('call_sid', voicemailRecording.call_sid)
+          .single()
+
+        if (callEvent?.from_phone) {
+          // Look up the business from the call event
+          const { data: callEventWithBusiness } = await supabaseAdmin
+            .from('call_events')
+            .select('business_id')
+            .eq('call_sid', voicemailRecording.call_sid)
+            .single()
+
+          if (callEventWithBusiness?.business_id) {
+            const normalizedPhone = normalizePhoneNumber(callEvent.from_phone)
+            const isIgnored = await isIgnoredContact(callEventWithBusiness.business_id, normalizedPhone)
+
+            if (isIgnored) {
+              console.log('[IGNORED CONTACT RECORDING STATUS SKIP]', {
+                businessId: callEventWithBusiness.business_id,
+                phoneNumber: normalizedPhone,
+                recordingSid,
+                timestamp: new Date().toISOString()
+              })
+
+              // Return success without updating the recording
+              return new NextResponse('OK', { status: 200 })
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[RECORDING STATUS] Error checking ignored contact:', error)
+      // Continue anyway - this is a safety check
     }
 
     // Update voicemail recording with final status

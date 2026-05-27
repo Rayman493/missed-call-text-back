@@ -9,6 +9,8 @@ import { notificationServiceServer } from '@/lib/notifications-server';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 
 export async function POST(request: NextRequest) {
+  console.log('[VOICEMAIL ROUTE HIT]')
+  
   try {
     console.log('[VOICEMAIL] Recording callback received');
     
@@ -91,25 +93,31 @@ export async function POST(request: NextRequest) {
     const normalizedCallerPhone = normalizePhoneNumber(from);
     console.log('[VOICEMAIL] Normalized caller phone:', normalizedCallerPhone);
 
+    // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts
+    console.log('[IGNORED CONTACT VOICEMAIL CHECK]', {
+      businessId: business.id,
+      callerPhone: normalizedCallerPhone,
+      timestamp: new Date().toISOString()
+    })
+    
+    const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
+    
+    if (isIgnored) {
+      console.log('[IGNORED CONTACT VOICEMAIL SKIP]', {
+        businessId: business.id,
+        phoneNumber: normalizedCallerPhone,
+        timestamp: new Date().toISOString()
+      })
+      
+      // Return success without creating lead, conversation, message, or voicemail
+      return new NextResponse('OK', { status: 200 })
+    }
+
     // Find or create lead
     console.log('[VOICEMAIL] Finding lead for phone:', normalizedCallerPhone);
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
     if (!lead) {
-      // Check if phone number is in ignored contacts before creating lead
-      const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
-      
-      if (isIgnored) {
-        console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
-          businessId: business.id,
-          phoneNumber: normalizedCallerPhone,
-          source: 'voicemail'
-        })
-        
-        // Return success without creating lead or processing voicemail
-        return new NextResponse('OK', { status: 200 })
-      }
-      
       console.log('[VOICEMAIL] No existing lead found, creating new lead')
       lead = await db.createLead({
         business_id: business.id,

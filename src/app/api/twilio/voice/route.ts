@@ -263,8 +263,8 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       })
       
-      // Return valid TwiML so the call doesn't error - do not create lead, conversation, message, or send SMS
-      const twiml = generateTwiMLResponse(business.name)
+      // Return minimal TwiML - no Record, no voicemail callback, no recordingStatusCallback
+      const twiml = `<Response><Hangup/></Response>`
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
       console.log('[AI POC FINAL TWIML]', twiml)
       return new NextResponse(twiml, {
