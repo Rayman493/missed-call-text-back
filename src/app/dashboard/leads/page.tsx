@@ -477,7 +477,7 @@ export default function LeadsPage() {
             {hasActiveAccess(business) && (
               <>
             {/* Lifecycle Summary Cards - improved spacing hierarchy */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
               <StatCard
                 value={leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 label="New Leads"
@@ -529,7 +529,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Leads Header - match Dashboard spacing hierarchy */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-6">
               <div>
                 <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
                   Customer Leads
@@ -576,7 +576,7 @@ export default function LeadsPage() {
 
             {/* Filters */}
             {showFilters && (
-              <div className="bg-card rounded-xl border border-border p-4 mb-8">
+              <div className="bg-card rounded-xl border border-border p-3 sm:p-4 mb-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
