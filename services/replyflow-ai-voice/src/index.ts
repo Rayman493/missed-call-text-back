@@ -570,10 +570,15 @@ Be concise and friendly.`;
               const sessionConfig = {
                 type: 'session.update',
                 session: {
-                  input_audio_format: 'g711_ulaw',
-                  output_audio_format: 'pcm16',
-                  turn_detection: {
-                    type: 'server_vad',
+                  type: 'realtime',
+                  audio: {
+                    input: {
+                      format: { type: 'audio/pcmu' },
+                      turn_detection: { type: 'server_vad' },
+                    },
+                    output: {
+                      format: { type: 'audio/pcm', rate: 24000 },
+                    },
                   },
                 },
               };
