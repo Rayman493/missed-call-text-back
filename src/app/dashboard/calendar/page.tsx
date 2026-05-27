@@ -14,6 +14,7 @@ import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
+import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
@@ -346,28 +347,38 @@ export default function CalendarPage() {
                   {/* Connected State */}
                   {calendarConnected && (
                     <div>
-                      <CalendarGrid
-                        month={currentMonth}
-                        events={visibleMonthEvents}
-                        onPreviousMonth={goToPreviousMonth}
-                        onNextMonth={goToNextMonth}
-                        onToday={goToToday}
-                        onAddEvent={handleAddEvent}
-                        onDayClick={handleDayClick}
-                        renderEvent={(event, day) => (
-                          <EventPill
-                            title={event.summary}
-                            time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
-                            isHoliday={event.isHoliday}
-                            onClick={() => {
-                              if (event.htmlLink) {
-                                window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-                              }
-                            }}
+                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+                        {/* Calendar Grid - takes 3 columns on large screens */}
+                        <div className="lg:col-span-3">
+                          <CalendarGrid
+                            month={currentMonth}
+                            events={visibleMonthEvents}
+                            onPreviousMonth={goToPreviousMonth}
+                            onNextMonth={goToNextMonth}
+                            onToday={goToToday}
+                            onAddEvent={handleAddEvent}
+                            onDayClick={handleDayClick}
+                            renderEvent={(event, day) => (
+                              <EventPill
+                                title={event.summary}
+                                time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
+                                isHoliday={event.isHoliday}
+                                onClick={() => {
+                                  if (event.htmlLink) {
+                                    window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
+                                  }
+                                }}
+                              />
+                            )}
                           />
-                        )}
-                      />
-                      
+                        </div>
+
+                        {/* Upcoming Agenda Sidebar - takes 1 column on large screens */}
+                        <div className="lg:col-span-1">
+                          <UpcomingAgenda events={events} maxEvents={8} />
+                        </div>
+                      </div>
+
                       {/* Floating Add Event button for mobile */}
                       <button
                         onClick={handleAddEvent}
