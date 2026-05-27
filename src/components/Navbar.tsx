@@ -94,7 +94,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {/* Mobile Dashboard Link */}
                       <Link
                         href="/dashboard"
-                        className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                        className={`sm:hidden text-xs font-medium px-3 py-1.5 rounded-full ${isPublicPage && !forceDark ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} transition-colors`}
                       >
                         Dashboard
                       </Link>
@@ -131,7 +131,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {/* Mobile navigation */}
                       <Link
                         href="/dashboard"
-                        className={`sm:hidden text-xs font-medium px-2 py-1.5 rounded-md ${isPublicPage && !forceDark ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'} transition-colors`}
+                        className={`sm:hidden text-xs font-medium px-3 py-1.5 rounded-full ${isPublicPage && !forceDark ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} transition-colors`}
                       >
                         Dashboard
                       </Link>
