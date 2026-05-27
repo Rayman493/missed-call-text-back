@@ -704,11 +704,12 @@ Do not continue chatting after intake is complete.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Configure session with corrected schema
+              // Configure session with corrected schema including session.type
               const sessionConfig = {
                 type: 'session.update',
                 session: {
-                  instructions: 'You are an English-speaking receptionist.',
+                  type: 'realtime',
+                  instructions: 'You are an English-speaking receptionist for ReplyFlow. Your job is to gather the caller\'s information before giving advice. First collect:\n1. Name\n2. Reason for calling\n3. Urgency\n4. Best callback number\n5. Address if relevant\n\nKeep responses short and natural.\nAfter collecting information, you may answer simple questions briefly.',
                   audio: {
                     output: {
                       voice: AI_VOICE,
@@ -716,65 +717,11 @@ Do not continue chatting after intake is complete.`;
                   },
                 },
               };
-              console.log('[OPENAI SEND PAYLOAD] session.update (CORRECTED):', JSON.stringify(sessionConfig, null, 2));
+              console.log('[OPENAI SEND PAYLOAD] session.update (FINAL):', JSON.stringify(sessionConfig, null, 2));
               console.log('[SESSION.UPDATE SENT]');
-              console.log('[SESSION MINIMAL] using corrected schema with audio.output.voice');
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(sessionConfig));
               }
-              
-              // Add timeout for session.updated
-              setTimeout(() => {
-                if (!sessionUpdatedReceived) {
-                  console.log('[SESSION.UPDATE TIMEOUT] - session.updated not received in 3 seconds');
-                  console.log('[FALLBACK RESPONSE.CREATE] - sending greeting without session confirmation');
-                  
-                  // Fallback: send greeting even without session.updated
-                  const businessName = (ws as any).businessName || 'ReplyFlow';
-                  const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
-                  
-                  const testMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: englishInstructions,
-                      voice: AI_VOICE,
-                    },
-                  };
-                  console.log('[OPENAI SEND PAYLOAD] response.create (FALLBACK):', JSON.stringify(testMessage, null, 2));
-                  greetingSent = true;
-                  console.log('[GREETING SENT]');
-                  console.log('[OPENAI SEND] response.create');
-                  console.log('[GREETING] sent with English-only instructions');
-                  console.log('[GREETING] instructions:', englishInstructions);
-                  console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(testMessage));
-                  }
-                  console.log('[OPENAI TEST] test message sent');
-                  
-                  // Set flag to enable manual fallback after greeting
-                  twilioHandler.setGreetingSent();
-                  
-                  // After greeting is sent, set streamReady and flush buffer
-                  streamReady = true;
-                  console.log('[STREAM READY] true - now accepting caller audio');
-                  (twilioHandler as any).streamReady = true;
-                  if (audioBuffer.length > 0) {
-                    console.log('[BUFFER FLUSH] sending buffered audio', { count: audioBuffer.length });
-                    const openAiWs = (twilioHandler as any).openAiWs;
-                    if (openAiWs) {
-                      for (const buffer of audioBuffer) {
-                        const audioMessage = {
-                          type: 'input_audio_buffer.append',
-                          audio: buffer.toString('base64'),
-                        };
-                        openAiWs.send(JSON.stringify(audioMessage));
-                      }
-                    }
-                    console.log('[BUFFER FLUSH] complete');
-                  }
-                }
-              }, 3000);
               
               // Greeting will be sent after session.updated is received
               console.log('[SESSION] waiting for session.updated before sending greeting');
@@ -851,13 +798,10 @@ Do not continue chatting after intake is complete.`;
                 });
                 
                 // Now send greeting after session.updated
-                const businessName = (ws as any).businessName || 'ReplyFlow';
-                const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
-                
                 const testMessage = {
                   type: 'response.create',
                   response: {
-                    instructions: englishInstructions,
+                    instructions: 'Thanks for calling ReplyFlow. May I have your name?',
                     voice: AI_VOICE,
                   },
                 };
@@ -865,13 +809,10 @@ Do not continue chatting after intake is complete.`;
                 greetingSent = true;
                 console.log('[GREETING SENT]');
                 console.log('[OPENAI SEND] response.create');
-                console.log('[GREETING] sent with English-only instructions');
-                console.log('[GREETING] instructions:', englishInstructions);
-                console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
                 if (openAiWs) {
                   openAiWs.send(JSON.stringify(testMessage));
                 }
-                console.log('[OPENAI TEST] test message sent');
+                console.log('[RESPONSE CREATED]');
                 
                 // Set flag to enable manual fallback after greeting
                 twilioHandler.setGreetingSent();
@@ -941,10 +882,7 @@ Do not continue chatting after intake is complete.`;
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
-                console.log('[OPENAI RECV] response.output_audio.delta');
-                console.log('[AUDIO] delta received');
-                console.log('[GREETING] first audio delta received');
-                console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
+                console.log('[AUDIO DELTA RECEIVED]');
                 
                 // Decode base64 to PCM16 buffer
                 const pcmBuffer = Buffer.from(message.delta, 'base64');
