@@ -631,6 +631,8 @@ Do not continue chatting after intake is complete.`;
             let opened = false;
             let greetingSent = false;
             let responseCreatedReceived = false;
+            let sessionCreated = false;
+            let sessionUpdated = false;
             setTimeout(() => {
               if (!opened) {
                 console.log('[OPENAI RAW] open timeout (5 seconds)');
@@ -672,55 +674,9 @@ Do not continue chatting after intake is complete.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Log exact location of greeting trigger
-              console.log('[GREETING TRIGGER] About to send greeting in open listener');
-              
-              // Send test message with dynamic instructions
-              const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
-              
-              // Configure session for Twilio-compatible audio and turn detection
-              const sessionConfig = {
-                type: 'session.update',
-                session: {
-                  type: 'realtime',
-                  audio: {
-                    input: {
-                      format: { type: 'audio/pcmu' },
-                      turn_detection: { type: 'server_vad' },
-                    },
-                    output: {
-                      format: { type: 'audio/pcmu' }, // Test direct μ-law output
-                    },
-                  },
-                },
-              };
-              console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
-              console.log('[AUDIO CONFIG] output format: audio/pcmu (g711_ulaw)');
-              console.log('[AUDIO CONFIG] conversion enabled: false (direct output)');
-              console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
-              if (openAiWs) {
-                openAiWs.send(JSON.stringify(sessionConfig));
-              }
-              
-              const testMessage = {
-                type: 'response.create',
-                response: {
-                  instructions: instructions,
-                  voice: AI_VOICE,
-                },
-              };
-              greetingSent = true;
-              console.log('[OPENAI SEND] response.create');
-              console.log('[GREETING] response.create sent');
-              console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
-              console.log('[OPENAI TEST] sending test message');
-              if (openAiWs) {
-                openAiWs.send(JSON.stringify(testMessage));
-              }
-              console.log('[OPENAI TEST] test message sent');
-              
-              // Set flag to enable manual fallback after greeting
-              twilioHandler.setGreetingSent();
+              // Do NOT send session.update or response.create here
+              // Wait for session.created first
+              console.log('[SESSION] waiting for session.created before sending session.update');
             });
             console.log('[OPENAI AUDIT] open listener attached');
 
@@ -771,18 +727,87 @@ Do not continue chatting after intake is complete.`;
 
               // Log session configuration
               if (message.type === 'session.created') {
+                sessionCreated = true;
                 console.log('[OPENAI RECV] session.created');
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
+                
+                // Send session.update after session.created
+                const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
+                
+                // Configure session for Twilio-compatible audio and turn detection
+                const sessionConfig = {
+                  type: 'session.update',
+                  session: {
+                    type: 'realtime',
+                    audio: {
+                      input: {
+                        format: { type: 'audio/pcmu' },
+                        turn_detection: { type: 'server_vad' },
+                      },
+                      output: {
+                        format: { type: 'audio/pcmu' },
+                      },
+                    },
+                  },
+                };
+                console.log('[SESSION] sending session.update after session.created');
+                console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
+                console.log('[AUDIO CONFIG] output format: audio/pcmu (g711_ulaw)');
+                console.log('[AUDIO CONFIG] conversion enabled: false (direct output)');
+                console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
+                if (openAiWs) {
+                  openAiWs.send(JSON.stringify(sessionConfig));
+                }
               }
               if (message.type === 'session.updated') {
+                sessionUpdated = true;
                 console.log('[OPENAI RECV] session.updated');
                 console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
+                
+                // Verify audio format
+                const inputFormat = message.session?.audio?.input?.format?.type;
+                const outputFormat = message.session?.audio?.output?.format?.type;
+                
+                console.log('[SESSION] verifying audio format', { inputFormat, outputFormat });
+                
+                if (inputFormat !== 'audio/pcmu' || outputFormat !== 'audio/pcmu') {
+                  console.log('[SESSION ERROR] audio format mismatch');
+                  console.log('[SESSION ERROR] expected audio/pcmu, got', { inputFormat, outputFormat });
+                  console.log('[SESSION ERROR] full response:', JSON.stringify(message, null, 2));
+                  return;
+                }
+                
+                // Only send response.create after session.updated
+                console.log('[SESSION] audio format verified, sending response.create');
+                const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
+                
+                const testMessage = {
+                  type: 'response.create',
+                  response: {
+                    instructions: instructions,
+                    voice: AI_VOICE,
+                  },
+                };
+                greetingSent = true;
+                console.log('[OPENAI SEND] response.create after session.updated');
+                console.log('[GREETING] response.create sent');
+                console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
+                if (openAiWs) {
+                  openAiWs.send(JSON.stringify(testMessage));
+                }
+                console.log('[OPENAI TEST] test message sent');
+                
+                // Set flag to enable manual fallback after greeting
+                twilioHandler.setGreetingSent();
               }
 
               // Log full error payload
               if (message.type === 'error') {
                 console.log('[OPENAI ERROR] full payload', JSON.stringify(message, null, 2));
               }
+              
+              // Catch-all logging for every OpenAI event type
+              console.log('[OPENAI EVENT]', message.type);
 
               // PCM16 to μ-law conversion function
               const pcm16ToMulaw = (pcm16: number): number => {
