@@ -10,9 +10,7 @@ import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus } from 'lucide-react'
-import CalendarToolbar from '@/components/calendar/CalendarToolbar'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
-import UpcomingEventsPanel from '@/components/calendar/UpcomingEventsPanel'
 import EventPill from '@/components/calendar/EventPill'
 
 interface CalendarEvent {
@@ -106,12 +104,36 @@ export default function CalendarPage() {
         throw new Error('Not authenticated')
       }
 
-      console.log('[Calendar Page] Requesting events from API')
-      const response = await fetch('/api/google/calendar/events', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // Calculate date range for the visible month (including leading/trailing days)
+      const year = currentMonth.getFullYear()
+      const monthIndex = currentMonth.getMonth()
+      const firstDayOfMonth = new Date(year, monthIndex, 1)
+      const lastDayOfMonth = new Date(year, monthIndex + 1, 0)
+      const startDayOfWeek = firstDayOfMonth.getDay()
+      
+      // Start from first day of the grid (may include previous month days)
+      const gridStart = new Date(year, monthIndex, 1 - startDayOfWeek)
+      gridStart.setHours(0, 0, 0, 0)
+      
+      // End at last day of the grid (may include next month days)
+      const daysInMonth = lastDayOfMonth.getDate()
+      const remainingDays = 42 - (startDayOfWeek + daysInMonth)
+      const gridEnd = new Date(year, monthIndex + 1, remainingDays)
+      gridEnd.setHours(23, 59, 59, 999)
+
+      console.log('[Calendar Page] Fetching events for date range:', {
+        timeMin: gridStart.toISOString(),
+        timeMax: gridEnd.toISOString()
       })
+
+      const response = await fetch(
+        `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
 
       console.log('[Calendar Page] Events response:', response.status, response.statusText)
 
@@ -124,10 +146,10 @@ export default function CalendarPage() {
       const data = await response.json()
       console.log('[Calendar Page] Events data:', { eventCount: data.events?.length || 0, calendarEmail: data.calendarEmail })
       
-      // Deduplicate events by id and limit to 10
+      // Deduplicate events by id
       const uniqueEvents = Array.from(
         new Map((data.events || []).map((event: CalendarEvent) => [event.id, event])).values()
-      ).slice(0, 10) as CalendarEvent[]
+      ) as CalendarEvent[]
       
       console.log('[Calendar Page] After deduplication:', { uniqueEventCount: uniqueEvents.length })
       setEvents(uniqueEvents)
@@ -245,43 +267,81 @@ export default function CalendarPage() {
 
                   {/* Connected State */}
                   {calendarConnected && (
-                    <div className="flex flex-col lg:flex-row gap-6">
-                      {/* Main Calendar Section */}
-                      <div className="flex-1">
-                        <CalendarToolbar
-                          onRefresh={fetchEvents}
-                          isRefreshing={isLoadingEvents}
-                          onNewAppointment={handleNewAppointment}
-                          syncStatus="synced"
-                        />
-                        
-                        <CalendarGrid
-                          month={currentMonth}
-                          events={events}
-                          onPreviousMonth={goToPreviousMonth}
-                          onNextMonth={goToNextMonth}
-                          onToday={goToToday}
-                          renderEvent={(event, day) => (
-                            <EventPill
-                              title={event.summary}
-                              time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
-                              onClick={() => {
-                                if (event.htmlLink) {
-                                  window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-                                }
-                              }}
-                            />
-                          )}
-                        />
-                      </div>
-
-                      {/* Upcoming Events Sidebar */}
-                      <div className="lg:w-80 xl:w-96">
-                        <UpcomingEventsPanel
-                          events={events}
-                          isLoading={isLoadingEvents}
-                        />
-                      </div>
+                    <div className="space-y-6">
+                      <CalendarGrid
+                        month={currentMonth}
+                        events={events}
+                        onPreviousMonth={goToPreviousMonth}
+                        onNextMonth={goToNextMonth}
+                        onToday={goToToday}
+                        renderEvent={(event, day) => (
+                          <EventPill
+                            title={event.summary}
+                            time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
+                            onClick={() => {
+                              if (event.htmlLink) {
+                                window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
+                              }
+                            }}
+                          />
+                        )}
+                      />
+                      
+                      {/* Compact event list below calendar */}
+                      {events.length > 0 && (
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                            Events in {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          </h3>
+                          <div className="space-y-2">
+                            {events.slice(0, 10).map((event, index) => (
+                              <div
+                                key={event.id || index}
+                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  if (event.htmlLink) {
+                                    window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
+                                  }
+                                }}
+                              >
+                                <div className="flex-shrink-0 w-12 text-center">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    {event.start.dateTime
+                                      ? new Date(event.start.dateTime).toLocaleDateString('en-US', { weekday: 'short' })
+                                      : event.start.date
+                                      ? new Date(event.start.date).toLocaleDateString('en-US', { weekday: 'short' })
+                                      : ''
+                                    }
+                                  </div>
+                                  <div className="text-sm font-semibold text-slate-900 dark:text-foreground">
+                                    {event.start.dateTime
+                                      ? new Date(event.start.dateTime).getDate()
+                                      : event.start.date
+                                      ? new Date(event.start.date).getDate()
+                                      : ''
+                                    }
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-slate-900 dark:text-foreground truncate">
+                                    {event.summary}
+                                  </div>
+                                  {event.start.dateTime && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                      {formatDate(event.start.dateTime)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {events.length > 10 && (
+                              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-2">
+                                +{events.length - 10} more events
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>

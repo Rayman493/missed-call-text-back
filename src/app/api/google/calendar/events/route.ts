@@ -137,20 +137,36 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Get timeMin and timeMax from query parameters
+    const { searchParams } = new URL(request.url)
+    const timeMin = searchParams.get('timeMin')
+    const timeMax = searchParams.get('timeMax')
+
+    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax })
+
+    // Build Google Calendar API URL with date range
+    let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'
+    
+    if (timeMin) {
+      apiUrl += `timeMin=${encodeURIComponent(timeMin)}&`
+    } else {
+      // Default to current date if no timeMin provided
+      apiUrl += `timeMin=${new Date().toISOString()}&`
+    }
+    
+    if (timeMax) {
+      apiUrl += `timeMax=${encodeURIComponent(timeMax)}&`
+    }
+    
+    apiUrl += 'maxResults=50&orderBy=startTime&singleEvents=true'
+
     // Fetch events from Google Calendar
     console.log('[Google Calendar Events] Fetching events from Google Calendar API')
-    const eventsResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-      `timeMin=${new Date().toISOString()}&` +
-      `maxResults=20&` +
-      `orderBy=startTime&` +
-      `singleEvents=true`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      }
-    )
+    const eventsResponse = await fetch(apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    })
 
     if (!eventsResponse.ok) {
       const errorText = await eventsResponse.text()
