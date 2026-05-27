@@ -540,6 +540,25 @@ Be concise and friendly.`;
               
               // Send test message with dynamic instructions
               const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
+              
+              // Configure session for Twilio-compatible audio and turn detection
+              const sessionConfig = {
+                type: 'session.update',
+                session: {
+                  audio: {
+                    input_format: 'g711_ulaw',
+                    output_format: 'pcm16',
+                  },
+                  turn_detection: {
+                    type: 'server_vad',
+                  },
+                },
+              };
+              console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify(sessionConfig));
+              }
+              
               const testMessage = {
                 type: 'response.create',
                 response: {
@@ -571,6 +590,23 @@ Be concise and friendly.`;
 
               // Log every message type
               console.log('[OPENAI WS] message type', { type: message.type });
+
+              // Log input audio events
+              if (message.type === 'input_audio_buffer.speech_started') {
+                console.log('[OPENAI IN] input_audio_buffer.speech_started');
+              }
+              if (message.type === 'input_audio_buffer.speech_stopped') {
+                console.log('[OPENAI IN] input_audio_buffer.speech_stopped');
+              }
+              if (message.type === 'response.created') {
+                console.log('[OPENAI IN] response.created');
+              }
+              if (message.type === 'response.output_audio.delta') {
+                console.log('[OPENAI IN] response.output_audio.delta');
+              }
+              if (message.type === 'response.done') {
+                console.log('[AI TURN] response triggered after caller speech');
+              }
 
               // Log full error payload
               if (message.type === 'error') {
