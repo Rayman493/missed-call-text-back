@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
+import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
   id: string
@@ -21,6 +22,8 @@ interface CalendarEvent {
   end: { dateTime?: string; date?: string }
   location: string | null
   htmlLink: string | null
+  source?: 'primary' | 'holiday'
+  isHoliday?: boolean
 }
 
 export default function CalendarPage() {
@@ -205,6 +208,19 @@ export default function CalendarPage() {
     setCurrentMonth(new Date())
   }
 
+  // Filter events to only show those in the visible month
+  const visibleMonthEvents = filterEventsByMonth(
+    events,
+    currentMonth.getFullYear(),
+    currentMonth.getMonth()
+  )
+
+  console.log('[Calendar Page] Visible month events:', {
+    month: currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    totalEvents: events.length,
+    visibleMonthEvents: visibleMonthEvents.length
+  })
+
   if (!business) {
     return (
       <AuthGuard>
@@ -270,7 +286,7 @@ export default function CalendarPage() {
                     <div className="space-y-6">
                       <CalendarGrid
                         month={currentMonth}
-                        events={events}
+                        events={visibleMonthEvents}
                         onPreviousMonth={goToPreviousMonth}
                         onNextMonth={goToNextMonth}
                         onToday={goToToday}
@@ -278,6 +294,7 @@ export default function CalendarPage() {
                           <EventPill
                             title={event.summary}
                             time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
+                            isHoliday={event.isHoliday}
                             onClick={() => {
                               if (event.htmlLink) {
                                 window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
@@ -288,13 +305,13 @@ export default function CalendarPage() {
                       />
                       
                       {/* Compact event list below calendar */}
-                      {events.length > 0 && (
+                      {visibleMonthEvents.length > 0 ? (
                         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                           <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
                             Events in {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </h3>
                           <div className="space-y-2">
-                            {events.slice(0, 10).map((event, index) => (
+                            {visibleMonthEvents.slice(0, 10).map((event, index) => (
                               <div
                                 key={event.id || index}
                                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
@@ -334,12 +351,24 @@ export default function CalendarPage() {
                                 </div>
                               </div>
                             ))}
-                            {events.length > 10 && (
+                            {visibleMonthEvents.length > 10 && (
                               <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-2">
-                                +{events.length - 10} more events
+                                +{visibleMonthEvents.length - 10} more events
                               </div>
                             )}
                           </div>
+                        </div>
+                      ) : (
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 text-center">
+                          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CalendarIcon className="w-6 h-6 text-slate-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                            No events this month
+                          </h3>
+                          <p className="text-slate-600 dark:text-muted-foreground">
+                            There are no events scheduled for {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          </p>
                         </div>
                       )}
                     </div>

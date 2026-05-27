@@ -178,10 +178,39 @@ export async function GET(request: NextRequest) {
     }
 
     const eventsData = await eventsResponse.json()
-    console.log('[Google Calendar Events] Fetched events:', eventsData.items?.length || 0)
+    console.log('[Google Calendar Events] Fetched primary events:', eventsData.items?.length || 0)
 
-    // Return safe event fields only
-    const events = (eventsData.items || []).map((event: any) => ({
+    // Fetch US Holidays calendar
+    const holidayCalendarId = 'en.usa#holiday@group.v.calendar.google.com'
+    let holidayEvents: any[] = []
+    
+    try {
+      console.log('[Google Calendar Events] Fetching US Holidays calendar')
+      const holidaysResponse = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(holidayCalendarId)}/events?` +
+        (timeMin ? `timeMin=${encodeURIComponent(timeMin)}&` : `timeMin=${new Date().toISOString()}&`) +
+        (timeMax ? `timeMax=${encodeURIComponent(timeMax)}&` : '') +
+        'maxResults=50&orderBy=startTime&singleEvents=true',
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      )
+
+      if (holidaysResponse.ok) {
+        const holidaysData = await holidaysResponse.json()
+        console.log('[Google Calendar Events] Fetched holiday events:', holidaysData.items?.length || 0)
+        holidayEvents = holidaysData.items || []
+      } else {
+        console.warn('[Google Calendar Events] Failed to fetch holidays, continuing without them')
+      }
+    } catch (error) {
+      console.warn('[Google Calendar Events] Error fetching holidays, continuing without them:', error)
+    }
+
+    // Normalize primary events
+    const primaryEvents = (eventsData.items || []).map((event: any) => ({
       id: event.id,
       summary: event.summary || 'No title',
       description: event.description || null,
@@ -189,10 +218,46 @@ export async function GET(request: NextRequest) {
       end: event.end,
       location: event.location || null,
       htmlLink: event.htmlLink || null,
+      source: 'primary' as const,
+      isHoliday: false
     }))
 
+    // Normalize holiday events
+    const normalizedHolidays = holidayEvents.map((event: any) => ({
+      id: `holiday-${event.id}`,
+      summary: event.summary || 'Holiday',
+      description: event.description || null,
+      start: event.start,
+      end: event.end,
+      location: null,
+      htmlLink: event.htmlLink || null,
+      source: 'holiday' as const,
+      isHoliday: true
+    }))
+
+    // Merge events with deduplication by summary and date
+    const allEvents = [...primaryEvents]
+    const seenKeys = new Set<string>()
+    
+    primaryEvents.forEach((event: any) => {
+      const dateKey = event.start?.date || event.start?.dateTime?.split('T')[0]
+      const key = `${event.summary}-${dateKey}`
+      seenKeys.add(key)
+    })
+    
+    normalizedHolidays.forEach((holiday: any) => {
+      const dateKey = holiday.start?.date || holiday.start?.dateTime?.split('T')[0]
+      const key = `${holiday.summary}-${dateKey}`
+      if (!seenKeys.has(key)) {
+        allEvents.push(holiday)
+        seenKeys.add(key)
+      }
+    })
+
+    console.log('[Google Calendar Events] Total events after merge:', allEvents.length)
+
     return NextResponse.json({
-      events,
+      events: allEvents,
       calendarEmail: integration.calendar_email || null
     })
   } catch (error) {
