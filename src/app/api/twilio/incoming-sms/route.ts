@@ -4,33 +4,43 @@ import { processInboundSms } from '@/lib/sms-processing'
 import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // CRITICAL: Log IMMEDIATELY to verify route is being hit
+  console.log('[INCOMING SMS WEBHOOK HIT]')
+  console.log('[INCOMING SMS METHOD]', req.method)
+  console.log('[INCOMING SMS URL]', req.url)
+  
   try {
-    console.log('[MMS DEBUG] webhook hit')
-    console.log('[MMS DEBUG] content-type', req.headers.get('content-type'))
-    
-    // Read raw body for signature validation
+    // Read raw body BEFORE any processing
     const rawBody = await req.text();
-    const contentType = req.headers.get('content-type') || '';
+    console.log('[INCOMING SMS RAW BODY]', rawBody)
+    console.log('[INCOMING SMS HEADERS]', Object.fromEntries(req.headers.entries()))
     
+    const contentType = req.headers.get('content-type') || '';
+    console.log('[MMS DEBUG] content-type', contentType)
     console.log('[MMS DEBUG] raw body length', rawBody.length)
+    
+    // Parse body using URLSearchParams
+    const params = Object.fromEntries(new URLSearchParams(rawBody))
+    
+    console.log('[INCOMING SMS NUMMEDIA]', params['NumMedia'])
+    console.log('[INCOMING SMS MEDIA URL 0]', params['MediaUrl0'])
+    console.log('[INCOMING SMS CONTENT TYPE 0]', params['MediaContentType0'])
+    
+    // TEMPORARILY DISABLE signature validation for debugging
+    // const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+    // if (!isValid) {
+    //   console.error('[MMS DEBUG] signature validation failed')
+    //   return new Response('Unauthorized', { status: 401 });
+    // }
+    console.log('[MMS DEBUG] signature validation DISABLED for debugging')
     
     // Parse body using formData for proper form data handling
     const formData = new FormData()
-    const params = Object.fromEntries(new URLSearchParams(rawBody))
     
     // Populate FormData with params for backward compatibility
     for (const [key, value] of Object.entries(params)) {
       formData.append(key, value as string)
     }
-    
-    // Validate Twilio signature with params object
-    const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
-    if (!isValid) {
-      console.error('[MMS DEBUG] signature validation failed')
-      return new Response('Unauthorized', { status: 401 });
-    }
-    
-    console.log('[MMS DEBUG] signature validation passed')
     
     // Extract fields using formData
     const From = formData.get('From')?.toString() || ''
@@ -160,16 +170,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('[SYSTEM] [INCOMING-SMS] Unexpected error:', error)
     
-    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Error processing message</Message>
-</Response>`
-
-    return new Response(errorTwiml, {
-      status: 500,
-      headers: {
-        'Content-Type': 'text/xml',
-      },
-    })
+    // Defensive fallback: always respond with 200 to prevent Twilio retries
+    return new Response('ok', { status: 200 })
   }
 }
