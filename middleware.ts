@@ -74,9 +74,8 @@ export async function middleware(req: NextRequest) {
     timestamp: new Date().toISOString()
   })
 
-  // Public routes - no authentication required
+  // Public routes - no authentication required (except homepage for authenticated users)
   const publicRoutes = [
-    '/',
     '/signup',
     '/login',
     '/auth',
@@ -94,6 +93,34 @@ export async function middleware(req: NextRequest) {
 
   if (isPublicRoute) {
     console.log('[Middleware] Public route, allowing access')
+    return res
+  }
+
+  // Special handling for homepage - redirect authenticated users
+  if (pathname === '/') {
+    if (session) {
+      console.log('[Middleware] Authenticated user on homepage, checking redirect target')
+      
+      // Check for last visited dashboard route from cookie
+      const lastDashboardRoute = req.cookies.get('last_dashboard_route')?.value
+      
+      // Check if user has completed onboarding
+      // For now, we'll redirect to dashboard if authenticated
+      // TODO: Add onboarding status check via database query if needed
+      const redirectTarget = lastDashboardRoute && lastDashboardRoute.startsWith('/dashboard') 
+        ? lastDashboardRoute 
+        : '/dashboard'
+      
+      console.log('[Middleware] Redirecting authenticated user from homepage', {
+        to: redirectTarget,
+        lastDashboardRoute
+      })
+      
+      return NextResponse.redirect(new URL(redirectTarget, req.url))
+    }
+    
+    // Not authenticated - allow homepage access
+    console.log('[Middleware] Unauthenticated user on homepage, allowing access')
     return res
   }
 

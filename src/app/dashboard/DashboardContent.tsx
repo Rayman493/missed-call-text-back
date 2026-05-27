@@ -8,6 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
+import { useDashboardRouteTracking } from '@/hooks/useDashboardRouteTracking'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { isAdminUser } from '@/lib/admin'
 import { 
@@ -207,6 +208,9 @@ const isOnboardingExpanded = (() => {
 
 export default function DashboardContent() {
   console.log('[HOOK ORDER CHECK] dashboard render start')
+  
+  // Track dashboard routes for smart redirect
+  useDashboardRouteTracking()
   
   // Trace log at dashboard component mount
   useEffect(() => {
