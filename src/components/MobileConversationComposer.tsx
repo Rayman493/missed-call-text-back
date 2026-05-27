@@ -45,12 +45,12 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 pb-6 sm:pb-8 sticky bottom-0 z-20">
+    <div className="border-t border-border bg-card/95 backdrop-blur-md p-3 sm:p-4 lg:p-5 pb-4 sm:pb-6 sticky bottom-0 z-20">
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
           {/* iPhone-style Composer Row */}
-          <div className="flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2 shadow-sm">
+          <div className="flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2.5 shadow-sm">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -60,7 +60,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 disabled={sending}
-                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base leading-relaxed py-2 px-1 max-h-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm leading-relaxed py-1.5 px-1 max-h-24 disabled:opacity-50 disabled:cursor-not-allowed"
                 rows={1}
                 style={{ fieldSizing: 'content' }}
               />
@@ -77,7 +77,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className={`flex-shrink-0 w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center ${
+              className={`flex-shrink-0 w-9 h-9 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center ${
                 message.trim() && !sending
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                   : 'bg-gray-200 hover:bg-gray-300 text-gray-400 disabled:cursor-not-allowed'
