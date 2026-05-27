@@ -19,6 +19,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, verse, cedar, marin
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -486,10 +487,15 @@ Your job is to collect:
 Rules:
 - Ask one question at a time
 - Be concise
+- Speak clearly at a moderate pace
+- Use short sentences
 - Do not diagnose problems
 - Do not provide technical advice
 - Do not have long conversations
 - Focus on collecting lead information
+- Sound like a professional receptionist
+
+Start with: "Thanks for calling ${businessName}. What's your name?"
 
 Once all required information has been collected, repeat a summary of:
 Name
@@ -501,7 +507,7 @@ Callback Time
 
 Ask: "Does everything I have look correct?"
 
-If caller confirms, say: "Perfect. I've passed your information along to the team. Someone will contact you as soon as possible. Thank you for calling ${businessName}."
+If caller confirms, say: "Perfect. We'll contact you soon. Thanks for calling ${businessName}."
 
 After that:
 
@@ -631,11 +637,14 @@ Do not continue chatting after intake is complete.`;
                       turn_detection: { type: 'server_vad' },
                     },
                     output: {
-                      format: { type: 'audio/pcm', rate: 24000 },
+                      format: { type: 'audio/pcmu' }, // Test direct μ-law output
                     },
                   },
                 },
               };
+              console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
+              console.log('[AUDIO CONFIG] output format: audio/pcmu (g711_ulaw)');
+              console.log('[AUDIO CONFIG] conversion enabled: false (direct output)');
               console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(sessionConfig));
@@ -645,6 +654,7 @@ Do not continue chatting after intake is complete.`;
                 type: 'response.create',
                 response: {
                   instructions: instructions,
+                  voice: AI_VOICE,
                 },
               };
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
@@ -741,37 +751,17 @@ Do not continue chatting after intake is complete.`;
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
                 
-                // Decode base64 to PCM16 buffer
-                const pcmBuffer = Buffer.from(message.delta, 'base64');
-                console.log('[AUDIO CONVERT] pcm bytes', { length: pcmBuffer.length });
-                
-                // OpenAI Realtime API returns PCM16 at 24kHz
-                // Twilio expects 8kHz μ-law (G.711)
-                // Downsample: 24kHz -> 8kHz (take every 3rd sample)
-                const sampleCount = Math.floor(pcmBuffer.length / 2);
-                const downsampledSamples: Int16Array = new Int16Array(Math.floor(sampleCount / 3));
-                for (let i = 0; i < downsampledSamples.length; i++) {
-                  downsampledSamples[i] = pcmBuffer.readInt16LE(i * 6);
-                }
-                console.log('[AUDIO CONVERT] downsampled to 8kHz', { originalSamples: sampleCount, downsampledSamples: downsampledSamples.length });
-                
-                // Convert PCM16 to μ-law
-                const mulawBytes = Buffer.alloc(downsampledSamples.length);
-                for (let i = 0; i < downsampledSamples.length; i++) {
-                  mulawBytes[i] = pcm16ToMulaw(downsampledSamples[i]);
-                }
-                console.log('[AUDIO CONVERT] converted to mulaw');
-                
-                // Base64 encode μ-law bytes
-                const mulawBase64 = mulawBytes.toString('base64');
-                console.log('[AUDIO OUT] sending converted mulaw to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: mulawBase64.length });
+                // Since we configured OpenAI to output audio/pcmu (g711_ulaw), send directly to Twilio
+                // Twilio expects g711_ulaw at 8kHz
+                console.log('[AUDIO CONFIG] payload size', { payloadLength: message.delta.length });
+                console.log('[AUDIO OUT] sending g711_ulaw directly to Twilio', { streamSidExists: !!twilioHandler.getStreamSid() });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: mulawBase64,
+                    payload: message.delta,
                   },
                 };
                 
