@@ -388,6 +388,31 @@ wss.on('connection', (ws, req) => {
 
           startEventProcessed = true;
 
+          // Extract call forwarding information from Twilio start event
+          const callInfo = message.start || {};
+          const forwardedFrom = callInfo.customParameters?.ForwardedFrom || req.headers['x-forwarded-from'] || '';
+          const called = callInfo.customParameters?.Called || callInfo.callSid || '';
+          const to = callInfo.customParameters?.To || '';
+          
+          // Determine routing reason
+          let routingReason = 'unknown';
+          if (forwardedFrom) {
+            routingReason = 'forwarded_missed_call';
+            console.log('[Voice] routing_reason: forwarded_missed_call (business missed call, forwarded to ReplyFlow)');
+          } else if (to) {
+            routingReason = 'direct_to_replyflow_number';
+            console.log('[Voice] routing_reason: direct_to_replyflow_number (direct call to ReplyFlow number)');
+          } else {
+            routingReason = 'unknown_source';
+            console.log('[Voice] routing_reason: unknown_source');
+          }
+          
+          // Log call information
+          console.log('[Voice] ForwardedFrom', { forwardedFrom: forwardedFrom || 'none' });
+          console.log('[Voice] Called', { called });
+          console.log('[Voice] To', { to: to || 'none' });
+          console.log('[Voice] routing_reason', { routingReason });
+
           const customParams = message.start?.customParameters || {};
           log(LogLevel.INFO, '[AI POC] received custom parameters', customParams);
 
