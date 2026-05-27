@@ -294,6 +294,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     // Store media attachments if present
     if (media && media.length > 0) {
       console.log(`[MMS DEBUG] Storing ${media.length} media attachments for message: ${message.id}`)
+      console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)
       
       for (const mediaItem of media) {
         try {
@@ -319,6 +320,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[MMS DEBUG] Media storage complete for message: ${message.id}`)
     } else {
       console.log(`[MMS DEBUG] No media attachments to store for message: ${message.id}`)
+      console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)
     }
     
     // Create notification for customer reply

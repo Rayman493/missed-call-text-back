@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
     // Add operational logs for successful processing
     if (result.lead) {
       console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
+      console.log('[MMS DEBUG] Lead ID for tracing:', result.lead.id)
     }
     
     if (result.conversation) {
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
     
     if (result.message) {
       console.log('[INBOUND SMS] Message inserted:', result.message.id)
+      console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
     }
     
     // Return the TwiML response
