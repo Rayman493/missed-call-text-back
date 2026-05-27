@@ -645,68 +645,25 @@ Do not continue chatting after intake is complete.`;
           log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
 
           try {
-            console.log('[OPENAI AUDIT] websocket library import:', 'ws package');
+            console.log('[STREAM CLONED] starting websocket creation');
+            console.log('[STREAM CLONED] WebSocket package:', 'ws');
+            console.log('[STREAM CLONED] API key exists:', !!OPENAI_API_KEY);
+            
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
-            console.log('[OPENAI AUDIT] websocket URL:', wsUrl);
-            console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
-            console.log('[OPENAI API KEY] exists:', !!OPENAI_API_KEY);
-            console.log('[OPENAI API KEY] length:', OPENAI_API_KEY?.length || 0);
-            console.log('[OPENAI API KEY] first 8 chars:', OPENAI_API_KEY?.substring(0, 8) || 'N/A');
-            console.log('[STREAM OPENAI] creating websocket');
-            const headers = {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            };
-            console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
-            const wsId = Math.random().toString(36).substring(2, 9);
-            openAiWs = new WebSocket(wsUrl, { headers });
-            (openAiWs as any).wsId = wsId;
-            console.log('[WS CREATED] id:', wsId, 'readyState:', openAiWs.readyState);
+            console.log('[STREAM CLONED] creating websocket to:', wsUrl);
             
-            // Log readyState every second for first 10 seconds
-            for (let i = 1; i <= 10; i++) {
-              setTimeout(() => {
-                if (openAiWs) {
-                  console.log(`[WS STATE] id:${(openAiWs as any).wsId} after ${i}s readyState:`, openAiWs.readyState);
-                }
-              }, i * 1000);
-            }
-            
-            // Add EXTREMELY LOUD websocket event logs with ID
-            openAiWs.on('open', () => {
-              console.log('[WS OPEN] id:', (openAiWs as any).wsId);
-              console.log('[OPENAI OPEN EVENT FIRED]');
+            openAiWs = new WebSocket(wsUrl, {
+              headers: {
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+              },
             });
             
-            openAiWs.on('close', (code, reason) => {
-              console.log('[WS CLOSE] id:', (openAiWs as any).wsId, { code, reason });
-              console.log('[OPENAI CLOSE EVENT]', { code, reason });
-            });
-            
-            openAiWs.on('error', (error) => {
-              console.log('[WS ERROR] id:', (openAiWs as any).wsId, { error: String(error) });
-              console.log('[OPENAI ERROR EVENT]', { error: String(error) });
-            });
-            
-            openAiWs.on('unexpected-response', (request, response) => {
-              console.log('[WS UNEXPECTED] id:', (openAiWs as any).wsId, { statusCode: response.statusCode });
-              console.log('[OPENAI UNEXPECTED RESPONSE]', { statusCode: response.statusCode });
-            });
-            
-            // Add watchdog every 3 seconds
-            setInterval(() => {
-              if (openAiWs) {
-                console.log('[OPENAI WATCHDOG] readyState:', openAiWs.readyState);
-              }
-            }, 3000);
+            console.log('[STREAM CLONED] websocket created, readyState:', openAiWs.readyState);
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
-            console.log('[WS REF] setting on Twilio handler id:', (openAiWs as any).wsId);
-            console.log('[OPENAI REF] websocket set on Twilio handler');
-            console.log('[OPENAI REF] media handler websocket exists', { exists: !!((twilioHandler as any).openAiWs) });
+            console.log('[STREAM CLONED] websocket set on Twilio handler');
             
-            console.log('[STREAM OPENAI] listeners attaching');
-
             // Add open timeout
             let opened = false;
             let greetingSent = false;
@@ -732,23 +689,11 @@ Do not continue chatting after intake is complete.`;
                 console.log('[MISSING] OpenAI ignored response.create');
               }
             }, 15000);
-
-            // Add 5-second timer to check CONNECTING state
-            setTimeout(() => {
-              if (openAiWs && openAiWs.readyState === 0) {
-                console.log('[OPENAI AUDIT] stuck in CONNECTING state');
-                console.log('[OPENAI AUDIT] websocket URL:', wsUrl);
-                console.log('[OPENAI AUDIT] readyState:', openAiWs.readyState);
-                console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
-                console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
-              }
-            }, 5000);
-
-            // Attach listeners exactly like /test-openai
-            console.log('[OPENAI AUDIT] attaching open listener');
+            
+            // Attach listeners - using minimal endpoint pattern
             openAiWs.on('open', () => {
+              console.log('[STREAM CLONED] OPEN event fired');
               opened = true;
-              console.log('[WS OPEN LISTENER] id:', (openAiWs as any).wsId);
               console.log('[OPENAI AUDIT] open listener attached');
               console.log('[OPENAI RAW] open');
               console.log('[OPENAI READY] setting openAiReady to true');
@@ -809,7 +754,7 @@ Do not continue chatting after intake is complete.`;
 
             console.log('[OPENAI AUDIT] attaching message listener');
             openAiWs.on('message', (data) => {
-              console.log('[WS MESSAGE] id:', (openAiWs as any).wsId);
+              console.log('[STREAM CLONED] MESSAGE received');
               console.log('[OPENAI AUDIT] message listener attached');
               console.log('[OPENAI RAW] message');
               
@@ -956,8 +901,8 @@ Do not continue chatting after intake is complete.`;
 
             console.log('[OPENAI AUDIT] attaching error listener');
             openAiWs.on('error', (error) => {
+              console.log('[STREAM CLONED] ERROR event:', String(error));
               console.log('[OPENAI AUDIT] error listener attached');
-              console.log('[OPENAI RAW] error', { error: String(error) });
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
             });
@@ -1163,8 +1108,8 @@ Notes: ${extractedFields.notes || 'None'}`;
 
             console.log('[OPENAI AUDIT] attaching close listener');
             openAiWs.on('close', (code, reason) => {
+              console.log('[STREAM CLONED] CLOSE event, code:', code, 'reason:', reason);
               console.log('[OPENAI AUDIT] close listener attached');
-              console.log('[OPENAI RAW] close', { code, reason: reason?.toString() });
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
             });
             console.log('[OPENAI AUDIT] close listener attached');
