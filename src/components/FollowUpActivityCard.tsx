@@ -143,12 +143,12 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
         </div>
       ) : (
         <div className="text-center py-2">
-          <p className="text-sm text-muted-foreground mb-2">No active follow-ups</p>
+          <p className="text-xs text-muted-foreground mb-2">No active follow-ups</p>
           <Link
             href="/dashboard/settings/follow-ups"
-            className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
           >
-            Manage Follow-Ups
+            Configure
           </Link>
         </div>
       )}

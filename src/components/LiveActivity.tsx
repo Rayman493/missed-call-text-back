@@ -36,8 +36,8 @@ export default function LiveActivity({
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-400">
-          Activity will appear here as ReplyFlow handles missed calls.
+        <p className="text-xs text-slate-400">
+          Activity will appear here
         </p>
       ) : (
         <div className="space-y-2">

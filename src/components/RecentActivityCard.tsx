@@ -162,10 +162,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
       {activities.length === 0 ? (
         <div className="text-center py-2">
-          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <p className="text-xs text-muted-foreground">No recent activity</p>
+          <p className="text-xs text-muted-foreground">No activity this week</p>
         </div>
       ) : (
         <div className="space-y-2">
