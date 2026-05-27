@@ -135,6 +135,7 @@ export class TwilioStreamHandler {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
                 };
+                console.log('[OPENAI SEND PAYLOAD] input_audio_buffer.append length:', audioMessage.audio.length);
                 openAiWs.send(JSON.stringify(audioMessage));
                 log(LogLevel.INFO, '[CALLER AUDIO] sent to OpenAI', { payloadLength: audioMessage.audio.length });
                 

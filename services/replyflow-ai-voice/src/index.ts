@@ -718,6 +718,7 @@ Do not continue chatting after intake is complete.`;
                   },
                 },
               };
+              console.log('[OPENAI SEND PAYLOAD] session.update:', JSON.stringify(sessionConfig, null, 2));
               console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
               console.log('[AUDIO CONFIG] output format: audio/pcm (PCM16 24000Hz)');
               console.log('[AUDIO CONFIG] conversion enabled: true (PCM → μ-law)');
@@ -737,6 +738,7 @@ Do not continue chatting after intake is complete.`;
                   voice: AI_VOICE,
                 },
               };
+              console.log('[OPENAI SEND PAYLOAD] response.create:', JSON.stringify(testMessage, null, 2));
               greetingSent = true;
               console.log('[OPENAI SEND] response.create');
               console.log('[GREETING] sent with English-only instructions');
@@ -810,7 +812,18 @@ Do not continue chatting after intake is complete.`;
 
               // Log full error payload
               if (message.type === 'error') {
-                console.log('[OPENAI ERROR] full payload', JSON.stringify(message, null, 2));
+                console.error('[OPENAI FULL ERROR]', JSON.stringify(message, null, 2));
+                console.error('[OPENAI FATAL ERROR] - stopping processing');
+                console.error('[OPENAI ERROR FIELDS]', {
+                  type: message.type,
+                  code: message.code,
+                  message: message.message,
+                  event_id: message.event_id,
+                  param: message.param,
+                  error: message.error,
+                  details: message.details,
+                });
+                return;
               }
               
               // Catch-all logging for every OpenAI event type
