@@ -299,6 +299,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       try {
         for (const mediaItem of media) {
           try {
+            console.log(`[MMS DEBUG] Inserting media row: message_id=${message.id}, type=${mediaItem.contentType}`)
             const { error: mediaError } = await supabaseAdmin
               .from('message_media')
               .insert({
@@ -309,16 +310,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
               })
             
             if (mediaError) {
-              console.error(`[MMS DEBUG] Failed to store media attachment:`, mediaError)
+              console.error(`[MMS DEBUG] Insert failure:`, mediaError)
               // Check if table doesn't exist
               if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
                 console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
               }
             } else {
-              console.log(`[MMS DEBUG] Successfully stored media: ${mediaItem.contentType}`)
+              console.log(`[MMS DEBUG] Insert success: type=${mediaItem.contentType}`)
             }
           } catch (error: any) {
-            console.error(`[MMS DEBUG] Failed to store media attachment:`, error)
+            console.error(`[MMS DEBUG] Insert exception:`, error)
             // Check if table doesn't exist
             if (error.message?.includes('does not exist') || error.code === '42P01') {
               console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')

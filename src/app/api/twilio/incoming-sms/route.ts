@@ -5,43 +5,57 @@ import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[SYSTEM] [INCOMING-SMS] Received SMS');
+    console.log('[MMS DEBUG] webhook hit')
+    console.log('[MMS DEBUG] content-type', req.headers.get('content-type'))
     
-    // Read raw body exactly once for validation
+    // Read raw body for signature validation
     const rawBody = await req.text();
     const contentType = req.headers.get('content-type') || '';
     
-    // Parse body into params using URLSearchParams
-    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    console.log('[MMS DEBUG] raw body length', rawBody.length)
+    
+    // Parse body using formData for proper form data handling
+    const formData = new FormData()
+    const params = Object.fromEntries(new URLSearchParams(rawBody))
+    
+    // Populate FormData with params for backward compatibility
+    for (const [key, value] of Object.entries(params)) {
+      formData.append(key, value as string)
+    }
     
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
     if (!isValid) {
+      console.error('[MMS DEBUG] signature validation failed')
       return new Response('Unauthorized', { status: 401 });
     }
     
-    console.log('[SYSTEM] [INCOMING-SMS] Signature validation passed')
+    console.log('[MMS DEBUG] signature validation passed')
     
-    const From = params.From
-    const To = params.To
-    const Body = params.Body || ''
-    const MessageSid = params.MessageSid
-    const NumMedia = params.NumMedia
+    // Extract fields using formData
+    const From = formData.get('From')?.toString() || ''
+    const To = formData.get('To')?.toString() || ''
+    const Body = formData.get('Body')?.toString() || ''
+    const MessageSid = formData.get('MessageSid')?.toString() || ''
+    const NumMedia = Number(formData.get('NumMedia') || 0)
     
-    // MMS Debug logging
-    console.log('[MMS DEBUG] NumMedia:', NumMedia)
-    console.log('[MMS DEBUG] MediaUrl0 present:', !!params['MediaUrl0'])
-    console.log('[MMS DEBUG] MediaContentType0:', params['MediaContentType0'])
+    console.log('[MMS DEBUG] From', From)
+    console.log('[MMS DEBUG] To', To)
+    console.log('[MMS DEBUG] Body', Body)
+    console.log('[MMS DEBUG] MessageSid', MessageSid)
+    console.log('[MMS DEBUG] NumMedia', NumMedia)
     
     // Extract MMS media if present
     const media: Array<{ url: string; contentType: string }> = []
-    if (NumMedia && parseInt(NumMedia) > 0) {
-      for (let i = 0; i < parseInt(NumMedia); i++) {
+    if (NumMedia > 0) {
+      for (let i = 0; i < NumMedia; i++) {
         const mediaUrl = params[`MediaUrl${i}`]
         const mediaContentType = params[`MediaContentType${i}`]
         if (mediaUrl && mediaContentType) {
           media.push({ url: mediaUrl, contentType: mediaContentType })
-          console.log(`[MMS DEBUG] Media ${i}: type=${mediaContentType}`)
+          console.log(`[MMS DEBUG] Media ${i}: url=${mediaUrl.substring(0, 30)}..., type=${mediaContentType}`)
+        } else {
+          console.log(`[MMS DEBUG] Media ${i}: missing url or contentType`)
         }
       }
       console.log('[MMS DEBUG] Total media extracted:', media.length)
@@ -68,6 +82,8 @@ export async function POST(req: NextRequest) {
     
     // Validate required fields - allow empty body if media is present
     const hasContent = (Body && Body.length > 0) || (media && media.length > 0)
+    console.log('[MMS DEBUG] hasContent check', { hasContent, BodyLength: Body.length, MediaCount: media.length })
+    
     if (!From || !To || !MessageSid || !hasContent) {
       console.error('[SYSTEM] [INCOMING-SMS] Missing required fields or no content:', { 
         From, 
