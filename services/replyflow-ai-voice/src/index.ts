@@ -704,19 +704,77 @@ Do not continue chatting after intake is complete.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Configure session with minimal fields to prove session.update works
+              // Configure session with corrected schema
               const sessionConfig = {
                 type: 'session.update',
                 session: {
                   instructions: 'You are an English-speaking receptionist.',
-                  voice: AI_VOICE,
+                  audio: {
+                    output: {
+                      voice: AI_VOICE,
+                    },
+                  },
                 },
               };
-              console.log('[OPENAI SEND PAYLOAD] session.update (MINIMAL):', JSON.stringify(sessionConfig, null, 2));
-              console.log('[SESSION MINIMAL] testing session.update with instructions and voice only');
+              console.log('[OPENAI SEND PAYLOAD] session.update (CORRECTED):', JSON.stringify(sessionConfig, null, 2));
+              console.log('[SESSION.UPDATE SENT]');
+              console.log('[SESSION MINIMAL] using corrected schema with audio.output.voice');
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(sessionConfig));
               }
+              
+              // Add timeout for session.updated
+              setTimeout(() => {
+                if (!sessionUpdatedReceived) {
+                  console.log('[SESSION.UPDATE TIMEOUT] - session.updated not received in 3 seconds');
+                  console.log('[FALLBACK RESPONSE.CREATE] - sending greeting without session confirmation');
+                  
+                  // Fallback: send greeting even without session.updated
+                  const businessName = (ws as any).businessName || 'ReplyFlow';
+                  const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
+                  
+                  const testMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: englishInstructions,
+                      voice: AI_VOICE,
+                    },
+                  };
+                  console.log('[OPENAI SEND PAYLOAD] response.create (FALLBACK):', JSON.stringify(testMessage, null, 2));
+                  greetingSent = true;
+                  console.log('[GREETING SENT]');
+                  console.log('[OPENAI SEND] response.create');
+                  console.log('[GREETING] sent with English-only instructions');
+                  console.log('[GREETING] instructions:', englishInstructions);
+                  console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(testMessage));
+                  }
+                  console.log('[OPENAI TEST] test message sent');
+                  
+                  // Set flag to enable manual fallback after greeting
+                  twilioHandler.setGreetingSent();
+                  
+                  // After greeting is sent, set streamReady and flush buffer
+                  streamReady = true;
+                  console.log('[STREAM READY] true - now accepting caller audio');
+                  (twilioHandler as any).streamReady = true;
+                  if (audioBuffer.length > 0) {
+                    console.log('[BUFFER FLUSH] sending buffered audio', { count: audioBuffer.length });
+                    const openAiWs = (twilioHandler as any).openAiWs;
+                    if (openAiWs) {
+                      for (const buffer of audioBuffer) {
+                        const audioMessage = {
+                          type: 'input_audio_buffer.append',
+                          audio: buffer.toString('base64'),
+                        };
+                        openAiWs.send(JSON.stringify(audioMessage));
+                      }
+                    }
+                    console.log('[BUFFER FLUSH] complete');
+                  }
+                }
+              }, 3000);
               
               // Greeting will be sent after session.updated is received
               console.log('[SESSION] waiting for session.updated before sending greeting');
