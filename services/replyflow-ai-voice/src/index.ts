@@ -659,6 +659,7 @@ Do not continue chatting after intake is complete.`;
                   voice: AI_VOICE,
                 },
               };
+              console.log('[OPENAI SEND] response.create');
               console.log('[GREETING] response.create sent');
               console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
               console.log('[OPENAI TEST] sending test message');
@@ -698,13 +699,13 @@ Do not continue chatting after intake is complete.`;
                 console.log('[VAD] speech stopped');
               }
               if (message.type === 'response.created') {
-                console.log('[OPENAI IN] response.created');
+                console.log('[OPENAI RECV] response.created');
               }
               if (message.type === 'response.output_audio.delta') {
-                console.log('[OPENAI IN] response.output_audio.delta');
+                console.log('[OPENAI RECV] response.output_audio.delta');
               }
               if (message.type === 'response.done') {
-                console.log('[AI TURN] response triggered after caller speech');
+                console.log('[OPENAI RECV] response.done');
               }
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
@@ -715,9 +716,11 @@ Do not continue chatting after intake is complete.`;
 
               // Log session configuration
               if (message.type === 'session.created') {
+                console.log('[OPENAI RECV] session.created');
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
               }
               if (message.type === 'session.updated') {
+                console.log('[OPENAI RECV] session.updated');
                 console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
               }
 
