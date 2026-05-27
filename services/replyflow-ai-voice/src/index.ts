@@ -674,9 +674,53 @@ Do not continue chatting after intake is complete.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Do NOT send session.update or response.create here
-              // Wait for session.created first
-              console.log('[SESSION] waiting for session.created before sending session.update');
+              // Configure session for Twilio-compatible audio and turn detection
+              const sessionConfig = {
+                type: 'session.update',
+                session: {
+                  type: 'realtime',
+                  audio: {
+                    input: {
+                      format: { type: 'audio/pcmu' },
+                      turn_detection: { type: 'server_vad' },
+                    },
+                    output: {
+                      format: { type: 'audio/pcm', rate: 24000 },
+                    },
+                  },
+                },
+              };
+              console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
+              console.log('[AUDIO CONFIG] output format: audio/pcm (PCM16 24000Hz)');
+              console.log('[AUDIO CONFIG] conversion enabled: true (PCM → μ-law)');
+              console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify(sessionConfig));
+              }
+              
+              // Send greeting with English-only instructions
+              const businessName = (ws as any).businessName || 'ReplyFlow';
+              const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
+              
+              const testMessage = {
+                type: 'response.create',
+                response: {
+                  instructions: englishInstructions,
+                  voice: AI_VOICE,
+                },
+              };
+              greetingSent = true;
+              console.log('[OPENAI SEND] response.create');
+              console.log('[GREETING] sent with English-only instructions');
+              console.log('[GREETING] instructions:', englishInstructions);
+              console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
+              if (openAiWs) {
+                openAiWs.send(JSON.stringify(testMessage));
+              }
+              console.log('[OPENAI TEST] test message sent');
+              
+              // Set flag to enable manual fallback after greeting
+              twilioHandler.setGreetingSent();
             });
             console.log('[OPENAI AUDIT] open listener attached');
 
@@ -727,84 +771,12 @@ Do not continue chatting after intake is complete.`;
 
               // Log session configuration
               if (message.type === 'session.created') {
-                sessionCreated = true;
                 console.log('[OPENAI RECV] session.created');
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
-                
-                // Send session.update after session.created
-                const businessName = (ws as any).businessName || 'ReplyFlow';
-                const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
-                
-                // Configure session for Twilio-compatible audio and turn detection
-                const sessionConfig = {
-                  type: 'session.update',
-                  session: {
-                    type: 'realtime',
-                    instructions: englishInstructions,
-                    audio: {
-                      input: {
-                        format: { type: 'audio/pcmu' },
-                        turn_detection: { type: 'server_vad' },
-                      },
-                      output: {
-                        format: { type: 'audio/pcmu' },
-                      },
-                    },
-                  },
-                };
-                console.log('[SESSION] sending session.update after session.created with English-only instructions');
-                console.log('[SESSION] instructions:', englishInstructions);
-                console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
-                console.log('[AUDIO CONFIG] output format: audio/pcmu (g711_ulaw)');
-                console.log('[AUDIO CONFIG] conversion enabled: false (direct output)');
-                console.log('[OPENAI OUTBOUND] configuring session:', JSON.stringify(sessionConfig, null, 2));
-                if (openAiWs) {
-                  openAiWs.send(JSON.stringify(sessionConfig));
-                }
               }
               if (message.type === 'session.updated') {
-                sessionUpdated = true;
                 console.log('[OPENAI RECV] session.updated');
-                console.log('[SESSION UPDATED] instructions:', message.session?.instructions);
                 console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
-                
-                // Verify audio format
-                const inputFormat = message.session?.audio?.input?.format?.type;
-                const outputFormat = message.session?.audio?.output?.format?.type;
-                
-                console.log('[SESSION] verifying audio format', { inputFormat, outputFormat });
-                
-                if (inputFormat !== 'audio/pcmu' || outputFormat !== 'audio/pcmu') {
-                  console.log('[SESSION ERROR] audio format mismatch');
-                  console.log('[SESSION ERROR] expected audio/pcmu, got', { inputFormat, outputFormat });
-                  console.log('[SESSION ERROR] full response:', JSON.stringify(message, null, 2));
-                  return;
-                }
-                
-                // Only send response.create after session.updated
-                console.log('[SESSION] audio format verified, sending response.create');
-                const businessName = (ws as any).businessName || 'ReplyFlow';
-                const shortGreeting = `Thanks for calling ${businessName}. I'm gathering information for the team. May I have your name?`;
-                
-                const testMessage = {
-                  type: 'response.create',
-                  response: {
-                    instructions: shortGreeting,
-                    voice: AI_VOICE,
-                  },
-                };
-                greetingSent = true;
-                console.log('[OPENAI SEND] response.create after session.updated');
-                console.log('[GREETING] sent after session.updated');
-                console.log('[GREETING] greeting text:', shortGreeting);
-                console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
-                if (openAiWs) {
-                  openAiWs.send(JSON.stringify(testMessage));
-                }
-                console.log('[OPENAI TEST] test message sent');
-                
-                // Set flag to enable manual fallback after greeting
-                twilioHandler.setGreetingSent();
               }
 
               // Log full error payload
@@ -841,21 +813,42 @@ Do not continue chatting after intake is complete.`;
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
+                console.log('[OPENAI RECV] response.output_audio.delta');
                 console.log('[AUDIO] delta received');
                 console.log('[GREETING] first audio delta received');
                 console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
                 
-                // Since we configured OpenAI to output audio/pcmu (g711_ulaw), send directly to Twilio
-                // Twilio expects g711_ulaw at 8kHz
-                console.log('[AUDIO CONFIG] payload size', { payloadLength: message.delta.length });
-                console.log('[AUDIO OUT] sending g711_ulaw directly to Twilio', { streamSidExists: !!twilioHandler.getStreamSid() });
+                // Decode base64 to PCM16 buffer
+                const pcmBuffer = Buffer.from(message.delta, 'base64');
+                console.log('[AUDIO CONVERT] pcm bytes', { length: pcmBuffer.length });
+                
+                // OpenAI Realtime API returns PCM16 at 24kHz
+                // Twilio expects 8kHz μ-law (G.711)
+                // Downsample: 24kHz -> 8kHz (take every 3rd sample)
+                const sampleCount = Math.floor(pcmBuffer.length / 2);
+                const downsampledSamples: Int16Array = new Int16Array(Math.floor(sampleCount / 3));
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  downsampledSamples[i] = pcmBuffer.readInt16LE(i * 6);
+                }
+                console.log('[AUDIO CONVERT] downsampled to 8kHz', { originalSamples: sampleCount, downsampledSamples: downsampledSamples.length });
+                
+                // Convert PCM16 to μ-law
+                const mulawBytes = Buffer.alloc(downsampledSamples.length);
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  mulawBytes[i] = pcm16ToMulaw(downsampledSamples[i]);
+                }
+                console.log('[AUDIO CONVERT] pcm to mulaw');
+                
+                // Base64 encode μ-law bytes
+                const mulawBase64 = mulawBytes.toString('base64');
+                console.log('[AUDIO OUT] sending converted mulaw to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: mulawBase64.length });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: message.delta,
+                    payload: mulawBase64,
                   },
                 };
                 
