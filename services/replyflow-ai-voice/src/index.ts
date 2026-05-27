@@ -596,6 +596,9 @@ Do not continue chatting after intake is complete.`;
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             console.log('[OPENAI AUDIT] websocket URL:', wsUrl);
             console.log('[OPENAI AUDIT] model:', 'gpt-realtime');
+            console.log('[OPENAI API KEY] exists:', !!OPENAI_API_KEY);
+            console.log('[OPENAI API KEY] length:', OPENAI_API_KEY?.length || 0);
+            console.log('[OPENAI API KEY] first 8 chars:', OPENAI_API_KEY?.substring(0, 8) || 'N/A');
             console.log('[STREAM OPENAI] creating websocket');
             const headers = {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -604,14 +607,31 @@ Do not continue chatting after intake is complete.`;
             openAiWs = new WebSocket(wsUrl, { headers });
             console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
             
-            // Log readyState every second for first 5 seconds
-            for (let i = 1; i <= 5; i++) {
+            // Log readyState every second for first 10 seconds
+            for (let i = 1; i <= 10; i++) {
               setTimeout(() => {
                 if (openAiWs) {
-                  console.log(`[OPENAI WATCHDOG] after ${i}s readyState:`, openAiWs.readyState);
+                  console.log(`[OPENAI STATE] after ${i}s readyState:`, openAiWs.readyState);
                 }
               }, i * 1000);
             }
+            
+            // Add EXTREMELY LOUD websocket event logs
+            openAiWs.on('open', () => {
+              console.log('[OPENAI OPEN EVENT FIRED]');
+            });
+            
+            openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI CLOSE EVENT]', { code, reason });
+            });
+            
+            openAiWs.on('error', (error) => {
+              console.log('[OPENAI ERROR EVENT]', { error: String(error) });
+            });
+            
+            openAiWs.on('unexpected-response', (request, response) => {
+              console.log('[OPENAI UNEXPECTED RESPONSE]', { statusCode: response.statusCode });
+            });
             
             // Add watchdog every 3 seconds
             setInterval(() => {
