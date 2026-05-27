@@ -86,6 +86,7 @@ export default function LeadsPage() {
   const { user, signOut } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
   const [missedCallCount, setMissedCallCount] = useState(0)
+  const [ignoredContactsCount, setIgnoredContactsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
@@ -145,6 +146,14 @@ export default function LeadsPage() {
         .eq('business_id', business.id)
       
       setMissedCallCount(count || 0)
+
+      // Fetch ignored contacts count
+      const { count: ignoredCount } = await supabase
+        .from('ignored_contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('business_id', business.id)
+      
+      setIgnoredContactsCount(ignoredCount || 0)
     } catch (error) {
       console.error('Error fetching leads:', error)
       setError('Failed to load leads. Please try again.')
@@ -506,10 +515,10 @@ export default function LeadsPage() {
                 isInteractive={false}
               />
               <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length}
+                value={ignoredContactsCount}
                 label="Ignored Contacts"
                 description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'ignored').length === 0 
+                  ignoredContactsCount === 0 
                     ? 'No Blocked Contacts' 
                     : 'Blocked From Automation'
                 }

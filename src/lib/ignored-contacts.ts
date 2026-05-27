@@ -8,7 +8,11 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
  * Check if a phone number is in the ignored contacts list for a business
  */
 export async function isIgnoredContact(businessId: string, phoneNumber: string): Promise<boolean> {
-  console.log('[IGNORED CONTACT CHECK]', { businessId, phoneNumber })
+  console.log('[IGNORED CONTACT CHECK START]', {
+    businessId,
+    incomingRaw: phoneNumber,
+    timestamp: new Date().toISOString()
+  })
   
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -24,16 +28,18 @@ export async function isIgnoredContact(businessId: string, phoneNumber: string):
       return false
     }
     
-    console.log('[IGNORED CONTACT CHECK]', { 
+    const normalizedIncoming = normalizePhoneNumber(phoneNumber)
+    
+    console.log('[IGNORED CONTACT CHECK RESULT]', {
       ignoredContactsCount: ignoredContacts?.length || 0,
-      incomingNumber: phoneNumber 
+      incomingNormalized: normalizedIncoming,
+      timestamp: new Date().toISOString()
     })
     
     if (!ignoredContacts || ignoredContacts.length === 0) {
+      console.log('[IGNORED CONTACT CHECK] No ignored contacts found for business')
       return false
     }
-    
-    const normalizedIncoming = normalizePhoneNumber(phoneNumber)
     
     // Check if any ignored contact matches the incoming phone number
     for (const contact of ignoredContacts) {
@@ -41,9 +47,10 @@ export async function isIgnoredContact(businessId: string, phoneNumber: string):
         console.log('[IGNORED CONTACT MATCH]', {
           businessId,
           incomingNumber: phoneNumber,
-          normalizedIncoming,
+          incomingNormalized: normalizedIncoming,
           matchedIgnoredContactId: contact.id,
-          storedNumber: contact.phone_number
+          storedNumber: contact.phone_number,
+          timestamp: new Date().toISOString()
         })
         return true
       }

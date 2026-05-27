@@ -28,6 +28,8 @@ import { getGreeting } from '@/lib/ai-call-assistant/prompts'
  * This still proves the guard system and session creation works.
  */
 export async function POST(request: NextRequest) {
+  console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/ai-assistant/start')
+  
   try {
     console.log('[AI CALL ASSISTANT] Start route hit')
 
@@ -35,6 +37,13 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text()
     const contentType = request.headers.get('content-type') || ''
     const params = Object.fromEntries(new URLSearchParams(rawBody))
+
+    console.log('[ROUTE HIT - TWILIO VOICE]', {
+      routeName: '/api/twilio/ai-assistant/start',
+      from: params.From,
+      to: params.To,
+      timestamp: new Date().toISOString()
+    })
 
     // Validate Twilio signature
     const isValid = requireTwilioAuth(request, params, rawBody.length, contentType)

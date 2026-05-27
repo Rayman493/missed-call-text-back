@@ -114,6 +114,8 @@ function toE164(phone: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice')
+  
   try {
     console.log('VOICE WEBHOOK HIT - PRODUCTION');
     
@@ -123,6 +125,13 @@ export async function POST(request: NextRequest) {
     
     // Parse body into params using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody));
+    
+    console.log('[ROUTE HIT - TWILIO VOICE]', {
+      routeName: '/api/twilio/voice',
+      from: params.From,
+      to: params.To,
+      timestamp: new Date().toISOString()
+    })
     
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
@@ -236,6 +245,35 @@ export async function POST(request: NextRequest) {
           "X-ReplyFlow-Voice-Version": "v2" // Add version tracking header
         },
       });
+    }
+    
+    // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts
+    console.log('[IGNORED CONTACT CHECK EARLIEST]', {
+      businessId: business.id,
+      callerPhone: normalizedFrom,
+      timestamp: new Date().toISOString()
+    })
+    
+    const isIgnored = await isIgnoredContact(business.id, normalizedFrom)
+    
+    if (isIgnored) {
+      console.log('[IGNORED CONTACT SKIP ALL AUTOMATION]', {
+        businessId: business.id,
+        phoneNumber: normalizedFrom,
+        timestamp: new Date().toISOString()
+      })
+      
+      // Return valid TwiML so the call doesn't error - do not create lead, conversation, message, or send SMS
+      const twiml = generateTwiMLResponse(business.name)
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
+      console.log('[AI POC FINAL TWIML]', twiml)
+      return new NextResponse(twiml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2"
+        },
+      })
     }
     
     console.log('[Voice] Business twilio_phone_number:', business.twilio_phone_number);
@@ -465,30 +503,6 @@ export async function POST(request: NextRequest) {
       } else {
         console.error('[call_events] Error creating call event:', callEventError);
       }
-    }
-
-    // Check if caller is in ignored contacts
-    console.log('[Twilio Voice] Checking if caller is in ignored contacts:', normalizedCallerPhone);
-    
-    const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone);
-
-    if (isIgnored) {
-      console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
-        businessId: business.id,
-        phoneNumber: normalizedCallerPhone,
-      });
-
-      // Still return valid TwiML so the call doesn't error
-      const twiml = generateTwiMLResponse(business.name);
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=error-fallback-1');
-      console.log('[AI POC FINAL TWIML]', twiml);
-      return new NextResponse(twiml, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/xml",
-          "X-ReplyFlow-Voice-Version": "v2"
-        },
-      });
     }
 
     // Check if lead already exists
