@@ -972,7 +972,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </p>
             <Link
               href="/dashboard"
-              className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Return to Dashboard
             </Link>
@@ -1214,7 +1214,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 <button
                   onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-full transition-colors flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
                   title="Call customer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1319,7 +1319,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
                     title="Call customer"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
