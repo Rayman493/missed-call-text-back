@@ -30,12 +30,12 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate }:
 
   const handleSave = async () => {
     if (!title || !date) {
-      alert('Please fill in the required fields')
+      alert('Please add a title and date')
       return
     }
 
     if (!allDay && (!startTime || !endTime)) {
-      alert('Please fill in the start and end time')
+      alert('Please add start and end times')
       return
     }
 
@@ -60,7 +60,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate }:
       setEndTime('09:30')
     } catch (error) {
       console.error('Failed to save event:', error)
-      alert('Failed to save event. Please try again.')
+      alert('We couldn\'t add this event. Please try again.')
     } finally {
       setIsSaving(false)
     }

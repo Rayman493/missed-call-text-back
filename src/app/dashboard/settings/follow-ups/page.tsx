@@ -53,15 +53,14 @@ export default function FollowUpsSettingsPage() {
     try {
       const response = await fetch('/api/settings/follow-ups')
       if (!response.ok) {
-        throw new Error('Failed to load settings')
+        throw new Error('We couldn\'t load your settings. Please try again.')
       }
       const data = await response.json()
       setSettings(data)
       setError(null) // Clear any previous error on successful load
     } catch (err) {
       console.error('Error loading settings:', err)
-      // Don't set error if we have default settings to show
-      // Only show error if we truly can't proceed
+      setError('We couldn\'t load your settings. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -82,7 +81,7 @@ export default function FollowUpsSettingsPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save settings')
+        throw new Error('We couldn\'t save your settings. Please try again.')
       }
 
       // Show success toast instead of inline message
@@ -91,7 +90,7 @@ export default function FollowUpsSettingsPage() {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
-      setError('Failed to save follow-up settings')
+      setError('We couldn\'t save your settings. Please try again.')
       console.error('Error saving settings:', err)
     } finally {
       setSaving(false)

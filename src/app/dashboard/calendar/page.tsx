@@ -65,7 +65,7 @@ export default function CalendarPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create event')
+        throw new Error(errorData.error || 'We couldn\'t add this event. Please try again.')
       }
 
       const data = await response.json()
@@ -75,7 +75,7 @@ export default function CalendarPage() {
       await fetchEvents()
     } catch (error) {
       console.error('Failed to create event:', error)
-      showToast('Failed to create event', 'error')
+      showToast('We couldn\'t add this event. Please try again.', 'error')
       throw error
     }
   }
@@ -206,7 +206,7 @@ export default function CalendarPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('[Calendar Page] Events error:', errorData)
-        throw new Error('Failed to fetch events')
+        throw new Error('We couldn\'t load your calendar events. Please try again.')
       }
 
       const data = await response.json()
@@ -221,7 +221,7 @@ export default function CalendarPage() {
       setEvents(uniqueEvents)
     } catch (error) {
       console.error('[Calendar Page] Error fetching events:', error)
-      showToast('Failed to fetch calendar events', 'error')
+      showToast('We couldn\'t load your calendar events. Please try again.', 'error')
     } finally {
       setIsLoadingEvents(false)
     }
