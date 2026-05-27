@@ -1,4 +1,4 @@
-import { db } from '@/lib/supabase/admin'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
@@ -10,16 +10,21 @@ export interface ProcessInboundSmsParams {
   to: string
   body: string
   source: 'twilio' | 'dev_simulation'
+  media?: Array<{
+    url: string
+    contentType: string
+  }>
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
-  const { messageSid, from, to, body, source } = params
+  const { messageSid, from, to, body, source, media } = params
   
   console.log(`[SMS Processing] Processing inbound SMS from ${source}:`, {
     messageSid,
     from,
     to,
-    body: body.substring(0, 100) + (body.length > 100 ? '...' : '')
+    body: body.substring(0, 100) + (body.length > 100 ? '...' : ''),
+    mediaCount: media?.length || 0
   })
   
   // Normalize customer phone number
@@ -285,6 +290,33 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.error(`[SMS Processing] Failed to save message`)
   } else {
     console.log(`[SMS Processing] Saved inbound message: ${message.id}`)
+    
+    // Store media attachments if present
+    if (media && media.length > 0) {
+      console.log(`[SMS Processing] Storing ${media.length} media attachments for message: ${message.id}`)
+      
+      for (const mediaItem of media) {
+        try {
+          const { error: mediaError } = await supabaseAdmin
+            .from('message_media')
+            .insert({
+              message_id: message.id,
+              media_url: mediaItem.url,
+              mime_type: mediaItem.contentType,
+              created_at: new Date().toISOString(),
+            })
+          
+          if (mediaError) {
+            console.error(`[SMS Processing] Failed to store media attachment:`, mediaError)
+          } else {
+            console.log(`[SMS Processing] Stored media: ${mediaItem.contentType}`)
+          }
+        } catch (error) {
+          console.error(`[SMS Processing] Failed to store media attachment:`, error)
+          // Continue with other media even if one fails
+        }
+      }
+    }
     
     // Create notification for customer reply
     try {

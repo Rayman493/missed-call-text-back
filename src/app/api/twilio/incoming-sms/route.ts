@@ -26,6 +26,19 @@ export async function POST(req: NextRequest) {
     const To = params.To
     const Body = params.Body
     const MessageSid = params.MessageSid
+    const NumMedia = params.NumMedia
+    
+    // Extract MMS media if present
+    const media: Array<{ url: string; contentType: string }> = []
+    if (NumMedia && parseInt(NumMedia) > 0) {
+      for (let i = 0; i < parseInt(NumMedia); i++) {
+        const mediaUrl = params[`MediaUrl${i}`]
+        const mediaContentType = params[`MediaContentType${i}`]
+        if (mediaUrl && mediaContentType) {
+          media.push({ url: mediaUrl, contentType: mediaContentType })
+        }
+      }
+    }
     
     // Rate limiting check (phone number-based)
     const rateLimitResult = await checkIncomingSmsRateLimit(From);
@@ -74,7 +87,8 @@ export async function POST(req: NextRequest) {
       from: From,
       to: To,
       body: Body,
-      source: 'twilio'
+      source: 'twilio',
+      media: media.length > 0 ? media : undefined
     })
     
     if (!result.success) {

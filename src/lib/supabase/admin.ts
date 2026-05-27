@@ -20,6 +20,22 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 // Database helpers
 export const db = {
+  // Media operations
+  async getMessageMedia(messageId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('message_media')
+      .select('*')
+      .eq('message_id', messageId)
+      .order('created_at', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching message media:', error)
+      return []
+    }
+    
+    return data || []
+  },
+
   // Business operations
   async getBusinessByPhone(phone: string): Promise<Business | null> {
     const { data, error } = await supabaseAdmin

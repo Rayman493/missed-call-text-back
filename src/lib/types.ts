@@ -105,6 +105,14 @@ export interface Message {
   created_at: string;
 }
 
+export interface MessageMedia {
+  id: string;
+  message_id: string;
+  media_url: string;
+  mime_type: string;
+  created_at: string;
+}
+
 export interface CallEvent {
   id: string;
   business_id: string;
