@@ -6,6 +6,7 @@ import { MessageMedia } from '@/lib/types'
 interface MessageMediaRendererProps {
   media: MessageMedia[]
   isInbound?: boolean
+  onImageLoad?: () => void
 }
 
 // Helper function to convert Twilio media URL to proxy URL
@@ -18,10 +19,11 @@ function getProxiedMediaUrl(originalUrl: string): string {
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
-export default function MessageMediaRenderer({ media, isInbound = false }: MessageMediaRendererProps) {
+export default function MessageMediaRenderer({ media, isInbound = false, onImageLoad }: MessageMediaRendererProps) {
   const [expandedMedia, setExpandedMedia] = useState<string | null>(null)
   const [loadedMedia, setLoadedMedia] = useState<Set<string>>(new Set())
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
+  const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
 
   if (!media || media.length === 0) {
     return null
@@ -46,6 +48,15 @@ export default function MessageMediaRenderer({ media, isInbound = false }: Messa
 
   const handleImageLoad = (mediaId: string) => {
     setLoadedMedia(prev => new Set(prev).add(mediaId))
+    
+    // Call onImageLoad callback when first image loads
+    if (!hasLoadedFirstImage && onImageLoad) {
+      setHasLoadedFirstImage(true)
+      // Use requestAnimationFrame to ensure layout has updated
+      requestAnimationFrame(() => {
+        onImageLoad()
+      })
+    }
   }
 
   const handleImageError = (mediaId: string) => {

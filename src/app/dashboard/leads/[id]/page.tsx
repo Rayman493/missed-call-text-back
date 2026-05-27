@@ -155,6 +155,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // Handle image load for latest message - scroll after image loads
+  const handleImageLoad = () => {
+    // Scroll to bottom after image load to ensure full image is visible
+    scrollToBottom('auto', true)
+  }
+
   
   
   // Scroll to bottom after sending a message
@@ -1279,6 +1285,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   sending={sending}
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
+                  onImageLoad={handleImageLoad}
                 />
               )}
             </div>
@@ -1382,6 +1389,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     sending={sending}
                     handleRetry={handleRetry}
                     getErrorMessage={getErrorMessage}
+                    onImageLoad={handleImageLoad}
                   />
                 )}
               </div>
@@ -1586,6 +1594,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   sending={sending}
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
+                  onImageLoad={handleImageLoad}
                 />
               )}
             </div>

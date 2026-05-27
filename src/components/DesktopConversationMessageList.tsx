@@ -15,6 +15,7 @@ interface DesktopConversationMessageListProps {
   sending: boolean
   handleRetry: (body: string, id: string, clientTempId?: string) => void
   getErrorMessage: (errorCode: string) => string
+  onImageLoad?: () => void // Callback when image loads
 }
 
 export default function DesktopConversationMessageList({ 
@@ -22,7 +23,8 @@ export default function DesktopConversationMessageList({
   conversationTimeline,
   sending, 
   handleRetry, 
-  getErrorMessage
+  getErrorMessage,
+  onImageLoad
 }: DesktopConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
   
@@ -35,7 +37,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-6" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-6 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle voicemail items - always render with full audio player for desktop
         if (item.type === 'voicemail') {
@@ -109,7 +111,11 @@ export default function DesktopConversationMessageList({
                   )}
                   {/* Render media attachments */}
                   {msg.media && msg.media.length > 0 && (
-                    <MessageMediaRenderer media={msg.media} isInbound={isInbound} />
+                    <MessageMediaRenderer 
+                      media={msg.media} 
+                      isInbound={isInbound}
+                      onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
+                    />
                   )}
                 </div>
               </div>

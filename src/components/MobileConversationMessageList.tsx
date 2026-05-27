@@ -16,6 +16,7 @@ interface MobileConversationMessageListProps {
   handleRetry: (body: string, id: string, clientTempId?: string) => void
   getErrorMessage: (errorCode: string) => string
   renderAudio?: boolean // New prop to control audio rendering
+  onImageLoad?: () => void // Callback when image loads
 }
 
 export default function MobileConversationMessageList({ 
@@ -24,7 +25,8 @@ export default function MobileConversationMessageList({
   sending, 
   handleRetry, 
   getErrorMessage,
-  renderAudio = true // Default to true for mobile
+  renderAudio = true, // Default to true for mobile
+  onImageLoad
 }: MobileConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
   
@@ -37,7 +39,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-2.5 pb-4" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-2.5 pb-24" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle voicemail items - render with full audio player only if renderAudio is true
         if (item.type === 'voicemail') {
@@ -151,7 +153,11 @@ export default function MobileConversationMessageList({
                   )}
                   {/* Render media attachments */}
                   {msg.media && msg.media.length > 0 && (
-                    <MessageMediaRenderer media={msg.media} isInbound={isInbound} />
+                    <MessageMediaRenderer 
+                      media={msg.media} 
+                      isInbound={isInbound}
+                      onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
+                    />
                   )}
                 </div>
               </div>
