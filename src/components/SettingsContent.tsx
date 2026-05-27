@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -87,6 +87,10 @@ export default function SettingsContent() {
   const [isDisconnectingCalendar, setIsDisconnectingCalendar] = useState(false)
 
   const supabase = createBrowserClient()
+
+  // Time input refs for better UX
+  const openTimeInputRef = useRef<HTMLInputElement>(null)
+  const closeTimeInputRef = useRef<HTMLInputElement>(null)
 
   // Form state management
   const {
@@ -1134,23 +1138,45 @@ export default function SettingsContent() {
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Open Time
                             </label>
-                            <input
-                              type="time"
-                              value={formBusiness.business_hours_start || '09:00'}
-                              onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
-                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                            />
+                            <div
+                              onClick={() => {
+                                openTimeInputRef.current?.focus()
+                                if (openTimeInputRef.current && 'showPicker' in openTimeInputRef.current) {
+                                  (openTimeInputRef.current as any).showPicker()
+                                }
+                              }}
+                              className="relative cursor-pointer"
+                            >
+                              <input
+                                ref={openTimeInputRef}
+                                type="time"
+                                value={formBusiness.business_hours_start || '09:00'}
+                                onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                              />
+                            </div>
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Close Time
                             </label>
-                            <input
-                              type="time"
-                              value={formBusiness.business_hours_end || '18:00'}
-                              onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
-                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                            />
+                            <div
+                              onClick={() => {
+                                closeTimeInputRef.current?.focus()
+                                if (closeTimeInputRef.current && 'showPicker' in closeTimeInputRef.current) {
+                                  (closeTimeInputRef.current as any).showPicker()
+                                }
+                              }}
+                              className="relative cursor-pointer"
+                            >
+                              <input
+                                ref={closeTimeInputRef}
+                                type="time"
+                                value={formBusiness.business_hours_end || '18:00'}
+                                onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                              />
+                            </div>
                           </div>
                         </div>
                         {formBusiness.business_hours_start && formBusiness.business_hours_end && formBusiness.business_hours_start > formBusiness.business_hours_end && (
