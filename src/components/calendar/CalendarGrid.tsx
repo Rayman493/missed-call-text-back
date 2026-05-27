@@ -107,31 +107,29 @@ export default function CalendarGrid({
 
   return (
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-t-xl p-3 sm:p-4 md:p-6 border-b border-slate-200/70 dark:border-slate-700/50">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-          <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
-            <button
-              onClick={onPreviousMonth}
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-foreground">
-              {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
-            <button
-              onClick={onNextMonth}
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
-              aria-label="Next month"
-            >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-          </div>
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-t-xl p-2 sm:p-3 md:p-4 md:p-6 border-b border-slate-200/70 dark:border-slate-700/50">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={onPreviousMonth}
+            className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <h2 className="text-base sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground">
+            {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </h2>
+          <button
+            onClick={onNextMonth}
+            className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+          </button>
           {onToday && (
             <button
               onClick={onToday}
-              className="px-3 py-1.5 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95"
+              className="px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 ml-auto"
             >
               Today
             </button>
@@ -139,18 +137,18 @@ export default function CalendarGrid({
         </div>
       </div>
       
-      <div className="p-3 sm:p-4 md:p-6 pt-0 sm:pt-0 md:pt-0">
+      <div className="p-1.5 sm:p-2 md:p-3 md:p-4 pt-0 sm:pt-0 md:pt-0">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-0.5 sm:mb-1 md:mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 text-center py-2">
+            <div key={day} className="text-[9px] sm:text-[10px] md:text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 text-center py-0.5 sm:py-1 md:py-2">
               {day}
             </div>
           ))}
         </div>
       
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
         {days.map((dayInfo, index) => {
           const dayEvents = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null

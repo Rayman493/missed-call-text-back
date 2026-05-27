@@ -247,8 +247,8 @@ export default function CalendarPage() {
           <AppHeader title="Calendar" />
 
           {/* Main Content */}
-          <div className="flex-1 pt-2 sm:pt-4 lg:pt-6 px-2 sm:px-3 lg:px-4 pb-20">
-            <div className="max-w-7xl mx-auto">
+          <div className="flex-1 pt-1 sm:pt-2 lg:pt-4 px-1 sm:px-2 lg:px-3 pb-20">
+            <div className="max-w-[1600px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
                 <div className="flex items-center justify-center py-20">
