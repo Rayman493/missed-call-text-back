@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -34,8 +35,23 @@ export default function NavbarNotifications() {
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ unread: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
   const supabase = createBrowserClient()
+
+  // Calculate button position when dropdown opens
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setButtonPosition({
+        top: rect.bottom,
+        right: window.innerWidth - rect.right
+      })
+    } else {
+      setButtonPosition(null)
+    }
+  }, [isOpen])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -190,9 +206,10 @@ export default function NavbarNotifications() {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       {/* UPDATED HEADER COMPONENT - Notification Bell */}
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="relative h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
         aria-label="Notifications"
@@ -207,8 +224,8 @@ export default function NavbarNotifications() {
         )}
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
+      {/* Dropdown - Rendered via Portal to document.body */}
+      {isOpen && buttonPosition && createPortal(
         <>
           {/* Mobile backdrop */}
           {isMobile && (
@@ -217,11 +234,15 @@ export default function NavbarNotifications() {
               onClick={() => setIsOpen(false)}
             />
           )}
-          <div className={`${
+          <div 
+            ref={dropdownRef}
+            className={`${
             isMobile 
-              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
-              : 'absolute right-0 mt-2 w-80 bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200'
-          }`}>
+              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-card dark:bg-slate-900 border border-border rounded-lg shadow-xl z-[1000] max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
+              : 'fixed bg-card dark:bg-slate-900 border border-border rounded-lg shadow-lg z-[1000] animate-in fade-in slide-in-from-top-2 duration-200'
+          }`}
+          style={!isMobile ? { top: `${buttonPosition.top + 8}px`, right: `${buttonPosition.right}px`, width: '320px' } : undefined}
+          >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="font-semibold text-foreground">Notifications</h3>
@@ -328,7 +349,8 @@ export default function NavbarNotifications() {
             </div>
           )}
         </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )
