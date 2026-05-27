@@ -296,28 +296,41 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[MMS DEBUG] Storing ${media.length} media attachments for message: ${message.id}`)
       console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)
       
-      for (const mediaItem of media) {
-        try {
-          const { error: mediaError } = await supabaseAdmin
-            .from('message_media')
-            .insert({
-              message_id: message.id,
-              media_url: mediaItem.url,
-              mime_type: mediaItem.contentType,
-              created_at: new Date().toISOString(),
-            })
-          
-          if (mediaError) {
-            console.error(`[MMS DEBUG] Failed to store media attachment:`, mediaError)
-          } else {
-            console.log(`[MMS DEBUG] Successfully stored media: ${mediaItem.contentType}`)
+      try {
+        for (const mediaItem of media) {
+          try {
+            const { error: mediaError } = await supabaseAdmin
+              .from('message_media')
+              .insert({
+                message_id: message.id,
+                media_url: mediaItem.url,
+                mime_type: mediaItem.contentType,
+                created_at: new Date().toISOString(),
+              })
+            
+            if (mediaError) {
+              console.error(`[MMS DEBUG] Failed to store media attachment:`, mediaError)
+              // Check if table doesn't exist
+              if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
+                console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
+              }
+            } else {
+              console.log(`[MMS DEBUG] Successfully stored media: ${mediaItem.contentType}`)
+            }
+          } catch (error: any) {
+            console.error(`[MMS DEBUG] Failed to store media attachment:`, error)
+            // Check if table doesn't exist
+            if (error.message?.includes('does not exist') || error.code === '42P01') {
+              console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
+            }
+            // Continue with other media even if one fails
           }
-        } catch (error) {
-          console.error(`[MMS DEBUG] Failed to store media attachment:`, error)
-          // Continue with other media even if one fails
         }
+        console.log(`[MMS DEBUG] Media storage complete for message: ${message.id}`)
+      } catch (error: any) {
+        console.error('[MMS DEBUG] Error during media storage:', error)
+        // Don't fail the entire message if media storage fails
       }
-      console.log(`[MMS DEBUG] Media storage complete for message: ${message.id}`)
     } else {
       console.log(`[MMS DEBUG] No media attachments to store for message: ${message.id}`)
       console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)

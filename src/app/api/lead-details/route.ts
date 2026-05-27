@@ -101,25 +101,38 @@ export async function GET(request: NextRequest) {
     let messageMediaMap: Record<string, any[]> = {}
     
     if (messageIds.length > 0) {
-      const { data: messageMedia, error: mediaError } = await supabase
-        .from("message_media")
-        .select("*")
-        .in("message_id", messageIds)
-        .order("created_at", { ascending: true })
+      try {
+        const { data: messageMedia, error: mediaError } = await supabase
+          .from("message_media")
+          .select("*")
+          .in("message_id", messageIds)
+          .order("created_at", { ascending: true })
 
-      if (mediaError) {
-        console.log("[lead-details API] Media error:", mediaError)
-      } else {
-        console.log("[MMS DEBUG] Media rows fetched:", messageMedia?.length || 0)
-        // Group media by message_id
-        messageMediaMap = (messageMedia || []).reduce((acc: Record<string, any[]>, media: any) => {
-          if (!acc[media.message_id]) {
-            acc[media.message_id] = []
+        if (mediaError) {
+          console.log("[lead-details API] Media error:", mediaError)
+          // Check if table doesn't exist
+          if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
+            console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
           }
-          acc[media.message_id].push(media)
-          return acc
-        }, {})
-        console.log("[MMS DEBUG] Messages with media:", Object.keys(messageMediaMap).length)
+        } else {
+          console.log("[MMS DEBUG] Media rows fetched:", messageMedia?.length || 0)
+          // Group media by message_id
+          messageMediaMap = (messageMedia || []).reduce((acc: Record<string, any[]>, media: any) => {
+            if (!acc[media.message_id]) {
+              acc[media.message_id] = []
+            }
+            acc[media.message_id].push(media)
+            return acc
+          }, {})
+          console.log("[MMS DEBUG] Messages with media:", Object.keys(messageMediaMap).length)
+        }
+      } catch (error: any) {
+        console.error('[lead-details API] Error fetching media:', error)
+        // Check if table doesn't exist
+        if (error.message?.includes('does not exist') || error.code === '42P01') {
+          console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
+        }
+        // Continue without media - don't break the entire API
       }
     }
 
