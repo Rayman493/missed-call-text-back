@@ -665,44 +665,44 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-4 sm:mb-6 sticky top-16 z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
-              <nav className="flex items-center gap-1 overflow-x-auto">
+            <div className="mb-6 sm:mb-8 sticky top-16 z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-3 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
+              <nav className="flex items-center gap-2 overflow-x-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'general'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                   }`}
                 >
                   General
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                   }`}
                 >
                   Automation
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                   }`}
                 >
                   Contacts
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                   }`}
                 >
                   Account
@@ -969,7 +969,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-sm text-slate-600 dark:text-muted-foreground mb-1">
-                          Only send instant texts during your business hours.
+                          When your business is closed, callers receive your after-hours response message instead.
                         </p>
                         <div className="text-xs text-slate-600 dark:text-muted-foreground">
                           🕐 Prevents late-night texts and respects customer communication preferences.
@@ -1014,7 +1014,7 @@ export default function SettingsContent() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              Start Time
+                              Open Time
                             </label>
                             <input
                               type="time"
@@ -1025,7 +1025,7 @@ export default function SettingsContent() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              End Time
+                              Close Time
                             </label>
                             <input
                               type="time"
@@ -1035,6 +1035,16 @@ export default function SettingsContent() {
                             />
                           </div>
                         </div>
+                        {formBusiness.business_hours_start && formBusiness.business_hours_end && formBusiness.business_hours_start > formBusiness.business_hours_end && (
+                          <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            <div className="text-xs text-amber-800 dark:text-amber-200">
+                              <span className="font-semibold">Overnight Hours</span> - Hours continue overnight into the next day.
+                            </div>
+                          </div>
+                        )}
                         <p className="text-xs text-slate-600 dark:text-muted-foreground">
                           Automated texts will only be sent during these hours, Monday through Friday.
                         </p>
@@ -1072,48 +1082,48 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automation Status Summary */}
-                  <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">Automation Status</h4>
-                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Operational Status</h4>
+                        <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
                           {getAutomationSettings().spamRepeatFilteringEnabled && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              <span>Spam & repeat call filtering active</span>
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                              <span>Spam filtering active</span>
                             </div>
                           )}
                           {getAutomationSettings().ignoreRepeatCalls && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              <span>Repeat-call protection enabled</span>
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                              <span>Duplicate reply prevention enabled</span>
                             </div>
                           )}
                           {getAutomationSettings().ignoreBlockedPrivateNumbers && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              <span>Private callers blocked</span>
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                              <span>Blocked/private callers filtered</span>
                             </div>
                           )}
                           {getAutomationSettings().ignoreSuspectedSpamCallers && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              <span>Spam detection active</span>
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                              <span>Spam detection enabled</span>
                             </div>
                           )}
                           {formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
                               <span>Business hours enforced</span>
                             </div>
                           )}
                           {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                              <span>Automation is currently turned off. Enable one of the options above to automatically respond to missed calls.</span>
+                              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
+                              <span>Automation turned off - enable settings above to respond to missed calls</span>
                             </div>
                           )}
                         </div>
@@ -1144,10 +1154,14 @@ export default function SettingsContent() {
                     </div>
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-8 sm:py-10 bg-muted/40 rounded-xl border border-border/50">
-                      <div className="text-3xl sm:text-4xl mb-3">📵</div>
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
                       <h3 className="text-sm sm:text-base font-medium text-slate-900 dark:text-foreground mb-2">No contacts on ignore list</h3>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground max-w-sm mx-auto">
-                        Add phone numbers that should never receive automated texts or create leads.
+                        Ignore personal numbers, employees, vendors, or spam callers so they never become leads.
                       </p>
                     </div>
                   ) : (
@@ -1191,13 +1205,13 @@ export default function SettingsContent() {
               )}
 
               
-              {/* Danger Zone */}
-              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-300/60 dark:border-slate-600/40 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account Management</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account settings and security.</p>
+              {/* Security Section */}
+              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Security</h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account security and access.</p>
                 <div className="space-y-2.5 sm:space-y-3">
                   {/* Change Password Section */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-300/50 dark:border-slate-600/30 p-3 sm:p-4">
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-3 sm:p-4">
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Change Password</h3>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3">
@@ -1213,10 +1227,10 @@ export default function SettingsContent() {
                   </div>
                   
                   {/* Delete Account Section */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-300/50 dark:border-slate-600/30 p-3 sm:p-4">
+                  <div className="bg-red-50/60 dark:bg-red-900/20 rounded-lg border border-red-200/50 dark:border-red-800/30 p-3 sm:p-4">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Delete Account</h3>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3">
+                      <h3 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5">Delete Account</h3>
+                      <p className="text-xs sm:text-sm text-red-700/80 dark:text-red-300/80 mb-3">
                         Permanently delete your account, cancel your subscription, and remove all data. This action cannot be undone.
                       </p>
                       <button
@@ -1230,112 +1244,110 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Account Section */}
+              {/* Subscription Section */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-24">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Account</h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your account details, subscription, and preferences.</p>
-                <div className="space-y-6">
-                  {/* Account Details */}
-                  <div className="space-y-2.5 sm:space-y-3">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
-                        Email
-                      </label>
-                      <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
-                        {user?.email}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
-                        Account Status
-                      </label>
-                      <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Subscription</h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Manage your subscription and billing.</p>
+                <div className="space-y-4 sm:space-y-5">
+                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                        isInTrialPeriod(business?.subscription_status) 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                          : hasActiveSubscription(business)
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      }`}>
                         {getSubscriptionStatusText(business?.subscription_status)}
-                      </div>
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Billing */}
-                  <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">Billing</h3>
-                    <div className="space-y-4 sm:space-y-5">
-                      <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                            isInTrialPeriod(business?.subscription_status) 
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
-                              : hasActiveSubscription(business)
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                          }`}>
-                            {getSubscriptionStatusText(business?.subscription_status)}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
-                            {getPricingDisplay()}
-                            {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                              isInTrialPeriod(business?.subscription_status)
-                                ? 'bg-blue-500 animate-pulse'
-                                : hasActiveSubscription(business)
-                                  ? 'bg-green-500'
-                                  : 'bg-amber-500'
-                            }`}></div>
-                            <p className="text-xs text-slate-600 dark:text-muted-foreground font-medium">
-                              {isInTrialPeriod(business?.subscription_status) 
-                                ? 'Trial active - Full access to all features'
-                                : hasActiveSubscription(business)
-                                  ? business?.subscription_status === 'beta' || business?.subscription_status === 'comped'
-                                    ? 'Complimentary access - All features unlocked'
-                                    : 'Subscription active - All features unlocked'
-                                  : 'Subscription inactive - Upgrade to unlock features'
-                              }
-                            </p>
-                          </div>
-                          {/* BETA/COMPED: Show special description for beta/comped users */}
-                          {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') && (
-                            <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                              <p className="text-xs text-green-700 dark:text-green-300">
-                                {business?.subscription_status === 'beta' 
-                                  ? 'This account has complimentary beta access.'
-                                  : 'This account has complimentary access.'
-                                }
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                    <div className="space-y-2">
+                      <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
+                        {getPricingDisplay()}
+                        {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          isInTrialPeriod(business?.subscription_status)
+                            ? 'bg-blue-500 animate-pulse'
+                            : hasActiveSubscription(business)
+                              ? 'bg-green-500'
+                              : 'bg-amber-500'
+                        }`}></div>
+                        <p className="text-xs text-slate-600 dark:text-muted-foreground font-medium">
+                          {isInTrialPeriod(business?.subscription_status) 
+                            ? 'Trial active - Full access to all features'
+                            : hasActiveSubscription(business)
+                              ? business?.subscription_status === 'beta' || business?.subscription_status === 'comped'
+                                ? 'Complimentary access - All features unlocked'
+                                : 'Subscription active - All features unlocked'
+                              : 'Subscription inactive - Upgrade to unlock features'
+                          }
+                        </p>
                       </div>
-                      {/* BETA/COMPED: Hide billing buttons for beta/comped users */}
-                      {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                            Billing not required for this account.
+                      {/* BETA/COMPED: Show special description for beta/comped users */}
+                      {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') && (
+                        <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <p className="text-xs text-green-700 dark:text-green-300">
+                            {business?.subscription_status === 'beta' 
+                              ? 'This account has complimentary beta access.'
+                              : 'This account has complimentary access.'
+                            }
                           </p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <button
-                            onClick={() => handleBillingActionClick('portal')}
-                            disabled={isOpeningPortal}
-                            className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                          >
-                            Manage Billing
-                          </button>
-                          {needsUpgrade(business?.subscription_status) && (
-                            <button
-                              onClick={() => handleBillingActionClick('upgrade')}
-                              disabled={isStartingCheckout}
-                              className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                            >
-                              Upgrade Plan
-                            </button>
-                          )}
                         </div>
                       )}
+                    </div>
+                  </div>
+                  {/* BETA/COMPED: Hide billing buttons for beta/comped users */}
+                  {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                        Billing not required for this account.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => handleBillingActionClick('portal')}
+                        disabled={isOpeningPortal}
+                        className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                      >
+                        Manage Billing
+                      </button>
+                      {needsUpgrade(business?.subscription_status) && (
+                        <button
+                          onClick={() => handleBillingActionClick('upgrade')}
+                          disabled={isStartingCheckout}
+                          className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                        >
+                          Upgrade Plan
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Section */}
+              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Profile</h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-3 sm:mb-4">Your account details and status.</p>
+                <div className="space-y-2.5 sm:space-y-3">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
+                      Email
+                    </label>
+                    <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                      {user?.email}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">
+                      Account Status
+                    </label>
+                    <div className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                      {getSubscriptionStatusText(business?.subscription_status)}
                     </div>
                   </div>
                 </div>
