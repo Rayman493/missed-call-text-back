@@ -117,6 +117,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // ALL hooks must must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
+  const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   
@@ -156,6 +158,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   // Handle image load for latest message - scroll after image loads
+  const handleSaveNotes = async () => {
+    if (!lead?.id) return
+    setIsSavingNotes(true)
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ notes: internalNotes })
+        .eq('id', lead.id)
+      if (error) throw error
+    } catch (error) {
+      console.error('Failed to save notes:', error)
+    } finally {
+      setIsSavingNotes(false)
+    }
+  }
+
   const handleImageLoad = () => {
     // Scroll to bottom after image load to ensure full image is visible
     scrollToBottom('auto', true)
@@ -169,6 +187,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       scrollToBottom('smooth')
     }
   }, [sending, successMessage])
+
+  // Sync internal notes when leadData changes
+  useEffect(() => {
+    if (leadData?.notes !== undefined) {
+      setInternalNotes(leadData.notes)
+    }
+  }, [leadData?.notes])
 
   // Merge messages by ID to prevent overwriting local state with stale data
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
@@ -1493,6 +1518,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
                   </div>
                 )}
+
+                {/* Internal Notes Section */}
+                <div className="pt-3 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground font-medium">Internal Notes</span>
+                  </div>
+                  <textarea
+                    value={internalNotes}
+                    onChange={(e) => setInternalNotes(e.target.value)}
+                    onBlur={handleSaveNotes}
+                    placeholder="Add internal notes about this lead..."
+                    className="w-full min-h-[80px] p-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Notes are internal only - not sent to customer</p>
+                </div>
                 {!leadData?.contact_name && !leadData?.company_name && !leadData?.tags && !leadData?.notes && (
                   <div className="text-center py-2">
                     <p className="text-xs text-muted-foreground">No customer details added yet.</p>
