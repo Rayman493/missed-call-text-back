@@ -69,14 +69,38 @@ export default function CalendarGrid({
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return []
     
-    return events.filter(event => {
-      const eventDate = event.start.dateTime || event.start.date
-      if (!eventDate) return false
-      const date = new Date(eventDate)
-      return date.getDate() === dayNumber && 
-             date.getMonth() === monthIndex && 
-             date.getFullYear() === year
+    // Create day key for comparison (YYYY-MM-DD)
+    const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+    
+    const matchedEvents = events.filter(event => {
+      const eventDateStr = event.start.dateTime || event.start.date
+      if (!eventDateStr) return false
+      
+      // Parse event date to get YYYY-MM-DD
+      let eventDate: Date
+      let eventDayKey: string
+      
+      if (event.start.date) {
+        // All-day event: YYYY-MM-DD format, parse as local date
+        const [y, m, d] = event.start.date.split('-').map(Number)
+        eventDate = new Date(y, m - 1, d)
+        eventDayKey = event.start.date
+      } else {
+        // Timed event: ISO string with time
+        eventDate = new Date(eventDateStr)
+        eventDayKey = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`
+      }
+      
+      return eventDayKey === dayKey
     }).slice(0, 2)
+    
+    console.log('[CALENDAR GRID DEBUG]', {
+      dayKey,
+      matchedEventsCount: matchedEvents.length,
+      sampleEvents: matchedEvents.slice(0, 2).map(e => ({ id: e.id, summary: e.summary, start: e.start }))
+    })
+    
+    return matchedEvents
   }
 
   const formatDate = (dateStr: string | undefined) => {
