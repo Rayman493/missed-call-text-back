@@ -306,23 +306,23 @@ export default function CalendarPage() {
                       
                       {/* Compact event list below calendar */}
                       {visibleMonthEvents.length > 0 ? (
-                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3 sm:p-4 md:p-6">
+                          <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 sm:mb-4">
                             Events in {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </h3>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5 sm:space-y-2">
                             {visibleMonthEvents.slice(0, 10).map((event, index) => (
                               <div
                                 key={event.id || index}
-                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                 onClick={() => {
                                   if (event.htmlLink) {
                                     window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
                                   }
                                 }}
                               >
-                                <div className="flex-shrink-0 w-12 text-center">
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                                <div className="flex-shrink-0 w-10 sm:w-12 text-center">
+                                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                     {event.start.dateTime
                                       ? new Date(event.start.dateTime).toLocaleDateString('en-US', { weekday: 'short' })
                                       : event.start.date
@@ -330,7 +330,7 @@ export default function CalendarPage() {
                                       : ''
                                     }
                                   </div>
-                                  <div className="text-sm font-semibold text-slate-900 dark:text-foreground">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">
                                     {event.start.dateTime
                                       ? new Date(event.start.dateTime).getDate()
                                       : event.start.date
@@ -340,11 +340,11 @@ export default function CalendarPage() {
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-slate-900 dark:text-foreground truncate">
+                                  <div className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground truncate">
                                     {event.summary}
                                   </div>
                                   {event.start.dateTime && (
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                       {formatDate(event.start.dateTime)}
                                     </div>
                                   )}
@@ -352,7 +352,7 @@ export default function CalendarPage() {
                               </div>
                             ))}
                             {visibleMonthEvents.length > 10 && (
-                              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-2">
+                              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center py-2">
                                 +{visibleMonthEvents.length - 10} more events
                               </div>
                             )}
@@ -360,13 +360,13 @@ export default function CalendarPage() {
                         </div>
                       ) : (
                         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 text-center">
-                          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CalendarIcon className="w-6 h-6 text-slate-400" />
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                            <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
                           </div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-2">
                             No events this month
                           </h3>
-                          <p className="text-slate-600 dark:text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
                             There are no events scheduled for {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </p>
                         </div>
