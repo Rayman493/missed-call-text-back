@@ -38,6 +38,13 @@ export class TwilioStreamHandler {
   }
 
   /**
+   * Set greeting sent flag for manual turn detection
+   */
+  setGreetingSent() {
+    (this as any).greetingSent = true;
+  }
+
+  /**
    * Mark OpenAI as ready and flush buffered media
    */
   setOpenAiReady() {
@@ -122,6 +129,7 @@ export class TwilioStreamHandler {
             if (this.openAiReady) {
               // Send caller audio to OpenAI
               const openAiWs = (this as any).openAiWs;
+              const greetingSent = (this as any).greetingSent || false;
               if (openAiWs) {
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
@@ -130,31 +138,33 @@ export class TwilioStreamHandler {
                 openAiWs.send(JSON.stringify(audioMessage));
                 log(LogLevel.INFO, '[CALLER AUDIO] sent to OpenAI', { payloadLength: audioMessage.audio.length });
                 
-                // Manual turn detection fallback
-                this.lastAudioTime = Date.now();
-                
-                // Clear existing timer
-                if (this.turnDetectionTimer) {
-                  clearTimeout(this.turnDetectionTimer);
-                }
-                
-                // Set timer to commit after 1.5 seconds of silence
-                this.turnDetectionTimer = setTimeout(() => {
-                  if (openAiWs && this.lastAudioTime > 0) {
-                    const commitMessage = {
-                      type: 'input_audio_buffer.commit',
-                    };
-                    openAiWs.send(JSON.stringify(commitMessage));
-                    log(LogLevel.INFO, '[TURN] commit sent');
-                    
-                    // Send response.create
-                    const responseMessage = {
-                      type: 'response.create',
-                    };
-                    openAiWs.send(JSON.stringify(responseMessage));
-                    log(LogLevel.INFO, '[TURN] response.create sent');
+                // Manual turn detection fallback after greeting
+                if (greetingSent) {
+                  log(LogLevel.INFO, '[TURN] caller audio received after greeting');
+                  
+                  // Clear existing timer
+                  if (this.turnDetectionTimer) {
+                    clearTimeout(this.turnDetectionTimer);
                   }
-                }, 1500);
+                  
+                  // Set timer to commit after 2 seconds
+                  this.turnDetectionTimer = setTimeout(() => {
+                    if (openAiWs) {
+                      const commitMessage = {
+                        type: 'input_audio_buffer.commit',
+                      };
+                      openAiWs.send(JSON.stringify(commitMessage));
+                      log(LogLevel.INFO, '[TURN] manual commit sent');
+                      
+                      // Send response.create
+                      const responseMessage = {
+                        type: 'response.create',
+                      };
+                      openAiWs.send(JSON.stringify(responseMessage));
+                      log(LogLevel.INFO, '[TURN] response.create sent');
+                    }
+                  }, 2000);
+                }
               }
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
