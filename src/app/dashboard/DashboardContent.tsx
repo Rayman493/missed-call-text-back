@@ -1005,8 +1005,8 @@ export default function DashboardContent() {
                 {/* Payment Issue Warning - High Priority */}
                 {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
                   <SectionErrorBoundary sectionName="PaymentIssueBanner">
-                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2.5">
-                      <div className="flex items-center justify-between gap-4">
+                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <span className="text-xl">⚠️</span>
                           <div>
@@ -1047,8 +1047,8 @@ export default function DashboardContent() {
                         const formattedDate = formatDate(endDate)
                         
                         return (
-                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-2.5">
-                            <div className="flex items-center justify-between gap-4">
+                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-2">
+                            <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3">
                                 <span className="text-xl">⏰</span>
                                 <div>
@@ -1095,9 +1095,9 @@ export default function DashboardContent() {
                 {/* Pre-trial activation CTA - compact, not hero-sized */}
                 {!hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-3 sm:p-4">
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-2.5 sm:p-3">
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                           <div>
                             <h3 className="text-base font-semibold text-foreground mb-1">
                               {eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now')}
