@@ -23,6 +23,8 @@ export default function CalendarGrid({
   onNextMonth,
   onToday
 }: CalendarGridProps) {
+  console.log('[GRID EVENTS RECEIVED]', events.length, events.slice(0, 5))
+  
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   
@@ -73,23 +75,13 @@ export default function CalendarGrid({
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
     
     const matchedEvents = events.filter(event => {
-      const eventDateStr = event.start.dateTime || event.start.date
-      if (!eventDateStr) return false
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return false
       
-      // Parse event date to get YYYY-MM-DD
-      let eventDate: Date
-      let eventDayKey: string
-      
-      if (event.start.date) {
-        // All-day event: YYYY-MM-DD format, parse as local date
-        const [y, m, d] = event.start.date.split('-').map(Number)
-        eventDate = new Date(y, m - 1, d)
-        eventDayKey = event.start.date
-      } else {
-        // Timed event: ISO string with time
-        eventDate = new Date(eventDateStr)
-        eventDayKey = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`
-      }
+      // Normalize event date to YYYY-MM-DD string
+      const eventDayKey = eventDateRaw.includes('T')
+        ? eventDateRaw.split('T')[0]
+        : eventDateRaw
       
       return eventDayKey === dayKey
     }).slice(0, 2)
@@ -159,6 +151,10 @@ export default function CalendarGrid({
         {days.map((dayInfo, index) => {
           const dayEvents = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
+          
+          if (dayEvents.length > 0) {
+            console.log('[DAY CELL EVENTS]', dayInfo.day, dayInfo.isCurrentMonth, dayEvents.length, dayEvents)
+          }
           
           return (
             <CalendarDayCell
