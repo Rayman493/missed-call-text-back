@@ -604,32 +604,38 @@ Do not continue chatting after intake is complete.`;
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
             };
             console.log('[OPENAI AUDIT] headers keys:', Object.keys(headers));
+            const wsId = Math.random().toString(36).substring(2, 9);
             openAiWs = new WebSocket(wsUrl, { headers });
-            console.log('[STREAM OPENAI] websocket created, readyState:', openAiWs.readyState);
+            (openAiWs as any).wsId = wsId;
+            console.log('[WS CREATED] id:', wsId, 'readyState:', openAiWs.readyState);
             
             // Log readyState every second for first 10 seconds
             for (let i = 1; i <= 10; i++) {
               setTimeout(() => {
                 if (openAiWs) {
-                  console.log(`[OPENAI STATE] after ${i}s readyState:`, openAiWs.readyState);
+                  console.log(`[WS STATE] id:${(openAiWs as any).wsId} after ${i}s readyState:`, openAiWs.readyState);
                 }
               }, i * 1000);
             }
             
-            // Add EXTREMELY LOUD websocket event logs
+            // Add EXTREMELY LOUD websocket event logs with ID
             openAiWs.on('open', () => {
+              console.log('[WS OPEN] id:', (openAiWs as any).wsId);
               console.log('[OPENAI OPEN EVENT FIRED]');
             });
             
             openAiWs.on('close', (code, reason) => {
+              console.log('[WS CLOSE] id:', (openAiWs as any).wsId, { code, reason });
               console.log('[OPENAI CLOSE EVENT]', { code, reason });
             });
             
             openAiWs.on('error', (error) => {
+              console.log('[WS ERROR] id:', (openAiWs as any).wsId, { error: String(error) });
               console.log('[OPENAI ERROR EVENT]', { error: String(error) });
             });
             
             openAiWs.on('unexpected-response', (request, response) => {
+              console.log('[WS UNEXPECTED] id:', (openAiWs as any).wsId, { statusCode: response.statusCode });
               console.log('[OPENAI UNEXPECTED RESPONSE]', { statusCode: response.statusCode });
             });
             
@@ -642,6 +648,7 @@ Do not continue chatting after intake is complete.`;
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
+            console.log('[WS REF] setting on Twilio handler id:', (openAiWs as any).wsId);
             console.log('[OPENAI REF] websocket set on Twilio handler');
             console.log('[OPENAI REF] media handler websocket exists', { exists: !!((twilioHandler as any).openAiWs) });
             
@@ -688,6 +695,7 @@ Do not continue chatting after intake is complete.`;
             console.log('[OPENAI AUDIT] attaching open listener');
             openAiWs.on('open', () => {
               opened = true;
+              console.log('[WS OPEN LISTENER] id:', (openAiWs as any).wsId);
               console.log('[OPENAI AUDIT] open listener attached');
               console.log('[OPENAI RAW] open');
               console.log('[OPENAI READY] setting openAiReady to true');
@@ -746,6 +754,7 @@ Do not continue chatting after intake is complete.`;
 
             console.log('[OPENAI AUDIT] attaching message listener');
             openAiWs.on('message', (data) => {
+              console.log('[WS MESSAGE] id:', (openAiWs as any).wsId);
               console.log('[OPENAI AUDIT] message listener attached');
               console.log('[OPENAI RAW] message');
               
