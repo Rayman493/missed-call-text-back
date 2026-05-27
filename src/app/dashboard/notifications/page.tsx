@@ -96,21 +96,21 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showNavigation={true} />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-          <p className="text-muted-foreground mt-2">
-            Stay updated on your ReplyFlow activity and important events.
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+          <p className="text-muted-foreground mt-1">
+            Stay updated on your ReplyFlow activity.
           </p>
         </div>
 
         {/* Actions */}
         {notificationCount.unread > 0 && (
-          <div className="mb-6">
+          <div className="mb-4">
             <button
               onClick={handleMarkAllAsRead}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
               Mark all as read
             </button>
@@ -118,18 +118,18 @@ export default function NotificationsPage() {
         )}
 
         {/* Notifications List */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {notifications.length > 0 ? (
             notifications.map(notification => (
               <div
                 key={notification.id}
-                className={`bg-card border rounded-lg p-4 transition-colors ${
+                className={`bg-card border rounded-lg p-3 transition-colors ${
                   notification.read 
                     ? 'border-border' 
                     : 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10'
                 }`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
                   <div className="shrink-0 mt-0.5">
                     {getNotificationIcon(notification.type)}
                   </div>
@@ -161,10 +161,10 @@ export default function NotificationsPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-12">
-              <Bell className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No notifications</h3>
-              <p className="text-muted-foreground">
+            <div className="text-center py-8">
+              <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-base font-medium text-foreground mb-1">No notifications</h3>
+              <p className="text-sm text-muted-foreground">
                 We'll notify you when something important happens.
               </p>
             </div>
