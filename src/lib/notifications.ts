@@ -221,6 +221,15 @@ export class NotificationService {
     )
   }
 
+  async notifySmsFailed(businessId: string, leadName: string, leadId: string): Promise<void> {
+    await this.createNotification(
+      businessId,
+      'sms_failed',
+      '',
+      { leadName, leadId }
+    )
+  }
+
   async notifyTrialEnding(businessId: string, daysLeft: number): Promise<void> {
     await this.createNotification(
       businessId,
