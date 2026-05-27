@@ -732,13 +732,15 @@ Do not continue chatting after intake is complete.`;
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
                 
                 // Send session.update after session.created
-                const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
+                const businessName = (ws as any).businessName || 'ReplyFlow';
+                const englishInstructions = `You are a professional English-speaking receptionist for ${businessName}. Always speak English. Do not speak Spanish, French, or any other language unless the caller explicitly asks you to switch languages. If there is silence or unclear audio, continue speaking English. Keep responses short and professional.`;
                 
                 // Configure session for Twilio-compatible audio and turn detection
                 const sessionConfig = {
                   type: 'session.update',
                   session: {
                     type: 'realtime',
+                    instructions: englishInstructions,
                     audio: {
                       input: {
                         format: { type: 'audio/pcmu' },
@@ -750,7 +752,8 @@ Do not continue chatting after intake is complete.`;
                     },
                   },
                 };
-                console.log('[SESSION] sending session.update after session.created');
+                console.log('[SESSION] sending session.update after session.created with English-only instructions');
+                console.log('[SESSION] instructions:', englishInstructions);
                 console.log('[AUDIO CONFIG] input format: audio/pcmu (g711_ulaw)');
                 console.log('[AUDIO CONFIG] output format: audio/pcmu (g711_ulaw)');
                 console.log('[AUDIO CONFIG] conversion enabled: false (direct output)');
@@ -762,6 +765,7 @@ Do not continue chatting after intake is complete.`;
               if (message.type === 'session.updated') {
                 sessionUpdated = true;
                 console.log('[OPENAI RECV] session.updated');
+                console.log('[SESSION UPDATED] instructions:', message.session?.instructions);
                 console.log('[SESSION] session updated', JSON.stringify(message.session, null, 2));
                 
                 // Verify audio format
@@ -779,18 +783,20 @@ Do not continue chatting after intake is complete.`;
                 
                 // Only send response.create after session.updated
                 console.log('[SESSION] audio format verified, sending response.create');
-                const instructions = (ws as any).aiInstructions || 'Hello from ReplyFlow.';
+                const businessName = (ws as any).businessName || 'ReplyFlow';
+                const shortGreeting = `Thanks for calling ${businessName}. I'm gathering information for the team. May I have your name?`;
                 
                 const testMessage = {
                   type: 'response.create',
                   response: {
-                    instructions: instructions,
+                    instructions: shortGreeting,
                     voice: AI_VOICE,
                   },
                 };
                 greetingSent = true;
                 console.log('[OPENAI SEND] response.create after session.updated');
-                console.log('[GREETING] response.create sent');
+                console.log('[GREETING] sent after session.updated');
+                console.log('[GREETING] greeting text:', shortGreeting);
                 console.log('[OPENAI OUTBOUND] sending message:', JSON.stringify(testMessage, null, 2));
                 if (openAiWs) {
                   openAiWs.send(JSON.stringify(testMessage));
