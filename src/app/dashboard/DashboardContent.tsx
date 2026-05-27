@@ -482,19 +482,7 @@ export default function DashboardContent() {
   }, [businessLoading, webhookConfirming])
 
   // Throttled logging to avoid spamming console
-  useEffect(() => {
-    console.log('[Dashboard] Loading state check:', {
-      businessLoading,
-      webhookConfirming,
-      shouldShowLoading: businessLoading || webhookConfirming,
-      subscription_status: business?.subscription_status,
-      stripe_customer_id: business?.stripe_customer_id,
-      stripe_subscription_id: business?.stripe_subscription_id,
-      onboarding_status: business?.onboarding_status,
-      loadingTimeout,
-      checkoutStatus
-    })
-  }, [businessLoading, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
+  // Removed debug logging to reduce console noise
 
   // Admin tools handlers
   const handleReconcileWarmNumbers = async () => {
@@ -519,11 +507,7 @@ export default function DashboardContent() {
     setRefreshingStats(false)
   }
 
-  // Log when Admin Tools mounts
-  useEffect(() => {
-    console.log('[Admin Tools] mounted')
-    handleRefreshStats()
-  }, [])
+  // Removed debug logging
 
   // Duplicate logging - remove
   // useEffect(() => {
@@ -541,7 +525,7 @@ export default function DashboardContent() {
   //   })
   // }, [businessLoading, businessFetchComplete, webhookConfirming, loadingTimeout, business?.subscription_status, business?.stripe_customer_id, business?.stripe_subscription_id, business?.onboarding_status, checkoutStatus])
 
-  console.log('[HOOK ORDER CHECK] all hooks completed')
+  // Removed debug logging
 
   // EMERGENCY BYPASS REMOVED - Restoring full dashboard with selective feature enablement
   // All hooks are called before any conditional returns to prevent React #310
@@ -552,7 +536,6 @@ export default function DashboardContent() {
   }
   
   const handleManageSubscription = async () => {
-    console.log('[Dashboard] Manage Subscription clicked')
     setIsOpeningBilling(true)
     setBillingError('')
 
@@ -560,7 +543,6 @@ export default function DashboardContent() {
       const result = await handleBillingAction()
       
       if (result.success && result.url) {
-        console.log('[Dashboard] Redirecting to:', result.url, result.action)
         window.location.href = result.url
       } else {
         console.error('[Dashboard] Billing action failed:', result.error)
