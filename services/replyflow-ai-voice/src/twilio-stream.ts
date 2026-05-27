@@ -138,7 +138,9 @@ export class TwilioStreamHandler {
                 openAiWs.send(JSON.stringify(audioMessage));
                 log(LogLevel.INFO, '[CALLER AUDIO] sent to OpenAI', { payloadLength: audioMessage.audio.length });
                 
+                // DISABLED FOR AUDIO FORMAT DEBUGGING
                 // Manual turn detection fallback after greeting
+                /*
                 if (greetingSent) {
                   log(LogLevel.INFO, '[TURN] caller audio received after greeting');
                   
@@ -165,6 +167,7 @@ export class TwilioStreamHandler {
                     }
                   }, 2000);
                 }
+                */
               }
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets

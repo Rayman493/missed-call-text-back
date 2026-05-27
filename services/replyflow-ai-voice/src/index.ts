@@ -571,7 +571,7 @@ Be concise and friendly.`;
                 type: 'session.update',
                 session: {
                   input_audio_format: 'g711_ulaw',
-                  output_audio_format: 'g711_ulaw',
+                  output_audio_format: 'pcm16',
                   turn_detection: {
                     type: 'server_vad',
                   },
@@ -674,23 +674,44 @@ Be concise and friendly.`;
 
               // Handle audio delta
               if (message.type === 'response.output_audio.delta' && message.delta) {
-                console.log('[AUDIO OUT] OpenAI audio delta received', { length: message.delta.length });
+                console.log('[AUDIO OUT] OpenAI delta received', { length: message.delta.length });
                 
-                // Since we configured OpenAI to output g711_ulaw, send directly to Twilio
-                // Twilio expects g711_ulaw at 8kHz
-                console.log('[AUDIO OUT] sending g711_ulaw directly to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: message.delta.length });
+                // Decode base64 to PCM16 buffer
+                const pcmBuffer = Buffer.from(message.delta, 'base64');
+                console.log('[AUDIO CONVERT] pcm bytes', { length: pcmBuffer.length });
+                
+                // OpenAI Realtime API returns PCM16 at 24kHz
+                // Twilio expects 8kHz μ-law (G.711)
+                // Downsample: 24kHz -> 8kHz (take every 3rd sample)
+                const sampleCount = Math.floor(pcmBuffer.length / 2);
+                const downsampledSamples: Int16Array = new Int16Array(Math.floor(sampleCount / 3));
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  downsampledSamples[i] = pcmBuffer.readInt16LE(i * 6);
+                }
+                console.log('[AUDIO CONVERT] downsampled to 8kHz', { originalSamples: sampleCount, downsampledSamples: downsampledSamples.length });
+                
+                // Convert PCM16 to μ-law
+                const mulawBytes = Buffer.alloc(downsampledSamples.length);
+                for (let i = 0; i < downsampledSamples.length; i++) {
+                  mulawBytes[i] = pcm16ToMulaw(downsampledSamples[i]);
+                }
+                console.log('[AUDIO CONVERT] converted to mulaw');
+                
+                // Base64 encode μ-law bytes
+                const mulawBase64 = mulawBytes.toString('base64');
+                console.log('[AUDIO OUT] sending converted mulaw to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: mulawBase64.length });
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
                   streamSid: twilioHandler.getStreamSid(),
                   media: {
-                    payload: message.delta,
+                    payload: mulawBase64,
                   },
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
-                console.log('[AUDIO OUT] sent g711_ulaw to Twilio');
+                console.log('[AUDIO OUT] sent to Twilio');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
