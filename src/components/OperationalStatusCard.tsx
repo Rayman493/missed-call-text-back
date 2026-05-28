@@ -7,6 +7,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
 import { getForwardingVerificationStatus, getForwardingStatusMessage } from '@/lib/forwarding-status'
+import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -15,34 +16,13 @@ interface OperationalStatusCardProps {
   onReviewSetup?: () => void
 }
 
-interface ActivityData {
-  missedCallsProcessed: number
-  leadsCreated: number
-  smsSent: number
-  followUpsScheduled: number
-  lastActivity: string | null
-  lastSuccessfulSMS: string | null
-  lastLeadActivity: string | null
-  totalLeads?: number
-  totalSmsSent?: number
-}
-
 export default function OperationalStatusCard({ 
   business, 
   missedCallCount = 0, 
   lastActivity,
   onReviewSetup 
 }: OperationalStatusCardProps) {
-  const [activityData, setActivityData] = useState<ActivityData>({
-    missedCallsProcessed: missedCallCount,
-    leadsCreated: 0,
-    smsSent: 0,
-    followUpsScheduled: 0,
-    lastActivity: lastActivity || null,
-    lastSuccessfulSMS: null,
-    lastLeadActivity: null
-  })
-  const [loading, setLoading] = useState(true)
+  const operationalMetrics = useOperationalMetrics(business)
   const [showSystemDetails, setShowSystemDetails] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -57,82 +37,6 @@ export default function OperationalStatusCard({
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  // Fetch recent activity data
-  useEffect(() => {
-    const fetchActivityData = async () => {
-      if (!business) return
-
-      try {
-        const supabase = createBrowserClient()
-        
-        // Get recent activity from the last 30 days
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        
-        // Fetch ALL leads for verification (no time restriction)
-        const { data: allLeads } = await supabase
-          .from('leads')
-          .select('id, created_at')
-          .eq('business_id', business.id)
-
-        // Fetch leads created in last 30 days for display
-        const { data: recentLeads } = await supabase
-          .from('leads')
-          .select('created_at')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
-        // Fetch ALL outbound messages for verification (no time restriction)
-        const { data: allMessages } = await supabase
-          .from('messages')
-          .select('id, created_at, direction')
-          .eq('business_id', business.id)
-          .eq('direction', 'outbound')
-
-        // Fetch messages sent in last 30 days for display
-        const { data: recentMessages } = await supabase
-          .from('messages')
-          .select('created_at, direction')
-          .eq('from_phone', business.twilio_phone_number || '')
-          .gte('created_at', thirtyDaysAgo)
-
-        // Fetch follow-up jobs scheduled in last 30 days
-        const { data: recentFollowUps } = await supabase
-          .from('follow_up_jobs')
-          .select('created_at')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
-        const totalLeads = allLeads?.length || 0
-        const totalSmsSent = allMessages?.length || 0
-
-        console.log('[OperationalStatusCard] Activity data fetched:', {
-          totalLeads,
-          totalSmsSent,
-          recentLeadsCount: recentLeads?.length || 0,
-          recentMessagesCount: recentMessages?.length || 0
-        })
-
-        setActivityData({
-          missedCallsProcessed: missedCallCount,
-          leadsCreated: recentLeads?.length || 0,
-          smsSent: recentMessages?.filter((m: any) => m.direction === 'outbound').length || 0,
-          followUpsScheduled: recentFollowUps?.length || 0,
-          lastActivity: lastActivity || null,
-          lastSuccessfulSMS: recentMessages?.filter((m: any) => m.direction === 'outbound')[0]?.created_at || null,
-          lastLeadActivity: recentLeads?.[0]?.created_at || null,
-          totalLeads,
-          totalSmsSent
-        })
-      } catch (error) {
-        console.error('Error fetching activity data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchActivityData()
-  }, [business, missedCallCount, lastActivity])
 
   const getStatusIndicator = (status: 'active' | 'inactive' | 'warning' | 'needs-attention') => {
     const colors = {
@@ -157,11 +61,11 @@ export default function OperationalStatusCard({
 
   const isTextReplyActive = business?.messaging_status === 'active'
   
-  // Use new forwarding verification logic with TOTAL counts (not just recent)
+  // Use new forwarding verification logic with shared operational metrics
   const forwardingStatus = getForwardingVerificationStatus(business, {
-    missedCallsCount: activityData.missedCallsProcessed,
-    leadsCount: activityData.totalLeads ?? activityData.leadsCreated,
-    successfulSmsCount: activityData.totalSmsSent ?? activityData.smsSent
+    missedCallsCount: operationalMetrics.missedCallsCaptured,
+    leadsCount: operationalMetrics.totalLeads,
+    successfulSmsCount: operationalMetrics.totalSmsSent
   })
   const forwardingMessage = getForwardingStatusMessage(forwardingStatus)
   
@@ -203,7 +107,7 @@ export default function OperationalStatusCard({
           <div className="text-center mb-4">
             <p className="text-xs sm:text-sm text-slate-300 mb-1">Recovered Leads</p>
             <p className="text-4xl sm:text-5xl font-bold text-white mb-2">
-              {loading ? '...' : activityData.leadsCreated}
+              {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
             </p>
           </div>
 
@@ -234,8 +138,8 @@ export default function OperationalStatusCard({
             Monitoring calls and responding automatically.
             <br />
             <span className="text-slate-400">
-              {activityData.lastLeadActivity 
-                ? `Last recovered lead: ${formatRelativeTime(activityData.lastLeadActivity)}`
+              {operationalMetrics.hasLatestLead 
+                ? `${operationalMetrics.totalLeads} lead${operationalMetrics.totalLeads !== 1 ? 's' : ''} recovered`
                 : 'No recovered leads yet.'
               }
             </span>
@@ -337,21 +241,21 @@ export default function OperationalStatusCard({
                     </div>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Last Lead Activity:</span>
+                    <span className="text-slate-400">Total Leads:</span>
                     <span className="text-white font-medium">
-                      {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+                      {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Last SMS Sent:</span>
+                    <span className="text-slate-400">SMS Sent:</span>
                     <span className="text-white font-medium">
-                      {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+                      {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Calls Processed:</span>
                     <span className="text-white font-medium">
-                      {loading ? '...' : activityData.missedCallsProcessed}
+                      {operationalMetrics.loading ? '...' : operationalMetrics.missedCallsCaptured}
                     </span>
                   </div>
                 </div>
@@ -395,23 +299,23 @@ export default function OperationalStatusCard({
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Last Lead Activity:</span>
+              <span className="text-slate-400">Total Leads:</span>
               <span className="text-white font-medium">
-                {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+                {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Last SMS Sent:</span>
+              <span className="text-slate-400">SMS Sent:</span>
               <span className="text-white font-medium">
-                {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+                {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Calls Processed:</span>
               <span className="text-white font-medium">
-                {loading ? '...' : activityData.missedCallsProcessed}
+                {operationalMetrics.loading ? '...' : operationalMetrics.missedCallsCaptured}
               </span>
             </div>
           </div>
@@ -497,10 +401,10 @@ export default function OperationalStatusCard({
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-xs font-medium text-slate-300">Last Lead Activity</span>
+            <span className="text-xs font-medium text-slate-300">Total Leads</span>
           </div>
           <div className="text-sm text-white">
-            {activityData.lastLeadActivity ? formatRelativeTime(activityData.lastLeadActivity) : 'No leads yet'}
+            {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
           </div>
         </div>
 
@@ -510,10 +414,10 @@ export default function OperationalStatusCard({
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            <span className="text-xs font-medium text-slate-300">Last SMS Sent</span>
+            <span className="text-xs font-medium text-slate-300">Total SMS Sent</span>
           </div>
           <div className="text-sm text-white">
-            {activityData.lastSuccessfulSMS ? formatRelativeTime(activityData.lastSuccessfulSMS) : 'No SMS sent'}
+            {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
           </div>
         </div>
       </div>

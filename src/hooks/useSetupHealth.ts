@@ -4,6 +4,8 @@ import { useMemo } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
 import { hasValidSubscription } from '@/lib/subscription'
+import { useOperationalMetrics } from './useOperationalMetrics'
+import { getForwardingVerificationStatus } from '@/lib/forwarding-status'
 
 export type HealthStatus = 'complete' | 'needs_attention' | 'not_configured' | 'optional'
 
@@ -20,6 +22,7 @@ export interface HealthCheck {
 
 export function useSetupHealth() {
   const { business } = useBusiness()
+  const operationalMetrics = useOperationalMetrics(business)
 
   const healthChecks = useMemo((): HealthCheck[] => {
     if (!business) return []
@@ -83,18 +86,24 @@ export function useSetupHealth() {
       isOptional: false
     })
 
-    // Call forwarding verified
+    // Call forwarding verified - use operational evidence
+    const forwardingStatus = getForwardingVerificationStatus(business, {
+      missedCallsCount: operationalMetrics.missedCallsCaptured,
+      leadsCount: operationalMetrics.totalLeads,
+      successfulSmsCount: operationalMetrics.totalSmsSent
+    })
+
     checks.push({
       id: 'call_forwarding',
       name: 'Call Forwarding Verified',
-      status: business.forwarding_verified ? 'complete' : 'needs_attention',
-      description: business.forwarding_verified
-        ? 'Forwarding verified'
+      status: forwardingStatus.verified ? 'complete' : 'needs_attention',
+      description: forwardingStatus.verified
+        ? 'Missed calls are being detected successfully'
         : 'Call forwarding needs verification',
-      details: business.forwarding_verified
-        ? `Verified at ${business.forwarding_verified_at ? new Date(business.forwarding_verified_at).toLocaleDateString() : 'recently'}`
+      details: forwardingStatus.verified
+        ? forwardingStatus.reason
         : 'Awaiting first successful missed-call test',
-      actionText: business.forwarding_verified ? undefined : 'Verify forwarding',
+      actionText: forwardingStatus.verified ? undefined : 'Verify forwarding',
       actionUrl: '/setup/forwarding',
       isOptional: false
     })

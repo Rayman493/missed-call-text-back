@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle, MessageSquare, Phone, Clock, X } from 'luci
 import Link from 'next/link'
 import { useSetupHealth } from '@/hooks/useSetupHealth'
 import { getForwardingVerificationStatus } from '@/lib/forwarding-status'
+import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 
 interface AttentionItem {
   type: 'lead_awaiting' | 'customer_replied' | 'forwarding_issue' | 'followup_failed' | 'healthy'
@@ -25,6 +26,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
   const { requiredIssues } = useSetupHealth()
+  const operationalMetrics = useOperationalMetrics(business)
 
   useEffect(() => {
     if (!business) return
@@ -33,19 +35,6 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       try {
         const supabase = createBrowserClient()
         const items: AttentionItem[] = []
-
-        // Fetch ALL leads for verification (no time restriction)
-        const { data: allLeads } = await supabase
-          .from('leads')
-          .select('id, caller_phone, created_at')
-          .eq('business_id', business.id)
-
-        // Fetch ALL outbound messages for verification (no time restriction)
-        const { data: allMessages } = await supabase
-          .from('messages')
-          .select('id, direction')
-          .eq('business_id', business.id)
-          .eq('direction', 'outbound')
 
         // Check for leads awaiting response
         const { data: awaitingLeads } = await supabase
@@ -90,17 +79,20 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Check call forwarding status using new verification logic with TOTAL counts
+        // Check call forwarding status using shared operational metrics
         const forwardingStatus = getForwardingVerificationStatus(business, {
-          missedCallsCount: allLeads?.length || 0,
-          leadsCount: allLeads?.length || 0,
-          successfulSmsCount: allMessages?.length || 0
+          missedCallsCount: operationalMetrics.missedCallsCaptured,
+          leadsCount: operationalMetrics.totalLeads,
+          successfulSmsCount: operationalMetrics.totalSmsSent
         })
 
-        console.log('[NeedsAttentionCard] Forwarding status check:', {
-          totalLeads: allLeads?.length || 0,
-          totalSmsSent: allMessages?.length || 0,
-          forwardingStatus
+        console.log('[FORWARDING VERIFIED COMPUTED]', {
+          missedCallsCaptured: operationalMetrics.missedCallsCaptured,
+          leadsRecovered: operationalMetrics.totalLeads,
+          latestLeadExists: operationalMetrics.hasLatestLead,
+          recentActivityMatched: operationalMetrics.hasRecentMissedCallActivity,
+          businessForwardingVerified: business?.forwarding_verified,
+          result: forwardingStatus.verified
         })
         
         if (!forwardingStatus.verified) {
@@ -169,7 +161,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
     }
 
     fetchAttentionItems()
-  }, [business])
+  }, [business, operationalMetrics, requiredIssues])
 
   const formatRelativeTime = (timestamp: string) => {
     const now = new Date()
