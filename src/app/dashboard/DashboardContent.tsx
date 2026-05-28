@@ -1229,9 +1229,7 @@ export default function DashboardContent() {
 
                     {/* Business Wins Card - Priority 7 */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <div className="mb-3 transition-opacity duration-300">
-                        <BusinessWinsCard business={business} />
-                      </div>
+                      <BusinessWinsCard business={business} />
                     </SectionErrorBoundary>
 
                                       </>

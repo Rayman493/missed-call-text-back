@@ -320,7 +320,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 mb-3 transition-opacity duration-300">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">Business Wins</h3>
         <div className="text-xs text-muted-foreground">

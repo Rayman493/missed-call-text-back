@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { AlertTriangle, CheckCircle, MessageSquare, Phone, Clock, X } from 'lucide-react'
 import Link from 'next/link'
 import { useSetupHealth } from '@/hooks/useSetupHealth'
+import { getForwardingVerificationStatus } from '@/lib/forwarding-status'
 
 interface AttentionItem {
   type: 'lead_awaiting' | 'customer_replied' | 'forwarding_issue' | 'followup_failed' | 'healthy'
@@ -76,12 +77,17 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Check call forwarding status
-        if (!business.call_forwarding_enabled) {
+        // Check call forwarding status using new verification logic
+        const forwardingStatus = getForwardingVerificationStatus(business, {
+          missedCallsCount: awaitingLeads?.length || 0,
+          leadsCount: awaitingLeads?.length || 0
+        })
+        
+        if (!forwardingStatus.verified) {
           items.push({
             type: 'forwarding_issue',
-            title: 'Call Forwarding Requires Attention',
-            description: 'Enable call forwarding to capture missed calls',
+            title: 'Call Forwarding Setup Pending',
+            description: forwardingStatus.reason,
             priority: 'high',
             link: '/dashboard/settings',
             linkText: 'Configure Settings'

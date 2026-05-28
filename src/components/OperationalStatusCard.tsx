@@ -6,6 +6,7 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
+import { getForwardingVerificationStatus, getForwardingStatusMessage } from '@/lib/forwarding-status'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -127,8 +128,17 @@ export default function OperationalStatusCard({
     return texts[status]
   }
 
-  const isForwardingActive = business?.call_forwarding_enabled === true
   const isTextReplyActive = business?.messaging_status === 'active'
+  
+  // Use new forwarding verification logic
+  const forwardingStatus = getForwardingVerificationStatus(business, {
+    missedCallsCount: activityData.missedCallsProcessed,
+    leadsCount: activityData.leadsCreated,
+    successfulSmsCount: activityData.smsSent
+  })
+  const forwardingMessage = getForwardingStatusMessage(forwardingStatus)
+  
+  const isForwardingActive = forwardingStatus.verified
   
   // Clear monitoring status logic
   const isMonitoringHealthy = isForwardingActive && isTextReplyActive
@@ -137,10 +147,10 @@ export default function OperationalStatusCard({
   // Context for why attention is needed
   const getMonitoringContext = () => {
     if (!isForwardingActive && !isTextReplyActive) {
-      return 'Call forwarding and text messaging need to be configured'
+      return forwardingMessage.description
     }
     if (!isForwardingActive) {
-      return 'Call forwarding needs to be set up'
+      return forwardingMessage.description
     }
     if (!isTextReplyActive) {
       return 'Text messaging needs to be activated'
