@@ -847,10 +847,11 @@ Do NOT:
                       turn_detection: {
                         type: "server_vad",
                         threshold: 0.5,
-                        prefix_padding_ms: 300,
-                        silence_duration_ms: 700,
+                        prefix_padding_ms: 500,
+                        silence_duration_ms: 1800,
                         create_response: true
                       }
+                      // We intentionally use a longer silence duration to prevent the AI from responding during natural caller pauses.
                     },
                     output: {
                       format: {
@@ -928,20 +929,9 @@ Do NOT:
                     console.log('[AI REASON CAPTURED]', intakeData!.callerReason);
                   }
                   
-                  // Send next intake question manually
-                  const nextMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: intakeResponse.response + ' Always respond in English only.',
-                    },
-                  };
-                  
-                  console.log('[AI INTAKE RESPONSE CREATE]', intakeResponse.response);
+                  // Let VAD handle responses naturally after session.updated greeting
+                  console.log('[AI INTAKE] VAD will handle response naturally');
                   console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
-                  
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(nextMessage));
-                  }
                   
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
@@ -1005,11 +995,25 @@ Do NOT:
                   returned: message.session?.audio
                 });
                 
-                // Let OpenAI automatically generate greeting from receptionist instructions
-                // No manual response.create needed since create_response: true
-                console.log('[GREETING] OpenAI will auto-generate from receptionist instructions');
-                greetingSent = true;
-                console.log('[GREETING SENT] - auto-generation triggered');
+                // Send exactly one greeting response.create after session.updated
+                if (!greetingSent) {
+                  console.log('[SESSION UPDATED - SENDING GREETING]');
+                  const greetingMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: `Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today?`,
+                    },
+                  };
+                  console.log('[GREETING RESPONSE.CREATE SENT]');
+                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(greetingMessage, null, 2));
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(greetingMessage));
+                  }
+                  greetingSent = true;
+                  console.log('[GREETING SENT]');
+                } else {
+                  console.log('[GREETING BLOCKED - ALREADY SENT]');
+                }
                 
                 // Set flag to enable manual fallback after greeting
                 twilioHandler.setGreetingSent();
@@ -1059,12 +1063,24 @@ Do NOT:
               }
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[OPENAI RECV] input_audio_buffer.committed');
+                console.log('[USER TRANSCRIPT] committed:', message.transcript || 'null');
               }
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+              }
+              if (message.type === 'response.output_audio_transcript.delta') {
+                console.log('[OPENAI RECV] response.output_audio_transcript.delta:', message.delta || 'null');
+              }
+              if (message.type === 'conversation.item.input_audio_transcription.completed') {
+                console.log('[OPENAI RECV] conversation.item.input_audio_transcription.completed');
+                console.log('[FINAL USER TRANSCRIPT]:', message.transcript || 'null');
+              }
+              if (message.type === 'conversation.item.output_audio_transcription.completed') {
+                console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
+                console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
               }
               
               // Catch-all logging for every OpenAI event type
