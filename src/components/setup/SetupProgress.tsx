@@ -47,12 +47,13 @@ interface ChecklistItem {
 
 interface SetupProgressProps {
   missedCallCount?: number
+  forwardingComplete?: boolean
 }
 
 // Local storage key for collapse preference
 const COLLAPSE_PREFERENCE_KEY = 'setupProgressCollapsed'
 
-export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProps) {
+export default function SetupProgress({ missedCallCount = 0, forwardingComplete }: SetupProgressProps) {
   const { business, refreshBusiness } = useBusiness()
   const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(false)
@@ -168,8 +169,8 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    // Step 3 is complete if forwarding_verified is true (persistent state)
-    const testComplete = business?.forwarding_verified === true
+    // Use forwardingComplete prop (no recalculation)
+    const testComplete = forwardingComplete === true
     
     console.log('[Setup Progress] Step 3 completion check:', {
       businessId: business.id,

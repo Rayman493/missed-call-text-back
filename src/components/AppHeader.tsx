@@ -14,11 +14,13 @@ import { Settings, Activity } from 'lucide-react'
 interface AppHeaderProps {
   title?: string
   showNavigation?: boolean
+  forwardingComplete?: boolean
 }
 
 export default function AppHeader({
   title,
-  showNavigation = true
+  showNavigation = true,
+  forwardingComplete
 }: AppHeaderProps) {
   const pathname = usePathname()
   const [showHealthModal, setShowHealthModal] = useState(false)
@@ -95,6 +97,7 @@ export default function AppHeader({
       <SetupHealthModal
         isOpen={showHealthModal}
         onClose={() => setShowHealthModal(false)}
+        forwardingComplete={forwardingComplete}
       />
     </>
   )

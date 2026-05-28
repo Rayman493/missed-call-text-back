@@ -18,9 +18,10 @@ interface AttentionItem {
 
 interface NeedsAttentionCardProps {
   business: Business | null
+  forwardingComplete?: boolean
 }
 
-export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps) {
+export default function NeedsAttentionCard({ business, forwardingComplete }: NeedsAttentionCardProps) {
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
   const { requiredIssues } = useSetupHealth()
@@ -76,19 +77,18 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Check call forwarding status using persistent business field
-        const forwardingVerified = business.forwarding_verified === true
-
+        // Use forwardingComplete prop (no recalculation)
         console.log('[FORWARDING UI STATE]', {
           forwarding_verified: business.forwarding_verified,
+          forwardingComplete,
           component: 'NeedsAttentionCard'
         })
         
-        if (!forwardingVerified) {
+        if (!forwardingComplete) {
           items.push({
             type: 'forwarding_issue',
             title: 'Call Forwarding Setup Pending',
-            description: 'Awaiting first successful missed-call test',
+            description: 'Waiting for first missed-call test',
             priority: 'high',
             link: '/dashboard/settings',
             linkText: 'Configure Settings'

@@ -9,9 +9,10 @@ import { useSetupHealth, HealthStatus } from '@/hooks/useSetupHealth'
 interface SetupHealthModalProps {
   isOpen: boolean
   onClose: () => void
+  forwardingComplete?: boolean
 }
 
-export default function SetupHealthModal({ isOpen, onClose }: SetupHealthModalProps) {
+export default function SetupHealthModal({ isOpen, onClose, forwardingComplete }: SetupHealthModalProps) {
   const { healthChecks, needsAttention, requiredIssues, isHealthy } = useSetupHealth()
 
   const getStatusIcon = (status: HealthStatus) => {
