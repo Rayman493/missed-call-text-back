@@ -12,7 +12,7 @@ interface OperationalStatusCardProps {
   missedCallCount?: number
   lastActivity?: string
   onReviewSetup?: () => void
-  forwardingComplete?: boolean
+  setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
 export default function OperationalStatusCard({ 
@@ -20,7 +20,7 @@ export default function OperationalStatusCard({
   missedCallCount = 0, 
   lastActivity,
   onReviewSetup,
-  forwardingComplete
+  setupHealth
 }: OperationalStatusCardProps) {
   const [showSystemDetails, setShowSystemDetails] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
@@ -60,10 +60,10 @@ export default function OperationalStatusCard({
 
   const isTextReplyActive = business?.messaging_status === 'active'
   
-  console.log('[FORWARDING COMPLETE]', forwardingComplete)
+  console.log('[SETUP HEALTH]', setupHealth)
   
-  // ONLY use forwardingComplete prop - no other logic
-  const isForwardingActive = forwardingComplete === true
+  // ONLY use setupHealth forwardingVerified - no other logic
+  const isForwardingActive = setupHealth?.forwardingVerified === true
   
   // Clear monitoring status logic
   const isMonitoringHealthy = isForwardingActive && isTextReplyActive

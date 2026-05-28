@@ -18,13 +18,12 @@ interface AttentionItem {
 
 interface NeedsAttentionCardProps {
   business: Business | null
-  forwardingComplete?: boolean
+  setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
-export default function NeedsAttentionCard({ business, forwardingComplete }: NeedsAttentionCardProps) {
+export default function NeedsAttentionCard({ business, setupHealth }: NeedsAttentionCardProps) {
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { requiredIssues } = useSetupHealth()
 
   useEffect(() => {
     if (!business) return
@@ -77,17 +76,20 @@ export default function NeedsAttentionCard({ business, forwardingComplete }: Nee
           })
         }
 
-        console.log('[FORWARDING COMPLETE]', forwardingComplete)
+        console.log('[SETUP HEALTH]', setupHealth)
         
-        // ONLY use forwardingComplete prop - no other logic
-        if (!forwardingComplete) {
-          items.push({
-            type: 'forwarding_issue',
-            title: 'Call Forwarding Setup Pending',
-            description: 'Waiting for first missed-call test',
-            priority: 'high',
-            link: '/dashboard/settings',
-            linkText: 'Configure Settings'
+        // Use setupHealth needsAttention - no other logic
+        if (setupHealth?.needsAttention && setupHealth.needsAttention.length > 0) {
+          // Add setup health issues to attention items
+          setupHealth.needsAttention.forEach(issue => {
+            items.push({
+              type: 'forwarding_issue' as any,
+              title: issue.title,
+              description: issue.description,
+              priority: issue.priority,
+              link: issue.actionUrl,
+              linkText: issue.actionText
+            })
           })
         }
 
@@ -110,18 +112,7 @@ export default function NeedsAttentionCard({ business, forwardingComplete }: Nee
           })
         }
 
-        // Add top required health issue if any
-        if (requiredIssues.length > 0) {
-          const topIssue = requiredIssues[0]
-          items.push({
-            type: 'forwarding_issue',
-            title: topIssue.name,
-            description: topIssue.description,
-            priority: 'high',
-            link: topIssue.actionUrl,
-            linkText: topIssue.actionText
-          })
-        }
+        // Setup health issues already added above - no duplicate logic
 
         // Sort by priority
         const priorityOrder = { high: 0, medium: 1, low: 2 }
@@ -146,7 +137,7 @@ export default function NeedsAttentionCard({ business, forwardingComplete }: Nee
     }
 
     fetchAttentionItems()
-  }, [business, requiredIssues])
+  }, [business, setupHealth])
 
   const formatRelativeTime = (timestamp: string) => {
     const now = new Date()

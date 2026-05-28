@@ -33,6 +33,7 @@ import {
 import { hasActiveAccess, hasActiveTrial, hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
+import { getSetupHealth } from '@/lib/setup-health'
 import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
@@ -245,11 +246,18 @@ export default function DashboardContent() {
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
 
-  // Simple forwarding verification rule: if business has any lead, forwarding is complete
-  const hasAnyLead = Array.isArray(processedLeads) && processedLeads.length > 0
-  const forwardingComplete = business?.forwarding_verified === true || hasAnyLead
+  // Central setup health - single source of truth
+  const latestLead = processedLeads[0] || null
+  const setupHealth = getSetupHealth({
+    business,
+    leads: processedLeads,
+    latestLead,
+    metrics: {
+      missedCallsCaptured: missedCallCount
+    }
+  })
 
-  console.log('[FORWARDING COMPLETE]', forwardingComplete)
+  console.log('[SETUP HEALTH]', setupHealth)
 
   // Determine if onboarding is fully complete
   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
@@ -951,7 +959,7 @@ export default function DashboardContent() {
         <BusinessGuard>
           <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
             {/* App Header */}
-            <AppHeader showNavigation={true} forwardingComplete={forwardingComplete} />
+            <AppHeader showNavigation={true} setupHealth={setupHealth} />
 
             {/* Main Content */}
             <div className="flex-1 pt-3 sm:pt-4 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
@@ -979,7 +987,7 @@ export default function DashboardContent() {
                       console.log('[Render Child] SetupProgress')
                       return null
                     })()}
-                    <SetupProgress missedCallCount={missedCallCount} forwardingComplete={forwardingComplete} />
+                    <SetupProgress missedCallCount={missedCallCount} setupHealth={setupHealth} />
                   </SectionErrorBoundary>
                 )}
 
@@ -1209,7 +1217,7 @@ export default function DashboardContent() {
                     {/* Needs Attention Card - Priority 3 */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
                       <div className="mb-3 transition-opacity duration-300">
-                        <NeedsAttentionCard business={business} forwardingComplete={forwardingComplete} />
+                        <NeedsAttentionCard business={business} setupHealth={setupHealth} />
                       </div>
                     </SectionErrorBoundary>
 

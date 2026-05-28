@@ -8,35 +8,49 @@ import Link from 'next/link'
 interface SetupHealthModalProps {
   isOpen: boolean
   onClose: () => void
-  forwardingComplete?: boolean
+  setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
-export default function SetupHealthModal({ isOpen, onClose, forwardingComplete }: SetupHealthModalProps) {
-  console.log('[FORWARDING COMPLETE]', forwardingComplete)
+export default function SetupHealthModal({ isOpen, onClose, setupHealth }: SetupHealthModalProps) {
+  console.log('[SETUP HEALTH]', setupHealth)
 
   // Simple health status type
   type HealthStatus = 'complete' | 'needs_attention' | 'not_configured' | 'optional'
 
-  // Simple health checks based only on forwardingComplete
+  // Health checks based on setupHealth
   const healthChecks = [
+    {
+      id: 'sms_active',
+      name: 'SMS Active',
+      status: setupHealth?.smsActive ? 'complete' as HealthStatus : 'needs_attention' as HealthStatus,
+      description: setupHealth?.smsActive 
+        ? 'Text messaging is active' 
+        : 'Text messaging needs to be activated',
+      details: setupHealth?.smsActive 
+        ? 'SMS configured and operational' 
+        : 'Configure SMS messaging',
+      actionText: setupHealth?.smsActive ? undefined : 'Configure SMS',
+      actionUrl: setupHealth?.smsActive ? undefined : '/dashboard/settings',
+      isOptional: false
+    },
     {
       id: 'call_forwarding',
       name: 'Call Forwarding Verified',
-      status: forwardingComplete ? 'complete' as HealthStatus : 'needs_attention' as HealthStatus,
-      description: forwardingComplete 
+      status: setupHealth?.forwardingVerified ? 'complete' as HealthStatus : 'needs_attention' as HealthStatus,
+      description: setupHealth?.forwardingVerified 
         ? 'Missed calls are being detected successfully' 
         : 'Call forwarding needs verification',
-      details: forwardingComplete 
+      details: setupHealth?.forwardingVerified 
         ? 'Forwarding verified and operational' 
-        : 'Awaiting first successful missed-call test',
-      actionText: forwardingComplete ? undefined : 'Verify forwarding',
-      actionUrl: forwardingComplete ? undefined : '/setup/forwarding',
+        : 'Run one missed-call test to confirm',
+      actionText: setupHealth?.forwardingVerified ? undefined : 'Test Forwarding',
+      actionUrl: setupHealth?.forwardingVerified ? undefined : '/dashboard/settings',
       isOptional: false
     }
   ]
 
-  const isHealthy = forwardingComplete === true
-  const requiredIssues = forwardingComplete ? [] : healthChecks
+  const isHealthy = setupHealth?.isReady === true
+  const requiredIssues = setupHealth?.needsAttention || []
 
   const getStatusIcon = (status: HealthStatus) => {
     switch (status) {
