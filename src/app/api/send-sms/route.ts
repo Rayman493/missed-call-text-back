@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendSms } from "@/lib/twilio";
-import { db } from '@/lib/supabase/admin';
+import { sendSms, sendMms } from "@/lib/twilio";
+import { db, supabaseAdmin } from '@/lib/supabase/admin';
 import { sanitizeMessageContent } from '@/lib/security';
 import { checkManualSmsRateLimit } from '@/lib/rate-limit';
 
@@ -47,23 +47,55 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse request body
-    const { leadId, message, clientTempId } = await request.json()
+    // Parse request - handle both JSON and FormData
+    const contentType = request.headers.get('content-type') || ''
+    let leadId: string
+    let message: string
+    let clientTempId: string
+    let mediaFiles: File[] = []
 
-    if (!leadId || !message) {
-      console.error('[Manual SMS] Missing required fields:', { leadId, message: !!message })
-      return NextResponse.json({ error: 'Missing required fields: leadId and message' }, { status: 400 })
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData (MMS)
+      const formData = await request.formData()
+      leadId = formData.get('leadId') as string
+      message = formData.get('message') as string
+      clientTempId = formData.get('clientTempId') as string
+
+      // Extract media files
+      for (let i = 0; i < 10; i++) {
+        const file = formData.get(`media_${i}`) as File
+        if (file && file.size > 0) {
+          mediaFiles.push(file)
+        }
+      }
+    } else {
+      // Handle JSON (regular SMS)
+      const body = await request.json()
+      leadId = body.leadId
+      message = body.message
+      clientTempId = body.clientTempId
     }
 
-    // Validate message length
-    if (message.length > 1600) {
+    if (!leadId) {
+      console.error('[Manual SMS] Missing leadId')
+      return NextResponse.json({ error: 'Missing required field: leadId' }, { status: 400 })
+    }
+
+    // Allow message to be empty if media is present (MMS)
+    if (!message && mediaFiles.length === 0) {
+      console.error('[Manual SMS] Missing message or media')
+      return NextResponse.json({ error: 'Message or media is required' }, { status: 400 })
+    }
+
+    // Validate message length if present
+    if (message && message.length > 1600) {
       console.error('[Manual SMS] Message too long:', message.length)
       return NextResponse.json({ error: 'Message too long (max 1600 characters)' }, { status: 400 })
     }
 
-    // Sanitize message content
-    const sanitizedMessage = sanitizeMessageContent(message.trim())
-    if (!sanitizedMessage) {
+    // Sanitize message content if present
+    const sanitizedMessage = message ? sanitizeMessageContent(message.trim()) : ''
+    if (message && !sanitizedMessage) {
       console.error('[Manual SMS] Message failed sanitization')
       return NextResponse.json({ error: 'Invalid message content' }, { status: 400 })
     }
@@ -72,6 +104,7 @@ export async function POST(request: Request) {
       userId: user.id,
       leadId,
       messageLength: sanitizedMessage.length,
+      mediaCount: mediaFiles.length,
       clientTempId
     })
 
@@ -129,36 +162,114 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('[Manual SMS] Sending SMS:', {
+    let messageSid: string | null = null
+    let mediaUrls: string[] = []
+
+    // Upload media files to Supabase Storage if present
+    if (mediaFiles.length > 0) {
+      try {
+        console.log('[MMS] Uploading media files to storage:', mediaFiles.length)
+        
+        for (const file of mediaFiles) {
+          const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`
+          const filePath = `${business.id}/${lead.id}/${fileName}`
+          
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from('message-media')
+            .upload(filePath, file)
+          
+          if (uploadError) {
+            console.error('[MMS] Upload error:', uploadError)
+            return NextResponse.json({ error: 'Failed to upload media' }, { status: 500 })
+          }
+          
+          // Get public URL
+          const { data: publicUrlData } = supabaseAdmin.storage
+            .from('message-media')
+            .getPublicUrl(filePath)
+          
+          mediaUrls.push(publicUrlData.publicUrl)
+        }
+        
+        console.log('[MMS] Media uploaded successfully:', mediaUrls.length)
+      } catch (error) {
+        console.error('[MMS] Error uploading media:', error)
+        return NextResponse.json({ error: 'Failed to upload media' }, { status: 500 })
+      }
+    }
+
+    console.log('[Manual SMS] Sending message:', {
       businessId: business.id,
       businessPhone: business.twilio_phone_number,
-      businessPhoneSid: business.twilio_phone_number_sid,
-      messagingServiceSid: business.twilio_messaging_service_sid,
       toPhone: lead.caller_phone,
       conversationId: conversation.id,
+      isMms: mediaUrls.length > 0,
+      mediaCount: mediaUrls.length,
       messagePreview: sanitizedMessage.substring(0, 50) + '...'
     })
 
-    // Send SMS using the same sendSms helper as follow-ups
-    const messageSid = await sendSms(business, lead.caller_phone, sanitizedMessage, {
-      lead_id: lead.id,
-      conversation_id: conversation.id,
-    });
+    // Send SMS or MMS
+    if (mediaUrls.length > 0) {
+      // Send MMS
+      messageSid = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
+        lead_id: lead.id,
+        conversation_id: conversation.id,
+      });
+    } else {
+      // Send SMS
+      messageSid = await sendSms(business, lead.caller_phone, sanitizedMessage, {
+        lead_id: lead.id,
+        conversation_id: conversation.id,
+      });
+    }
 
     if (!messageSid) {
-      console.error('[Manual SMS] SMS send failed')
+      console.error('[Manual SMS] Message send failed')
       return NextResponse.json({ 
-        error: 'Failed to send SMS',
-        details: 'SMS sending failed - check logs for details'
+        error: 'Failed to send message',
+        details: 'Message sending failed - check logs for details'
       }, { status: 500 })
     }
 
-    console.log('[Manual SMS] SMS sent successfully:', {
+    console.log('[Manual SMS] Message sent successfully:', {
       messageSid,
       leadId,
       conversationId: conversation.id,
-      clientTempId
+      clientTempId,
+      mediaCount: mediaUrls.length
     })
+
+    // Store media in message_media table if present
+    if (mediaUrls.length > 0 && messageSid) {
+      try {
+        // First get the message ID using the Twilio SID
+        const { data: messageRecord } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('twilio_message_sid', messageSid)
+          .single()
+        
+        if (messageRecord) {
+          for (const mediaUrl of mediaUrls) {
+            const { error: mediaError } = await supabaseAdmin
+              .from('message_media')
+              .insert({
+                message_id: messageRecord.id,
+                media_url: mediaUrl,
+                mime_type: 'image/jpeg', // Simplified - could detect from file
+                created_at: new Date().toISOString(),
+              })
+            
+            if (mediaError) {
+              console.error('[MMS] Error storing media in database:', mediaError)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[MMS] Error storing media metadata:', error)
+        // Don't fail the request - message was sent successfully
+      }
+    }
 
     // Update conversation activity
     const { error: conversationUpdateError } = await supabase
@@ -170,7 +281,7 @@ export async function POST(request: Request) {
     
     if (conversationUpdateError) {
       console.error('[Manual SMS] Error updating conversation:', conversationUpdateError)
-      // Don't fail the request - SMS was sent successfully
+      // Don't fail the request - message was sent successfully
     }
 
     return NextResponse.json({
@@ -179,6 +290,7 @@ export async function POST(request: Request) {
       leadId,
       conversationId: conversation.id,
       clientTempId,
+      mediaCount: mediaUrls.length,
       timestamp: new Date().toISOString()
     });
 

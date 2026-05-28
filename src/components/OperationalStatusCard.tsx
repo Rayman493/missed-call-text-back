@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import TestReplyFlowModal from '@/components/TestReplyFlowModal'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -40,6 +41,7 @@ export default function OperationalStatusCard({
   })
   const [loading, setLoading] = useState(true)
   const [showSystemDetails, setShowSystemDetails] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
   // Detect mobile screen size
@@ -205,7 +207,7 @@ export default function OperationalStatusCard({
           {/* Action Buttons */}
           <div className="flex gap-2 sm:gap-3">
             <button
-              onClick={onReviewSetup}
+              onClick={() => setShowTestModal(true)}
               className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
             >
               Test ReplyFlow
@@ -518,6 +520,12 @@ export default function OperationalStatusCard({
           Review Setup
         </button>
       </div>
+
+      {/* Test ReplyFlow Modal */}
+      <TestReplyFlowModal 
+        isOpen={showTestModal}
+        onClose={() => setShowTestModal(false)}
+      />
     </div>
   )
 }

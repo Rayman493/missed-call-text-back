@@ -620,14 +620,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [leadData?.id])
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent | File[]) => {
     // Prevent form submission and page refresh
-    if (e) {
+    if (e instanceof Event) {
       e.preventDefault()
     }
     
-    // Don't send if message is empty, whitespace, or already sending
-    if (!message.trim() || sending) return
+    // Check if media files were passed
+    const mediaFiles = Array.isArray(e) ? e : undefined
+    
+    // Don't send if message is empty (unless media is present), whitespace, or already sending
+    if (!message.trim() && !mediaFiles) return
+    if (sending) return
 
     // Create stable client temp ID
     const clientTempId = crypto.randomUUID()
@@ -651,22 +655,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     try {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
+
+      let response: Response
+
+      if (mediaFiles && mediaFiles.length > 0) {
+        // Use FormData for MMS
+        const formData = new FormData()
+        formData.append('leadId', params.id)
+        formData.append('message', message.trim())
+        formData.append('clientTempId', clientTempId)
+        
+        mediaFiles.forEach((file, index) => {
+          formData.append(`media_${index}`, file)
+        })
+
+        const headers: HeadersInit = {}
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+
+        response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers,
+          body: formData
+        })
+      } else {
+        // Use JSON for regular SMS
+        const headers: HeadersInit = { 'Content-Type': 'application/json' }
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+
+        response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ 
+            leadId: params.id, 
+            message: message.trim(),
+            clientTempId
+          })
+        })
       }
 
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ 
-          leadId: params.id, 
-          message: message.trim(),
-          clientTempId
-        })
-      })
-
-      const result = await response.json()
+      result = await response.json()
 
       if (!response.ok) {
         // Update optimistic message to failed state

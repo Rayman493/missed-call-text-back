@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Phone, Users, MessageSquare, Reply, Clock } from 'lucide-react'
+import { Phone, Users, MessageSquare, Reply, Clock, PhoneMissed, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface BusinessSnapshotProps {
   business: Business | null
@@ -14,6 +14,8 @@ interface KPIData {
   textsSent: number
   repliesReceived: number
   activeFollowUps: number
+  missedCallsCaptured: number
+  avgResponseTime: number | null
   period: string
 }
 
@@ -23,6 +25,8 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
     textsSent: 0,
     repliesReceived: 0,
     activeFollowUps: 0,
+    missedCallsCaptured: 0,
+    avgResponseTime: null,
     period: '30 days'
   })
   const [loading, setLoading] = useState(true)
@@ -63,12 +67,16 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         const textsSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const repliesReceived = messages?.filter((m: any) => m.direction === 'inbound').length || 0
         const activeFollowUps = followUpJobs?.length || 0
+        const missedCallsCaptured = leadsRecovered // Simplified - leads recovered = missed calls captured
+        const avgResponseTime = null // Would need more complex query to calculate
 
         setKpiData({
           leadsRecovered,
           textsSent,
           repliesReceived,
           activeFollowUps,
+          missedCallsCaptured,
+          avgResponseTime,
           period: '30 days'
         })
       } catch (error) {
@@ -91,6 +99,10 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         return <Reply className="w-5 h-5" />
       case 'followups':
         return <Clock className="w-5 h-5" />
+      case 'missed':
+        return <PhoneMissed className="w-5 h-5" />
+      case 'response':
+        return <Clock className="w-5 h-5" />
       default:
         return null
     }
@@ -106,6 +118,10 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         return 'text-amber-600 dark:text-amber-400'
       case 'followups':
         return 'text-purple-600 dark:text-purple-400'
+      case 'missed':
+        return 'text-red-600 dark:text-red-400'
+      case 'response':
+        return 'text-cyan-600 dark:text-cyan-400'
       default:
         return 'text-gray-600 dark:text-gray-400'
     }
@@ -121,27 +137,33 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       type: 'leads',
       label: 'Leads Recovered',
       value: kpiData.leadsRecovered,
-      description: 'Customers engaged'
+      description: 'Customers engaged',
+      trend: null
     },
     {
-      type: 'texts',
-      label: 'Texts Sent',
-      value: kpiData.textsSent,
-      description: 'Outreach messages'
+      type: 'missed',
+      label: 'Missed Calls',
+      value: kpiData.missedCallsCaptured,
+      description: 'Calls captured',
+      trend: null
     },
     {
       type: 'replies',
-      label: 'Replies',
+      label: 'Customer Replies',
       value: kpiData.repliesReceived,
-      description: 'Customer responses'
+      description: 'Responses',
+      trend: null
     },
     {
-      type: 'followups',
-      label: 'Active Follow-Ups',
-      value: kpiData.activeFollowUps,
-      description: 'In progress'
+      type: 'response',
+      label: 'Avg Response',
+      value: kpiData.avgResponseTime ? `${Math.round(kpiData.avgResponseTime / 60)}m` : '--',
+      description: kpiData.avgResponseTime ? 'Response time' : 'Not enough data',
+      trend: null
     }
   ]
+
+  const hasEnoughActivity = kpiData.leadsRecovered > 0 || kpiData.textsSent > 0 || kpiData.repliesReceived > 0
 
   if (loading) {
     return (
@@ -169,29 +191,36 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         <div className="text-xs text-muted-foreground">Last {kpiData.period}</div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
-        {kpiItems.map((item) => (
-          <div
-            key={item.type}
-            className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-2.5 hover:border-white/20 hover:bg-slate-800/50 transition-all duration-200"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-4 h-4 ${getKPIColor(item.type)}`}>
-                {getKPIIcon(item.type)}
+      {!hasEnoughActivity ? (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 text-center">
+          <p className="text-sm text-slate-300">Not enough activity yet</p>
+          <p className="text-xs text-slate-400 mt-1">Metrics will appear once you start receiving calls</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
+          {kpiItems.map((item) => (
+            <div
+              key={item.type}
+              className="border border-white/8 bg-slate-900 dark:bg-slate-900/60 rounded-lg p-2.5 hover:border-white/20 hover:bg-slate-800/50 transition-all duration-200"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-4 h-4 ${getKPIColor(item.type)}`}>
+                  {getKPIIcon(item.type)}
+                </div>
+                <div className="text-xs text-muted-foreground/80 font-medium">{item.label}</div>
               </div>
-              <div className="text-xs text-muted-foreground/80 font-medium">{item.label}</div>
+              
+              <div className={`text-xl font-bold ${getKPIColor(item.type)} mb-1.5`}>
+                {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
+              </div>
+              
+              <div className="text-xs text-muted-foreground/60">
+                {item.description}
+              </div>
             </div>
-            
-            <div className={`text-xl font-bold ${getKPIColor(item.type)} mb-1.5`}>
-              {item.value.toLocaleString()}
-            </div>
-            
-            <div className="text-xs text-muted-foreground/60">
-              {item.description}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

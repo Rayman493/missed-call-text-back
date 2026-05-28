@@ -106,7 +106,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {!isHomepage && !isContentPage && (
                         <>
                           <Link
-                            href="/"
+                            href="/home"
                             className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
                           >
                             Home
@@ -185,7 +185,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   {!isHomepage && !isContentPage && (
                     <>
                       <Link
-                        href="/"
+                        href="/home"
                         className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
                       >
                         Home

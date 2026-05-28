@@ -45,7 +45,7 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t-2 border-border/60 bg-card/95 backdrop-blur-md p-3 sm:p-4 lg:p-5 pb-4 sm:pb-6 sticky bottom-0 z-50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="border-t-2 border-border/60 bg-card/95 backdrop-blur-md p-3 sm:p-4 lg:p-5 pb-4 sm:pb-6 z-50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">

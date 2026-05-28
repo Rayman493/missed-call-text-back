@@ -89,7 +89,6 @@ export default function VoicemailMessage({
   useEffect(() => {
     const initializeAudioUrl = async () => {
       if (recording.recording_status !== 'completed' || !recording.recording_url) {
-        console.log('[VOICEMAIL FRONTEND] Skipping initialization - status:', recording.recording_status, 'has URL:', !!recording.recording_url)
         return
       }
 
@@ -98,15 +97,6 @@ export default function VoicemailMessage({
 
       try {
         const recordingSid = extractRecordingSid(recording.recording_url)
-        
-        // COMPREHENSIVE FRONTEND LOGGING
-        console.log('[VOICEMAIL FRONTEND] Voicemail Data:', {
-          voicemailId: recording.id,
-          recordingSid: recordingSid,
-          recordingUrl: recording.recording_url,
-          recordingStatus: recording.recording_status,
-          recordingDuration: recording.recording_duration
-        })
 
         if (!recordingSid) {
           console.error('[VOICEMAIL FRONTEND] Failed to extract recording SID from URL:', recording.recording_url)
@@ -114,14 +104,6 @@ export default function VoicemailMessage({
         }
 
         const secureUrl = await createSecureAudioUrl(recordingSid)
-        
-        console.log('[VOICEMAIL FRONTEND] Generated secure URL:', {
-          recordingSid,
-          secureUrl,
-          expectedApiCall: `/api/voicemail/${recordingSid}`
-        })
-        
-        console.log('[VOICEMAIL DEBUG] Recording URL for testing:', secureUrl)
         
         setAudioUrl(secureUrl)
       } catch (error) {
@@ -139,7 +121,6 @@ export default function VoicemailMessage({
   useEffect(() => {
     return () => {
       if (blobUrl) {
-        console.log('[VOICEMAIL DEBUG] Revoking blob URL on unmount:', recording.id)
         URL.revokeObjectURL(blobUrl)
         setBlobUrl(null)
       }
@@ -153,12 +134,10 @@ export default function VoicemailMessage({
     
     const audioDuration = audio.duration || recording.recording_duration || 0
     if (isNaN(audioDuration) || !isFinite(audioDuration)) {
-      console.log('[VOICEMAIL PLAYER] Invalid duration:', audioDuration)
       setDuration(recording.id, 0)
       return
     }
     
-    console.log('[VOICEMAIL PLAYER] loaded metadata - duration:', audioDuration)
     setDuration(recording.id, audioDuration)
     setCanSeek(true)
   }
@@ -180,13 +159,10 @@ export default function VoicemailMessage({
     
     const audioDuration = audio.duration || recording.recording_duration || 0
     if (isNaN(audioDuration) || !isFinite(audioDuration)) return
-    
-    console.log('[VOICEMAIL PLAYER] duration change - duration:', audioDuration)
     setDuration(recording.id, audioDuration)
   }
 
   const handleEnded = () => {
-    console.log('[VOICEMAIL PLAYER] audio ended')
     setIsPlaying(false)
     setIsEnded(recording.id, true)
     // Keep currentTime at duration to show progress at the end
@@ -195,7 +171,6 @@ export default function VoicemailMessage({
   }
 
   const handleSeeked = () => {
-    console.log('[VOICEMAIL PLAYER] audio seeked')
     // Reset isEnded state when user seeks
     if (isEnded) {
       setIsEnded(recording.id, false)
@@ -210,7 +185,6 @@ export default function VoicemailMessage({
   }
 
   const togglePlayPause = async () => {
-    console.log('[VOICEMAIL DEBUG] play clicked for voicemail:', recording.id)
     logAllAudioElements()
     
     const audio = audioRef.current
@@ -220,17 +194,13 @@ export default function VoicemailMessage({
     }
 
     if (isPlaying) {
-      console.log('[VOICEMAIL FRONTEND] Pausing audio')
       audio.pause()
       setIsPlaying(false)
       // Save current time to progress context (already done by timeupdate)
       audioManager.requestPause(recording.id)
     } else {
-      console.log('[VOICEMAIL FRONTEND] Starting audio playback')
-      
       // Reset to beginning only if audio has ended
       if (isEnded) {
-        console.log('[VOICEMAIL FRONTEND] Audio ended, resetting to beginning')
         audio.currentTime = 0
         setCurrentTime(recording.id, 0)
         setIsEnded(recording.id, false)
@@ -238,31 +208,26 @@ export default function VoicemailMessage({
         // Restore saved currentTime for resumed playback
         const savedCurrentTime = currentTime
         if (savedCurrentTime > 0) {
-          console.log('[VOICEMAIL FRONTEND] Restoring saved currentTime:', savedCurrentTime)
           audio.currentTime = savedCurrentTime
         }
       }
       
       // Prevent multiple play requests on the same audio element
       if (!audio.paused) {
-        console.log('[VOICEMAIL FRONTEND] Audio already playing, ignoring duplicate play request')
         return
       }
       
       // Check if we already have audio loaded - reuse it if we do
       if (audio.src && blobUrl) {
-        console.log('[VOICEMAIL PLAYER] Reusing existing audio src and blob URL')
         
         try {
           // Request play from audio manager (will pause other voicemails if needed)
           const canPlay = await audioManager.requestPlay(recording.id)
           if (!canPlay) {
-            console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
             return
           }
           
           await audio.play()
-          console.log('[VOICEMAIL FRONTEND] Audio playback started successfully (reused)')
           setIsPlaying(true)
         } catch (error) {
           console.error('[VOICEMAIL FRONTEND] Failed to play reused audio:', error)
@@ -279,15 +244,11 @@ export default function VoicemailMessage({
         return
       }
       
-      console.log('[VOICEMAIL PLAYER] Fetching recording for first time')
-      
       try {
         const supabase = createBrowserClient()
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.access_token) {
-            console.log('[VOICEMAIL FRONTEND] Making authenticated request to:', audioUrl)
-            
             // Create a new request with authentication headers
             const response = await fetch(audioUrl, {
               headers: {
@@ -295,18 +256,10 @@ export default function VoicemailMessage({
               }
             })
             
-            console.log('[VOICEMAIL FRONTEND] API Response:', {
-              status: response.status,
-              statusText: response.statusText,
-              ok: response.ok,
-              headers: Object.fromEntries(response.headers.entries())
-            })
-            
             if (response.ok) {
               const audioBlob = await response.blob()
               const objectUrl = URL.createObjectURL(audioBlob)
               setBlobUrl(objectUrl)
-              console.log('[VOICEMAIL FRONTEND] Created new blob URL:', objectUrl)
               
               // Set the audio source and load it
               audio.src = objectUrl
@@ -314,7 +267,6 @@ export default function VoicemailMessage({
               
               // Clean up object URL when audio finishes
               const handleEnded = () => {
-                console.log('[VOICEMAIL FRONTEND] Audio playback ended')
                 URL.revokeObjectURL(objectUrl)
                 setBlobUrl(null)
                 audio.removeEventListener('ended', handleEnded)
@@ -332,18 +284,14 @@ export default function VoicemailMessage({
               
               // Wait for audio to load before playing
               audio.addEventListener('canplay', async () => {
-                console.log('[VOICEMAIL FRONTEND] Audio can play, requesting play from audio manager')
-                
                 // Request play from audio manager (will pause other voicemails if needed)
                 const canPlay = await audioManager.requestPlay(recording.id)
                 if (!canPlay) {
-                  console.log('[VOICEMAIL FRONTEND] Audio manager denied play request')
                   return
                 }
                 
                 try {
                   await audio.play()
-                  console.log('[VOICEMAIL FRONTEND] Audio playback started successfully (first time)')
                   setIsPlaying(true)
                 } catch (error) {
                   console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)

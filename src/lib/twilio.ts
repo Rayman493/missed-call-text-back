@@ -449,6 +449,156 @@ export async function sendSms(
   }
 }
 
+export async function sendMms(
+  business: any,
+  to: string,
+  message: string,
+  mediaUrls: string[],
+  options?: {
+    lead_id?: string;
+    conversation_id?: string;
+  }
+): Promise<string | null> {
+  // Validate Twilio environment for SMS operations
+  const smsValidation = validateTwilioForSms();
+  
+  console.log('[MMS SEND] Starting sendMms:', {
+    business_id: business.id,
+    business_name: business.name,
+    to,
+    message_length: message.length,
+    media_count: mediaUrls.length,
+    lead_id: options?.lead_id,
+    conversation_id: options?.conversation_id,
+    twilio_phone_number: business.twilio_phone_number,
+    messaging_service_sid: business.messaging_service_sid,
+    provisioning_status: business.provisioning_status
+  });
+  
+  if (!smsValidation.isValid) {
+    console.error('[MMS FAILED] Twilio validation failed:', smsValidation.error);
+    await logFailedMessage(business, to, message || '[MMS]', options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
+    return null;
+  }
+
+  // Verify business has a canonical number
+  if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
+    console.error('[MMS FAILED] No canonical Twilio number assigned to business');
+    await logFailedMessage(business, to, message || '[MMS]', options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
+    return null;
+  }
+
+  // FAIL-SAFE: Check if number is ready for use before sending
+  const isReady = await isNumberReadyForUse(business.id);
+  
+  if (!isReady) {
+    console.error('[MMS FAILED] Number not ready for use - provisioning incomplete');
+    await logFailedMessage(business, to, message || '[MMS]', options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
+    return null;
+  }
+
+  // Handle simulation mode
+  if (smsValidation.method === 'simulated') {
+    console.log('[MMS] 🧪 Simulated MMS sent:', { to, mediaCount: mediaUrls.length });
+    
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound',
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: `SIM_MMS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        status: 'simulated',
+        error_message: null,
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('[MMS] Failed to insert simulated message record:', insertError);
+    }
+
+    return `SIM_MMS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  const client = Twilio(
+    process.env.TWILIO_ACCOUNT_SID!,
+    process.env.TWILIO_AUTH_TOKEN!
+  );
+
+  let messageResult;
+  let errorMessage = '';
+  let errorCode = '';
+
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
+    const fromNumber = business.twilio_phone_number;
+
+    console.log('[MMS SEND] Calling Twilio API with media:', {
+      business_id: business.id,
+      to,
+      from: fromNumber,
+      mediaUrls,
+      messageLength: message.length,
+      statusCallbackUrl
+    });
+
+    messageResult = await client.messages.create({
+      body: message,
+      to,
+      from: fromNumber,
+      mediaUrl: mediaUrls,
+      statusCallback: statusCallbackUrl,
+    });
+
+    console.log('[MMS SEND] Twilio API call succeeded:', {
+      message_sid: messageResult.sid,
+      status: messageResult.status
+    });
+
+    // Insert successful message record into database
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound',
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: messageResult.sid,
+        status: messageResult.status,
+        sent_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('[MMS SEND] message insert failed:', insertError);
+    }
+
+    return messageResult.sid
+  } catch (error: any) {
+    console.error('[MMS FAILED] Twilio send failed:', {
+      business_id: business.id,
+      to,
+      error_code: error?.code,
+      error_message: error?.message,
+      error_status: error?.status,
+    });
+    
+    errorCode = error?.code || 'UNKNOWN';
+    errorMessage = error?.message || 'Unknown error occurred';
+    
+    await logFailedMessage(business, to, message || '[MMS]', options, errorMessage, errorCode, true);
+    
+    return null
+  }
+}
+
 // Helper function to log failed message attempts
 async function logFailedMessage(
   business: any,

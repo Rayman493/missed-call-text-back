@@ -123,12 +123,15 @@ export default function UserDropdown() {
                 
                 {/* View Homepage */}
                 <Link
-                  href="/"
-                  onClick={() => setIsOpen(false)}
+                  href="/home"
+                  onClick={() => {
+                    console.log('[VIEW PUBLIC SITE LINK CLICKED] User clicked View public site link')
+                    setIsOpen(false)
+                  }}
                   className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
                 >
                   <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                  View Homepage
+                  View public site
                 </Link>
                 
                 {/* Divider before Logout */}

@@ -320,7 +320,7 @@ export default function DashboardContent() {
     if (needsPersistedCompletion) {
       const completionReason = hasConversations ? 'conversation_exists' : 'lead_exists'
       
-      console.log('[SETUP COMPLETION CHECK]', {
+      dlog('[SETUP COMPLETION CHECK]', {
         businessId: business.id,
         hasSuccessfulMissedCall: shouldAutoComplete,
         hasCapturedLead: hasLeads,
@@ -355,7 +355,7 @@ export default function DashboardContent() {
           if (error) {
             console.error('[SETUP AUTO COMPLETED] Failed to persist completion:', error)
           } else {
-            console.log('[SETUP AUTO COMPLETED]', {
+            dlog('[SETUP AUTO COMPLETED]', {
               businessId: business.id,
               completionReason
             })
@@ -397,7 +397,7 @@ export default function DashboardContent() {
       return
     }
 
-    console.log('[Checkout Recovery] Starting recovery window for checkout=success')
+    dlog('[Checkout Recovery] Starting recovery window for checkout=success')
     setIsRecoveringSession(true)
 
     // Clean up localStorage markers
@@ -423,7 +423,7 @@ export default function DashboardContent() {
         }
 
         if (session && session.user) {
-          console.log('[Checkout Recovery] Session restored successfully')
+          dlog('[Checkout Recovery] Session restored successfully')
           sessionRestored = true
           return true
         }

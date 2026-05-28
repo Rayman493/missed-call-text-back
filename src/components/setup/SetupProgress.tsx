@@ -20,6 +20,7 @@ import CompletedMonitoringCard from './CompletedMonitoringCard'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import SetupReviewPanel from '@/components/SetupReviewPanel'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
+import OperationalTrustIndicators from '@/components/OperationalTrustIndicators'
 
 type OnboardingState = 
   | 'loading'
@@ -52,7 +53,6 @@ interface SetupProgressProps {
 const COLLAPSE_PREFERENCE_KEY = 'setupProgressCollapsed'
 
 export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProps) {
-  console.log('[SetupProgress] Component render -', new Date().toISOString())
   const { business, refreshBusiness } = useBusiness()
   const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(false)
@@ -136,41 +136,9 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
         }
 
         const hasRealData = (callEventsCount || 0) > 0 || (leadsCount || 0) > 0 || (conversationsCount || 0) > 0
-        console.log('[Setup Progress] Step 4 real DB state check:', {
-          businessId: business.id,
-          forwarding_verified: business.forwarding_verified,
-          forwarding_verified_at: business.forwarding_verified_at,
-          callEventsCount,
-          leadsCount,
-          conversationsCount,
-          hasRealData,
-          step4Complete: business.forwarding_verified || hasRealData
-        })
 
-        // Log onboarding completion event
+        // Auto-repair: update business record to mark forwarding as verified
         if (hasRealData && !business.forwarding_verified && realCallDataExists === false) {
-          console.log('[ONBOARDING COMPLETE]', {
-            businessId: business.id,
-            reason: 'Real data detected (missed call processed)',
-            leadId: leadsCount > 0 ? 'existing' : 'unknown',
-            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-            callEventsCount,
-            leadsCount,
-            conversationsCount
-          })
-          
-          // Auto-repair: update business record to mark forwarding as verified
-          console.log('[Setup Progress] Auto-repair: marking forwarding_verified for business with real call data:', business.id)
-          console.log('[ONBOARDING COMPLETE]', {
-            businessId: business.id,
-            reason: 'Auto-repair: Real data detected, updating onboarding_status to completed',
-            leadId: leadsCount > 0 ? 'existing' : 'unknown',
-            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-            callEventsCount,
-            leadsCount,
-            conversationsCount,
-            previousStatus: business.onboarding_status
-          })
           const { error: updateError } = await supabase
             .from('businesses')
             .update({ 
@@ -183,17 +151,6 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
           if (updateError) {
             console.error('[Setup Progress] Auto-repair failed:', updateError)
           } else {
-            console.log('[Setup Progress] Auto-repair successful for business:', business.id)
-            console.log('[ONBOARDING COMPLETE]', {
-              businessId: business.id,
-              reason: 'Auto-repair completed: forwarding_verified and onboarding_status updated',
-              leadId: leadsCount > 0 ? 'existing' : 'unknown',
-              conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-              callEventsCount,
-              leadsCount,
-              conversationsCount,
-              newStatus: 'completed'
-            })
             // Refresh business to get updated state
             refreshBusiness()
           }
@@ -479,6 +436,7 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
             }
           </p>
         </div>
+        <OperationalTrustIndicators />
         <button
           onClick={handleToggle}
           className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"

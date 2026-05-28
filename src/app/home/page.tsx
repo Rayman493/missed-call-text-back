@@ -1,7 +1,4 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
@@ -75,7 +72,7 @@ function HomepageFooter() {
             <h3 className="text-sm font-semibold text-foreground mb-8">Product</h3>
             <ul className="space-y-4">
               <li>
-                <Link href="/#features" className="text-muted-foreground hover:text-foreground text-base transition-colors">
+                <Link href="/home#features" className="text-muted-foreground hover:text-foreground text-base transition-colors">
                   Features
                 </Link>
               </li>
@@ -138,53 +135,10 @@ function HomepageFooter() {
   )
 }
 
-export default async function Home() {
-  console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Starting auth check')
+export default function PublicHome() {
+  console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home')
   
-  const cookieStore = cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-      },
-    }
-  )
-
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (session?.user) {
-    console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] User is authenticated')
-    
-    // Check if user has a business
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single()
-
-    console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Business check', {
-      hasBusiness: !!business,
-      onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status
-    })
-
-    // Redirect to dashboard if business exists and setup is complete
-    if (business) {
-      console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Redirecting to dashboard')
-      redirect('/dashboard')
-    } else {
-      console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Redirecting to onboarding')
-      redirect('/onboarding')
-    }
-  }
-
-  console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Rendering public homepage for unauthenticated user')
-  
-  // Render public homepage for unauthenticated users
+  // Render public homepage for all users (no auth check)
   return (
     <>
       <StructuredData />
