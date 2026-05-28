@@ -6,6 +6,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { notificationServiceServer } from '@/lib/notifications-server';
+import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 
 export async function POST(request: NextRequest) {
@@ -136,6 +137,9 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[VOICEMAIL] Lead created:', lead.id);
+      
+      // Mark forwarding as verified when real lead is created from voicemail
+      await markForwardingVerified(business.id, 'real_voicemail_lead_created');
       
       // Create notification for new lead
       try {

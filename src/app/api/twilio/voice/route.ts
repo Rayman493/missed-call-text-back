@@ -14,6 +14,7 @@ import { checkAllGuards } from '@/lib/ai-call-assistant/config';
 import { createAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationService } from '@/lib/notifications';
+import { markForwardingVerified } from '@/lib/forwarding-verification';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -550,6 +551,9 @@ export async function POST(request: NextRequest) {
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);
         await timelineEvents.leadCreated(business.id, lead.id, '', normalizedCallerPhone);
+        
+        // Mark forwarding as verified when real lead is created from missed call
+        await markForwardingVerified(business.id, 'real_missed_call_lead_created');
         
         // Create notification for new lead
         try {

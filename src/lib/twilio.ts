@@ -2,6 +2,7 @@ import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
 import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
 import { isNumberReadyForUse } from './twilio-provisioning-service';
+import { markForwardingVerified } from './forwarding-verification';
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -391,6 +392,13 @@ export async function sendSms(
         error_code: twilioErrorCode,
         error_message: twilioErrorMessage
       });
+    }
+
+    // Mark forwarding as verified for successful auto-response SMS
+    // Only trigger for auto-replies (when lead_id is provided but conversation_id might be null for new leads)
+    if (options?.lead_id && !options?.conversation_id) {
+      // This is likely an auto-response to a new lead
+      await markForwardingVerified(business.id, 'auto_response_sms_sent');
     }
 
     return messageResult.sid
