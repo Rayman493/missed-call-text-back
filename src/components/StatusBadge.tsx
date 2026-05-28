@@ -2,9 +2,9 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
   // Override for carrier blocking
   if (errorCode === '30007') {
     return (
-      <span className="px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 bg-red-900/30 text-red-400 border border-red-800">
-        <span className="text-base">🚫</span>
-        <span>Blocked (Carrier)</span>
+      <span className="px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 bg-amber-900/30 text-amber-400 border border-amber-800">
+        <span className="text-base">⏳</span>
+        <span>Phone setup pending</span>
       </span>
     );
   }
