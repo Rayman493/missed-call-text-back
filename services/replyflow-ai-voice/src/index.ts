@@ -691,39 +691,11 @@ wss.on('connection', (ws, req) => {
           intakeData = createIntakeData(businessName, callSid, businessId, sessionId);
           console.log('[AI INTAKE] initialized with business:', businessName);
 
-          // Build dynamic instructions
-          let instructions = '';
-          if (customGreeting) {
-            instructions = customGreeting;
-          } else {
-            instructions = `You are ReplyFlow's phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.
-
-You are a missed-call receptionist for ${businessName}. Your job is to gather basic information after a missed call.
-
-Rules:
-- Keep responses under 1 sentence
-- Ask only ONE question at a time
-- Never start with "Sure we can help"
-- Never over-explain
-- Always speak English
-- If unclear, say: "Sorry, could you repeat that?"
-
-First message must ALWAYS be:
-"Sorry we missed your call for ${businessName}. Could you briefly let me know the reason for your call?"
-
-Then ask in order:
-1. "Thanks. Can I get your name?"
-2. "What's the best number to reach you back at?"
-3. "Is this urgent or can someone follow up later today?"
-4. "Perfect, thanks. I'll pass this along to the team and someone will follow up shortly."
-
-Never provide technical help or advice. Just gather information and end the call.`;
-          }
+          // Instructions are now handled via session.update - disable old system
+          console.log('[AI] using session.update instructions - old system disabled');
           
-          console.log('[AI] greeting instructions created', { instructionsLength: instructions.length });
-          
-          // Store instructions for use in OpenAI response
-          (ws as any).aiInstructions = instructions;
+          // Store empty placeholder to avoid undefined errors
+          (ws as any).aiInstructions = '';
 
           // Check for required parameters
           if (!sessionId || !callSid) {
@@ -1018,44 +990,11 @@ Do NOT:
                   returned: message.session?.audio
                 });
                 
-                // Now send deterministic intake greeting after session.updated
-                if (intakeData) {
-                  const intakeResponse = getIntakeResponse(intakeData);
-                  const testMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: intakeResponse.response + ' Always respond in English only.',
-                    },
-                  };
-                  console.log('[AI GREETING ENGLISH SENT] - missed-call receptionist opening');
-                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
-                  greetingSent = true;
-                  console.log('[GREETING SENT]');
-                  console.log('[AI INTAKE] first message:', intakeResponse.response);
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(testMessage));
-                  }
-                  console.log('[RESPONSE CREATED]');
-                  
-                  // Update intake stage
-                  intakeData.stage = intakeResponse.nextStage;
-                } else {
-                  // Fallback greeting
-                  const testMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: 'Thanks for calling ReplyFlow. May I have your name? Always respond in English only.',
-                    },
-                  };
-                  console.log('[AI RESPONSE LANGUAGE LOCK] english');
-                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
-                  greetingSent = true;
-                  console.log('[GREETING SENT]');
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(testMessage));
-                  }
-                  console.log('[RESPONSE CREATED]');
-                }
+                // Let OpenAI automatically generate greeting from receptionist instructions
+                // No manual response.create needed since create_response: true
+                console.log('[GREETING] OpenAI will auto-generate from receptionist instructions');
+                greetingSent = true;
+                console.log('[GREETING SENT] - auto-generation triggered');
                 
                 // Set flag to enable manual fallback after greeting
                 twilioHandler.setGreetingSent();
