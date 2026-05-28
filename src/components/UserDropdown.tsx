@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { handleBillingAction } from '@/lib/billing'
-import ThemeSelector from '@/components/ThemeSelector'
+// import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User } from 'lucide-react'
 
@@ -42,8 +42,13 @@ export default function UserDropdown() {
     validateSession()
   }, [user, supabase])
 
-  // Click outside detection
+  // Click outside detection with mobile safety
   useEffect(() => {
+    // Skip if window/document not available (SSR or mobile issues)
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
@@ -57,13 +62,21 @@ export default function UserDropdown() {
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleEscapeKey)
+      try {
+        document.addEventListener('mousedown', handleClickOutside)
+        document.addEventListener('keydown', handleEscapeKey)
+      } catch (error) {
+        console.warn('[UserDropdown] Failed to add event listeners:', error)
+      }
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscapeKey)
+      try {
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('keydown', handleEscapeKey)
+      } catch (error) {
+        console.warn('[UserDropdown] Failed to remove event listeners:', error)
+      }
     }
   }, [isOpen])
 
@@ -85,7 +98,10 @@ export default function UserDropdown() {
     try {
       const result = await handleBillingAction()
       if (result.success && result.url) {
-        window.location.href = result.url
+        // Defensive guard for window access
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.href = result.url
+        }
       }
       setIsOpen(false)
     } catch (error) {

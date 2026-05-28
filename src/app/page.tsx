@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
+import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
 import { motion } from 'framer-motion'
 
 // Structured Data for Google Search
@@ -193,15 +194,16 @@ export default async function Home() {
         <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
-        <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="flex flex-col items-center text-center"
-          >
+      <HomepageErrorBoundary>
+        <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
+          <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="flex flex-col items-center text-center"
+            >
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
               Missed Calls Automatically Get a Text Reply
             </h1>
@@ -271,30 +273,32 @@ export default async function Home() {
           </motion.div>
         </div>
       </section>
+      </HomepageErrorBoundary>
 
       {/* How It Works Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
-            >
-              How ReplyFlow Works
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              viewport={{ once: true }}
-              className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
-            >
-              Never lose another lead from a missed call.
-            </motion.p>
-          </div>
+      <HomepageErrorBoundary>
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                viewport={{ once: true }}
+                className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
+              >
+                How ReplyFlow Works
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+                viewport={{ once: true }}
+                className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
+              >
+                Never lose another lead from a missed call.
+              </motion.p>
+            </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {/* Card 1 */}
             <motion.div 
@@ -343,9 +347,11 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      </HomepageErrorBoundary>
 
       {/* Example Conversation Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+      <HomepageErrorBoundary>
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <motion.h2 
@@ -419,9 +425,11 @@ export default async function Home() {
           </motion.div>
         </div>
       </section>
+      </HomepageErrorBoundary>
 
       {/* Trust Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+      <HomepageErrorBoundary>
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -495,9 +503,11 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      </HomepageErrorBoundary>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-24 sm:py-28 border-t border-slate-200 dark:border-border">
+      <HomepageErrorBoundary>
+        <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-24 sm:py-28 border-t border-slate-200 dark:border-border">
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -520,6 +530,7 @@ export default async function Home() {
           </motion.div>
         </div>
       </section>
+      </HomepageErrorBoundary>
       <HomepageFooter />
       </PageBackground>
     </>

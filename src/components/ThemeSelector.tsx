@@ -18,7 +18,10 @@ export default function ThemeSelector() {
   }
 
   useEffect(() => {
-    setMounted(true)
+    // Additional safety check for mobile
+    if (typeof window !== 'undefined') {
+      setMounted(true)
+    }
   }, [])
 
   if (!mounted) {
