@@ -1132,19 +1132,50 @@ Never provide technical help or advice. Just gather information and end the call
                 
                 // Base64 encode μ-law bytes
                 const mulawBase64 = mulawBytes.toString('base64');
-                console.log('[AUDIO OUT] sending converted mulaw to Twilio', { streamSidExists: !!twilioHandler.getStreamSid(), payloadLength: mulawBase64.length });
+                const streamSid = twilioHandler.getStreamSid();
+                
+                console.log('[AUDIO OUT] converted mulaw ready', { 
+                  streamSidExists: !!streamSid, 
+                  payloadLength: mulawBase64.length 
+                });
+                
+                // Only send audio if streamSid is available
+                if (!streamSid) {
+                  console.log('[AUDIO OUT] SKIPPED - streamSid not available yet');
+                  return;
+                }
                 
                 // Send audio to Twilio with exact shape
                 const mediaMessage = {
                   event: 'media',
-                  streamSid: twilioHandler.getStreamSid(),
+                  streamSid: streamSid,
                   media: {
                     payload: mulawBase64,
                   },
                 };
                 
+                // Log exact outbound message shape
+                console.log('[TWILIO OUTBOUND MEDIA MESSAGE]', {
+                  event: mediaMessage.event,
+                  streamSid: mediaMessage.streamSid,
+                  hasPayload: !!mediaMessage.media?.payload,
+                  payloadLength: mediaMessage.media?.payload?.length || 0
+                });
+                
                 ws.send(JSON.stringify(mediaMessage));
                 console.log('[AUDIO OUT SENT TO TWILIO]');
+                
+                // Send mark event to indicate audio chunk completion
+                const markMessage = {
+                  event: 'mark',
+                  streamSid: streamSid,
+                  mark: {
+                    name: 'ai-response-chunk'
+                  }
+                };
+                
+                ws.send(JSON.stringify(markMessage));
+                console.log('[TWILIO MARK EVENT SENT]');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
