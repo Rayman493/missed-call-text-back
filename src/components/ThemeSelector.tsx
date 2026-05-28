@@ -6,7 +6,16 @@ import { useState, useEffect } from 'react'
 
 export default function ThemeSelector() {
   const [mounted, setMounted] = useState(false)
-  const { theme, setTheme } = useTheme()
+  let theme: string = 'system'
+  let setTheme: (theme: string) => void = () => {}
+  
+  try {
+    const themeHook = useTheme()
+    theme = themeHook?.theme || 'system'
+    setTheme = themeHook?.setTheme || (() => {})
+  } catch (error) {
+    console.warn('[ThemeSelector] Theme hook not available, using fallback')
+  }
 
   useEffect(() => {
     setMounted(true)
