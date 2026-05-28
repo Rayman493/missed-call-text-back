@@ -221,108 +221,127 @@ export default async function Home() {
         <SSRSafeNavbar forceDark={true} />
         {(() => { console.log('[ROOT PAGE] after SSRSafeNavbar'); return null; })()}
       
-      {/* Hero Section - TEMPORARILY COMMENTED OUT TO ISOLATE CRASH */}
-      {(() => { console.log('[ROOT PAGE] Hero Section commented out for crash isolation'); return null; })()}
-      {/* <HomepageErrorBoundary>
+      {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
+      {(() => { console.log('[ROOT PAGE] before safe Hero Section'); return null; })()}
+      <HomepageErrorBoundary>
         <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
           <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
-            {(() => { console.log('[ROOT PAGE] before motion.div'); return null; })()}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex flex-col items-center text-center"
-            >
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-              Missed Calls Automatically Get a Text Reply
-            </h1>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed mt-5 sm:mt-6">
-              ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
-            </p>
-            
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-              >
-                Start Free Trial
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      </HomepageErrorBoundary> */}
+            {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
+            <div className="flex flex-col items-center text-center">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
+                Missed Calls Automatically Get a Text Reply
+              </h1>
+              <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed mt-5 sm:mt-6">
+                ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
+              </p>
+              
+              {/* Pricing Information */}
+              <div className="flex flex-col items-center gap-2 mt-4">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
+                <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
+              </div>
+              
+              {/* Trust Copy */}
+              <div className="flex flex-col items-center gap-1 mt-3">
+                <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
+                <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
+              </div>
+              
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                {/* Primary CTA */}
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
+                >
+                  Start Free Trial
+                </Link>
+              </div>
 
-      {/* How It Works Section */}
+              {/* Trust/Simplicity Bar */}
+              <div className="mt-12 pt-8 border-t border-slate-200/60 dark:border-slate-700/60">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="flex flex-col items-center text-center">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Works with your existing number
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Setup in under 5 minutes
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      No app download required
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Built for local businesses
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {(() => { console.log('[ROOT PAGE] after hero content'); return null; })()}
+          </div>
+        </section>
+      </HomepageErrorBoundary>
+      {(() => { console.log('[ROOT PAGE] after safe Hero Section'); return null; })()}
+
+      {/* How It Works Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
+      {(() => { console.log('[ROOT PAGE] before How It Works Section'); return null; })()}
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                viewport={{ once: true }}
-                className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
-              >
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 How ReplyFlow Works
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-                viewport={{ once: true }}
-                className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
-              >
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
                 Never lose another lead from a missed call.
-              </motion.p>
+              </p>
             </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {/* Card 1 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
-            >
+            <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">1</span>
               </div>
               <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Customer calls your business</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">A potential customer calls your business number</p>
-            </motion.div>
+            </div>
             
             {/* Card 2 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
-            >
+            <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative">
               <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">2</span>
               </div>
               <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">ReplyFlow instantly texts them back</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">If you miss the call, we automatically send a personalized text response</p>
-            </motion.div>
+            </div>
             
             {/* Card 3 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative"
-            >
+            <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-8 text-center relative">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">3</span>
               </div>
               <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">The customer replies and becomes a lead</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground leading-relaxed">They reply to your text and you've captured a new lead</p>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -333,33 +352,15 @@ export default async function Home() {
         <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
-            >
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
               Example Conversation
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              viewport={{ once: true }}
-              className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
-            >
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
               Here's what your customers experience after a missed call
-            </motion.p>
+            </p>
           </div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-            viewport={{ once: true }}
-            className="max-w-2xl mx-auto"
-          >
+          <div className="max-w-2xl mx-auto">
             <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
               {/* Business Message 1 - ReplyFlow sends first text */}
               <div className="flex justify-end mb-5">
@@ -401,38 +402,27 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
       </HomepageErrorBoundary>
 
       {/* Trust Section */}
+      {(() => { console.log('[ROOT PAGE] before Trust Section'); return null; })()}
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
               Trusted by local businesses
             </h2>
             <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
               Built for businesses that value every customer interaction
             </p>
-          </motion.div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center"
-            >
+            <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -442,15 +432,9 @@ export default async function Home() {
               <p className="text-base text-slate-600 dark:text-muted-foreground">
                 Follows SMS best practices and compliance guidelines
               </p>
-            </motion.div>
+            </div>
             
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center"
-            >
+            <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 border border-emerald-100 dark:border-emerald-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -460,15 +444,9 @@ export default async function Home() {
               <p className="text-base text-slate-600 dark:text-muted-foreground">
                 Your data is encrypted and never shared with third parties
               </p>
-            </motion.div>
+            </div>
             
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center"
-            >
+            <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 border border-purple-100 dark:border-purple-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -478,7 +456,7 @@ export default async function Home() {
               <p className="text-base text-slate-600 dark:text-muted-foreground">
                 Get started in minutes with no technical expertise needed
               </p>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -488,12 +466,7 @@ export default async function Home() {
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-24 sm:py-28 border-t border-slate-200 dark:border-border">
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true }}
-          >
+          <div>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
               Ready to never miss a customer again?
             </h2>
@@ -506,7 +479,7 @@ export default async function Home() {
             >
               Start Your 14-Day Free Trial
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
       </HomepageErrorBoundary>
