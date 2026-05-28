@@ -697,7 +697,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
       }
 
-      result = await response.json()
+      const result = await response.json()
 
       if (!response.ok) {
         // Update optimistic message to failed state

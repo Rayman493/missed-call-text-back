@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
