@@ -26,6 +26,170 @@ const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 // Initialize Supabase client
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+// Intake state machine types
+type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'complete';
+
+interface IntakeData {
+  stage: IntakeStage;
+  callerName?: string;
+  callerReason?: string;
+  callbackNumber?: string;
+  urgency?: 'urgent' | 'normal';
+  businessName: string;
+  callSid: string;
+  businessId: string;
+  sessionId: string;
+  startTime: number;
+}
+
+interface LeadSummary {
+  callerName?: string;
+  callbackNumber?: string;
+  reason?: string;
+  urgency?: 'urgent' | 'normal';
+  summary: string;
+  timestamp: string;
+  callSid: string;
+  businessId: string;
+  businessName: string;
+}
+
+// Intake state machine functions
+function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
+  return {
+    stage: 'ask_reason',
+    businessName,
+    callSid,
+    businessId,
+    sessionId,
+    startTime: Date.now()
+  };
+}
+
+function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
+  console.log('[AI INTAKE STAGE] current stage:', intake.stage);
+  
+  switch (intake.stage) {
+    case 'ask_reason':
+      return {
+        response: `Sorry we missed your call for ${intake.businessName}. Could you briefly let me know the reason for your call?`,
+        nextStage: 'ask_name'
+      };
+      
+    case 'ask_name':
+      if (transcript) {
+        intake.callerName = extractName(transcript);
+        console.log('[AI NAME CAPTURED]', intake.callerName);
+      }
+      return {
+        response: 'Thanks. Can I get your name?',
+        nextStage: 'ask_callback'
+      };
+      
+    case 'ask_callback':
+      if (transcript) {
+        intake.callbackNumber = extractPhoneNumber(transcript);
+        console.log('[AI CALLBACK CAPTURED]', intake.callbackNumber);
+      }
+      return {
+        response: "What's the best number to reach you back at?",
+        nextStage: 'ask_urgency'
+      };
+      
+    case 'ask_urgency':
+      if (transcript) {
+        intake.urgency = extractUrgency(transcript);
+        console.log('[AI URGENCY CAPTURED]', intake.urgency);
+      }
+      return {
+        response: 'Is this urgent or can someone follow up later today?',
+        nextStage: 'complete'
+      };
+      
+    case 'complete':
+      return {
+        response: 'Perfect, thanks. I\'ll pass this along to the team and someone will follow up shortly.',
+        nextStage: 'complete'
+      };
+      
+    default:
+      return {
+        response: 'Sorry, could you repeat that?',
+        nextStage: intake.stage
+      };
+  }
+}
+
+function extractName(transcript: string): string {
+  // Simple name extraction - look for common patterns
+  const words = transcript.trim().split(' ');
+  // Return first 1-2 words as potential name
+  return words.slice(0, 2).join(' ');
+}
+
+function extractPhoneNumber(transcript: string): string {
+  // Extract phone number patterns
+  const phoneRegex = /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|\(\d{3}\)\s*\d{3}[-.\s]?\d{4}|\d{10})/;
+  const match = transcript.match(phoneRegex);
+  return match ? match[1] : transcript.trim();
+}
+
+function extractUrgency(transcript: string): 'urgent' | 'normal' {
+  const urgent = transcript.toLowerCase().match(/\burgent\b|\bemergency\b|\basap\b|\bimmediately\b|\bright away\b/);
+  return urgent ? 'urgent' : 'normal';
+}
+
+function generateLeadSummary(intake: IntakeData): LeadSummary {
+  const summary = `${intake.callerName || 'Caller'} called about ${intake.callerReason || 'general inquiry'}. ${intake.urgency === 'urgent' ? 'URGENT: ' : ''}Callback requested at ${intake.callbackNumber || 'number on file'}.`;
+  
+  return {
+    callerName: intake.callerName,
+    callbackNumber: intake.callbackNumber,
+    reason: intake.callerReason,
+    urgency: intake.urgency || 'normal',
+    summary,
+    timestamp: new Date().toISOString(),
+    callSid: intake.callSid,
+    businessId: intake.businessId,
+    businessName: intake.businessName
+  };
+}
+
+async function saveLeadSummary(leadSummary: LeadSummary) {
+  if (!supabase) {
+    console.log('[AI INTAKE] Supabase not available, skipping save');
+    return;
+  }
+  
+  try {
+    console.log('[AI SUMMARY GENERATED]', JSON.stringify(leadSummary, null, 2));
+    
+    // Save to conversations table
+    const { error } = await supabase
+      .from('conversations')
+      .insert({
+        business_id: leadSummary.businessId,
+        phone_number: leadSummary.callbackNumber || 'unknown',
+        contact_name: leadSummary.callerName || 'Unknown',
+        last_message: leadSummary.summary,
+        status: 'new',
+        created_at: leadSummary.timestamp,
+        updated_at: leadSummary.timestamp,
+        call_sid: leadSummary.callSid,
+        ai_intake_summary: leadSummary.summary,
+        urgency: leadSummary.urgency
+      });
+      
+    if (error) {
+      console.log('[AI INTAKE] Error saving conversation:', error);
+    } else {
+      console.log('[AI INTAKE] Lead summary saved successfully');
+    }
+  } catch (error) {
+    console.log('[AI INTAKE] Error saving lead summary:', error);
+  }
+}
+
 if (!OPENAI_API_KEY) {
   log(LogLevel.ERROR, 'OPENAI_API_KEY environment variable is required');
   process.exit(1);
@@ -390,6 +554,10 @@ wss.on('connection', (ws, req) => {
     let businessId: string = '';
     let callSid: string = '';
 
+    // Intake state machine
+    let intakeData: IntakeData | null = null;
+    let businessName: string = 'ReplyFlow';
+
     log(LogLevel.INFO, '[AI POC] attaching message listener');
 
     // Override handleMessage to capture customParameters from start event
@@ -519,101 +687,37 @@ wss.on('connection', (ws, req) => {
             console.log('[AI] no businessId or supabase client, using default greeting');
           }
 
+          // Initialize intake state machine with business name
+          intakeData = createIntakeData(businessName, callSid, businessId, sessionId);
+          console.log('[AI INTAKE] initialized with business:', businessName);
+
           // Build dynamic instructions
           let instructions = '';
           if (customGreeting) {
             instructions = customGreeting;
           } else {
-            instructions = `You are a friendly virtual receptionist for ${businessName}.
+            instructions = `You are ReplyFlow's phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.
 
-A caller has reached you because the business was unavailable.
-
-PRIMARY GOAL: Collect the required intake checklist before providing any troubleshooting, recommendations, or detailed assistance.
-
-Required Checklist:
-1. Customer Name
-2. Reason For Calling
-3. Service Address (if applicable)
-4. Urgency Level (Emergency, Today, This Week, General Inquiry)
-5. Best Callback Number
-6. Best Callback Time
+You are a missed-call receptionist for ${businessName}. Your job is to gather basic information after a missed call.
 
 Rules:
-- The AI must prioritize completing the intake checklist
-- Ask one question at a time
-- Keep questions short
-- Do not provide technical advice before the checklist is complete
-- Do not attempt to diagnose issues before the checklist is complete
-- Do not provide step-by-step repair instructions before the checklist is complete
-- Do not discuss pricing before the checklist is complete
-- Speak clearly at a moderate pace
-- Use short sentences
-- Always speak in English unless the caller explicitly asks to use another language
-- If there is silence or unclear audio, do not change languages
-- Sound like a professional receptionist
+- Keep responses under 1 sentence
+- Ask only ONE question at a time
+- Never start with "Sure we can help"
+- Never over-explain
+- Always speak English
+- If unclear, say: "Sorry, could you repeat that?"
 
-Allowed Exception:
-If the caller describes an immediate safety issue (water leak, gas leak, electrical fire, etc.), provide ONE brief safety statement and then return to intake.
+First message must ALWAYS be:
+"Sorry we missed your call for ${businessName}. Could you briefly let me know the reason for your call?"
 
-Examples:
-- Water leak: "If water is actively leaking, turning off the main water supply may help reduce damage. Let me collect a few details for the team."
-- Gas leak: "If you smell gas, leave the area and contact emergency services immediately. Let me gather your information for the team."
-- Electrical fire: "If there is an active fire, call emergency services immediately. Let me gather your information for the business."
+Then ask in order:
+1. "Thanks. Can I get your name?"
+2. "What's the best number to reach you back at?"
+3. "Is this urgent or can someone follow up later today?"
+4. "Perfect, thanks. I'll pass this along to the team and someone will follow up shortly."
 
-After the brief safety statement, return immediately to the checklist.
-
-Conversation Flow:
-
-Greeting:
-"Thanks for calling ${businessName}. I'm gathering information for the team. May I have your name?"
-
-Collect in order:
-- Name
-- Reason
-- Address (if applicable)
-- Urgency
-- Callback Number
-- Callback Time
-
-After all required information is collected:
-
-Summarize:
-"Let me make sure I have everything correct."
-
-Then read back:
-- Name
-- Reason
-- Address
-- Urgency
-- Callback Number
-- Callback Time
-
-Ask: "Does that look correct?"
-
-If confirmed:
-"Perfect. I've passed your information along to the team. Someone will contact you as soon as possible."
-
-OPTIONAL HELP PHASE:
-Only AFTER intake is complete, you may answer a few follow-up questions from the caller.
-
-Help Phase Rules:
-- Keep responses brief
-- Do not guarantee outcomes
-- Do not provide professional advice
-- Do not replace a licensed professional
-- Continue acting as a receptionist
-
-Call Ending:
-After intake is complete and any brief follow-up questions are answered:
-"Thank you for calling ${businessName}. Have a great day."
-
-Wait 3 seconds for any response.
-
-If caller says nothing, end the conversation naturally.
-
-If caller speaks during the pause, respond briefly and end the conversation.
-
-Do not continue chatting after intake is complete.`;
+Never provide technical help or advice. Just gather information and end the call.`;
           }
           
           console.log('[AI] greeting instructions created', { instructionsLength: instructions.length });
@@ -760,6 +864,63 @@ Do not continue chatting after intake is complete.`;
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
                 console.log('[VAD] speech stopped');
+                
+                // Process intake stage advancement after speech stops
+                if (intakeData && intakeData.stage !== 'complete' && openAiWs) {
+                  setTimeout(() => {
+                    // Get the latest user transcript from the conversation
+                    const userTranscript = transcript
+                      .filter(line => line.startsWith('User:'))
+                      .slice(-1)[0]?.replace('User: ', '') || '';
+                    
+                    if (userTranscript.trim()) {
+                      console.log('[AI INTAKE] processing transcript:', userTranscript);
+                      
+                      // Get next intake response
+                      const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
+                      
+                      // Update intake data based on stage
+                      if (intakeData!.stage === 'ask_name' && userTranscript) {
+                        intakeData!.callerName = extractName(userTranscript);
+                        console.log('[AI NAME CAPTURED]', intakeData!.callerName);
+                      } else if (intakeData!.stage === 'ask_callback' && userTranscript) {
+                        intakeData!.callbackNumber = extractPhoneNumber(userTranscript);
+                        console.log('[AI CALLBACK CAPTURED]', intakeData!.callbackNumber);
+                      } else if (intakeData!.stage === 'ask_urgency' && userTranscript) {
+                        intakeData!.urgency = extractUrgency(userTranscript);
+                        console.log('[AI URGENCY CAPTURED]', intakeData!.urgency);
+                      } else if (intakeData!.stage === 'ask_reason' && userTranscript) {
+                        intakeData!.callerReason = userTranscript;
+                        console.log('[AI REASON CAPTURED]', intakeData!.callerReason);
+                      }
+                      
+                      // Send next intake question
+                      const nextMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: intakeResponse.response + ' Always respond in English only.',
+                        },
+                      };
+                      
+                      console.log('[AI INTAKE] next response:', intakeResponse.response);
+                      console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
+                      
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(nextMessage));
+                      }
+                      
+                      // Update stage
+                      intakeData!.stage = intakeResponse.nextStage;
+                      
+                      // If intake is complete, save the lead summary
+                      if (intakeData!.stage === 'complete') {
+                        const leadSummary = generateLeadSummary(intakeData!);
+                        saveLeadSummary(leadSummary);
+                        console.log('[AI INTAKE] intake complete, summary saved');
+                      }
+                    }
+                  }, 1000); // Wait 1 second after speech stops to process
+                }
               }
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
@@ -804,21 +965,44 @@ Do not continue chatting after intake is complete.`;
                   returned: message.session?.audio
                 });
                 
-                // Now send greeting after session.updated
-                const testMessage = {
-                  type: 'response.create',
-                  response: {
-                    instructions: 'Thanks for calling ReplyFlow. May I have your name? Always respond in English only.',
-                  },
-                };
-                console.log('[AI RESPONSE LANGUAGE LOCK] english');
-                console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
-                greetingSent = true;
-                console.log('[GREETING SENT]');
-                if (openAiWs) {
-                  openAiWs.send(JSON.stringify(testMessage));
+                // Now send deterministic intake greeting after session.updated
+                if (intakeData) {
+                  const intakeResponse = getIntakeResponse(intakeData);
+                  const testMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: intakeResponse.response + ' Always respond in English only.',
+                    },
+                  };
+                  console.log('[AI RESPONSE LANGUAGE LOCK] english');
+                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
+                  greetingSent = true;
+                  console.log('[GREETING SENT]');
+                  console.log('[AI INTAKE] first message:', intakeResponse.response);
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(testMessage));
+                  }
+                  console.log('[RESPONSE CREATED]');
+                  
+                  // Update intake stage
+                  intakeData.stage = intakeResponse.nextStage;
+                } else {
+                  // Fallback greeting
+                  const testMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: 'Thanks for calling ReplyFlow. May I have your name? Always respond in English only.',
+                    },
+                  };
+                  console.log('[AI RESPONSE LANGUAGE LOCK] english');
+                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
+                  greetingSent = true;
+                  console.log('[GREETING SENT]');
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(testMessage));
+                  }
+                  console.log('[RESPONSE CREATED]');
                 }
-                console.log('[RESPONSE CREATED]');
                 
                 // Set flag to enable manual fallback after greeting
                 twilioHandler.setGreetingSent();
