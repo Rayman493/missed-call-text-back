@@ -825,6 +825,13 @@ Never provide technical help or advice. Just gather information and end the call
                       }
                     }
                   },
+                  turn_detection: {
+                    type: 'server_vad',
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 700,
+                    create_response: false
+                  }
                 },
               };
               console.log('[AI SESSION LANGUAGE LOCK] english');
@@ -864,63 +871,67 @@ Never provide technical help or advice. Just gather information and end the call
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
                 console.log('[VAD] speech stopped');
+              }
+
+              // Listen for FINAL transcript events
+              if (message.type === 'conversation.item.input_audio_transcription.completed') {
+                const userTranscript = message.transcript || '';
+                console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
+                transcript.push(`User: ${userTranscript}`);
                 
-                // Process intake stage advancement after speech stops
+                // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs) {
-                  setTimeout(() => {
-                    // Get the latest user transcript from the conversation
-                    const userTranscript = transcript
-                      .filter(line => line.startsWith('User:'))
-                      .slice(-1)[0]?.replace('User: ', '') || '';
-                    
-                    if (userTranscript.trim()) {
-                      console.log('[AI INTAKE] processing transcript:', userTranscript);
-                      
-                      // Get next intake response
-                      const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
-                      
-                      // Update intake data based on stage
-                      if (intakeData!.stage === 'ask_name' && userTranscript) {
-                        intakeData!.callerName = extractName(userTranscript);
-                        console.log('[AI NAME CAPTURED]', intakeData!.callerName);
-                      } else if (intakeData!.stage === 'ask_callback' && userTranscript) {
-                        intakeData!.callbackNumber = extractPhoneNumber(userTranscript);
-                        console.log('[AI CALLBACK CAPTURED]', intakeData!.callbackNumber);
-                      } else if (intakeData!.stage === 'ask_urgency' && userTranscript) {
-                        intakeData!.urgency = extractUrgency(userTranscript);
-                        console.log('[AI URGENCY CAPTURED]', intakeData!.urgency);
-                      } else if (intakeData!.stage === 'ask_reason' && userTranscript) {
-                        intakeData!.callerReason = userTranscript;
-                        console.log('[AI REASON CAPTURED]', intakeData!.callerReason);
-                      }
-                      
-                      // Send next intake question
-                      const nextMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: intakeResponse.response + ' Always respond in English only.',
-                        },
-                      };
-                      
-                      console.log('[AI INTAKE] next response:', intakeResponse.response);
-                      console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
-                      
-                      if (openAiWs) {
-                        openAiWs.send(JSON.stringify(nextMessage));
-                      }
-                      
-                      // Update stage
-                      intakeData!.stage = intakeResponse.nextStage;
-                      
-                      // If intake is complete, save the lead summary
-                      if (intakeData!.stage === 'complete') {
-                        const leadSummary = generateLeadSummary(intakeData!);
-                        saveLeadSummary(leadSummary);
-                        console.log('[AI INTAKE] intake complete, summary saved');
-                      }
-                    }
-                  }, 1000); // Wait 1 second after speech stops to process
+                  console.log('[AI INTAKE STAGE] current stage:', intakeData.stage);
+                  
+                  // Get next intake response
+                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
+                  
+                  // Update intake data based on stage
+                  if (intakeData!.stage === 'ask_name' && userTranscript) {
+                    intakeData!.callerName = extractName(userTranscript);
+                    console.log('[AI NAME CAPTURED]', intakeData!.callerName);
+                  } else if (intakeData!.stage === 'ask_callback' && userTranscript) {
+                    intakeData!.callbackNumber = extractPhoneNumber(userTranscript);
+                    console.log('[AI CALLBACK CAPTURED]', intakeData!.callbackNumber);
+                  } else if (intakeData!.stage === 'ask_urgency' && userTranscript) {
+                    intakeData!.urgency = extractUrgency(userTranscript);
+                    console.log('[AI URGENCY CAPTURED]', intakeData!.urgency);
+                  } else if (intakeData!.stage === 'ask_reason' && userTranscript) {
+                    intakeData!.callerReason = userTranscript;
+                    console.log('[AI REASON CAPTURED]', intakeData!.callerReason);
+                  }
+                  
+                  // Send next intake question manually
+                  const nextMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: intakeResponse.response + ' Always respond in English only.',
+                    },
+                  };
+                  
+                  console.log('[AI INTAKE RESPONSE CREATE]', intakeResponse.response);
+                  console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
+                  
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(nextMessage));
+                  }
+                  
+                  // Update stage
+                  intakeData!.stage = intakeResponse.nextStage;
+                  
+                  // If intake is complete, save the lead summary
+                  if (intakeData!.stage === 'complete') {
+                    const leadSummary = generateLeadSummary(intakeData!);
+                    saveLeadSummary(leadSummary);
+                    console.log('[AI INTAKE] intake complete, summary saved');
+                  }
                 }
+              }
+
+              // Listen for partial transcript events (optional)
+              if (message.type === 'conversation.item.input_audio_transcription.partial') {
+                const userTranscript = message.transcript || '';
+                console.log('[AI USER TRANSCRIPT PARTIAL]', userTranscript);
               }
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
