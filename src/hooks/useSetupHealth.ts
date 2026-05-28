@@ -86,24 +86,21 @@ export function useSetupHealth() {
       isOptional: false
     })
 
-    // Call forwarding verified - use operational evidence
-    const forwardingStatus = getForwardingVerificationStatus(business, {
-      missedCallsCount: operationalMetrics.missedCallsCaptured,
-      leadsCount: operationalMetrics.totalLeads,
-      successfulSmsCount: operationalMetrics.totalSmsSent
-    })
-
+    // Call forwarding verified - use persistent business.forwarding_verified
+    // Once verified, never automatically reverts to false
+    const forwardingVerified = business.forwarding_verified === true
+    
     checks.push({
       id: 'call_forwarding',
       name: 'Call Forwarding Verified',
-      status: forwardingStatus.verified ? 'complete' : 'needs_attention',
-      description: forwardingStatus.verified
+      status: forwardingVerified ? 'complete' : 'needs_attention',
+      description: forwardingVerified
         ? 'Missed calls are being detected successfully'
         : 'Call forwarding needs verification',
-      details: forwardingStatus.verified
-        ? forwardingStatus.reason
+      details: forwardingVerified
+        ? 'Forwarding verified and operational'
         : 'Awaiting first successful missed-call test',
-      actionText: forwardingStatus.verified ? undefined : 'Verify forwarding',
+      actionText: forwardingVerified ? undefined : 'Verify forwarding',
       actionUrl: '/setup/forwarding',
       isOptional: false
     })
