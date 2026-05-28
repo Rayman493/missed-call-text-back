@@ -6,8 +6,6 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { AlertTriangle, CheckCircle, MessageSquare, Phone, Clock, X } from 'lucide-react'
 import Link from 'next/link'
 import { useSetupHealth } from '@/hooks/useSetupHealth'
-import { getForwardingVerificationStatus } from '@/lib/forwarding-status'
-import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 
 interface AttentionItem {
   type: 'lead_awaiting' | 'customer_replied' | 'forwarding_issue' | 'followup_failed' | 'healthy'
@@ -26,7 +24,6 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
   const { requiredIssues } = useSetupHealth()
-  const operationalMetrics = useOperationalMetrics(business)
 
   useEffect(() => {
     if (!business) return
@@ -79,27 +76,19 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Check call forwarding status using shared operational metrics
-        const forwardingStatus = getForwardingVerificationStatus(business, {
-          missedCallsCount: operationalMetrics.missedCallsCaptured,
-          leadsCount: operationalMetrics.totalLeads,
-          successfulSmsCount: operationalMetrics.totalSmsSent
-        })
+        // Check call forwarding status using persistent business field
+        const forwardingVerified = business.forwarding_verified === true
 
-        console.log('[FORWARDING VERIFIED COMPUTED]', {
-          missedCallsCaptured: operationalMetrics.missedCallsCaptured,
-          leadsRecovered: operationalMetrics.totalLeads,
-          latestLeadExists: operationalMetrics.hasLatestLead,
-          recentActivityMatched: operationalMetrics.hasRecentMissedCallActivity,
-          businessForwardingVerified: business?.forwarding_verified,
-          result: forwardingStatus.verified
+        console.log('[FORWARDING UI STATE]', {
+          forwarding_verified: business.forwarding_verified,
+          component: 'NeedsAttentionCard'
         })
         
-        if (!forwardingStatus.verified) {
+        if (!forwardingVerified) {
           items.push({
             type: 'forwarding_issue',
             title: 'Call Forwarding Setup Pending',
-            description: forwardingStatus.reason,
+            description: 'Awaiting first successful missed-call test',
             priority: 'high',
             link: '/dashboard/settings',
             linkText: 'Configure Settings'
@@ -161,7 +150,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
     }
 
     fetchAttentionItems()
-  }, [business, operationalMetrics, requiredIssues])
+  }, [business, requiredIssues])
 
   const formatRelativeTime = (timestamp: string) => {
     const now = new Date()

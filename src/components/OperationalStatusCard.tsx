@@ -6,8 +6,6 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
-import { getForwardingVerificationStatus, getForwardingStatusMessage } from '@/lib/forwarding-status'
-import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -22,7 +20,6 @@ export default function OperationalStatusCard({
   lastActivity,
   onReviewSetup 
 }: OperationalStatusCardProps) {
-  const operationalMetrics = useOperationalMetrics(business)
   const [showSystemDetails, setShowSystemDetails] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -61,15 +58,13 @@ export default function OperationalStatusCard({
 
   const isTextReplyActive = business?.messaging_status === 'active'
   
-  // Use new forwarding verification logic with shared operational metrics
-  const forwardingStatus = getForwardingVerificationStatus(business, {
-    missedCallsCount: operationalMetrics.missedCallsCaptured,
-    leadsCount: operationalMetrics.totalLeads,
-    successfulSmsCount: operationalMetrics.totalSmsSent
-  })
-  const forwardingMessage = getForwardingStatusMessage(forwardingStatus)
+  // Use persistent forwarding verification state
+  const isForwardingActive = business?.forwarding_verified === true
   
-  const isForwardingActive = forwardingStatus.verified
+  console.log('[FORWARDING UI STATE]', {
+    forwarding_verified: business?.forwarding_verified,
+    component: 'OperationalStatusCard'
+  })
   
   // Clear monitoring status logic
   const isMonitoringHealthy = isForwardingActive && isTextReplyActive
@@ -78,10 +73,10 @@ export default function OperationalStatusCard({
   // Context for why attention is needed
   const getMonitoringContext = () => {
     if (!isForwardingActive && !isTextReplyActive) {
-      return forwardingMessage.description
+      return 'Call forwarding and text messaging need to be activated'
     }
     if (!isForwardingActive) {
-      return forwardingMessage.description
+      return 'Call forwarding needs to be verified'
     }
     if (!isTextReplyActive) {
       return 'Text messaging needs to be activated'
@@ -103,11 +98,11 @@ export default function OperationalStatusCard({
             </div>
           </div>
 
-          {/* Primary Hero Metric - Recovered Leads */}
+          {/* Primary Status */}
           <div className="text-center mb-4">
-            <p className="text-xs sm:text-sm text-slate-300 mb-1">Recovered Leads</p>
+            <p className="text-xs sm:text-sm text-slate-300 mb-1">System Status</p>
             <p className="text-4xl sm:text-5xl font-bold text-white mb-2">
-              {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
+              {isForwardingActive ? 'Active' : 'Setup'}
             </p>
           </div>
 
@@ -138,9 +133,9 @@ export default function OperationalStatusCard({
             Monitoring calls and responding automatically.
             <br />
             <span className="text-slate-400">
-              {operationalMetrics.hasLatestLead 
-                ? `${operationalMetrics.totalLeads} lead${operationalMetrics.totalLeads !== 1 ? 's' : ''} recovered`
-                : 'No recovered leads yet.'
+              {isForwardingActive 
+                ? 'System is actively monitoring calls'
+                : 'Setup required to begin monitoring'
               }
             </span>
           </p>
@@ -241,21 +236,21 @@ export default function OperationalStatusCard({
                     </div>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Total Leads:</span>
+                    <span className="text-slate-400">Status:</span>
                     <span className="text-white font-medium">
-                      {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
+                      {isForwardingActive ? 'Active' : 'Setup'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">SMS Sent:</span>
+                    <span className="text-slate-400">Forwarding:</span>
                     <span className="text-white font-medium">
-                      {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
+                      {isForwardingActive ? 'Verified' : 'Pending'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Calls Processed:</span>
+                    <span className="text-slate-400">Messaging:</span>
                     <span className="text-white font-medium">
-                      {operationalMetrics.loading ? '...' : operationalMetrics.missedCallsCaptured}
+                      {isTextReplyActive ? 'Active' : 'Setup'}
                     </span>
                   </div>
                 </div>
@@ -299,23 +294,23 @@ export default function OperationalStatusCard({
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Total Leads:</span>
+              <span className="text-slate-400">Status:</span>
               <span className="text-white font-medium">
-                {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
+                {isForwardingActive ? 'Active' : 'Setup'}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">SMS Sent:</span>
+              <span className="text-slate-400">Forwarding:</span>
               <span className="text-white font-medium">
-                {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
+                {isForwardingActive ? 'Verified' : 'Pending'}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Calls Processed:</span>
+              <span className="text-slate-400">Messaging:</span>
               <span className="text-white font-medium">
-                {operationalMetrics.loading ? '...' : operationalMetrics.missedCallsCaptured}
+                {isTextReplyActive ? 'Active' : 'Setup'}
               </span>
             </div>
           </div>
@@ -404,7 +399,7 @@ export default function OperationalStatusCard({
             <span className="text-xs font-medium text-slate-300">Total Leads</span>
           </div>
           <div className="text-sm text-white">
-            {operationalMetrics.loading ? '...' : operationalMetrics.totalLeads}
+            {isForwardingActive ? 'Active' : 'Setup'}
           </div>
         </div>
 
@@ -414,10 +409,10 @@ export default function OperationalStatusCard({
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            <span className="text-xs font-medium text-slate-300">Total SMS Sent</span>
+            <span className="text-xs font-medium text-slate-300">Messaging</span>
           </div>
           <div className="text-sm text-white">
-            {operationalMetrics.loading ? '...' : operationalMetrics.totalSmsSent}
+            {isTextReplyActive ? 'Active' : 'Setup'}
           </div>
         </div>
       </div>

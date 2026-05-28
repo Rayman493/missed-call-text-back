@@ -4,8 +4,6 @@ import { useMemo } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
 import { hasValidSubscription } from '@/lib/subscription'
-import { useOperationalMetrics } from './useOperationalMetrics'
-import { getForwardingVerificationStatus } from '@/lib/forwarding-status'
 
 export type HealthStatus = 'complete' | 'needs_attention' | 'not_configured' | 'optional'
 
@@ -22,7 +20,6 @@ export interface HealthCheck {
 
 export function useSetupHealth() {
   const { business } = useBusiness()
-  const operationalMetrics = useOperationalMetrics(business)
 
   const healthChecks = useMemo((): HealthCheck[] => {
     if (!business) return []

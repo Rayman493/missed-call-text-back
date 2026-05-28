@@ -168,8 +168,8 @@ export default function SetupProgress({ missedCallCount = 0 }: SetupProgressProp
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
-    // Step 3 is complete if missedCallCount > 0 OR forwarding_verified OR real call data exists
-    const testComplete = missedCallCount > 0 || business?.forwarding_verified || realCallDataExists
+    // Step 3 is complete if forwarding_verified is true (persistent state)
+    const testComplete = business?.forwarding_verified === true
     
     console.log('[Setup Progress] Step 3 completion check:', {
       businessId: business.id,
