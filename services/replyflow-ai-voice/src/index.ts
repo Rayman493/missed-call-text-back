@@ -808,9 +808,7 @@ Do not imitate accents, dialects, or non-English speech.
 If the caller speaks another language, politely respond in English and say:
 "I'm sorry, I can only take this message in English."
 
-Always begin the conversation by saying:
-
-"Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today?"
+Note: The greeting will be handled separately via exact response.create instruction.
 
 INFORMATION GATHERING PRIORITY ORDER:
 1. Reason for calling (most important - understand the core need)
@@ -1014,17 +1012,19 @@ Do NOT:
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
                   console.log('[SESSION UPDATED - SENDING GREETING]');
-                  const greetingText = `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`;
+                  const greetingText = `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today?`;
+                  const exactInstruction = `Say exactly this sentence and nothing else: "${greetingText}"`;
                   const greetingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: greetingText,
+                      instructions: exactInstruction,
                     },
                   };
                   console.log('[FINAL GREETING TEXT]', greetingText);
                   console.log('[FINAL BUSINESS NAME]', businessName || 'we');
+                  console.log('[GREETING EXACT MODE]', exactInstruction);
+                  console.log('[GREETING RESPONSE.CREATE RAW]', JSON.stringify(greetingMessage, null, 2));
                   console.log('[GREETING RESPONSE.CREATE SENT]');
-                  console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(greetingMessage, null, 2));
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify(greetingMessage));
                   }
@@ -1095,6 +1095,13 @@ Do NOT:
               }
               if (message.type === 'response.output_audio_transcript.done') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.done:', message.transcript || 'null');
+                // Validate greeting transcript
+                if (greetingSent && message.transcript) {
+                  console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
+                  if (!message.transcript.startsWith('Sorry,')) {
+                    console.log('[GREETING MISMATCH] - Expected greeting to start with "Sorry,"');
+                  }
+                }
               }
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.input_audio_transcription.completed');
@@ -1103,6 +1110,13 @@ Do NOT:
               if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
+                // Validate greeting transcript
+                if (greetingSent && message.transcript) {
+                  console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
+                  if (!message.transcript.startsWith('Sorry,')) {
+                    console.log('[GREETING MISMATCH] - Expected greeting to start with "Sorry,"');
+                  }
+                }
               }
               
               // Catch-all logging for every OpenAI event type
