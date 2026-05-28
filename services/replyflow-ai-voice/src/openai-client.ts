@@ -279,22 +279,41 @@ export class OpenAIRealtimeClient {
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        input_audio_format: 'g711_ulaw',
-        output_audio_format: 'g711_ulaw',
-        voice: this.config.voice || 'alloy',
+        type: 'realtime',
         instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
-        input_audio_transcription: {
-          model: 'whisper-1',
-          language: 'en'
-        },
-        turn_detection: {
-          type: 'server_vad',
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-        },
+        audio: {
+          input: {
+            format: {
+              type: 'audio/pcm',
+              rate: 24000
+            },
+            transcription: {
+              model: 'whisper-1',
+              language: 'en'
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+              create_response: false
+            }
+          },
+          output: {
+            format: {
+              type: 'audio/pcm',
+              rate: 24000
+            },
+            voice: this.config.voice || 'alloy'
+          }
+        }
       },
     };
+    
+    // Safety assertion to prevent invalid payload
+    if ('turn_detection' in sessionUpdate.session) {
+      throw new Error('Invalid payload: session.turn_detection is not allowed');
+    }
 
     console.log('[AI ACTIVE ROUTE] replyflow-ai-voice /stream language-lock-enabled=true');
     console.log('[AI SESSION LANGUAGE LOCK SENT] english - strict lock applied');

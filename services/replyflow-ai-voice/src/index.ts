@@ -842,8 +842,14 @@ Never provide technical help or advice. Just gather information and end the call
                   }
                 },
               };
+              
+              // Safety assertion to prevent invalid payload
+              if ('turn_detection' in sessionConfig.session) {
+                throw new Error('Invalid payload: session.turn_detection is not allowed');
+              }
+              
               console.log('[AI SESSION LANGUAGE LOCK] english');
-              console.log('[OPENAI SEND PAYLOAD] session.update (FINAL):', JSON.stringify(sessionConfig, null, 2));
+              console.log('[OPENAI SESSION UPDATE FINAL PAYLOAD]:', JSON.stringify(sessionConfig, null, 2));
               console.log('[SESSION.UPDATE SENT]');
               if (openAiWs) {
                 openAiWs.send(JSON.stringify(sessionConfig));
