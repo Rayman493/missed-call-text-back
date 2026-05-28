@@ -822,8 +822,8 @@ Never provide technical help or advice. Just gather information and end the call
                   audio: {
                     input: {
                       format: {
-                        type: 'audio/pcm',
-                        rate: 24000
+                        type: 'audio/g711_ulaw',
+                        rate: 8000
                       },
                       transcription: {
                         model: 'whisper-1',
@@ -839,8 +839,8 @@ Never provide technical help or advice. Just gather information and end the call
                     },
                     output: {
                       format: {
-                        type: 'audio/pcm',
-                        rate: 24000
+                        type: 'audio/g711_ulaw',
+                        rate: 8000
                       },
                       voice: AI_VOICE
                     }
@@ -854,6 +854,7 @@ Never provide technical help or advice. Just gather information and end the call
               }
               
               console.log('[AI SESSION LANGUAGE LOCK] english');
+              console.log('[OPENAI AUDIO FORMAT] g711_ulaw 8000hz input/output');
               console.log('[OPENAI SESSION UPDATE FINAL PAYLOAD]:', JSON.stringify(sessionConfig, null, 2));
               console.log('[SESSION.UPDATE SENT]');
               if (openAiWs) {
@@ -1078,66 +1079,16 @@ Never provide technical help or advice. Just gather information and end the call
               // Catch-all logging for every OpenAI event type
               console.log('[OPENAI EVENT]', message.type);
 
-              // PCM16 to μ-law conversion function
-              const pcm16ToMulaw = (pcm16: number): number => {
-                // μ-law encoding formula
-                const BIAS = 0x84;
-                const CLIP = 32635;
-                const SIGN_BIT = 0x80;
-                
-                let sample = Math.max(-CLIP, Math.min(CLIP, pcm16));
-                const sign = (sample >> 8) & SIGN_BIT;
-                if (sign !== 0) {
-                  sample = -sample;
-                }
-                
-                sample += BIAS;
-                let exponent = 7;
-                for (; exponent > 0; exponent--) {
-                  if ((sample & 0x4000) !== 0) break;
-                  sample <<= 1;
-                }
-                
-                const mantissa = (sample >> 4) & 0x0F;
-                return (sign | (exponent << 4) | mantissa) ^ 0xFF;
-              };
-
-              // Handle audio delta
+              
+              // Handle audio delta - now g711_ulaw directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
                 console.log('[OPENAI RECV] response.output_audio.delta');
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO DELTA RECEIVED]');
+                console.log('[FORWARDING G711 DIRECTLY] - no conversion needed');
                 
-                // Decode base64 to PCM16 buffer
-                const pcmBuffer = Buffer.from(message.delta, 'base64');
-                console.log('[AUDIO CONVERT] pcm bytes', { length: pcmBuffer.length });
-                
-                // OpenAI Realtime API returns PCM16 at 24kHz
-                // Twilio expects 8kHz μ-law (G.711)
-                // Downsample: 24kHz -> 8kHz (take every 3rd sample)
-                const sampleCount = Math.floor(pcmBuffer.length / 2);
-                const downsampledSamples: Int16Array = new Int16Array(Math.floor(sampleCount / 3));
-                for (let i = 0; i < downsampledSamples.length; i++) {
-                  downsampledSamples[i] = pcmBuffer.readInt16LE(i * 6);
-                }
-                console.log('[AUDIO CONVERT] downsampled to 8kHz', { originalSamples: sampleCount, downsampledSamples: downsampledSamples.length });
-                
-                // Convert PCM16 to μ-law
-                const mulawBytes = Buffer.alloc(downsampledSamples.length);
-                for (let i = 0; i < downsampledSamples.length; i++) {
-                  mulawBytes[i] = pcm16ToMulaw(downsampledSamples[i]);
-                }
-                console.log('[AUDIO CONVERT] pcm to mulaw');
-                
-                // Base64 encode μ-law bytes
-                const mulawBase64 = mulawBytes.toString('base64');
                 const streamSid = twilioHandler.getStreamSid();
-                
-                console.log('[AUDIO OUT] converted mulaw ready', { 
-                  streamSidExists: !!streamSid, 
-                  payloadLength: mulawBase64.length 
-                });
                 
                 // Only send audio if streamSid is available
                 if (!streamSid) {
@@ -1145,37 +1096,22 @@ Never provide technical help or advice. Just gather information and end the call
                   return;
                 }
                 
-                // Send audio to Twilio with exact shape
+                // Forward g711_ulaw directly to Twilio
                 const mediaMessage = {
                   event: 'media',
                   streamSid: streamSid,
                   media: {
-                    payload: mulawBase64,
+                    payload: message.delta, // Direct g711_ulaw from OpenAI
                   },
                 };
                 
-                // Log exact outbound message shape
-                console.log('[TWILIO OUTBOUND MEDIA MESSAGE]', {
-                  event: mediaMessage.event,
+                console.log('[TWILIO MEDIA SENT] - direct g711_ulaw', {
                   streamSid: mediaMessage.streamSid,
-                  hasPayload: !!mediaMessage.media?.payload,
                   payloadLength: mediaMessage.media?.payload?.length || 0
                 });
                 
                 ws.send(JSON.stringify(mediaMessage));
                 console.log('[AUDIO OUT SENT TO TWILIO]');
-                
-                // Send mark event to indicate audio chunk completion
-                const markMessage = {
-                  event: 'mark',
-                  streamSid: streamSid,
-                  mark: {
-                    name: 'ai-response-chunk'
-                  }
-                };
-                
-                ws.send(JSON.stringify(markMessage));
-                console.log('[TWILIO MARK EVENT SENT]');
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
