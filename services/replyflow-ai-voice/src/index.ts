@@ -1218,6 +1218,7 @@ Notes: ${extractedFields.notes || 'None'}`;
 
 // Start server
 server.listen(PORT, () => {
+  console.log('[AI VOICE SERVICE VERSION] commit=473dfc1 language-lock-enabled=true');
   log(LogLevel.INFO, `AI Voice Service POC listening on port ${PORT}`);
   log(LogLevel.INFO, `Health check: http://localhost:${PORT}/health`);
   log(LogLevel.INFO, `WebSocket: ws://localhost:${PORT}/stream`);

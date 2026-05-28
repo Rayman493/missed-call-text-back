@@ -296,7 +296,7 @@ export class OpenAIRealtimeClient {
       },
     };
 
-    console.log('[AI ACTIVE ROUTE] Fly websocket stream');
+    console.log('[AI ACTIVE ROUTE] replyflow-ai-voice /stream language-lock-enabled=true');
     console.log('[AI SESSION LANGUAGE LOCK SENT] english - strict lock applied');
     console.log('[OPENAI SESSION] session.update sent');
     console.log('[OPENAI SESSION] session.update fields', {
