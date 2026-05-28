@@ -819,8 +819,8 @@ Never provide technical help or advice. Just gather information and end the call
                 session: {
                   instructions: 'You are ReplyFlow\'s missed-call receptionist. Always speak English. Keep responses short and professional.',
                   voice: 'alloy',
-                  input_audio_format: 'g711_ulaw',
-                  output_audio_format: 'g711_ulaw',
+                  input_audio_format: 'audio/pcmu',
+                  output_audio_format: 'audio/pcmu',
                   turn_detection: {
                     type: 'server_vad',
                     threshold: 0.5,
@@ -1056,13 +1056,13 @@ Never provide technical help or advice. Just gather information and end the call
               console.log('[OPENAI EVENT]', message.type);
 
               
-              // Handle audio delta - now g711_ulaw directly from OpenAI
+              // Handle audio delta - now PCMU directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
                 console.log('[OPENAI RECV] response.output_audio.delta');
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[AUDIO DELTA RECEIVED]');
-                console.log('[FORWARDING G711 DIRECTLY] - no conversion needed');
+                console.log('[FORWARDING PCMU DIRECTLY] - no conversion needed');
                 
                 const streamSid = twilioHandler.getStreamSid();
                 
@@ -1072,16 +1072,16 @@ Never provide technical help or advice. Just gather information and end the call
                   return;
                 }
                 
-                // Forward g711_ulaw directly to Twilio
+                // Forward PCMU directly to Twilio
                 const mediaMessage = {
                   event: 'media',
                   streamSid: streamSid,
                   media: {
-                    payload: message.delta, // Direct g711_ulaw from OpenAI
+                    payload: message.delta, // Direct PCMU from OpenAI
                   },
                 };
                 
-                console.log('[TWILIO MEDIA SENT] - direct g711_ulaw', {
+                console.log('[TWILIO MEDIA SENT] - direct PCMU', {
                   streamSid: mediaMessage.streamSid,
                   payloadLength: mediaMessage.media?.payload?.length || 0
                 });
