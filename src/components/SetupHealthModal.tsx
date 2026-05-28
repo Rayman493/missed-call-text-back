@@ -4,7 +4,6 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, AlertTriangle, Clock, Settings, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
-import { useSetupHealth, HealthStatus } from '@/hooks/useSetupHealth'
 
 interface SetupHealthModalProps {
   isOpen: boolean
@@ -13,7 +12,31 @@ interface SetupHealthModalProps {
 }
 
 export default function SetupHealthModal({ isOpen, onClose, forwardingComplete }: SetupHealthModalProps) {
-  const { healthChecks, needsAttention, requiredIssues, isHealthy } = useSetupHealth()
+  console.log('[FORWARDING COMPLETE]', forwardingComplete)
+
+  // Simple health status type
+  type HealthStatus = 'complete' | 'needs_attention' | 'not_configured' | 'optional'
+
+  // Simple health checks based only on forwardingComplete
+  const healthChecks = [
+    {
+      id: 'call_forwarding',
+      name: 'Call Forwarding Verified',
+      status: forwardingComplete ? 'complete' as HealthStatus : 'needs_attention' as HealthStatus,
+      description: forwardingComplete 
+        ? 'Missed calls are being detected successfully' 
+        : 'Call forwarding needs verification',
+      details: forwardingComplete 
+        ? 'Forwarding verified and operational' 
+        : 'Awaiting first successful missed-call test',
+      actionText: forwardingComplete ? undefined : 'Verify forwarding',
+      actionUrl: forwardingComplete ? undefined : '/setup/forwarding',
+      isOptional: false
+    }
+  ]
+
+  const isHealthy = forwardingComplete === true
+  const requiredIssues = forwardingComplete ? [] : healthChecks
 
   const getStatusIcon = (status: HealthStatus) => {
     switch (status) {

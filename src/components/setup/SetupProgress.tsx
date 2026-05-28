@@ -349,6 +349,7 @@ export default function SetupProgress({ missedCallCount = 0, forwardingComplete 
           business={currentBusiness}
           missedCallCount={missedCallCount}
           onReviewSetup={() => setShowSetupReviewPanel(true)}
+          forwardingComplete={forwardingComplete}
         />
         
         {/* Business Snapshot KPI Card */}

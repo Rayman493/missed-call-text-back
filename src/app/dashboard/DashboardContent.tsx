@@ -249,6 +249,8 @@ export default function DashboardContent() {
   const hasAnyLead = Array.isArray(processedLeads) && processedLeads.length > 0
   const forwardingComplete = business?.forwarding_verified === true || hasAnyLead
 
+  console.log('[FORWARDING COMPLETE]', forwardingComplete)
+
   // Determine if onboarding is fully complete
   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
 

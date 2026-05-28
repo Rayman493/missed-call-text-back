@@ -12,13 +12,15 @@ interface OperationalStatusCardProps {
   missedCallCount?: number
   lastActivity?: string
   onReviewSetup?: () => void
+  forwardingComplete?: boolean
 }
 
 export default function OperationalStatusCard({ 
   business, 
   missedCallCount = 0, 
   lastActivity,
-  onReviewSetup 
+  onReviewSetup,
+  forwardingComplete
 }: OperationalStatusCardProps) {
   const [showSystemDetails, setShowSystemDetails] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
@@ -58,13 +60,10 @@ export default function OperationalStatusCard({
 
   const isTextReplyActive = business?.messaging_status === 'active'
   
-  // Use persistent forwarding verification state
-  const isForwardingActive = business?.forwarding_verified === true
+  console.log('[FORWARDING COMPLETE]', forwardingComplete)
   
-  console.log('[FORWARDING UI STATE]', {
-    forwarding_verified: business?.forwarding_verified,
-    component: 'OperationalStatusCard'
-  })
+  // ONLY use forwardingComplete prop - no other logic
+  const isForwardingActive = forwardingComplete === true
   
   // Clear monitoring status logic
   const isMonitoringHealthy = isForwardingActive && isTextReplyActive

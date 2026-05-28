@@ -77,13 +77,9 @@ export default function NeedsAttentionCard({ business, forwardingComplete }: Nee
           })
         }
 
-        // Use forwardingComplete prop (no recalculation)
-        console.log('[FORWARDING UI STATE]', {
-          forwarding_verified: business.forwarding_verified,
-          forwardingComplete,
-          component: 'NeedsAttentionCard'
-        })
+        console.log('[FORWARDING COMPLETE]', forwardingComplete)
         
+        // ONLY use forwardingComplete prop - no other logic
         if (!forwardingComplete) {
           items.push({
             type: 'forwarding_issue',
