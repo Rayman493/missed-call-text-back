@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import { useDashboardRouteTracking } from '@/hooks/useDashboardRouteTracking'
+import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { isAdminUser } from '@/lib/admin'
 import { 
