@@ -122,8 +122,8 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
         if (items.length === 0) {
           items.push({
             type: 'healthy',
-            title: 'Nothing Needs Attention',
-            description: 'All systems operating normally',
+            title: 'All Systems Operational',
+            description: 'ReplyFlow is actively monitoring and responding to missed calls.',
             priority: 'low'
           })
         }
@@ -233,14 +233,16 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 p-2.5 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
           <div className="flex-shrink-0">
-            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-white" />
+            </div>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-green-700 dark:text-green-300">Everything is running normally</p>
-            <p className="text-xs opacity-75 mt-0.5 text-green-600 dark:text-green-400">
-              ReplyFlow is actively monitoring and engaging missed callers
+            <p className="text-sm font-semibold text-green-800 dark:text-green-200">All Systems Operational</p>
+            <p className="text-xs mt-0.5 text-green-600 dark:text-green-300">
+              ReplyFlow is actively monitoring and responding to missed calls.
             </p>
           </div>
         </div>

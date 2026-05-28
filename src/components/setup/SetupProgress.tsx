@@ -341,19 +341,76 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
     )
   }
 
-  // Compact monitoring card for completed setup
+  // Compact success banner for completed setup
   if (complete) {
     return (
       <div className="space-y-4">
-        <OperationalStatusCard 
-          business={currentBusiness}
-          missedCallCount={missedCallCount}
-          onReviewSetup={() => setShowSetupReviewPanel(true)}
-          setupHealth={setupHealth}
-        />
-        
-        {/* Business Snapshot KPI Card */}
-        <BusinessSnapshot business={currentBusiness} />
+        {/* Compact Success Banner */}
+        <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-green-900 dark:text-green-100">ReplyFlow fully configured</h3>
+                <p className="text-sm text-green-700 dark:text-green-300">System is operational and monitoring missed calls.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+            >
+              <svg 
+                className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Status Pills */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {setupHealth?.smsActive && (
+              <div className="inline-flex items-center px-2.5 py-1 bg-green-100 dark:bg-green-900/50 rounded-full">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-xs font-medium text-green-800 dark:text-green-200">SMS Active</span>
+              </div>
+            )}
+            {setupHealth?.forwardingVerified && (
+              <div className="inline-flex items-center px-2.5 py-1 bg-green-100 dark:bg-green-900/50 rounded-full">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-xs font-medium text-green-800 dark:text-green-200">Forwarding Verified</span>
+              </div>
+            )}
+            {setupHealth?.calendarConnected && (
+              <div className="inline-flex items-center px-2.5 py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                <span className="text-xs font-medium text-blue-800 dark:text-blue-200">Calendar Connected</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Expanded Details */}
+        {isExpanded && (
+          <div className="space-y-4">
+            <OperationalStatusCard 
+              business={currentBusiness}
+              missedCallCount={missedCallCount}
+              onReviewSetup={() => setShowSetupReviewPanel(true)}
+              setupHealth={setupHealth}
+            />
+            
+            {/* Business Snapshot KPI Card */}
+            <BusinessSnapshot business={currentBusiness} />
+          </div>
+        )}
         
         {/* Setup Review Panel */}
         <SetupReviewPanel 

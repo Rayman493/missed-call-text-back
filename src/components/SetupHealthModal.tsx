@@ -148,34 +148,6 @@ export default function SetupHealthModal({ isOpen, onClose, setupHealth }: Setup
             })}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-700 bg-slate-800/50">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4 text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                Complete
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                Needs Attention
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                Not Configured
-              </div>
-            </div>
-            <Link
-              href="/dashboard/settings"
-              onClick={onClose}
-              className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
-            >
-              Open Settings
-              <Settings className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   )
