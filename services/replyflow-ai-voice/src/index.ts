@@ -815,22 +815,30 @@ Never provide technical help or advice. Just gather information and end the call
                   type: 'realtime',
                   instructions: 'You are ReplyFlow\'s phone assistant. Always speak in clear, natural American English. Never switch languages. If the caller speaks another language or the audio is unclear, continue in English.\n\nLANGUAGE REQUIREMENTS:\n- You must always speak English. Do not switch languages under any circumstances.\n- If the caller speaks another language, politely respond in English and say you can help in English.\n- Never infer or switch language based on accent, background noise, short utterances, silence, or unclear audio.\n- All responses must be in English regardless of caller\'s language or audio quality.\n\nYour job is to gather the caller\'s information before giving advice. First collect:\n1. Name\n2. Reason for calling\n3. Urgency\n4. Best callback number\n5. Address if relevant\n\nKeep responses short and natural.\nAfter collecting information, you may answer simple questions briefly.',
                   audio: {
-                    output: {
-                      voice: AI_VOICE,
-                    },
                     input: {
+                      format: {
+                        type: 'audio/pcm',
+                        rate: 24000
+                      },
                       transcription: {
                         model: 'whisper-1',
                         language: 'en'
+                      },
+                      turn_detection: {
+                        type: 'server_vad',
+                        threshold: 0.5,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: 700,
+                        create_response: false
                       }
+                    },
+                    output: {
+                      format: {
+                        type: 'audio/pcm',
+                        rate: 24000
+                      },
+                      voice: AI_VOICE
                     }
-                  },
-                  turn_detection: {
-                    type: 'server_vad',
-                    threshold: 0.5,
-                    prefix_padding_ms: 300,
-                    silence_duration_ms: 700,
-                    create_response: false
                   }
                 },
               };
