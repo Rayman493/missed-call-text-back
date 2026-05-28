@@ -141,15 +141,37 @@ function HomepageFooter() {
 
 export default async function Home() {
   console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Starting auth check')
+  console.log('[ROOT PAGE] rendering homepage')
   
-  const cookieStore = cookies()
+  let cookieStore
+  try {
+    cookieStore = cookies()
+    console.log('[ROOT PAGE] cookies type:', typeof cookieStore)
+    console.log('[ROOT PAGE] cookies has getAll:', typeof cookieStore.getAll)
+  } catch (error) {
+    console.error('[ROOT PAGE] cookies() error:', error)
+    throw error
+  }
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          try {
+            if (!cookieStore) {
+              console.warn('[ROOT PAGE] cookieStore is not available')
+              return []
+            }
+            if (typeof cookieStore.getAll !== 'function') {
+              console.warn('[ROOT PAGE] cookieStore.getAll is not a function, type:', typeof cookieStore)
+              return []
+            }
+            return cookieStore.getAll()
+          } catch (error) {
+            console.error('[ROOT PAGE] cookieStore.getAll() error:', error)
+            return []
+          }
         },
       },
     }
@@ -185,6 +207,7 @@ export default async function Home() {
   }
 
   console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Rendering public homepage for unauthenticated user')
+  console.log('[ROOT PAGE] before public homepage component render')
   
   // Render public homepage for unauthenticated users
   return (
