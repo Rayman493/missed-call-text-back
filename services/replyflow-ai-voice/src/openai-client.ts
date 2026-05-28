@@ -152,7 +152,7 @@ export class OpenAIRealtimeClient {
             type: 'response.create',
             response: {
               modalities: ['audio', 'text'],
-              instructions: 'Say exactly: Hello from ReplyFlow.',
+              instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only.',
             },
           };
           console.log('[OPENAI TEST] sending test message');
@@ -331,6 +331,9 @@ export class OpenAIRealtimeClient {
       // Request response generation
       const createResponse = {
         type: 'response.create',
+        response: {
+          instructions: 'Always respond in English only.',
+        },
       };
       log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(createResponse, null, 2));
       this.ws.send(JSON.stringify(createResponse));

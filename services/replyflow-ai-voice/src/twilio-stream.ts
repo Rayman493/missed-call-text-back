@@ -158,6 +158,9 @@ export class TwilioStreamHandler {
                       // Send response.create
                       const responseMessage = {
                         type: 'response.create',
+                        response: {
+                          instructions: 'Always respond in English only.',
+                        },
                       };
                       openAiWs.send(JSON.stringify(responseMessage));
                       log(LogLevel.INFO, '[TURN] response.create sent');

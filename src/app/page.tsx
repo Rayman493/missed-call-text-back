@@ -154,7 +154,8 @@ export default async function Home() {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data, error } = await supabase.auth.getSession()
+  const session = data?.session
 
   if (session?.user) {
     console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] User is authenticated')
