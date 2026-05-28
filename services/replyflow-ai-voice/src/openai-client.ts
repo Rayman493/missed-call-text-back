@@ -155,6 +155,7 @@ export class OpenAIRealtimeClient {
               instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only.',
             },
           };
+          console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - test message');
           console.log('[OPENAI TEST] sending test message');
           if (this.ws) {
             this.ws.send(JSON.stringify(testMessage));
@@ -281,7 +282,11 @@ export class OpenAIRealtimeClient {
         input_audio_format: 'g711_ulaw',
         output_audio_format: 'g711_ulaw',
         voice: this.config.voice || 'alloy',
-        instructions: 'You are a helpful AI assistant. Respond naturally and concisely.',
+        instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
+        input_audio_transcription: {
+          model: 'whisper-1',
+          language: 'en'
+        },
         turn_detection: {
           type: 'server_vad',
           threshold: 0.5,
@@ -291,6 +296,8 @@ export class OpenAIRealtimeClient {
       },
     };
 
+    console.log('[AI ACTIVE ROUTE] Fly websocket stream');
+    console.log('[AI SESSION LANGUAGE LOCK SENT] english - strict lock applied');
     console.log('[OPENAI SESSION] session.update sent');
     console.log('[OPENAI SESSION] session.update fields', {
       type: sessionUpdate.type,
@@ -318,13 +325,14 @@ export class OpenAIRealtimeClient {
         content: [
           {
             type: 'text',
-            text: 'Hello. This is the ReplyFlow AI Assistant test environment.',
+            text: 'Thanks for calling ReplyFlow. May I have your name?',
           },
         ],
       },
     };
 
     if (this.ws?.readyState === WebSocket.OPEN) {
+      console.log('[AI GREETING ENGLISH SENT] hardcoded English greeting');
       log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(message, null, 2));
       this.ws.send(JSON.stringify(message));
 
@@ -335,6 +343,7 @@ export class OpenAIRealtimeClient {
           instructions: 'Always respond in English only.',
         },
       };
+      console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - greeting');
       log(LogLevel.INFO, '[AI POC] OUTBOUND OPENAI MESSAGE', JSON.stringify(createResponse, null, 2));
       this.ws.send(JSON.stringify(createResponse));
 
@@ -354,6 +363,7 @@ export class OpenAIRealtimeClient {
         break;
       case 'session.updated':
         console.log('[OPENAI SESSION] session.updated received');
+        console.log('[AI SESSION LANGUAGE LOCK ACKED] english - strict lock confirmed');
         this.sessionUpdatedReceived = true;
         if (this.sessionUpdateTimeoutId) {
           clearTimeout(this.sessionUpdateTimeoutId);
