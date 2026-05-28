@@ -54,53 +54,37 @@ export function getForwardingVerificationStatus(
     hasSuccessfulTest
   }
 
-  // Check if forwarding is operationally verified
-  if (hasMissedCalls) {
-    return {
-      verified: true,
-      reason: 'Missed calls successfully detected',
-      metrics: verificationMetrics
-    }
-  }
-
-  if (hasLeads) {
-    return {
-      verified: true,
-      reason: 'Leads created from missed calls',
-      metrics: verificationMetrics
-    }
-  }
-
-  if (hasSuccessfulSms) {
-    return {
-      verified: true,
-      reason: 'SMS responses sent successfully',
-      metrics: verificationMetrics
-    }
-  }
-
-  if (hasSuccessfulTest) {
-    return {
-      verified: true,
-      reason: 'Forwarding test completed successfully',
-      metrics: verificationMetrics
-    }
-  }
-
-  if (hasExplicitFlag) {
-    return {
-      verified: true,
-      reason: 'Forwarding verified',
-      metrics: verificationMetrics
-    }
-  }
-
-  // No verification evidence yet
-  return {
-    verified: false,
-    reason: 'Waiting for first missed-call test',
+  const result = {
+    verified: hasMissedCalls || hasLeads || hasSuccessfulSms || hasSuccessfulTest || hasExplicitFlag,
+    reason: '',
     metrics: verificationMetrics
   }
+
+  // Determine reason based on verification source
+  if (hasMissedCalls) {
+    result.reason = 'Missed calls successfully detected'
+  } else if (hasLeads) {
+    result.reason = 'Leads created from missed calls'
+  } else if (hasSuccessfulSms) {
+    result.reason = 'SMS responses sent successfully'
+  } else if (hasSuccessfulTest) {
+    result.reason = 'Forwarding test completed successfully'
+  } else if (hasExplicitFlag) {
+    result.reason = 'Forwarding verified'
+  } else {
+    result.reason = 'Waiting for first missed-call test'
+  }
+
+  console.log('[FORWARDING CHECK]', {
+    businessId: business.id,
+    leadsCount: metrics?.leadsCount ?? 0,
+    missedCalls: metrics?.missedCallsCount ?? 0,
+    smsSent: metrics?.successfulSmsCount ?? 0,
+    forwardingVerified: business.forwarding_verified,
+    result
+  })
+
+  return result
 }
 
 /**

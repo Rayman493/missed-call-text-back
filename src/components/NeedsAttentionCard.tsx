@@ -34,6 +34,19 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         const supabase = createBrowserClient()
         const items: AttentionItem[] = []
 
+        // Fetch ALL leads for verification (no time restriction)
+        const { data: allLeads } = await supabase
+          .from('leads')
+          .select('id, caller_phone, created_at')
+          .eq('business_id', business.id)
+
+        // Fetch ALL outbound messages for verification (no time restriction)
+        const { data: allMessages } = await supabase
+          .from('messages')
+          .select('id, direction')
+          .eq('business_id', business.id)
+          .eq('direction', 'outbound')
+
         // Check for leads awaiting response
         const { data: awaitingLeads } = await supabase
           .from('leads')
@@ -77,10 +90,17 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Check call forwarding status using new verification logic
+        // Check call forwarding status using new verification logic with TOTAL counts
         const forwardingStatus = getForwardingVerificationStatus(business, {
-          missedCallsCount: awaitingLeads?.length || 0,
-          leadsCount: awaitingLeads?.length || 0
+          missedCallsCount: allLeads?.length || 0,
+          leadsCount: allLeads?.length || 0,
+          successfulSmsCount: allMessages?.length || 0
+        })
+
+        console.log('[NeedsAttentionCard] Forwarding status check:', {
+          totalLeads: allLeads?.length || 0,
+          totalSmsSent: allMessages?.length || 0,
+          forwardingStatus
         })
         
         if (!forwardingStatus.verified) {

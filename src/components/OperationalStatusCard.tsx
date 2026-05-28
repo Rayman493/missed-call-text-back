@@ -23,6 +23,8 @@ interface ActivityData {
   lastActivity: string | null
   lastSuccessfulSMS: string | null
   lastLeadActivity: string | null
+  totalLeads?: number
+  totalSmsSent?: number
 }
 
 export default function OperationalStatusCard({ 
@@ -67,14 +69,27 @@ export default function OperationalStatusCard({
         // Get recent activity from the last 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
         
-        // Fetch leads created in last 30 days
+        // Fetch ALL leads for verification (no time restriction)
+        const { data: allLeads } = await supabase
+          .from('leads')
+          .select('id, created_at')
+          .eq('business_id', business.id)
+
+        // Fetch leads created in last 30 days for display
         const { data: recentLeads } = await supabase
           .from('leads')
           .select('created_at')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch messages sent in last 30 days
+        // Fetch ALL outbound messages for verification (no time restriction)
+        const { data: allMessages } = await supabase
+          .from('messages')
+          .select('id, created_at, direction')
+          .eq('business_id', business.id)
+          .eq('direction', 'outbound')
+
+        // Fetch messages sent in last 30 days for display
         const { data: recentMessages } = await supabase
           .from('messages')
           .select('created_at, direction')
@@ -88,6 +103,16 @@ export default function OperationalStatusCard({
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
+        const totalLeads = allLeads?.length || 0
+        const totalSmsSent = allMessages?.length || 0
+
+        console.log('[OperationalStatusCard] Activity data fetched:', {
+          totalLeads,
+          totalSmsSent,
+          recentLeadsCount: recentLeads?.length || 0,
+          recentMessagesCount: recentMessages?.length || 0
+        })
+
         setActivityData({
           missedCallsProcessed: missedCallCount,
           leadsCreated: recentLeads?.length || 0,
@@ -95,7 +120,9 @@ export default function OperationalStatusCard({
           followUpsScheduled: recentFollowUps?.length || 0,
           lastActivity: lastActivity || null,
           lastSuccessfulSMS: recentMessages?.filter((m: any) => m.direction === 'outbound')[0]?.created_at || null,
-          lastLeadActivity: recentLeads?.[0]?.created_at || null
+          lastLeadActivity: recentLeads?.[0]?.created_at || null,
+          totalLeads,
+          totalSmsSent
         })
       } catch (error) {
         console.error('Error fetching activity data:', error)
@@ -130,11 +157,11 @@ export default function OperationalStatusCard({
 
   const isTextReplyActive = business?.messaging_status === 'active'
   
-  // Use new forwarding verification logic
+  // Use new forwarding verification logic with TOTAL counts (not just recent)
   const forwardingStatus = getForwardingVerificationStatus(business, {
     missedCallsCount: activityData.missedCallsProcessed,
-    leadsCount: activityData.leadsCreated,
-    successfulSmsCount: activityData.smsSent
+    leadsCount: activityData.totalLeads ?? activityData.leadsCreated,
+    successfulSmsCount: activityData.totalSmsSent ?? activityData.smsSent
   })
   const forwardingMessage = getForwardingStatusMessage(forwardingStatus)
   
