@@ -212,15 +212,22 @@ export default async function Home() {
   // Render public homepage for unauthenticated users
   return (
     <>
+      {(() => { console.log('[ROOT PAGE] before StructuredData'); return null; })()}
       <StructuredData />
+      {(() => { console.log('[ROOT PAGE] after StructuredData'); return null; })()}
+      {(() => { console.log('[ROOT PAGE] before PageBackground'); return null; })()}
       <PageBackground>
+        {(() => { console.log('[ROOT PAGE] before SSRSafeNavbar'); return null; })()}
         <SSRSafeNavbar forceDark={true} />
+        {(() => { console.log('[ROOT PAGE] after SSRSafeNavbar'); return null; })()}
       
-      {/* Hero Section */}
-      <HomepageErrorBoundary>
+      {/* Hero Section - TEMPORARILY COMMENTED OUT TO ISOLATE CRASH */}
+      {(() => { console.log('[ROOT PAGE] Hero Section commented out for crash isolation'); return null; })()}
+      {/* <HomepageErrorBoundary>
         <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
           <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
+            {(() => { console.log('[ROOT PAGE] before motion.div'); return null; })()}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -234,20 +241,7 @@ export default async function Home() {
               ReplyFlow automatically texts back missed callers so you can capture leads, book jobs, and grow your business without losing customers.
             </p>
             
-            {/* Pricing Information */}
-            <div className="flex flex-col items-center gap-2 mt-4">
-              <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-              <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
-            </div>
-            
-            {/* Trust Copy */}
-            <div className="flex flex-col items-center gap-1 mt-3">
-              <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
-              <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
-            </div>
-            
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              {/* Primary CTA */}
               <Link
                 href="/signup"
                 className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
@@ -255,48 +249,10 @@ export default async function Home() {
                 Start Free Trial
               </Link>
             </div>
-
-            {/* Trust/Simplicity Bar */}
-            <div className="mt-12 pt-8 border-t border-slate-200/60 dark:border-slate-700/60">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-                <div className="flex flex-col items-center text-center">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Works with your existing number
-                  </span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Setup in under 5 minutes
-                  </span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                    No app download required
-                  </span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Built for local businesses
-                  </span>
-                </div>
-              </div>
-            </div>
           </motion.div>
         </div>
       </section>
-      </HomepageErrorBoundary>
+      </HomepageErrorBoundary> */}
 
       {/* How It Works Section */}
       <HomepageErrorBoundary>
