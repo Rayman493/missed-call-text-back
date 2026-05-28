@@ -24,13 +24,13 @@ function getErrorMessage(errorCode: string): string {
     return 'Phone setup still pending. Delivery may fail until approved.'
   }
   if (errorCode === '21614') {
-    return 'Number is not a valid mobile number.'
+    return 'This number is not a valid mobile number.'
   }
   if (errorCode === '21612') {
     return 'Phone number not enabled for SMS.'
   }
   // Never expose technical error codes or UNKNOWN to users
-  return 'Couldn\'t send. Try again.'
+  return 'We couldn\'t send this message. Please try again.'
 }
 
 function getStatusColor(status: string): string {
@@ -673,7 +673,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setOptimisticMessage({
           ...optimisticMsg,
           status: 'failed',
-          error_message: result.error || 'Failed to send message'
+          error_message: result.error || 'We couldn\'t send this message'
         })
         
         // Show appropriate error message based on response
@@ -683,8 +683,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           setError('Business not found. Please contact support.')
         } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
           setError('Phone setup still pending. Delivery may fail until approved.')
+        } else if (result.error?.includes('blocked') || result.error?.includes('opted out')) {
+          setError('This number has opted out. You cannot send messages.')
         } else {
-          setError('Failed to send message. Please try again.')
+          setError('We couldn\'t send this message. Please try again.')
         }
         return
       }
