@@ -663,17 +663,22 @@ wss.on('connection', (ws, req) => {
           let businessType = '';
           let customGreeting = '';
           
+          console.log('[SUPABASE CLIENT CREATED]', supabase ? 'YES' : 'NO');
+          console.log('[BUSINESS LOOKUP START]', { businessId, hasSupabase: !!supabase });
+          
           if (businessId && supabase) {
             try {
-              console.log('[AI] fetching business data', { businessId });
+              console.log('[BUSINESS LOOKUP EXECUTING]', { businessId });
               const { data: business, error } = await supabase
                 .from('businesses')
                 .select('name, type, custom_greeting')
                 .eq('id', businessId)
                 .single();
               
+              console.log('[BUSINESS LOOKUP RESULT]', { business, error });
+              
               if (error) {
-                console.log('[BUSINESS LOOKUP FAILED]', error);
+                console.log('[BUSINESS LOOKUP ERROR]', error);
               } else if (business) {
                 businessName = business.name;
                 businessType = business.type || '';
@@ -684,10 +689,10 @@ wss.on('connection', (ws, req) => {
                 console.log('[BUSINESS LOOKUP FAILED] - no business found');
               }
             } catch (err) {
-              console.log('[BUSINESS LOOKUP FAILED]', err);
+              console.log('[BUSINESS LOOKUP ERROR]', err);
             }
           } else {
-            console.log('[BUSINESS LOOKUP FAILED] - no businessId or supabase client');
+            console.log('[BUSINESS LOOKUP FAILED] - no businessId or supabase client', { businessId, hasSupabase: !!supabase });
           }
 
           // Initialize intake state machine with business name
@@ -1009,12 +1014,15 @@ Do NOT:
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
                   console.log('[SESSION UPDATED - SENDING GREETING]');
+                  const greetingText = `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`;
                   const greetingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`,
+                      instructions: greetingText,
                     },
                   };
+                  console.log('[FINAL GREETING TEXT]', greetingText);
+                  console.log('[FINAL BUSINESS NAME]', businessName || 'we');
                   console.log('[GREETING RESPONSE.CREATE SENT]');
                   console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(greetingMessage, null, 2));
                   if (openAiWs) {
