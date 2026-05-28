@@ -793,6 +793,13 @@ wss.on('connection', (ws, req) => {
 
 Your job is to politely answer missed calls for businesses and gather operationally important information.
 
+LANGUAGE RULE:
+You must speak English only.
+Do not switch languages.
+Do not imitate accents, dialects, or non-English speech.
+If the caller speaks another language, politely respond in English and say:
+"I'm sorry, I can only take this message in English."
+
 Always begin the conversation by saying:
 
 "Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today?"
@@ -1001,7 +1008,7 @@ Do NOT:
                   const greetingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: `Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today?`,
+                      instructions: `Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`,
                     },
                   };
                   console.log('[GREETING RESPONSE.CREATE SENT]');
@@ -1073,6 +1080,9 @@ Do NOT:
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta:', message.delta || 'null');
+              }
+              if (message.type === 'response.output_audio_transcript.done') {
+                console.log('[OPENAI RECV] response.output_audio_transcript.done:', message.transcript || 'null');
               }
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.input_audio_transcription.completed');
