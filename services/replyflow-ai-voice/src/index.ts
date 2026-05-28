@@ -818,15 +818,25 @@ Never provide technical help or advice. Just gather information and end the call
                 session: {
                   type: "realtime",
                   instructions: "You are ReplyFlow's missed-call receptionist. Always speak English. Keep responses short and professional.",
-                  voice: "alloy",
-                  input_audio_format: "audio/pcmu",
-                  output_audio_format: "audio/pcmu",
-                  turn_detection: {
-                    type: "server_vad",
-                    threshold: 0.5,
-                    prefix_padding_ms: 300,
-                    silence_duration_ms: 700,
-                    create_response: false
+                  audio: {
+                    input: {
+                      format: {
+                        type: "audio/pcmu"
+                      },
+                      turn_detection: {
+                        type: "server_vad",
+                        threshold: 0.5,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: 700,
+                        create_response: false
+                      }
+                    },
+                    output: {
+                      format: {
+                        type: "audio/pcmu"
+                      },
+                      voice: "alloy"
+                    }
                   }
                 }
               };
