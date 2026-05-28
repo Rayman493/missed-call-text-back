@@ -778,18 +778,23 @@ Never provide technical help or advice. Just gather information and end the call
             let responseCreatedReceived = false;
             let sessionCreated = false;
             let sessionUpdatedReceived = false;
+            let sessionReady = false;
             setTimeout(() => {
               if (!opened) {
                 console.log('[OPENAI RAW] open timeout (5 seconds)');
               }
             }, 5000);
             
-            // Add timeout to detect if greeting is never triggered
+            // Add timeout for session.updated
             setTimeout(() => {
-              if (opened && !greetingSent) {
-                console.log('[MISSING] greeting not triggered');
+              if (opened && !sessionReady) {
+                console.log('[SESSION.UPDATE TIMEOUT] - session.updated not received within 3 seconds');
+                // Close gracefully
+                if (openAiWs) {
+                  openAiWs.close();
+                }
               }
-            }, 10000);
+            }, 3000);
             
             // Add timeout to detect if OpenAI ignores response.create
             setTimeout(() => {
@@ -894,7 +899,7 @@ Never provide technical help or advice. Just gather information and end the call
                 transcript.push(`User: ${userTranscript}`);
                 
                 // Process intake stage advancement after FINAL transcript
-                if (intakeData && intakeData.stage !== 'complete' && openAiWs) {
+                if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady) {
                   console.log('[AI INTAKE STAGE] current stage:', intakeData.stage);
                   
                   // Get next intake response
@@ -976,6 +981,8 @@ Never provide technical help or advice. Just gather information and end the call
                 console.log('[OPENAI RECV] session.updated');
                 console.log('[SESSION UPDATED RECEIVED]');
                 sessionUpdatedReceived = true;
+                sessionReady = true; // Set sessionReady to true
+                console.log('[SESSION READY] - session.updated received, now ready to send greeting');
                 console.log('[SESSION UPDATED] received configuration:', JSON.stringify(message.session, null, 2));
                 console.log('[SESSION COMPARE] instructions:', {
                   outbound: 'You are an English-speaking receptionist.',
@@ -999,7 +1006,7 @@ Never provide technical help or advice. Just gather information and end the call
                       instructions: intakeResponse.response + ' Always respond in English only.',
                     },
                   };
-                  console.log('[AI RESPONSE LANGUAGE LOCK] english');
+                  console.log('[AI GREETING ENGLISH SENT] - missed-call receptionist opening');
                   console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
                   greetingSent = true;
                   console.log('[GREETING SENT]');
