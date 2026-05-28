@@ -828,7 +828,7 @@ Never provide technical help or advice. Just gather information and end the call
                         threshold: 0.5,
                         prefix_padding_ms: 300,
                         silence_duration_ms: 700,
-                        create_response: false
+                        create_response: true
                       }
                     },
                     output: {
@@ -1060,6 +1060,23 @@ Never provide technical help or advice. Just gather information and end the call
                   details: message.details,
                 });
                 return;
+              }
+              
+              // Log specific OpenAI events for debugging
+              if (message.type === 'input_audio_buffer.speech_started') {
+                console.log('[OPENAI RECV] input_audio_buffer.speech_started');
+              }
+              if (message.type === 'input_audio_buffer.speech_stopped') {
+                console.log('[OPENAI RECV] input_audio_buffer.speech_stopped');
+              }
+              if (message.type === 'input_audio_buffer.committed') {
+                console.log('[OPENAI RECV] input_audio_buffer.committed');
+              }
+              if (message.type === 'response.created') {
+                console.log('[OPENAI RECV] response.created');
+              }
+              if (message.type === 'response.done') {
+                console.log('[OPENAI RECV] response.done');
               }
               
               // Catch-all logging for every OpenAI event type
