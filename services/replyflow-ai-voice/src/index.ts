@@ -813,28 +813,28 @@ Never provide technical help or advice. Just gather information and end the call
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               
-              // Configure session with corrected schema including session.type
-              const sessionConfig = {
-                type: 'session.update',
+              const sessionUpdatePayload = {
+                type: "session.update",
                 session: {
-                  instructions: 'You are ReplyFlow\'s missed-call receptionist. Always speak English. Keep responses short and professional.',
-                  voice: 'alloy',
-                  input_audio_format: 'audio/pcmu',
-                  output_audio_format: 'audio/pcmu',
+                  type: "realtime",
+                  instructions: "You are ReplyFlow's missed-call receptionist. Always speak English. Keep responses short and professional.",
+                  voice: "alloy",
+                  input_audio_format: "audio/pcmu",
+                  output_audio_format: "audio/pcmu",
                   turn_detection: {
-                    type: 'server_vad',
+                    type: "server_vad",
                     threshold: 0.5,
                     prefix_padding_ms: 300,
                     silence_duration_ms: 700,
                     create_response: false
                   }
-                },
+                }
               };
-              
-              console.log('[SESSION.UPDATE SENT]');
-              console.log('[OPENAI SESSION UPDATE FINAL PAYLOAD]:', JSON.stringify(sessionConfig, null, 2));
+
+              const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
+              console.log("[SESSION.UPDATE RAW SENT]", rawSessionUpdate);
               if (openAiWs) {
-                openAiWs.send(JSON.stringify(sessionConfig));
+                openAiWs.send(rawSessionUpdate);
               }
               
               // Greeting will be sent after session.updated is received
