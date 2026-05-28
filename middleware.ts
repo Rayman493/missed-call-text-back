@@ -83,12 +83,19 @@ export async function middleware(req: NextRequest) {
     '/faq',
     '/compliance',
     '/api',
+    '/home',
+    '/demo',
+    '/pricing',
   ]
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   if (isPublicRoute) {
-    console.log('[Middleware] Public route, allowing access')
+    console.log('[PUBLIC ROUTE ALLOWED]', {
+      pathname,
+      hasSession: !!session,
+      reason: 'Route is in publicRoutes allowlist'
+    })
     return res
   }
 
@@ -104,7 +111,11 @@ export async function middleware(req: NextRequest) {
   // Special handling for homepage - redirect authenticated users
   if (pathname === '/') {
     if (session) {
-      console.log('[Middleware] Authenticated user on homepage, checking redirect target')
+      console.log('[MIDDLEWARE REDIRECT SIGNED IN TO DASHBOARD]', {
+        pathname,
+        hasSession: !!session,
+        userId: session?.user?.id
+      })
       
       // Check for last visited dashboard route from cookie
       const lastDashboardRoute = req.cookies.get('last_dashboard_route')?.value
@@ -116,7 +127,8 @@ export async function middleware(req: NextRequest) {
         ? lastDashboardRoute 
         : '/dashboard'
       
-      console.log('[Middleware] Redirecting authenticated user from homepage', {
+      console.log('[MIDDLEWARE REDIRECTING TO DASHBOARD]', {
+        from: pathname,
         to: redirectTarget,
         lastDashboardRoute
       })
@@ -125,7 +137,11 @@ export async function middleware(req: NextRequest) {
     }
     
     // Not authenticated - allow homepage access
-    console.log('[Middleware] Unauthenticated user on homepage, allowing access')
+    console.log('[ROUTE CHECK]', {
+      pathname,
+      hasSession: !!session,
+      action: 'Allowing homepage access for unauthenticated user'
+    })
     return res
   }
 

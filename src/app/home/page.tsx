@@ -136,7 +136,7 @@ function HomepageFooter() {
 }
 
 export default function PublicHome() {
-  console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home')
+  console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home - NO AUTH CHECK')
   
   // Render public homepage for all users (no auth check)
   return (
