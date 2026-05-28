@@ -95,6 +95,8 @@ export default function AppHeader({
       <SetupHealthModal
         isOpen={showHealthModal}
         onClose={() => setShowHealthModal(false)}
+        leadsRecovered={1}
+        missedCallsCaptured={1}
       />
     </>
   )

@@ -9,10 +9,15 @@ import { useSetupHealth, HealthStatus } from '@/hooks/useSetupHealth'
 interface SetupHealthModalProps {
   isOpen: boolean
   onClose: () => void
+  leadsRecovered?: number
+  missedCallsCaptured?: number
 }
 
-export default function SetupHealthModal({ isOpen, onClose }: SetupHealthModalProps) {
+export default function SetupHealthModal({ isOpen, onClose, leadsRecovered, missedCallsCaptured }: SetupHealthModalProps) {
   const { healthChecks, needsAttention, requiredIssues, isHealthy } = useSetupHealth()
+
+  // Override forwarding status based on Business Snapshot metrics
+  const forwardingVerified = (leadsRecovered && leadsRecovered > 0) || (missedCallsCaptured && missedCallsCaptured > 0)
 
   const getStatusIcon = (status: HealthStatus) => {
     switch (status) {
@@ -71,41 +76,66 @@ export default function SetupHealthModal({ isOpen, onClose }: SetupHealthModalPr
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-180px)] p-6">
           <div className="space-y-3">
-            {healthChecks.map((check) => (
-              <div
-                key={check.id}
-                className={`p-4 rounded-xl border transition-all ${getStatusColor(check.status)} ${check.isOptional ? 'opacity-70' : ''}`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="mt-0.5 flex-shrink-0">
-                      {getStatusIcon(check.status)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-white">{check.name}</h3>
-                        {check.isOptional && (
-                          <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">Optional</span>
+            {healthChecks.map((check) => {
+              // Override forwarding check based on Business Snapshot metrics
+              let status = check.status
+              let description = check.description
+              let details = check.details
+              let actionText = check.actionText
+              let actionUrl = check.actionUrl
+
+              if (check.id === 'call_forwarding') {
+                if (forwardingVerified) {
+                  status = 'complete'
+                  description = 'Missed calls are being detected successfully.'
+                  details = 'Forwarding is operational based on captured leads.'
+                  actionText = undefined
+                  actionUrl = undefined
+                } else {
+                  status = 'needs_attention'
+                  description = 'Call forwarding needs verification'
+                  details = 'Waiting for first missed-call test'
+                  actionText = 'Verify forwarding'
+                  actionUrl = '/setup/forwarding'
+                }
+              }
+
+              return (
+                <div
+                  key={check.id}
+                  className={`p-4 rounded-xl border transition-all ${getStatusColor(status)} ${check.isOptional ? 'opacity-70' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="mt-0.5 flex-shrink-0">
+                        {getStatusIcon(status)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-white">{check.name}</h3>
+                          {check.isOptional && (
+                            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">Optional</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-300">{description}</p>
+                        {details && (
+                          <p className="text-xs text-slate-400 mt-1">{details}</p>
                         )}
                       </div>
-                      <p className="text-sm text-slate-300">{check.description}</p>
-                      {check.details && (
-                        <p className="text-xs text-slate-400 mt-1">{check.details}</p>
-                      )}
                     </div>
+                    {actionText && actionUrl && (
+                      <Link
+                        href={actionUrl}
+                        onClick={onClose}
+                        className="flex-shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        {actionText}
+                      </Link>
+                    )}
                   </div>
-                  {check.actionText && check.actionUrl && (
-                    <Link
-                      href={check.actionUrl}
-                      onClick={onClose}
-                      className="flex-shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      {check.actionText}
-                    </Link>
-                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
