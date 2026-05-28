@@ -211,7 +211,7 @@ const server = createServer((req, res) => {
       const testMessage = {
         type: 'response.create',
         response: {
-          instructions: 'Hello from ReplyFlow.',
+          instructions: 'Hello from ReplyFlow. Always respond in English only.',
         },
       };
       console.log('[DEBUG OPENAI] outbound payload:', JSON.stringify(testMessage, null, 2));
@@ -709,14 +709,21 @@ Do not continue chatting after intake is complete.`;
                 type: 'session.update',
                 session: {
                   type: 'realtime',
-                  instructions: 'You are an English-speaking receptionist for ReplyFlow. Your job is to gather the caller\'s information before giving advice. First collect:\n1. Name\n2. Reason for calling\n3. Urgency\n4. Best callback number\n5. Address if relevant\n\nKeep responses short and natural.\nAfter collecting information, you may answer simple questions briefly.',
+                  instructions: 'You are ReplyFlow\'s phone assistant. Always speak in clear, natural American English. Never switch languages. If the caller speaks another language or the audio is unclear, continue in English.\n\nLANGUAGE REQUIREMENTS:\n- You must always speak English. Do not switch languages under any circumstances.\n- If the caller speaks another language, politely respond in English and say you can help in English.\n- Never infer or switch language based on accent, background noise, short utterances, silence, or unclear audio.\n- All responses must be in English regardless of caller\'s language or audio quality.\n\nYour job is to gather the caller\'s information before giving advice. First collect:\n1. Name\n2. Reason for calling\n3. Urgency\n4. Best callback number\n5. Address if relevant\n\nKeep responses short and natural.\nAfter collecting information, you may answer simple questions briefly.',
                   audio: {
                     output: {
                       voice: AI_VOICE,
                     },
+                    input: {
+                      transcription: {
+                        model: 'whisper-1',
+                        language: 'en'
+                      }
+                    }
                   },
                 },
               };
+              console.log('[AI SESSION LANGUAGE LOCK] english');
               console.log('[OPENAI SEND PAYLOAD] session.update (FINAL):', JSON.stringify(sessionConfig, null, 2));
               console.log('[SESSION.UPDATE SENT]');
               if (openAiWs) {
@@ -801,9 +808,10 @@ Do not continue chatting after intake is complete.`;
                 const testMessage = {
                   type: 'response.create',
                   response: {
-                    instructions: 'Thanks for calling ReplyFlow. May I have your name?',
+                    instructions: 'Thanks for calling ReplyFlow. May I have your name? Always respond in English only.',
                   },
                 };
+                console.log('[AI RESPONSE LANGUAGE LOCK] english');
                 console.log('[RESPONSE.CREATE PAYLOAD]', JSON.stringify(testMessage, null, 2));
                 greetingSent = true;
                 console.log('[GREETING SENT]');

@@ -8,10 +8,16 @@
  * System prompt for OpenAI Realtime API
  */
 export function getSystemPrompt(businessName: string): string {
-  return `You are an automated call assistant for ${businessName}.
+  return `You are ReplyFlow's phone assistant for ${businessName}. Always speak in clear, natural American English. Never switch languages. If the caller speaks another language or the audio is unclear, continue in English.
+
+LANGUAGE REQUIREMENTS:
+- You must always speak English. Do not switch languages under any circumstances.
+- If the caller speaks another language, politely respond in English and say you can help in English.
+- Never infer or switch language based on accent, background noise, short utterances, silence, or unclear audio.
+- All responses must be in English regardless of caller's language or audio quality.
 
 Your role is to:
-1. Greet the caller professionally
+1. Greet the caller professionally in English
 2. Collect 4 pieces of information:
    - Caller's name
    - Reason for calling
@@ -23,7 +29,7 @@ Important guidelines:
 - Be polite and professional
 - Keep responses brief (1-2 sentences)
 - Do not make up information you don't have
-- If the caller is unclear, ask for clarification
+- If the caller is unclear, ask for clarification in English
 - Do not promise anything beyond taking a message
 - End the call gracefully after collecting all information
 
@@ -93,6 +99,7 @@ export const EXTRACTION_FUNCTION = {
  * Generate greeting message
  */
 export function getGreeting(businessName: string): string {
+  console.log('[AI SESSION LANGUAGE LOCK] english')
   return `Hi, thanks for calling ${businessName}. I'm the automated assistant. I can take a quick message for the team. May I get your name?`
 }
 
