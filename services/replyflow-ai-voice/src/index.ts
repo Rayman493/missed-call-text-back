@@ -659,7 +659,7 @@ wss.on('connection', (ws, req) => {
           log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId, callerPhone });
 
           // Fetch business data if businessId is available
-          let businessName = 'ReplyFlow';
+          let businessName: string | null = null;
           let businessType = '';
           let customGreeting = '';
           
@@ -673,22 +673,25 @@ wss.on('connection', (ws, req) => {
                 .single();
               
               if (error) {
-                console.log('[AI] business fetch error', error);
+                console.log('[BUSINESS LOOKUP FAILED]', error);
               } else if (business) {
-                businessName = business.name || businessName;
+                businessName = business.name;
                 businessType = business.type || '';
                 customGreeting = business.custom_greeting || '';
+                console.log('[BUSINESS NAME RESOLVED]', businessName);
                 console.log('[AI] business loaded', { businessName, businessType, hasCustomGreeting: !!customGreeting });
+              } else {
+                console.log('[BUSINESS LOOKUP FAILED] - no business found');
               }
             } catch (err) {
-              console.log('[AI] business fetch failed', err);
+              console.log('[BUSINESS LOOKUP FAILED]', err);
             }
           } else {
-            console.log('[AI] no businessId or supabase client, using default greeting');
+            console.log('[BUSINESS LOOKUP FAILED] - no businessId or supabase client');
           }
 
           // Initialize intake state machine with business name
-          intakeData = createIntakeData(businessName, callSid, businessId, sessionId);
+          intakeData = createIntakeData(businessName || 'we', callSid, businessId, sessionId);
           console.log('[AI INTAKE] initialized with business:', businessName);
 
           // Instructions are now handled via session.update - disable old system
@@ -789,7 +792,7 @@ wss.on('connection', (ws, req) => {
                 type: "session.update",
                 session: {
                   type: "realtime",
-                  instructions: `You are the AI receptionist for ReplyFlow customers.
+                  instructions: `You are the AI receptionist for businesses.
 
 Your job is to politely answer missed calls for businesses and gather operationally important information.
 
@@ -802,7 +805,7 @@ If the caller speaks another language, politely respond in English and say:
 
 Always begin the conversation by saying:
 
-"Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today?"
+"Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today?"
 
 INFORMATION GATHERING PRIORITY ORDER:
 1. Reason for calling (most important - understand the core need)
@@ -871,6 +874,7 @@ Do NOT:
               };
 
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
+              console.log("[SESSION BUSINESS NAME]", businessName || 'we');
               console.log("[SESSION.UPDATE RAW SENT]", rawSessionUpdate);
               if (openAiWs) {
                 openAiWs.send(rawSessionUpdate);
@@ -1008,7 +1012,7 @@ Do NOT:
                   const greetingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: `Sorry, ${businessName} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`,
+                      instructions: `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today? Speak English only.`,
                     },
                   };
                   console.log('[GREETING RESPONSE.CREATE SENT]');
