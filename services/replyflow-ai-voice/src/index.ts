@@ -29,6 +29,30 @@ const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPAB
 // Intake state machine types
 type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'complete';
 
+// AI session state tracking types
+type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
+
+interface AISessionMetrics {
+  callSid: string;
+  businessId: string;
+  callReceivedAt: number;
+  aiConnectedAt?: number;
+  sessionReadyAt?: number;
+  greetingSentAt?: number;
+  firstAudioReceivedAt?: number;
+  failureReason?: string;
+}
+
+interface AISessionStateTracker {
+  currentState: AISessionState;
+  metrics: AISessionMetrics;
+  stateHistory: Array<{
+    state: AISessionState;
+    timestamp: number;
+    transitionFrom?: AISessionState;
+  }>;
+}
+
 interface IntakeData {
   stage: IntakeStage;
   callerName?: string;
@@ -137,6 +161,117 @@ function extractPhoneNumber(transcript: string): string {
 function extractUrgency(transcript: string): 'urgent' | 'normal' {
   const urgent = transcript.toLowerCase().match(/\burgent\b|\bemergency\b|\basap\b|\bimmediately\b|\bright away\b/);
   return urgent ? 'urgent' : 'normal';
+}
+
+// AI session state tracking functions
+function createAISessionTracker(callSid: string, businessId: string): AISessionStateTracker {
+  const now = Date.now();
+  return {
+    currentState: 'AI_CONNECTING',
+    metrics: {
+      callSid,
+      businessId,
+      callReceivedAt: now,
+    },
+    stateHistory: [{
+      state: 'AI_CONNECTING',
+      timestamp: now,
+    }]
+  };
+}
+
+function updateAISessionState(tracker: AISessionStateTracker, newState: AISessionState, reason?: string): void {
+  const now = Date.now();
+  const previousState = tracker.currentState;
+  
+  // Update state
+  tracker.currentState = newState;
+  
+  // Add to history
+  tracker.stateHistory.push({
+    state: newState,
+    timestamp: now,
+    transitionFrom: previousState,
+  });
+  
+  // Update specific timestamps
+  switch (newState) {
+    case 'AI_CONNECTED':
+      tracker.metrics.aiConnectedAt = now;
+      break;
+    case 'SESSION_READY':
+      tracker.metrics.sessionReadyAt = now;
+      break;
+    case 'GREETING_SENT':
+      tracker.metrics.greetingSentAt = now;
+      break;
+    case 'AUDIO_RECEIVED':
+      if (!tracker.metrics.firstAudioReceivedAt) {
+        tracker.metrics.firstAudioReceivedAt = now;
+      }
+      break;
+    case 'FAILED':
+      tracker.metrics.failureReason = reason;
+      break;
+  }
+  
+  // Log state transition
+  console.log(`[AI STATE] ${newState}`, {
+    callSid: tracker.metrics.callSid,
+    businessId: tracker.metrics.businessId,
+    previousState,
+    timestamp: now,
+    reason,
+  });
+}
+
+function logCallMetrics(tracker: AISessionStateTracker): void {
+  const metrics = tracker.metrics;
+  const connectMs = metrics.aiConnectedAt ? metrics.aiConnectedAt - metrics.callReceivedAt : 0;
+  const readyMs = metrics.sessionReadyAt ? metrics.sessionReadyAt - metrics.callReceivedAt : 0;
+  const firstAudioMs = metrics.firstAudioReceivedAt ? metrics.firstAudioReceivedAt - metrics.callReceivedAt : 0;
+  
+  console.log('[CALL METRICS]', {
+    callSid: metrics.callSid,
+    businessId: metrics.businessId,
+    connectMs,
+    readyMs,
+    firstAudioMs,
+    finalState: tracker.currentState,
+    failureReason: metrics.failureReason,
+  });
+}
+
+function recordAIFailure(tracker: AISessionStateTracker, failureStage: string, failureReason: string): void {
+  if (!supabase) {
+    console.log('[AI FAILURE RECORDED] No Supabase client, skipping database record');
+    return;
+  }
+  
+  try {
+    supabase
+      .from('ai_call_failures')
+      .insert({
+        call_sid: tracker.metrics.callSid,
+        business_id: tracker.metrics.businessId,
+        failure_stage: failureStage,
+        failure_reason: failureReason,
+        created_at: new Date().toISOString(),
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.error('[AI FAILURE RECORD] Database insert failed:', error);
+        } else {
+          console.log('[AI FAILURE RECORDED]', {
+            callSid: tracker.metrics.callSid,
+            failureStage,
+            failureReason,
+          });
+        }
+      });
+  } catch (error) {
+    console.error('[AI FAILURE RECORD] Exception:', error);
+  }
 }
 
 function generateLeadSummary(intake: IntakeData): LeadSummary {
@@ -733,6 +868,10 @@ wss.on('connection', (ws, req) => {
 
           log(LogLevel.INFO, '[AI POC] initializeOpenAI called');
 
+          // Create AI session state tracker
+          const aiSessionTracker = createAISessionTracker(callSid, businessId);
+          (ws as any).aiSessionTracker = aiSessionTracker;
+
           try {
             console.log('[STREAM CLONED] starting websocket creation');
             console.log('[STREAM CLONED] WebSocket package:', 'ws');
@@ -741,52 +880,122 @@ wss.on('connection', (ws, req) => {
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             console.log('[STREAM CLONED] creating websocket to:', wsUrl);
             
-            openAiWs = new WebSocket(wsUrl, {
-              headers: {
-                Authorization: `Bearer ${OPENAI_API_KEY}`,
-              },
-            });
+            // Phase 4: OpenAI Connection Retry Logic
+            let retryAttempt = 0;
+            const maxRetries = 1;
+            
+            function connectToOpenAI(): Promise<WebSocket> {
+              return new Promise((resolve, reject) => {
+                retryAttempt++;
+                console.log(`[OPENAI CONNECT ATTEMPT ${retryAttempt}]`);
+                updateAISessionState(aiSessionTracker, 'AI_CONNECTING', `Attempt ${retryAttempt}`);
+                
+                const ws = new WebSocket(wsUrl, {
+                  headers: {
+                    Authorization: `Bearer ${OPENAI_API_KEY}`,
+                  },
+                });
+                
+                const connectTimeout = setTimeout(() => {
+                  if (ws.readyState === WebSocket.CONNECTING) {
+                    ws.terminate();
+                    reject(new Error('Connection timeout'));
+                  }
+                }, 5000);
+                
+                ws.on('open', () => {
+                  clearTimeout(connectTimeout);
+                  console.log(`[OPENAI CONNECT SUCCESS] Attempt ${retryAttempt}`);
+                  updateAISessionState(aiSessionTracker, 'AI_CONNECTED', `Connected on attempt ${retryAttempt}`);
+                  resolve(ws);
+                });
+                
+                ws.on('error', (error) => {
+                  clearTimeout(connectTimeout);
+                  console.log(`[OPENAI CONNECT FAILED] Attempt ${retryAttempt}:`, error);
+                  updateAISessionState(aiSessionTracker, 'FAILED', `Connection failed on attempt ${retryAttempt}: ${error}`);
+                  reject(error);
+                });
+              });
+            }
+            
+            // Attempt connection with retry logic
+            let openAiWs: WebSocket;
+            try {
+              openAiWs = await connectToOpenAI();
+            } catch (error) {
+              if (retryAttempt <= maxRetries) {
+                console.log('[OPENAI RETRY] Retrying connection...');
+                try {
+                  openAiWs = await connectToOpenAI();
+                } catch (retryError) {
+                  console.log('[OPENAI RETRY FAILED]', retryError);
+                  recordAIFailure(aiSessionTracker, 'OPENAI_CONNECT_FAILED', `Failed after ${retryAttempt} attempts`);
+                  updateAISessionState(aiSessionTracker, 'FAILED', 'Connection failed after retries');
+                  // Trigger voicemail fallback
+                  ws.close(1008, 'OpenAI connection failed');
+                  return;
+                }
+              } else {
+                console.log('[OPENAI CONNECT FAILED] No retries remaining');
+                recordAIFailure(aiSessionTracker, 'OPENAI_CONNECT_FAILED', 'Connection failed');
+                updateAISessionState(aiSessionTracker, 'FAILED', 'Connection failed');
+                ws.close(1008, 'OpenAI connection failed');
+                return;
+              }
+            }
             
             console.log('[STREAM CLONED] websocket created, readyState:', openAiWs.readyState);
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
+            (ws as any).openAiWs = openAiWs;
             console.log('[STREAM CLONED] websocket set on Twilio handler');
             
             // Startup gate to prevent media flood during initialization
             let streamReady = false;
             const audioBuffer: Buffer[] = [];
             
-            // Add open timeout
+            // Phase 2: Dead Air Protection (3-second timeout)
+            let audioReceived = false;
+            const deadAirTimeout = setTimeout(() => {
+              if (!audioReceived) {
+                console.log('[DEAD AIR DETECTED] No audio received within 3 seconds');
+                console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail due to dead air');
+                recordAIFailure(aiSessionTracker, 'NO_AUDIO_RECEIVED', 'No audio received within 3 seconds');
+                updateAISessionState(aiSessionTracker, 'FAILED', 'Dead air detected');
+                
+                // Close AI connection and trigger voicemail fallback
+                if (openAiWs) {
+                  openAiWs.close();
+                }
+                ws.close(1008, 'Dead air detected - triggering voicemail');
+              }
+            }, 3000);
+            
+            // Phase 3: Session Ready Timeout (5-second timeout)
+            let sessionReady = false;
+            const sessionReadyTimeout = setTimeout(() => {
+              if (!sessionReady) {
+                console.log('[SESSION READY TIMEOUT] Session not ready within 5 seconds');
+                console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail due to session timeout');
+                recordAIFailure(aiSessionTracker, 'SESSION_READY_TIMEOUT', 'Session not ready within 5 seconds');
+                updateAISessionState(aiSessionTracker, 'FAILED', 'Session ready timeout');
+                
+                // Close AI connection and trigger voicemail fallback
+                if (openAiWs) {
+                  openAiWs.close();
+                }
+                ws.close(1008, 'Session ready timeout - triggering voicemail');
+              }
+            }, 5000);
+            
+            // Additional tracking variables
             let opened = false;
             let greetingSent = false;
             let responseCreatedReceived = false;
             let sessionCreated = false;
             let sessionUpdatedReceived = false;
-            let sessionReady = false;
-            setTimeout(() => {
-              if (!opened) {
-                console.log('[OPENAI RAW] open timeout (5 seconds)');
-              }
-            }, 5000);
-            
-            // Add timeout for session.updated
-            setTimeout(() => {
-              if (opened && !sessionReady) {
-                console.log('[SESSION.UPDATE TIMEOUT] - session.updated not received within 3 seconds');
-                // Close gracefully
-                if (openAiWs) {
-                  openAiWs.close();
-                }
-              }
-            }, 3000);
-            
-            // Add timeout to detect if OpenAI ignores response.create
-            setTimeout(() => {
-              if (greetingSent && !responseCreatedReceived) {
-                console.log('[MISSING] OpenAI ignored response.create');
-              }
-            }, 15000);
             
             // Attach listeners - using minimal endpoint pattern
             openAiWs.on('open', () => {
@@ -1009,6 +1218,14 @@ Do NOT:
               }
               if (message.type === 'response.output_audio.delta') {
                 console.log('[OPENAI RECV] response.output_audio.delta');
+                
+                // Clear dead air timeout since we received audio
+                if (!audioReceived) {
+                  audioReceived = true;
+                  clearTimeout(deadAirTimeout);
+                  updateAISessionState(aiSessionTracker, 'AUDIO_RECEIVED', 'First audio delta received');
+                  console.log('[AI STATE] AUDIO_RECEIVED - dead air protection cleared');
+                }
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
@@ -1031,6 +1248,13 @@ Do NOT:
                 console.log('[SESSION UPDATED RECEIVED]');
                 sessionUpdatedReceived = true;
                 sessionReady = true; // Set sessionReady to true
+                
+                // Clear the session ready timeout since we received session.updated
+                clearTimeout(sessionReadyTimeout);
+                
+                // Update session state tracking
+                updateAISessionState(aiSessionTracker, 'SESSION_READY', 'session.updated received');
+                
                 console.log('[SESSION READY] - session.updated received, now ready to send greeting');
                 console.log('[SESSION UPDATED CONFIG]', JSON.stringify(message.session, null, 2));
                 console.log('[SESSION COMPARE] instructions:', {
@@ -1066,7 +1290,9 @@ Do NOT:
                     openAiWs.send(JSON.stringify(greetingMessage));
                   }
                   greetingSent = true;
+                  updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
                   console.log('[GREETING SENT]');
+                  console.log('[AI STATE] GREETING_SENT');
                 } else {
                   console.log('[GREETING BLOCKED - ALREADY SENT]');
                 }
@@ -1654,6 +1880,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
+              
+              // Log call metrics before ingestion
+              logCallMetrics(aiSessionTracker);
+              
               ingestCallData();
             });
             console.log('[OPENAI AUDIT] error listener attached');
