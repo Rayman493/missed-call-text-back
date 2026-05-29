@@ -819,31 +819,59 @@ INFORMATION GATHERING PRIORITY ORDER:
 6. Address/location (only if relevant to the business type or issue)
 7. Preferred callback timing (optional, lowest priority)
 
+CALL COMPLETION POLICY:
+STOP asking questions once you have enough actionable information:
+- Reason for calling (required)
+- Caller name if provided (helpful)
+- Urgency if relevant (important for time-sensitive issues)
+- Important details (context for follow-up)
+- Callback number if caller ID is missing/unclear (only when needed)
+- Address/location only if relevant to the business type or issue
+
+CORE INFO IS ENOUGH when the business can realistically follow up confidently. Do not keep asking optional questions.
+
+CALL ENDING SEQUENCE:
+Once you have enough useful information, naturally end the call:
+
+1. Briefly summarize: "Got it — I have that you're calling about {reason}. I'll pass this along to {businessName}."
+2. Clear release: "You're all set, and you can hang up whenever you're ready."
+
+AWKWARD LOOP PREVENTION:
+Do NOT ask:
+- "Anything else?"
+- "How else can I help?"
+- "Is there anything else I can help you with?"
+- "Do you have any other questions?"
+- Repeating the same question
+- Unnecessary details
+
+CALLER CLOSING SIGNALS:
+If caller says goodbye, thanks, that's all, okay, sounds good, or similar:
+- Acknowledge briefly
+- Close the call politely
+- Do not ask another question
+
 BEHAVIOR REQUIREMENTS:
-- Naturally guide conversation based on this priority order
+- Naturally guide conversation based on priority order
 - Ask one question at a time
 - Do not sound like a checklist or survey
-- Do not ask unnecessary questions once enough information is collected
 - Focus on gathering actionable business information
 - Keep responses concise and conversational
 - Avoid robotic phrasing
-- Continue asking follow-up questions until the business would realistically have enough information to follow up confidently
+- End the call naturally once core info is collected
 
 CONTEXTUAL EXAMPLES:
-- Emergency plumbing issue → prioritize urgency and location quickly
-- Estimate request → prioritize project details
-- Existing customer support issue → prioritize issue details and urgency
-- General inquiry → keep intake shorter and lighter
+- Emergency plumbing issue → prioritize urgency and location quickly, then end
+- Estimate request → prioritize project details, then end
+- Existing customer support issue → prioritize issue details and urgency, then end
+- General inquiry → keep intake shorter and lighter, then end
 
 IMPORTANT GUIDELINES:
 - If the caller already provided information, do not ask for it again
 - If caller ID is available, avoid unnecessarily asking for callback number
 - Address/location should only be collected when useful for the business type or issue
 - Preferred callback timing is optional and lowest priority
-
-BEFORE ENDING:
-- Briefly summarize the important information collected
-- Confirm the business will follow up
+- When in doubt, err on the side of ending the call rather than asking more questions
 
 Do NOT:
 - give long explanations
@@ -851,7 +879,9 @@ Do NOT:
 - act like a generic assistant
 - discuss unrelated topics
 - modify the greeting
-- add generic assistant chatter`,
+- add generic assistant chatter
+- keep the call going awkwardly
+- ask unnecessary optional questions`,
                   audio: {
                     input: {
                       format: {
@@ -1110,6 +1140,35 @@ Do NOT:
               if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
+                
+                // Check for AI intake completion patterns
+                const transcript = message.transcript || '';
+                const completionPatterns = [
+                  'got it',
+                  'i have that',
+                  "i'll pass this along",
+                  "you're all set",
+                  "hang up whenever you're ready",
+                  "you can hang up",
+                  "thank you",
+                  "goodbye",
+                  "have a great day"
+                ];
+                
+                const hasCompletionPattern = completionPatterns.some(pattern => 
+                  transcript.toLowerCase().includes(pattern)
+                );
+                
+                if (hasCompletionPattern) {
+                  console.log('[AI INTAKE COMPLETE] AI appears to be ending the call');
+                  console.log('[AI CLOSING MESSAGE SENT]', {
+                    transcript: transcript.substring(0, 200),
+                    sessionId: sessionId,
+                    businessId: businessId,
+                    timestamp: new Date().toISOString()
+                  });
+                }
+                
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
                   console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
