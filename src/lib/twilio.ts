@@ -79,7 +79,7 @@ export async function sendSms(
     lead_id: options?.lead_id,
     conversation_id: options?.conversation_id,
     twilio_phone_number: business.twilio_phone_number,
-    messaging_service_sid: business.messaging_service_sid,
+    messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status
   });
   
@@ -101,14 +101,14 @@ export async function sendSms(
   console.log('[SMS Sender] business_id:', business.id);
   console.log('[SMS Sender] business twilio_phone_number:', business.twilio_phone_number);
   console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid);
-  console.log('[SMS Sender] business messaging_service_sid:', business.messaging_service_sid);
+  console.log('[SMS Sender] business messaging_service_sid:', business.twilio_messaging_service_sid);
   console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
 
   console.log('[sms] outbound message queued:', {
     business_id: business.id,
     business_phone: business.twilio_phone_number,
     business_phone_sid: business.twilio_phone_number_sid,
-    messaging_service_sid: business.messaging_service_sid,
+    messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status,
     to_phone: to,
     message_body: message.substring(0, 50) + '...',
@@ -522,7 +522,7 @@ export async function sendMms(
     lead_id: options?.lead_id,
     conversation_id: options?.conversation_id,
     twilio_phone_number: business.twilio_phone_number,
-    messaging_service_sid: business.messaging_service_sid,
+    messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status
   });
   
