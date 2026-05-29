@@ -12,8 +12,8 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 
 const CARRIERS = [
-  { id: 'verizon', name: 'Verizon', noAnswerCode: '*71' },
-  { id: 'at&t', name: 'AT&T', noAnswerCode: '*004*', noAnswerSuffix: '#' },
+  { id: 'verizon', name: 'Verizon', noAnswerCode: '*71', noAnswerDelay: '30' },
+  { id: 'at&t', name: 'AT&T', noAnswerCode: '*004*', noAnswerSuffix: '#', noAnswerDelay: '30' },
   { id: 't-mobile', name: 'T-Mobile', noAnswerCode: '**61*', noAnswerSuffix: '#', noAnswerDelay: '30' },
   { id: 'other', name: 'Other', noAnswerCode: null }
 ]
@@ -246,10 +246,10 @@ export default function PhoneForwardingPage() {
                 Back to Dashboard
               </Link>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Connect your business phone
+                Replace voicemail with AI
               </h1>
               <p className="text-muted-foreground">
-                Forward missed calls to ReplyFlow so we can text customers back instantly.
+                ReplyFlow answers missed calls instead of voicemail and texts customers back instantly.
               </p>
             </div>
 
@@ -282,9 +282,9 @@ export default function PhoneForwardingPage() {
               {/* ReplyFlow Number */}
               <div className="bg-muted border border-border rounded-xl p-4 mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-muted-foreground">Your ReplyFlow forwarding number:</p>
+                  <p className="text-sm text-muted-foreground">Your AI voicemail replacement number:</p>
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                    Dedicated ReplyFlow number
+                    Replaces your voicemail
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -408,11 +408,15 @@ export default function PhoneForwardingPage() {
                     <ul className="space-y-1 text-sm text-muted-foreground/80">
                       <li className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
-                        Your phone still rings normally
+                        Your phone still rings normally first
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                        ReplyFlow texts customers who call when you don't answer
+                        ReplyFlow answers missed calls instead of voicemail
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
+                        AI collects information and texts customers back
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />

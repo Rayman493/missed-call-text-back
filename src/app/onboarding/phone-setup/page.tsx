@@ -407,10 +407,10 @@ function PhoneSetupContent() {
           {/* Page title and subtitle */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-3">
-              Connect your business phone
+              Replace voicemail with AI
             </h1>
             <p className="text-sm sm:text-base text-slate-400">
-              Now that your trial is active, let's connect your business phone so ReplyFlow can start capturing missed calls.
+              Your phone should ring normally first. ReplyFlow only activates when a call is missed, answering instead of voicemail.
             </p>
           </div>
 

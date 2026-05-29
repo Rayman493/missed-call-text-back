@@ -313,7 +313,7 @@ export default function TestSetupPage() {
                       </p>
                     </div>
 
-                    {/* Early Forwarding Warning */}
+                    {/* Forwarding Validation Results */}
                     {earlyForwardingWarning && (
                       <div className="mt-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg">
                         <div className="flex items-start gap-3">
@@ -324,10 +324,31 @@ export default function TestSetupPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-amber-400 mb-1">
-                              Early Forwarding Detected
+                              Your forwarding appears to activate before a normal missed call
                             </p>
                             <p className="text-xs text-amber-300">
-                              Your carrier is forwarding calls before the normal ring cycle completes. Please adjust forwarding settings to use no-answer forwarding instead of immediate forwarding.
+                              Please verify your carrier's no-answer forwarding settings. ReplyFlow should only activate when a call is missed, replacing voicemail.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Forwarding Success Message */}
+                    {!earlyForwardingWarning && latestLead && (
+                      <div className="mt-4 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-green-400 mb-1">
+                              Forwarding looks good
+                            </p>
+                            <p className="text-xs text-green-300">
+                              ReplyFlow will answer missed calls in place of voicemail.
                             </p>
                           </div>
                         </div>
@@ -384,6 +405,28 @@ export default function TestSetupPage() {
                   </p>
                   <p className="text-xs text-green-700 dark:text-green-400 mt-1">
                     If your test text does not arrive immediately, wait a minute and try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Troubleshooting Guidance */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                    Troubleshooting Early Forwarding
+                  </h3>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">
+                    If ReplyFlow answers too quickly, your carrier may be using immediate call forwarding instead of missed-call forwarding.
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    Contact your carrier and ask for "no-answer forwarding" or "conditional forwarding" to replace voicemail.
                   </p>
                 </div>
               </div>
