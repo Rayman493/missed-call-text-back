@@ -445,36 +445,43 @@ export async function POST(request: NextRequest) {
       // Choose route based on environment variable
       const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true'
       
-      // CALL TIMING GUARDRAILS: Only allow AI to answer for direct calls (test/demo)
-      // For forwarded missed calls, AI should NOT answer immediately - let voicemail handle it
+      // CORRECTED CALL ROUTING BEHAVIOR:
+      // Forwarded calls have already gone through the carrier/business ring window, so it is correct for AI to answer immediately once Twilio receives them.
       if (isDirectCall) {
-        console.log('[AI CALL ASSISTANT] Direct call detected - AI answering is appropriate for test/demo', {
-          callType,
-          businessId: business.id,
-          callSid: CallSid
-        });
-      } else if (isForwardedCall) {
-        console.log('[AI CALL ASSISTANT] Forwarded missed call detected - AI should NOT answer immediately', {
+        console.log('[DIRECT TWILIO CALL] AI test/demo path', {
           callType,
           businessId: business.id,
           callSid: CallSid,
-          ForwardedFrom
+          From,
+          To
         });
-        console.log('[AI CALL ASSISTANT] Skipping AI for forwarded call - using voicemail flow instead');
-        // Fall through to voicemail flow for forwarded calls
-      } else {
-        console.log('[AI CALL ASSISTANT] Unknown call type - defaulting to voicemail for safety', {
+      } else if (isForwardedCall) {
+        console.log('[FORWARDED MISSED CALL] AI production path', {
           callType,
           businessId: business.id,
-          callSid: CallSid
+          callSid: CallSid,
+          ForwardedFrom,
+          From,
+          To
         });
+        console.log('[FORWARDED MISSED CALL] Business already had ring chance - AI should answer now');
+      } else {
+        console.log('[UNKNOWN CALL TYPE] voicemail fallback', {
+          callType,
+          businessId: business.id,
+          callSid: CallSid,
+          From,
+          To
+        });
+        console.log('[UNKNOWN CALL TYPE] Unable to classify - using safest fallback');
         // Fall through to voicemail flow for unknown call types
       }
 
-      if (usePOC && isDirectCall) {
+      if (usePOC && (isDirectCall || isForwardedCall)) {
         // Phase 1A POC: Generate TwiML directly to avoid redirect issues
-        // ONLY for direct calls (test/demo), NOT for forwarded missed calls
-        console.log('[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML directly for direct call')
+        // Handle both direct calls (test/demo) and forwarded missed calls (production)
+        const callPath = isDirectCall ? 'direct_test' : 'forwarded_production'
+        console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
         try {
           // Create AI session
@@ -485,11 +492,12 @@ export async function POST(request: NextRequest) {
           })
 
           if (!session) {
-            console.log('[AI CALL ASSISTANT] Failed to create session, falling back to voicemail')
+            console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+            // Fall through to voicemail flow
           } else {
             console.log('[AI POC] session created:', session.id)
             console.log('[AI POC] callSid:', CallSid)
-            console.log('[AI POC] DIRECT AI TEST - answers immediately as expected')
+            console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
 
             // Get Fly.io WebSocket URL from environment
             const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
@@ -505,30 +513,31 @@ export async function POST(request: NextRequest) {
       <Parameter name="sessionId" value="${session.id}" />
       <Parameter name="callSid" value="${CallSid}" />
       <Parameter name="businessId" value="${business.id}" />
-      <Parameter name="callType" value="direct_test" />
+      <Parameter name="callType" value="${callPath}" />
     </Stream>
   </Connect>
 </Response>`
 
             console.log('[AI POC] final TwiML:', twiml)
-            console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-direct-test')
+            console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`)
             console.log('[AI POC FINAL TWIML]', twiml)
 
             return new NextResponse(twiml, {
               status: 200,
               headers: {
                 'Content-Type': 'text/xml',
-                'X-AI-POC': 'phase-1a-direct-test',
-                'X-Call-Type': 'direct_to_twilio'
+                'X-AI-POC': `phase-1a-${callPath}`,
+                'X-Call-Type': callPath
               },
             })
           }
         } catch (error) {
-          console.error('[AI CALL ASSISTANT] Error generating POC TwiML:', error)
-          // Fall through to existing voicemail flow
+          console.error('[AI FAILED - VOICEMAIL FALLBACK] Error generating POC TwiML:', error)
+          console.log('[AI FAILED - VOICEMAIL FALLBACK] Falling back to voicemail due to AI setup failure')
+          // Fall through to voicemail flow
         }
-      } else if (usePOC && !isDirectCall) {
-        console.log('[AI CALL ASSISTANT] POC enabled but not direct call - skipping AI to prevent early pickup')
+      } else if (usePOC && !isDirectCall && !isForwardedCall) {
+        console.log('[AI CALL ASSISTANT] POC enabled but unknown call type - using voicemail fallback')
       } else {
         // Phase 0: Redirect to start route
         console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant')
