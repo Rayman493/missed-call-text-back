@@ -32,6 +32,42 @@ export async function sendSms(
     conversation_id?: string;
   }
 ): Promise<string | null> {
+  // Idempotency check for automated messages (prevent duplicates within 5 minutes)
+  const isAutomatedMessage = options?.lead_id && !message.includes('ReplyFlow Admin') && !message.includes('Manual test');
+  if (isAutomatedMessage) {
+    console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate automated message', {
+      lead_id: options.lead_id,
+      message_body: message.substring(0, 50),
+      to
+    });
+    
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: existingMessage, error: duplicateError } = await supabase
+      .from('messages')
+      .select('id, created_at')
+      .eq('lead_id', options.lead_id)
+      .eq('body', message)
+      .eq('direction', 'outbound')
+      .gte('created_at', fiveMinutesAgo)
+      .limit(1)
+      .single();
+    
+    if (existingMessage) {
+      console.log('[MESSAGE DUPLICATE BLOCKED] Found similar automated message within 5 minutes', {
+        existing_message_id: existingMessage.id,
+        existing_created_at: existingMessage.created_at,
+        lead_id: options.lead_id,
+        message_body: message.substring(0, 50)
+      });
+      return null; // Block duplicate
+    }
+    
+    if (duplicateError && duplicateError.code !== 'PGRST116') {
+      console.error('[MESSAGE DUPLICATE CHECK] Error checking for duplicates:', duplicateError);
+      // Continue with send if check fails (don't block legitimate messages)
+    }
+  }
+  
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
   
@@ -128,7 +164,12 @@ export async function sendSms(
     if (insertError) {
       console.error('[SMS] Failed to insert simulated message record:', insertError);
     } else {
-      console.log('[SMS] Simulated message record inserted successfully');
+      console.log('[MESSAGE INSERTED] Simulated message record inserted successfully', {
+        lead_id: options?.lead_id,
+        message_body: message.substring(0, 50),
+        to,
+        message_type: 'simulated'
+      });
     }
 
     return `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -382,15 +423,17 @@ export async function sendSms(
         error: insertError
       });
     } else {
-      console.log('[SMS DELIVERY DEBUG] Message record stored with delivery info:', {
+      console.log('[MESSAGE INSERTED] Message record stored with delivery info:', {
         message_sid: messageResult.sid,
         business_id: business.id,
+        lead_id: options?.lead_id,
         from: business.twilio_phone_number,
         to,
         twilio_sid: messageResult.sid,
         twilio_status: actualStatus,
         error_code: twilioErrorCode,
-        error_message: twilioErrorMessage
+        error_message: twilioErrorMessage,
+        message_body: message.substring(0, 50)
       });
     }
 
@@ -526,6 +569,14 @@ export async function sendMms(
 
     if (insertError) {
       console.error('[MMS] Failed to insert simulated message record:', insertError);
+    } else {
+      console.log('[MESSAGE INSERTED] MMS simulated message record inserted successfully', {
+        lead_id: options?.lead_id,
+        message_body: message.substring(0, 50),
+        to,
+        message_type: 'mms_simulated',
+        media_count: mediaUrls?.length || 0
+      });
     }
 
     return `SIM_MMS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -586,6 +637,17 @@ export async function sendMms(
 
     if (insertError) {
       console.error('[MMS SEND] message insert failed:', insertError);
+    } else {
+      console.log('[MESSAGE INSERTED] MMS message record stored successfully', {
+        message_sid: messageResult.sid,
+        business_id: business.id,
+        lead_id: options?.lead_id,
+        from: business.twilio_phone_number,
+        to,
+        twilio_status: messageResult.status,
+        message_body: message.substring(0, 50),
+        media_count: mediaUrls?.length || 0
+      });
     }
 
     return messageResult.sid

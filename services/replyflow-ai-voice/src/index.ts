@@ -1444,6 +1444,32 @@ Urgency: ${extractedFields.urgencyLevel || 'Not provided'}
 Callback: ${extractedFields.preferredCallbackTime || 'Not provided'}
 Details: ${extractedFields.importantDetails || 'None'}`;
 
+                // Check for existing summary message to prevent duplicates
+                console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate AI summary message', {
+                  conversation_id: conversation.id,
+                  lead_id: lead.id,
+                  message_type: 'summary'
+                });
+                
+                const { data: existingSummary, error: summaryCheckError } = await supabase
+                  .from('messages')
+                  .select('id')
+                  .eq('conversation_id', conversation.id)
+                  .eq('message_type', 'summary')
+                  .eq('sender', 'system')
+                  .limit(1)
+                  .single();
+                
+                if (existingSummary) {
+                  console.log('[MESSAGE DUPLICATE BLOCKED] AI summary message already exists for conversation', {
+                    existing_summary_id: existingSummary.id,
+                    conversation_id: conversation.id,
+                    lead_id: lead.id
+                  });
+                } else if (summaryCheckError && summaryCheckError.code !== 'PGRST116') {
+                  console.error('[MESSAGE DUPLICATE CHECK] Error checking for AI summary duplicate:', summaryCheckError);
+                }
+
                 const { error: messageError } = await supabase
                   .from('messages')
                   .insert({
@@ -1460,10 +1486,42 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   console.log('[AI INGEST] message save error', messageError);
                   throw messageError;
                 }
-                console.log('[AI INGEST] summary saved');
+                console.log('[MESSAGE INSERTED] AI summary message saved successfully', {
+                  conversation_id: conversation.id,
+                  lead_id: lead.id,
+                  business_id: sessionBusinessId,
+                  message_type: 'summary'
+                });
 
                 // Save transcript message
                 console.log('[AI INGEST] transcript saving...');
+                
+                // Check for existing transcript message to prevent duplicates
+                console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate AI transcript message', {
+                  conversation_id: conversation.id,
+                  lead_id: lead.id,
+                  message_type: 'transcript'
+                });
+                
+                const { data: existingTranscript, error: transcriptCheckError } = await supabase
+                  .from('messages')
+                  .select('id')
+                  .eq('conversation_id', conversation.id)
+                  .eq('message_type', 'transcript')
+                  .eq('sender', 'system')
+                  .limit(1)
+                  .single();
+                
+                if (existingTranscript) {
+                  console.log('[MESSAGE DUPLICATE BLOCKED] AI transcript message already exists for conversation', {
+                    existing_transcript_id: existingTranscript.id,
+                    conversation_id: conversation.id,
+                    lead_id: lead.id
+                  });
+                } else if (transcriptCheckError && transcriptCheckError.code !== 'PGRST116') {
+                  console.error('[MESSAGE DUPLICATE CHECK] Error checking for AI transcript duplicate:', transcriptCheckError);
+                }
+
                 const { error: transcriptError } = await supabase
                   .from('messages')
                   .insert({
@@ -1479,7 +1537,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   console.log('[AI INGEST] transcript save error', transcriptError);
                   throw transcriptError;
                 }
-                console.log('[AI INGEST] transcript saved');
+                console.log('[MESSAGE INSERTED] AI transcript message saved successfully', {
+                  conversation_id: conversation.id,
+                  lead_id: lead.id,
+                  business_id: sessionBusinessId,
+                  message_type: 'transcript'
+                });
                 console.log('[AI INGEST] transcript saved');
                 
                 // Create AI call record
