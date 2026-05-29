@@ -467,7 +467,7 @@ export async function POST(request: NextRequest) {
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
     // This is a minimal, safe check that does NOT affect production customers
     console.log('[AI CALL ASSISTANT] Checking if AI should handle this call')
-    const guardResult = checkAllGuards(business.id)
+    const guardResult = checkAllGuards(business.id, business)
     
     if (guardResult.passed) {
       console.log('[AI CALL ASSISTANT] All guards passed', {

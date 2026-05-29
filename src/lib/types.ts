@@ -60,6 +60,9 @@ export interface Business {
   forwarding_verified?: boolean | null;
   forwarding_verified_at?: string | null;
   
+  // AI assistant settings
+  ai_assistant_enabled?: boolean | null;
+  
   // Test setup fields
   test_call_received_at?: string | null;
   test_sms_sent_at?: string | null;

@@ -100,10 +100,31 @@ export function isOpenAIConfigured(): boolean {
 }
 
 /**
+ * Check if AI assistant is enabled for a specific business
+ */
+export function isBusinessAIEnabled(business: { ai_assistant_enabled?: boolean | null }): boolean {
+  const enabled = business.ai_assistant_enabled === true
+  
+  if (!enabled) {
+    console.log('[AI CALL ASSISTANT] Guard failed: Business AI assistant not enabled', {
+      businessId: 'unknown',
+      ai_assistant_enabled: business.ai_assistant_enabled
+    })
+  } else {
+    console.log('[AI CALL ASSISTANT] Guard passed: Business AI assistant enabled', {
+      businessId: 'unknown',
+      ai_assistant_enabled: business.ai_assistant_enabled
+    })
+  }
+  
+  return enabled
+}
+
+/**
  * Check all guards for AI assistant
  * Returns true if all guards pass
  */
-export function checkAllGuards(businessId: string): { passed: boolean; reason: string } {
+export function checkAllGuards(businessId: string, business?: { ai_assistant_enabled?: boolean | null }): { passed: boolean; reason: string } {
   console.log('[AI CALL ASSISTANT] Checking all guards...', { businessId })
   
   // Check 1: Global enable flag
@@ -116,7 +137,12 @@ export function checkAllGuards(businessId: string): { passed: boolean; reason: s
     return { passed: false, reason: 'business_not_allowed' }
   }
   
-  // Check 3: OpenAI configuration
+  // Check 3: Business-level AI enabled flag
+  if (business && !isBusinessAIEnabled(business)) {
+    return { passed: false, reason: 'business_ai_not_enabled' }
+  }
+  
+  // Check 4: OpenAI configuration
   if (!isOpenAIConfigured()) {
     return { passed: false, reason: 'openai_not_configured' }
   }
