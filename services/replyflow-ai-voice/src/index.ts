@@ -242,6 +242,189 @@ function logCallMetrics(tracker: AISessionStateTracker): void {
   });
 }
 
+// Comprehensive voicemail fallback function for critical requirement
+async function triggerVoicemailFallback(
+  ws: WebSocket, 
+  twilioHandler: any, 
+  aiSessionTracker: AISessionStateTracker, 
+  failureReason: string, 
+  callSid: string, 
+  businessId: string, 
+  callerPhone: string, 
+  businessName: string,
+  forwardedFrom: string
+): Promise<void> {
+  console.log('[AI FAILURE] AI system failure detected');
+  console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail fallback due to:', failureReason);
+  
+  // Record the failure
+  recordAIFailure(aiSessionTracker, 'VOICEMAIL_FALLBACK', failureReason);
+  updateAISessionState(aiSessionTracker, 'FAILED', failureReason);
+  
+  // Close AI connection if it exists
+  const openAiWs = (ws as any).openAiWs;
+  if (openAiWs) {
+    openAiWs.close();
+  }
+  
+  // Store fallback metadata for later processing
+  (ws as any).voicemailFallback = {
+    triggered: true,
+    failureReason,
+    callSid,
+    businessId,
+    callerPhone,
+    businessName,
+    forwardedFrom,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    // Use Twilio REST API to redirect the call to voicemail
+    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+    
+    if (!twilioAccountSid || !twilioAuthToken) {
+      console.log('[VOICEMAIL FALLBACK] Missing Twilio credentials, using fallback');
+      await createFallbackLead(callSid, businessId, callerPhone, businessName, forwardedFrom, failureReason);
+      ws.close(1008, 'Voicemail fallback activated');
+      return;
+    }
+
+    const twilioClient = require('twilio')(twilioAccountSid, twilioAuthToken);
+    
+    // Redirect the call to the voicemail endpoint
+    const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'}/api/twilio/voicemail`;
+    
+    console.log('[VOICEMAIL RECORDING STARTED] Redirecting call to voicemail');
+    
+    await twilioClient.calls(callSid).update({
+      method: 'POST',
+      url: voicemailUrl,
+      status: 'in-progress'
+    });
+    
+    console.log('[VOICEMAIL REDIRECT SUCCESS] Call redirected to voicemail');
+    
+    // Close the WebSocket connection
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close(1008, 'Voicemail fallback activated');
+    }
+    
+  } catch (error) {
+    console.log('[VOICEMAIL FALLBACK ERROR] Failed to redirect call:', error);
+    
+    // Fallback: create lead directly and close connection
+    await createFallbackLead(callSid, businessId, callerPhone, businessName, forwardedFrom, failureReason);
+    
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close(1008, 'Voicemail fallback activated');
+    }
+  }
+}
+
+// Fallback lead creation function
+async function createFallbackLead(
+  callSid: string,
+  businessId: string,
+  callerPhone: string,
+  businessName: string,
+  forwardedFrom: string,
+  failureReason: string
+): Promise<void> {
+  console.log('[LEAD CREATED FROM FALLBACK] Creating lead due to AI failure');
+  
+  if (!supabase) {
+    console.log('[LEAD CREATED FROM FALLBACK] No Supabase client available');
+    return;
+  }
+
+  try {
+    // Create lead
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .upsert({
+        business_id: businessId,
+        phone: callerPhone,
+        source: 'ai_voice_fallback',
+        status: 'new',
+      }, {
+        onConflict: 'business_id,phone',
+      })
+      .select()
+      .single();
+
+    if (leadError) {
+      console.log('[LEAD CREATED FROM FALLBACK] Lead creation error:', leadError);
+      return;
+    }
+
+    // Create conversation
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .upsert({
+        lead_id: lead.id,
+        business_id: businessId,
+        call_sid: callSid,
+        status: 'active',
+      }, {
+        onConflict: 'lead_id,call_sid',
+      })
+      .select()
+      .single();
+
+    if (conversationError) {
+      console.log('[LEAD CREATED FROM FALLBACK] Conversation creation error:', conversationError);
+      return;
+    }
+
+    // Create system message about the fallback
+    const { error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversation.id,
+        lead_id: lead.id,
+        business_id: businessId,
+        sender: 'system',
+        content: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
+        message_type: 'system',
+      });
+
+    if (messageError) {
+      console.log('[LEAD CREATED FROM FALLBACK] Message creation error:', messageError);
+    } else {
+      console.log('[LEAD CREATED FROM FALLBACK] Lead and conversation created successfully');
+    }
+
+    // Create AI call record for the fallback
+    const { error: aiRecordError } = await supabase
+      .from('ai_call_records')
+      .insert({
+        business_id: businessId,
+        lead_id: lead.id,
+        conversation_id: conversation.id,
+        caller_phone: callerPhone,
+        forwarded_from: forwardedFrom,
+        call_sid: callSid,
+        ai_session_id: null,
+        outcome: 'voicemail_fallback',
+        transcript: [],
+        extracted_info: null,
+        summary: null,
+        extraction_failed: true,
+      });
+
+    if (aiRecordError) {
+      console.log('[LEAD CREATED FROM FALLBACK] AI call record creation error:', aiRecordError);
+    }
+
+    console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
+
+  } catch (error) {
+    console.log('[LEAD CREATED FROM FALLBACK] Fallback lead creation failed:', error);
+  }
+}
+
 function recordAIFailure(tracker: AISessionStateTracker, failureStage: string, failureReason: string): void {
   if (!supabase) {
     console.log('[AI FAILURE RECORDED] No Supabase client, skipping database record');
@@ -930,17 +1113,32 @@ wss.on('connection', (ws, req) => {
                   openAiWs = await connectToOpenAI();
                 } catch (retryError) {
                   console.log('[OPENAI RETRY FAILED]', retryError);
-                  recordAIFailure(aiSessionTracker, 'OPENAI_CONNECT_FAILED', `Failed after ${retryAttempt} attempts`);
-                  updateAISessionState(aiSessionTracker, 'FAILED', 'Connection failed after retries');
-                  // Trigger voicemail fallback
-                  ws.close(1008, 'OpenAI connection failed');
+                  await triggerVoicemailFallback(
+                    ws, 
+                    twilioHandler, 
+                    aiSessionTracker, 
+                    `OpenAI connection failed after ${retryAttempt} attempts`, 
+                    callSid || '', 
+                    businessId || '', 
+                    callerPhone || '', 
+                    businessName || '', 
+                    forwardedFrom || ''
+                  );
                   return;
                 }
               } else {
                 console.log('[OPENAI CONNECT FAILED] No retries remaining');
-                recordAIFailure(aiSessionTracker, 'OPENAI_CONNECT_FAILED', 'Connection failed');
-                updateAISessionState(aiSessionTracker, 'FAILED', 'Connection failed');
-                ws.close(1008, 'OpenAI connection failed');
+                await triggerVoicemailFallback(
+                  ws, 
+                  twilioHandler, 
+                  aiSessionTracker, 
+                  'OpenAI connection failed - no retries remaining', 
+                  callSid || '', 
+                  businessId || '', 
+                  callerPhone || '', 
+                  businessName || '', 
+                  forwardedFrom || ''
+                );
                 return;
               }
             }
@@ -958,35 +1156,39 @@ wss.on('connection', (ws, req) => {
             
             // Phase 2: Dead Air Protection (3-second timeout)
             let audioReceived = false;
-            const deadAirTimeout = setTimeout(() => {
+            const deadAirTimeout = setTimeout(async () => {
               if (!audioReceived) {
                 console.log('[DEAD AIR DETECTED] No audio received within 3 seconds');
-                console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail due to dead air');
-                recordAIFailure(aiSessionTracker, 'NO_AUDIO_RECEIVED', 'No audio received within 3 seconds');
-                updateAISessionState(aiSessionTracker, 'FAILED', 'Dead air detected');
-                
-                // Close AI connection and trigger voicemail fallback
-                if (openAiWs) {
-                  openAiWs.close();
-                }
-                ws.close(1008, 'Dead air detected - triggering voicemail');
+                await triggerVoicemailFallback(
+                  ws, 
+                  twilioHandler, 
+                  aiSessionTracker, 
+                  'No audio received within 3 seconds', 
+                  callSid || '', 
+                  businessId || '', 
+                  callerPhone || '', 
+                  businessName || '', 
+                  forwardedFrom || ''
+                );
               }
             }, 3000);
             
             // Phase 3: Session Ready Timeout (5-second timeout)
             let sessionReady = false;
-            const sessionReadyTimeout = setTimeout(() => {
+            const sessionReadyTimeout = setTimeout(async () => {
               if (!sessionReady) {
                 console.log('[SESSION READY TIMEOUT] Session not ready within 5 seconds');
-                console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail due to session timeout');
-                recordAIFailure(aiSessionTracker, 'SESSION_READY_TIMEOUT', 'Session not ready within 5 seconds');
-                updateAISessionState(aiSessionTracker, 'FAILED', 'Session ready timeout');
-                
-                // Close AI connection and trigger voicemail fallback
-                if (openAiWs) {
-                  openAiWs.close();
-                }
-                ws.close(1008, 'Session ready timeout - triggering voicemail');
+                await triggerVoicemailFallback(
+                  ws, 
+                  twilioHandler, 
+                  aiSessionTracker, 
+                  'Session not ready within 5 seconds', 
+                  callSid || '', 
+                  businessId || '', 
+                  callerPhone || '', 
+                  businessName || '', 
+                  forwardedFrom || ''
+                );
               }
             }, 5000);
             
@@ -1452,11 +1654,24 @@ Do NOT:
             console.log('[OPENAI AUDIT] message listener attached');
 
             console.log('[OPENAI AUDIT] attaching error listener');
-            openAiWs.on('error', (error) => {
+            openAiWs.on('error', async (error) => {
               console.log('[STREAM CLONED] ERROR event:', String(error));
               console.log('[OPENAI AUDIT] error listener attached');
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
+              
+              // Trigger voicemail fallback for OpenAI WebSocket errors
+              await triggerVoicemailFallback(
+                ws, 
+                twilioHandler, 
+                aiSessionTracker, 
+                `OpenAI WebSocket error: ${error}`, 
+                callSid || '', 
+                businessId || '', 
+                callerPhone || '', 
+                businessName || '', 
+                forwardedFrom || ''
+              );
             });
 
             // Ingestion function to save call data
@@ -1922,7 +2137,19 @@ Details: ${extractedFields.importantDetails || 'None'}`;
           } catch (error) {
             log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed with exception', error as Error);
             openaiInitFailed = true;
-            ws.close(1011, 'OpenAI initialization exception');
+            
+            // Trigger voicemail fallback for unexpected runtime exceptions
+            await triggerVoicemailFallback(
+              ws, 
+              twilioHandler, 
+              aiSessionTracker, 
+              `Unexpected runtime exception during AI initialization: ${error}`, 
+              callSid || '', 
+              businessId || '', 
+              callerPhone || '', 
+              businessName || '', 
+              forwardedFrom || ''
+            );
           }
         }
 
