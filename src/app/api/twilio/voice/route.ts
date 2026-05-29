@@ -368,21 +368,29 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
 
-    // CALL ROUTING DIAGNOSIS: Determine if this is a direct call or forwarded missed call
-    const webhookTimestamp = new Date();
-    console.log('[VOICE ENTRY] Call routing analysis', {
-      CallSid,
-      From,
-      To,
-      Called,
-      ForwardedFrom,
-      Direction,
-      CallStatus: params.CallStatus,
-      timestamp: webhookTimestamp.toISOString(),
-      weekday: webhookTimestamp.toLocaleString('en-US', { weekday: 'long' }),
-      hour: webhookTimestamp.getHours(),
-      timezone: webhookTimestamp.getTimezoneOffset()
+    // CALL TIMING DIAGNOSTICS: Track exact call arrival timing
+    const callArrivalTimestamp = new Date();
+    console.log('[CALL TIMING] CALL RECEIVED BY TWILIO', callArrivalTimestamp.toISOString());
+    
+    // Log exact Twilio webhook payload fields related to forwarding
+    console.log('[TWILIO WEBHOOK PAYLOAD]', {
+      ForwardedFrom: params.ForwardedFrom || 'not_present',
+      Caller: params.Caller || From,
+      Called: params.Called || 'not_present',
+      To: params.To || 'not_present',
+      CallStatus: params.CallStatus || 'not_present',
+      Direction: params.Direction || 'not_present',
+      ParentCallSid: params.ParentCallSid || 'not_present',
+      AnsweredBy: params.AnsweredBy || 'not_present',
+      CallSid: CallSid || 'not_present',
+      ApiVersion: params.ApiVersion || 'not_present',
+      AccountSid: params.AccountSid || 'not_present'
     });
+    
+    console.log('[CALL TIMING] FORWARDED FROM', params.ForwardedFrom || 'not_present');
+    console.log('[CALL TIMING] CALL SID', CallSid || 'not_present');
+    console.log('[CALL TIMING] TO', params.To || 'not_present');
+    console.log('[CALL TIMING] CALLED', params.Called || 'not_present');
 
     // Determine call type based on Twilio parameters
     let isDirectCall = false;
@@ -393,42 +401,53 @@ export async function POST(request: NextRequest) {
       // ForwardedFrom is present when call was forwarded from business phone to Twilio
       isForwardedCall = true;
       callType = 'forwarded_missed_call';
-      console.log('[FORWARDED FROM] Detected:', ForwardedFrom);
-      console.log('[FORWARDING DETECTED] Call forwarded from business phone to Twilio', {
-        ForwardedFrom, // Original business number that forwarded
-        To, // Twilio number that received the forwarded call
-        Called, // Twilio number that received the forwarded call
-        From, // Original caller
+      console.log('[CALL CLASSIFICATION] FORWARDED_MISSED_CALL');
+      console.log('[FORWARDING EVIDENCE]', {
+        primaryEvidence: 'ForwardedFrom parameter present',
+        ForwardedFrom: ForwardedFrom,
+        expectedBusinessNumber: business.business_phone_number,
+        matchesBusinessNumber: ForwardedFrom === business.business_phone_number,
+        To: To,
+        Called: Called,
+        From: From,
         businessId: business.id,
         businessPhone: business.business_phone_number,
         twilioPhone: business.twilio_phone_number,
         forwardingType: ForwardedFrom === business.business_phone_number ? 'business_to_twilio' : 'unknown_forwarding',
-        timestamp: webhookTimestamp.toISOString()
+        timestamp: callArrivalTimestamp.toISOString()
       });
     } else if (To === business.twilio_phone_number || Called === business.twilio_phone_number) {
       // No ForwardedFrom, but To/Called matches our Twilio number
       isDirectCall = true;
       callType = 'direct_to_twilio';
-      console.log('[DIRECT TWILIO CALL] Call made directly to Twilio number (no forwarding)', {
-        To,
-        Called,
-        From,
+      console.log('[CALL CLASSIFICATION] DIRECT_TWILIO_CALL');
+      console.log('[DIRECT CALL EVIDENCE]', {
+        primaryEvidence: 'To/Called matches Twilio number without ForwardedFrom',
+        To: To,
+        Called: Called,
+        From: From,
         businessId: business.id,
         businessPhone: business.business_phone_number,
         twilioPhone: business.twilio_phone_number,
         callPattern: To === business.twilio_phone_number ? 'To_matches_twilio' : 'Called_matches_twilio',
-        timestamp: webhookTimestamp.toISOString()
+        missingForwardedFrom: 'ForwardedFrom parameter not present',
+        timestamp: callArrivalTimestamp.toISOString()
       });
     } else {
-      console.log('[UNKNOWN CALL TYPE] Unable to determine call routing', {
-        To,
-        Called,
-        ForwardedFrom,
-        From,
+      console.log('[CALL CLASSIFICATION] UNKNOWN');
+      console.log('[UNKNOWN CALL EVIDENCE]', {
+        primaryEvidence: 'Neither ForwardedFrom present nor To/Called matches Twilio number',
+        To: To,
+        Called: Called,
+        ForwardedFrom: ForwardedFrom,
+        From: From,
         businessId: business.id,
         businessPhone: business.business_phone_number,
         twilioPhone: business.twilio_phone_number,
-        timestamp: webhookTimestamp.toISOString()
+        toMatchesTwilio: To === business.twilio_phone_number,
+        calledMatchesTwilio: Called === business.twilio_phone_number,
+        forwardedFromPresent: !!ForwardedFrom,
+        timestamp: callArrivalTimestamp.toISOString()
       });
     }
 
@@ -439,7 +458,8 @@ export async function POST(request: NextRequest) {
       businessId: business.id,
       businessName: business.name,
       businessPhone: business.business_phone_number,
-      twilioPhone: business.twilio_phone_number
+      twilioPhone: business.twilio_phone_number,
+      timestamp: callArrivalTimestamp.toISOString()
     });
 
     // AI CALL ASSISTANT: Check if AI should handle this call
@@ -499,16 +519,18 @@ export async function POST(request: NextRequest) {
         // Handle both direct calls (test/demo) and forwarded missed calls (production)
         const callPath = isDirectCall ? 'direct_test' : 'forwarded_production'
         const aiActivationTimestamp = new Date();
-        const timeFromWebhookToAI = aiActivationTimestamp.getTime() - webhookTimestamp.getTime();
+        const timeFromWebhookToAI = aiActivationTimestamp.getTime() - callArrivalTimestamp.getTime();
         
         console.log(`[AI ACTIVATION START] AI being activated for ${callPath}`, {
           callPath,
           timeFromWebhookToAI: `${timeFromWebhookToAI}ms`,
           aiActivationTimestamp: aiActivationTimestamp.toISOString(),
-          webhookTimestamp: webhookTimestamp.toISOString(),
+          callArrivalTimestamp: callArrivalTimestamp.toISOString(),
           businessId: business.id,
           callSid: CallSid
         });
+        
+        console.log('[CALL TIMING] AI GREETING STARTED', aiActivationTimestamp.toISOString());
         
         console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
@@ -550,6 +572,20 @@ export async function POST(request: NextRequest) {
             console.log('[AI POC] final TwiML:', twiml)
             console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`)
             console.log('[AI POC FINAL TWIML]', twiml)
+
+            // Final timing report
+            const secondsBetweenArrivalAndAIStart = timeFromWebhookToAI / 1000;
+            console.log('[CALL TIMING REPORT]', {
+              seconds_between_call_arrival_and_ai_start: secondsBetweenArrivalAndAIStart,
+              milliseconds_between_call_arrival_and_ai_start: timeFromWebhookToAI,
+              callArrivalTimestamp: callArrivalTimestamp.toISOString(),
+              aiActivationTimestamp: aiActivationTimestamp.toISOString(),
+              callType: callType,
+              callPath: callPath,
+              businessId: business.id,
+              callSid: CallSid,
+              expectedBehavior: callType === 'forwarded_missed_call' ? 'Business should have rung for 30+ seconds before forwarding' : 'Direct call - AI should answer immediately'
+            });
 
             return new NextResponse(twiml, {
               status: 200,
