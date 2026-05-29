@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       .update(updateData)
       .eq('recording_sid', recordingSid)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('[RECORDING STATUS] Failed to update recording status:', updateError);

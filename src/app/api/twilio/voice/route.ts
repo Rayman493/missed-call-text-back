@@ -25,11 +25,29 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
   try {
     const cutoffTime = new Date(Date.now() - AUTO_REPLY_REPEAT_WINDOW_MINUTES * 60 * 1000).toISOString();
     
+    // First find the lead for this business and caller
+    const { data: lead, error: leadError } = await supabaseAdmin
+      .from('leads')
+      .select('id')
+      .eq('business_id', businessId)
+      .eq('caller_phone', callerPhone)
+      .single();
+
+    if (leadError && leadError.code !== 'PGRST116') {
+      console.error('[Repeat Caller] Error finding lead:', leadError);
+      return { hasRecent: false };
+    }
+
+    if (!lead) {
+      // No lead found, so no recent messages
+      return { hasRecent: false };
+    }
+
+    // Now check for recent auto-reply messages for this lead
     const { data: recentMessage, error } = await supabaseAdmin
       .from('messages')
       .select('created_at')
-      .eq('business_id', businessId)
-      .eq('customer_phone', callerPhone)
+      .eq('lead_id', lead.id)
       .eq('direction', 'outbound')
       .eq('message_type', 'auto_reply')
       .gte('created_at', cutoffTime)

@@ -627,7 +627,6 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
               twilio_sid: business.twilio_phone_number_sid,
               phone_number: business.twilio_phone_number,
               business_id: businessId,
-              messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
               provisioning_status: 'ready',
               campaign_registered_at: new Date().toISOString(),
               sender_pool_attached_at: new Date().toISOString(),
