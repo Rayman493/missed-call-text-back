@@ -63,22 +63,28 @@ export function isGloballyEnabled(): boolean {
 
 /**
  * Check if a business is allowed to use AI assistant
+ * Allowlist is optional - if empty, all businesses are allowed
  */
 export function isBusinessAllowed(businessId: string): boolean {
+  // If allowlist is empty or not set, skip allowlist check (allow all businesses)
   if (!AI_CONFIG.allowedBusinessIds || AI_CONFIG.allowedBusinessIds.length === 0) {
-    console.log('[AI CALL ASSISTANT] Guard failed: No businesses allowed')
-    return false
+    console.log('[AI CALL ASSISTANT] Allowlist empty - skipping allowlist guard')
+    return true
   }
   
   const allowed = AI_CONFIG.allowedBusinessIds.includes(businessId)
   
   if (!allowed) {
-    console.log('[AI CALL ASSISTANT] Guard failed: Business not in allowlist', {
+    console.log('[AI CALL ASSISTANT] Business not found in allowlist', {
+      businessId,
+      allowedCount: AI_CONFIG.allowedBusinessIds.length,
+      allowedBusinessIds: AI_CONFIG.allowedBusinessIds
+    })
+  } else {
+    console.log('[AI CALL ASSISTANT] Business found in allowlist', {
       businessId,
       allowedCount: AI_CONFIG.allowedBusinessIds.length
     })
-  } else {
-    console.log('[AI CALL ASSISTANT] Guard passed: Business allowed', { businessId })
   }
   
   return allowed
@@ -147,6 +153,17 @@ export function checkAllGuards(businessId: string, business?: { ai_assistant_ena
     return { passed: false, reason: 'openai_not_configured' }
   }
   
-  console.log('[AI CALL ASSISTANT] All guards passed - routing to AI assistant')
+  // Check 5: AI Voice WebSocket URL
+  const aiVoiceWsUrl = process.env.AI_VOICE_FLY_WS_URL
+  if (!aiVoiceWsUrl) {
+    console.log('[AI CALL ASSISTANT] Guard failed: AI_VOICE_FLY_WS_URL not configured')
+    return { passed: false, reason: 'ai_voice_ws_url_not_configured' }
+  } else {
+    console.log('[AI CALL ASSISTANT] Guard passed: AI_VOICE_FLY_WS_URL configured', { 
+      wsUrl: aiVoiceWsUrl 
+    })
+  }
+  
+  console.log('[AI ROUTING ACTIVE] All guards passed - routing to AI assistant')
   return { passed: true, reason: 'all_guards_passed' }
 }
