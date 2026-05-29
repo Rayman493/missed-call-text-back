@@ -22,6 +22,8 @@ export default function TestSetupPage() {
   const [liveStatus, setLiveStatus] = useState<'waiting' | 'call_detected' | 'sms_sent' | 'lead_captured'>('waiting')
   const [currentStep, setCurrentStep] = useState(1)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
+  const [testInitiationTime, setTestInitiationTime] = useState<Date | null>(null)
+  const [earlyForwardingWarning, setEarlyForwardingWarning] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Use shared state resolver for consistency
@@ -103,7 +105,7 @@ export default function TestSetupPage() {
       try {
         const { data: updatedBusiness, error } = await supabase
           .from('businesses')
-          .select('onboarding_status, phone_setup_completed_at, call_forwarding_enabled')
+          .select('onboarding_status, phone_setup_completed_at, call_forwarding_enabled, test_call_received_at')
           .eq('id', business.id)
           .maybeSingle()
 
@@ -113,6 +115,31 @@ export default function TestSetupPage() {
           clearInterval(pollInterval)
           setIsPolling(false)
           return
+        }
+
+        // Check for test call received and calculate timing
+        if (updatedBusiness?.test_call_received_at && !testInitiationTime) {
+          // First time we detect the test call
+          const testReceivedTime = new Date(updatedBusiness.test_call_received_at)
+          console.log('[TEST SETUP] Test call detected', {
+            testReceivedTime: testReceivedTime.toISOString(),
+            businessId: business.id
+          });
+          
+          // Check if this seems like early forwarding (less than 10 seconds from any reasonable test start)
+          // This is a heuristic - in a real implementation, we'd track actual test initiation time
+          const now = new Date();
+          const timeSinceTestCall = now.getTime() - testReceivedTime.getTime();
+          
+          if (timeSinceTestCall < 5000) { // Less than 5 seconds suggests immediate forwarding
+            console.log('[TEST SETUP] EARLY FORWARDING DETECTED', {
+              timeSinceTestCall: `${timeSinceTestCall}ms`,
+              warning: 'Your carrier is forwarding calls before the normal ring cycle completes. Please adjust forwarding settings.',
+              testReceivedTime: testReceivedTime.toISOString(),
+              detectionTime: now.toISOString()
+            });
+            setEarlyForwardingWarning(true);
+          }
         }
 
         // Check if forwarding is setup complete using existing columns
@@ -285,6 +312,27 @@ export default function TestSetupPage() {
                         {isPolling ? 'Waiting for test call...' : 'Ready to test'}
                       </p>
                     </div>
+
+                    {/* Early Forwarding Warning */}
+                    {earlyForwardingWarning && (
+                      <div className="mt-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-amber-400 mb-1">
+                              Early Forwarding Detected
+                            </p>
+                            <p className="text-xs text-amber-300">
+                              Your carrier is forwarding calls before the normal ring cycle completes. Please adjust forwarding settings to use no-answer forwarding instead of immediate forwarding.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

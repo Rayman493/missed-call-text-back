@@ -369,6 +369,7 @@ export async function POST(request: NextRequest) {
     }
 
     // CALL ROUTING DIAGNOSIS: Determine if this is a direct call or forwarded missed call
+    const webhookTimestamp = new Date();
     console.log('[VOICE ENTRY] Call routing analysis', {
       CallSid,
       From,
@@ -377,7 +378,10 @@ export async function POST(request: NextRequest) {
       ForwardedFrom,
       Direction,
       CallStatus: params.CallStatus,
-      timestamp: new Date().toISOString()
+      timestamp: webhookTimestamp.toISOString(),
+      weekday: webhookTimestamp.toLocaleString('en-US', { weekday: 'long' }),
+      hour: webhookTimestamp.getHours(),
+      timezone: webhookTimestamp.getTimezoneOffset()
     });
 
     // Determine call type based on Twilio parameters
@@ -389,21 +393,31 @@ export async function POST(request: NextRequest) {
       // ForwardedFrom is present when call was forwarded from business phone to Twilio
       isForwardedCall = true;
       callType = 'forwarded_missed_call';
-      console.log('[FORWARDED MISSED CALL] Call forwarded from business phone', {
-        ForwardedFrom,
+      console.log('[FORWARDED FROM] Detected:', ForwardedFrom);
+      console.log('[FORWARDING DETECTED] Call forwarded from business phone to Twilio', {
+        ForwardedFrom, // Original business number that forwarded
         To, // Twilio number that received the forwarded call
+        Called, // Twilio number that received the forwarded call
         From, // Original caller
-        businessId: business.id
+        businessId: business.id,
+        businessPhone: business.business_phone_number,
+        twilioPhone: business.twilio_phone_number,
+        forwardingType: ForwardedFrom === business.business_phone_number ? 'business_to_twilio' : 'unknown_forwarding',
+        timestamp: webhookTimestamp.toISOString()
       });
     } else if (To === business.twilio_phone_number || Called === business.twilio_phone_number) {
       // No ForwardedFrom, but To/Called matches our Twilio number
       isDirectCall = true;
       callType = 'direct_to_twilio';
-      console.log('[DIRECT TWILIO CALL] Call made directly to Twilio number', {
+      console.log('[DIRECT TWILIO CALL] Call made directly to Twilio number (no forwarding)', {
         To,
         Called,
         From,
-        businessId: business.id
+        businessId: business.id,
+        businessPhone: business.business_phone_number,
+        twilioPhone: business.twilio_phone_number,
+        callPattern: To === business.twilio_phone_number ? 'To_matches_twilio' : 'Called_matches_twilio',
+        timestamp: webhookTimestamp.toISOString()
       });
     } else {
       console.log('[UNKNOWN CALL TYPE] Unable to determine call routing', {
@@ -411,7 +425,10 @@ export async function POST(request: NextRequest) {
         Called,
         ForwardedFrom,
         From,
-        businessId: business.id
+        businessId: business.id,
+        businessPhone: business.business_phone_number,
+        twilioPhone: business.twilio_phone_number,
+        timestamp: webhookTimestamp.toISOString()
       });
     }
 
@@ -481,6 +498,18 @@ export async function POST(request: NextRequest) {
         // Phase 1A POC: Generate TwiML directly to avoid redirect issues
         // Handle both direct calls (test/demo) and forwarded missed calls (production)
         const callPath = isDirectCall ? 'direct_test' : 'forwarded_production'
+        const aiActivationTimestamp = new Date();
+        const timeFromWebhookToAI = aiActivationTimestamp.getTime() - webhookTimestamp.getTime();
+        
+        console.log(`[AI ACTIVATION START] AI being activated for ${callPath}`, {
+          callPath,
+          timeFromWebhookToAI: `${timeFromWebhookToAI}ms`,
+          aiActivationTimestamp: aiActivationTimestamp.toISOString(),
+          webhookTimestamp: webhookTimestamp.toISOString(),
+          businessId: business.id,
+          callSid: CallSid
+        });
+        
         console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
         try {

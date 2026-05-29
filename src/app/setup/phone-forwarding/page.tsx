@@ -12,10 +12,10 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 
 const CARRIERS = [
-  { id: 'verizon', name: 'Verizon', code: '*71' },
-  { id: 'at&t', name: 'AT&T', code: '*004*', suffix: '#' },
-  { id: 't-mobile', name: 'T-Mobile', code: '**21*', suffix: '#' },
-  { id: 'other', name: 'Other', code: null }
+  { id: 'verizon', name: 'Verizon', noAnswerCode: '*71' },
+  { id: 'at&t', name: 'AT&T', noAnswerCode: '*004*', noAnswerSuffix: '#' },
+  { id: 't-mobile', name: 'T-Mobile', noAnswerCode: '**61*', noAnswerSuffix: '#', noAnswerDelay: '30' },
+  { id: 'other', name: 'Other', noAnswerCode: null }
 ]
 
 export default function PhoneForwardingPage() {
@@ -108,32 +108,46 @@ export default function PhoneForwardingPage() {
 
   // Returns the raw dial-code string used for the clipboard / actual dialing,
   // e.g. '*71 12184236763' or '*004*12184236763#'
+  // UPDATED: Uses no-answer forwarding codes instead of unconditional forwarding
   const getForwardingCode = () => {
     if (!business?.twilio_phone_number) return ''
     const carrier = CARRIERS.find(c => c.id === selectedCarrier)
-    if (!carrier || !carrier.code) return 'Contact your carrier to enable call forwarding'
+    if (!carrier || !carrier.noAnswerCode) return 'Contact your carrier to enable call forwarding'
 
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    const code = carrier.code + ' ' + phoneNumber
-    return carrier.suffix ? code + carrier.suffix : code
+    let code = carrier.noAnswerCode + ' ' + phoneNumber
+    
+    // Add delay for T-Mobile if specified (seconds before forwarding)
+    if (carrier.noAnswerDelay) {
+      code = carrier.noAnswerCode + carrier.noAnswerDelay + ' ' + phoneNumber
+    }
+    
+    return carrier.noAnswerSuffix ? code + carrier.noAnswerSuffix : code
   }
 
   // Returns the human-readable display form, e.g. '*71 (218) 423-6763'
   // so non-technical users can verify each digit at a glance.
+  // UPDATED: Uses no-answer forwarding codes instead of unconditional forwarding
   const getForwardingCodeDisplay = () => {
     if (!business?.twilio_phone_number) return ''
     const carrier = CARRIERS.find(c => c.id === selectedCarrier)
-    if (!carrier || !carrier.code) return ''
+    if (!carrier || !carrier.noAnswerCode) return ''
 
     const formattedNumber = formatPhoneNumber(business.twilio_phone_number)
-    const code = `${carrier.code} ${formattedNumber}`
-    return carrier.suffix ? code + carrier.suffix : code
+    let code = `${carrier.noAnswerCode} ${formattedNumber}`
+    
+    // Add delay for T-Mobile if specified (seconds before forwarding)
+    if (carrier.noAnswerDelay) {
+      code = `${carrier.noAnswerCode}${carrier.noAnswerDelay} ${formattedNumber}`
+    }
+    
+    return carrier.noAnswerSuffix ? code + carrier.noAnswerSuffix : code
   }
 
   const hasValidCode = Boolean(
     selectedCarrier &&
     business?.twilio_phone_number &&
-    CARRIERS.find(c => c.id === selectedCarrier)?.code
+    CARRIERS.find(c => c.id === selectedCarrier)?.noAnswerCode
   )
 
   const handleCompleteSetup = async () => {
