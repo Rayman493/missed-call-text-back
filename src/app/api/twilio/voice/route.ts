@@ -368,6 +368,63 @@ export async function POST(request: NextRequest) {
       console.log('[Twilio Voice] routing via legacy fallback');
     }
 
+    // CALL ROUTING DIAGNOSIS: Determine if this is a direct call or forwarded missed call
+    console.log('[VOICE ENTRY] Call routing analysis', {
+      CallSid,
+      From,
+      To,
+      Called,
+      ForwardedFrom,
+      Direction,
+      CallStatus: params.CallStatus,
+      timestamp: new Date().toISOString()
+    });
+
+    // Determine call type based on Twilio parameters
+    let isDirectCall = false;
+    let isForwardedCall = false;
+    let callType = 'unknown';
+
+    if (ForwardedFrom) {
+      // ForwardedFrom is present when call was forwarded from business phone to Twilio
+      isForwardedCall = true;
+      callType = 'forwarded_missed_call';
+      console.log('[FORWARDED MISSED CALL] Call forwarded from business phone', {
+        ForwardedFrom,
+        To, // Twilio number that received the forwarded call
+        From, // Original caller
+        businessId: business.id
+      });
+    } else if (To === business.twilio_phone_number || Called === business.twilio_phone_number) {
+      // No ForwardedFrom, but To/Called matches our Twilio number
+      isDirectCall = true;
+      callType = 'direct_to_twilio';
+      console.log('[DIRECT TWILIO CALL] Call made directly to Twilio number', {
+        To,
+        Called,
+        From,
+        businessId: business.id
+      });
+    } else {
+      console.log('[UNKNOWN CALL TYPE] Unable to determine call routing', {
+        To,
+        Called,
+        ForwardedFrom,
+        From,
+        businessId: business.id
+      });
+    }
+
+    console.log('[VOICE ROUTING SUMMARY]', {
+      callType,
+      isDirectCall,
+      isForwardedCall,
+      businessId: business.id,
+      businessName: business.name,
+      businessPhone: business.business_phone_number,
+      twilioPhone: business.twilio_phone_number
+    });
+
     // AI CALL ASSISTANT: Check if AI should handle this call
     // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
@@ -379,15 +436,45 @@ export async function POST(request: NextRequest) {
       console.log('[AI CALL ASSISTANT] All guards passed', {
         businessId: business.id,
         callSid: CallSid,
-        reason: guardResult.reason
+        reason: guardResult.reason,
+        callType,
+        isDirectCall,
+        isForwardedCall
       })
       
       // Choose route based on environment variable
       const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true'
       
-      if (usePOC) {
+      // CALL TIMING GUARDRAILS: Only allow AI to answer for direct calls (test/demo)
+      // For forwarded missed calls, AI should NOT answer immediately - let voicemail handle it
+      if (isDirectCall) {
+        console.log('[AI CALL ASSISTANT] Direct call detected - AI answering is appropriate for test/demo', {
+          callType,
+          businessId: business.id,
+          callSid: CallSid
+        });
+      } else if (isForwardedCall) {
+        console.log('[AI CALL ASSISTANT] Forwarded missed call detected - AI should NOT answer immediately', {
+          callType,
+          businessId: business.id,
+          callSid: CallSid,
+          ForwardedFrom
+        });
+        console.log('[AI CALL ASSISTANT] Skipping AI for forwarded call - using voicemail flow instead');
+        // Fall through to voicemail flow for forwarded calls
+      } else {
+        console.log('[AI CALL ASSISTANT] Unknown call type - defaulting to voicemail for safety', {
+          callType,
+          businessId: business.id,
+          callSid: CallSid
+        });
+        // Fall through to voicemail flow for unknown call types
+      }
+
+      if (usePOC && isDirectCall) {
         // Phase 1A POC: Generate TwiML directly to avoid redirect issues
-        console.log('[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML directly')
+        // ONLY for direct calls (test/demo), NOT for forwarded missed calls
+        console.log('[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML directly for direct call')
         
         try {
           // Create AI session
@@ -402,6 +489,7 @@ export async function POST(request: NextRequest) {
           } else {
             console.log('[AI POC] session created:', session.id)
             console.log('[AI POC] callSid:', CallSid)
+            console.log('[AI POC] DIRECT AI TEST - answers immediately as expected')
 
             // Get Fly.io WebSocket URL from environment
             const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
@@ -417,19 +505,21 @@ export async function POST(request: NextRequest) {
       <Parameter name="sessionId" value="${session.id}" />
       <Parameter name="callSid" value="${CallSid}" />
       <Parameter name="businessId" value="${business.id}" />
+      <Parameter name="callType" value="direct_test" />
     </Stream>
   </Connect>
 </Response>`
 
             console.log('[AI POC] final TwiML:', twiml)
-            console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc')
+            console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-direct-test')
             console.log('[AI POC FINAL TWIML]', twiml)
 
             return new NextResponse(twiml, {
               status: 200,
               headers: {
                 'Content-Type': 'text/xml',
-                'X-AI-POC': 'phase-1a'
+                'X-AI-POC': 'phase-1a-direct-test',
+                'X-Call-Type': 'direct_to_twilio'
               },
             })
           }
@@ -437,6 +527,8 @@ export async function POST(request: NextRequest) {
           console.error('[AI CALL ASSISTANT] Error generating POC TwiML:', error)
           // Fall through to existing voicemail flow
         }
+      } else if (usePOC && !isDirectCall) {
+        console.log('[AI CALL ASSISTANT] POC enabled but not direct call - skipping AI to prevent early pickup')
       } else {
         // Phase 0: Redirect to start route
         console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant')
