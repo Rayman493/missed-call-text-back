@@ -126,15 +126,16 @@ export default function TestSetupPage() {
             businessId: business.id
           });
           
-          // Check if this seems like early forwarding (less than 10 seconds from any reasonable test start)
+          // Check if this seems like early forwarding (less than 20 seconds suggests improper setup)
           // This is a heuristic - in a real implementation, we'd track actual test initiation time
           const now = new Date();
           const timeSinceTestCall = now.getTime() - testReceivedTime.getTime();
           
-          if (timeSinceTestCall < 5000) { // Less than 5 seconds suggests immediate forwarding
+          if (timeSinceTestCall < 20000) { // Less than 20 seconds suggests improper forwarding setup
             console.log('[TEST SETUP] EARLY FORWARDING DETECTED', {
               timeSinceTestCall: `${timeSinceTestCall}ms`,
-              warning: 'Your carrier is forwarding calls before the normal ring cycle completes. Please adjust forwarding settings.',
+              timeSinceTestCallSeconds: timeSinceTestCall / 1000,
+              warning: 'ReplyFlow is activating too soon. Your phone is forwarding before a normal voicemail-style missed call.',
               testReceivedTime: testReceivedTime.toISOString(),
               detectionTime: now.toISOString()
             });
@@ -150,7 +151,8 @@ export default function TestSetupPage() {
         // Use shared state resolver to check for test completion
         const updatedSetupState = deriveSetupState(updatedBusiness, !!latestLead)
 
-        if (updatedSetupState.step3Complete) {
+        // Only mark setup complete if early forwarding is NOT detected
+        if (updatedSetupState.step3Complete && !earlyForwardingWarning) {
           console.log('[TestSetup] Test setup complete via shared state, stopping poll')
           setSuccess(true)
           setIsPolling(false)
@@ -159,6 +161,9 @@ export default function TestSetupPage() {
           await fetchLatestLead()
           // Auto-progress to final step
           setCurrentStep(6)
+        } else if (updatedSetupState.step3Complete && earlyForwardingWarning) {
+          console.log('[TestSetup] Setup detected but early forwarding prevents completion')
+          // Keep polling to allow user to fix forwarding issue
         }
       } catch (error) {
         console.error('[TestSetup] Polling error:', error)
@@ -315,19 +320,19 @@ export default function TestSetupPage() {
 
                     {/* Forwarding Validation Results */}
                     {earlyForwardingWarning && (
-                      <div className="mt-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg">
+                      <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
                         <div className="flex items-start gap-3">
-                          <div className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5">
+                          <div className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-amber-400 mb-1">
-                              Your forwarding appears to activate before a normal missed call
+                            <p className="text-sm font-medium text-red-400 mb-1">
+                              ReplyFlow is activating too soon
                             </p>
-                            <p className="text-xs text-amber-300">
-                              Please verify your carrier's no-answer forwarding settings. ReplyFlow should only activate when a call is missed, replacing voicemail.
+                            <p className="text-xs text-red-300">
+                              Your phone is forwarding before a normal voicemail-style missed call. Disable current forwarding and set up no-answer forwarding through Verizon.
                             </p>
                           </div>
                         </div>
@@ -420,13 +425,16 @@ export default function TestSetupPage() {
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                    Troubleshooting Early Forwarding
+                    Verizon Troubleshooting
                   </h3>
                   <p className="text-xs text-amber-800 dark:text-amber-300">
-                    If ReplyFlow answers too quickly, your carrier may be using immediate call forwarding instead of missed-call forwarding.
+                    If ReplyFlow answers after 5-6 seconds, call Verizon support and ask:
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-medium">
+                    "Set conditional call forwarding/no-answer forwarding to +16065321162 after 30 seconds"
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                    Contact your carrier and ask for "no-answer forwarding" or "conditional forwarding" to replace voicemail.
+                    Do not use immediate call forwarding. ReplyFlow should replace voicemail, not intercept calls.
                   </p>
                 </div>
               </div>

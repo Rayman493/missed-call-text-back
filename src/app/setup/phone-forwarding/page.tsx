@@ -115,14 +115,24 @@ export default function PhoneForwardingPage() {
     if (!carrier || !carrier.noAnswerCode) return 'Contact your carrier to enable call forwarding'
 
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    let code = carrier.noAnswerCode + ' ' + phoneNumber
     
-    // Add delay for T-Mobile if specified (seconds before forwarding)
-    if (carrier.noAnswerDelay) {
-      code = carrier.noAnswerCode + carrier.noAnswerDelay + ' ' + phoneNumber
+    // Handle different carrier formats for no-answer forwarding
+    let code = ''
+    if (carrier.id === 'verizon') {
+      // Verizon: *71 + delay + number (no-answer forwarding)
+      code = carrier.noAnswerCode + carrier.noAnswerDelay + phoneNumber
+    } else if (carrier.id === 'at&t') {
+      // AT&T: *004* + number + ** + delay + #
+      code = carrier.noAnswerCode + phoneNumber + '**' + carrier.noAnswerDelay + carrier.noAnswerSuffix
+    } else if (carrier.id === 't-mobile') {
+      // T-Mobile: **61* + number + * + delay + #
+      code = carrier.noAnswerCode + phoneNumber + '*' + carrier.noAnswerDelay + carrier.noAnswerSuffix
+    } else {
+      // Default format for other carriers
+      code = carrier.noAnswerCode + ' ' + phoneNumber
     }
     
-    return carrier.noAnswerSuffix ? code + carrier.noAnswerSuffix : code
+    return code
   }
 
   // Returns the human-readable display form, e.g. '*71 (218) 423-6763'
@@ -134,14 +144,24 @@ export default function PhoneForwardingPage() {
     if (!carrier || !carrier.noAnswerCode) return ''
 
     const formattedNumber = formatPhoneNumber(business.twilio_phone_number)
-    let code = `${carrier.noAnswerCode} ${formattedNumber}`
     
-    // Add delay for T-Mobile if specified (seconds before forwarding)
-    if (carrier.noAnswerDelay) {
-      code = `${carrier.noAnswerCode}${carrier.noAnswerDelay} ${formattedNumber}`
+    // Handle different carrier formats for no-answer forwarding
+    let code = ''
+    if (carrier.id === 'verizon') {
+      // Verizon: *71 + delay + number (no-answer forwarding)
+      code = carrier.noAnswerCode + carrier.noAnswerDelay + ' ' + formattedNumber
+    } else if (carrier.id === 'at&t') {
+      // AT&T: *004* + number + ** + delay + #
+      code = carrier.noAnswerCode + ' ' + formattedNumber + '**' + carrier.noAnswerDelay + carrier.noAnswerSuffix
+    } else if (carrier.id === 't-mobile') {
+      // T-Mobile: **61* + number + * + delay + #
+      code = carrier.noAnswerCode + ' ' + formattedNumber + '*' + carrier.noAnswerDelay + carrier.noAnswerSuffix
+    } else {
+      // Default format for other carriers
+      code = `${carrier.noAnswerCode} ${formattedNumber}`
     }
     
-    return carrier.noAnswerSuffix ? code + carrier.noAnswerSuffix : code
+    return code
   }
 
   const hasValidCode = Boolean(
@@ -433,6 +453,16 @@ export default function PhoneForwardingPage() {
                   <div className="text-center mb-3">
                     <p className="text-sm text-muted-foreground">
                       Once you've dialed the code on your business phone, press Continue.
+                    </p>
+                  </div>
+
+                  {/* Important notice */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 mb-3">
+                    <p className="text-xs text-blue-800 dark:text-blue-300 text-center font-medium">
+                      ReplyFlow should replace voicemail, not intercept calls.
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 text-center mt-1">
+                      Your phone should ring normally first before ReplyFlow answers missed calls.
                     </p>
                   </div>
 
