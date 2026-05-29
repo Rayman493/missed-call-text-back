@@ -17,7 +17,7 @@ import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
-import AICallSummaryCard from '@/components/AICallSummaryCard'
+import AICallDetails from '@/components/AICallDetails'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -1620,8 +1620,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* AI Call Summary Card */}
-            <AICallSummaryCard
+            {/* AI Call Details */}
+            <AICallDetails
               leadId={lead?.id || ''}
               businessId={business?.id || ''}
               conversationId={leadData?.conversation?.id}
