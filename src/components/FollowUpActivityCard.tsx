@@ -143,15 +143,23 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
           </Link>
         </div>
       ) : (
-        <div className="flex items-center justify-center py-1">
-          <p className="text-[10px] text-muted-foreground">
-            <Link
-              href="/dashboard/settings/follow-ups"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-            >
-              Configure follow-ups →
-            </Link>
-          </p>
+        <div className="text-center py-6 px-4">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                Create automated follow-up campaigns to recover more leads
+              </p>
+              <Link
+                href="/dashboard/settings/follow-ups"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mt-1 inline-block"
+              >
+                Configure follow-ups →
+              </Link>
+            </div>
+          </div>
         </div>
       )}
     </div>
