@@ -1382,9 +1382,9 @@ export default async function Home() {
                 Start Capturing More Leads Today
               </h2>
               <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
-                AI answers calls.<br />
-                ReplyFlow recovers missed opportunities.<br />
-                Your business grows without hiring additional staff.
+                Capture missed-call opportunities automatically.<br />
+                Respond faster with automated text-back.<br />
+                Stay connected even when you can't answer the phone.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
