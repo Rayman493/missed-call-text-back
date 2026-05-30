@@ -230,57 +230,57 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-4 relative z-10">
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
-              <h1 className="text-4xl md:text-7xl font-bold tracking-tight leading-[1.1] text-slate-900 dark:text-foreground">
+              <h1 className="text-3xl sm:text-4xl md:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
                 Never Miss a Lead Again
               </h1>
-              <p className="text-lg md:text-2xl text-slate-700 dark:text-slate-300 max-w-3xl leading-relaxed mt-5">
-                ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads so your business never loses another opportunity.
+              <p className="text-base sm:text-lg md:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-3 sm:mt-5">
+                ReplyFlow recovers missed calls with AI voicemail intake, automated text-back, and lead capture.
               </p>
               
               {/* Benefit Bullets */}
               {/* Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="mt-5">
-                <div className="w-fit mx-auto flex flex-col items-center space-y-2">
-                  <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                    <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="mt-4 sm:mt-5">
+                <div className="w-fit mx-auto flex flex-col items-center space-y-1.5 sm:space-y-2">
+                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-base md:text-lg">Missed-call text-back</span>
+                    <span className="text-sm sm:text-base md:text-lg">Missed-call text-back</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                    <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-base md:text-lg">AI voicemail intake</span>
+                    <span className="text-sm sm:text-base md:text-lg">AI voicemail intake</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                    <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-base md:text-lg">Lead inbox and conversation history</span>
+                    <span className="text-sm sm:text-base md:text-lg">Lead inbox and conversation history</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                    <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-base md:text-lg">Works with your existing business number</span>
+                    <span className="text-sm sm:text-base md:text-lg">Works with your existing business number</span>
                   </div>
                 </div>
               </div>
               
               {/* Pricing Information */}
-              <div id="pricing-section" className="flex flex-col items-center gap-1 mt-3">
-                <span className="text-blue-600 dark:text-blue-400 font-semibold text-base">14-day free trial</span>
-                <span className="text-slate-700 dark:text-foreground text-base">$49/month after trial</span>
+              <div id="pricing-section" className="flex flex-col items-center gap-0.5 mt-2 sm:mt-3">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm sm:text-base">14-day free trial</span>
+                <span className="text-slate-700 dark:text-foreground text-sm sm:text-base">$49/month after trial</span>
               </div>
               
               {/* Trust Copy */}
-              <div className="flex flex-col items-center gap-1 mt-2">
-                <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
-                <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
+              <div className="flex flex-col items-center gap-0.5 mt-1 sm:mt-2">
+                <span className="text-slate-500 dark:text-muted-foreground text-xs sm:text-sm">No contracts. Cancel anytime.</span>
+                <span className="text-slate-500 dark:text-muted-foreground text-xs sm:text-sm">Keep using the business number you already advertise everywhere.</span>
               </div>
               
-              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 {/* Primary CTA */}
                 <Link
                   href="/signup"
@@ -291,7 +291,7 @@ export default async function Home() {
               </div>
 
               {/* Enhanced Trust Indicators */}
-              <div className="mt-16 pt-10 border-t border-slate-200/60 dark:border-slate-700/60">
+              <div className="mt-6 sm:mt-12 sm:pt-8 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
                   <div className="flex flex-col items-center text-center group">
                     <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
