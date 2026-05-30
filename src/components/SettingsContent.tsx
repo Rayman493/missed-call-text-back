@@ -1726,6 +1726,35 @@ export default function SettingsContent() {
             </div>
           )}
 
+          {/* Sticky Save Bar */}
+          {hasUnsavedChanges && (
+            <div className="fixed bottom-0 right-0 md:bottom-8 md:right-8 z-50 mb-20 md:mb-0 p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 min-w-[320px]">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground">
+                    Unsaved Changes
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={discardChanges}
+                    disabled={isSaving}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    onClick={saveChanges}
+                    disabled={isSaving}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
         </div>
