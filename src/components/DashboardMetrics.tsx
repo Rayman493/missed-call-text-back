@@ -142,6 +142,21 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     }
   }
 
+  const getEmptyStateText = (type: string) => {
+    switch (type) {
+      case 'missedCalls':
+        return 'No missed calls yet'
+      case 'leads':
+        return 'Waiting for first lead'
+      case 'messages':
+        return 'No conversations yet'
+      case 'conversations':
+        return 'No active conversations'
+      default:
+        return ''
+    }
+  }
+
   const getMetricDescription = (type: string) => {
     switch (type) {
       case 'missedCalls':
@@ -185,9 +200,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         ].map((metric) => (
           <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
             <div className={`h-1 ${getMetricAccentColor(metric.type)}`}></div>
-            <div className="p-3 sm:p-4">
-              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                <div className={`w-7 h-7 sm:w-8 sm:h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+            <div className="p-2 sm:p-3">
+              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                <div className={`w-6 h-6 sm:w-7 sm:h-7 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                   {getMetricIcon(metric.type)}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
@@ -195,13 +210,18 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 </div>
               </div>
 
-              <div className="space-y-0.5">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground">
+              <div className="space-y-0">
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-foreground">
                   {metric.value.toLocaleString()}
                 </div>
-                <div className="text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">
                   {getMetricLabel(metric.type)}
                 </div>
+                {metric.value === 0 && (
+                  <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {getEmptyStateText(metric.type)}
+                  </div>
+                )}
               </div>
             </div>
           </div>

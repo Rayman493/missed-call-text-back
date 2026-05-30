@@ -129,48 +129,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               
               <div className="space-y-1">
                 <Link
-                  href="/dashboard"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Home className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">Dashboard</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Overview and metrics</div>
-                  </div>
-                </Link>
-                
-                <Link
-                  href="/dashboard/leads"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">Leads</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Manage your leads</div>
-                  </div>
-                </Link>
-                
-                <Link
-                  href="/dashboard/calendar"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">Calendar</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Schedule and events</div>
-                  </div>
-                </Link>
-                
-                <Link
                   href="/dashboard/settings"
                   onClick={() => setIsMoreMenuOpen(false)}
                   className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"

@@ -402,62 +402,78 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
               <span className="text-[10px] sm:text-xs font-semibold text-green-800 dark:text-green-200">Monitoring Calls</span>
             </div>
           </div>
-
-          {/* Last Checked */}
-          <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-green-200 dark:border-green-800">
-            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
-              Last Checked: Just Now
-            </p>
-          </div>
         </div>
 
-        {/* Compact Setup Progress Card - Mobile Only */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Setup Progress</h4>
-            <div className="text-xs text-slate-500 dark:text-slate-400">3/4 Complete</div>
+        {/* Compact Setup Progress Card - Mobile Only - Only show if not complete */}
+        {!complete && (
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Setup Progress</h4>
+              <div className="text-xs text-slate-500 dark:text-slate-400">3/4 Complete</div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-xs text-slate-700 dark:text-slate-300">Account Created</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-xs text-slate-700 dark:text-slate-300">SMS Active</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-xs text-slate-700 dark:text-slate-300">Forwarding Verified</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
+                  <span className="text-xs text-white font-bold">!</span>
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Next Step: Run Test Call</span>
+                </div>
+                <Link
+                  href="/dashboard/test-setup"
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors"
+                >
+                  Run
+                </Link>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
+        )}
+
+        {/* Compact Setup Complete Card - Only show when complete */}
+        {complete && (
+          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-3 sm:p-4">
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-              </div>
-              <span className="text-xs text-slate-700 dark:text-slate-300">Account Created</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-xs text-slate-700 dark:text-slate-300">SMS Active</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-xs text-slate-700 dark:text-slate-300">Forwarding Verified</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-                <span className="text-xs text-white font-bold">!</span>
               </div>
               <div className="flex-1">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Next Step: Run Test Call</span>
+                <div className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  Setup Complete
+                </div>
+                <div className="text-xs text-green-700 dark:text-green-300">
+                  ReplyFlow is ready to capture missed calls
+                </div>
               </div>
-              <Link
-                href="/dashboard/test-setup"
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors"
-              >
-                Run
-              </Link>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Expanded Details */}
         {isExpanded && (
