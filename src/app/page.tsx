@@ -239,7 +239,7 @@ export default async function Home() {
               {/* Benefit Bullets */}
               {/* Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
               <div className="mt-5">
-                <div className="w-fit mx-auto flex flex-col items-start space-y-2">
+                <div className="w-fit mx-auto flex flex-col items-center space-y-2">
                   <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
                     <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
