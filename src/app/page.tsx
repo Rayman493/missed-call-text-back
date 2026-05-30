@@ -247,6 +247,12 @@ export default async function Home() {
                 </Link>
               </div>
 
+              {/* Pricing Information - Desktop and Mobile */}
+              <div className="mt-3 flex flex-col items-center gap-0.5">
+                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">14-Day Free Trial</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">$49/month after trial</span>
+              </div>
+
               {/* Small Trust Indicators - Desktop Only */}
               <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 hidden sm:block">
                 <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
@@ -292,7 +298,7 @@ export default async function Home() {
               </div>
 
               {/* Enhanced Trust Indicators - Desktop Only */}
-              <div className="mt-6 sm:mt-12 sm:pt-8 pt-4 border-t border-slate-200/60 dark:border-slate-700/60 hidden sm:block">
+              <div className="mt-4 sm:mt-6 sm:pt-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 hidden sm:block">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
                   <div className="flex flex-col items-center text-center group">
                     <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
@@ -356,7 +362,7 @@ export default async function Home() {
               </p>
             </div>
             
-            <div className="max-w-md mx-auto space-y-2">
+            <div className="max-w-md mx-auto space-y-1.5">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,7 +371,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-foreground">Missed Call</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Customer calls, you can't answer</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">Customer calls your business</div>
                 </div>
               </div>
               
@@ -441,7 +447,7 @@ export default async function Home() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -451,7 +457,7 @@ export default async function Home() {
                 <p className="text-sm text-slate-600 dark:text-slate-400">No need to change your business number or reprint marketing materials.</p>
               </div>
               
-              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
                 <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -461,7 +467,7 @@ export default async function Home() {
                 <p className="text-sm text-slate-600 dark:text-slate-400">Get started quickly with simple call forwarding configuration.</p>
               </div>
               
-              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -471,7 +477,7 @@ export default async function Home() {
                 <p className="text-sm text-slate-600 dark:text-slate-400">Automatically text callers back to start conversations immediately.</p>
               </div>
               
-              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
                 <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
