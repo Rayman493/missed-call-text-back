@@ -689,52 +689,63 @@ export default function LeadsPage() {
                   
                   // STATE 3: FULLY ACTIVE
                   return (
-                    <div className="text-center py-8 sm:py-16">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-5">
-                        <svg className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
+                    <div className="text-center py-12 sm:py-20 px-4">
+                      <div className="max-w-md mx-auto">
+                        {/* Visual Process Flow */}
+                        <div className="flex flex-col items-center gap-4 mb-8">
+                          <div className="flex items-center gap-4 w-full">
+                            <div className="flex-1">
+                              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <span className="text-2xl">📞</span>
+                              </div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">Missed Call</p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <span className="text-2xl">💬</span>
+                              </div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">Auto Text Sent</p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <span className="text-2xl">👤</span>
+                              </div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">Lead Created</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Header */}
+                        <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-3">
+                          No Leads Yet
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mb-8 max-w-md mx-auto">
+                          When someone misses a call, ReplyFlow will automatically create a lead here.
+                        </p>
+
+                        {/* Test Setup CTA */}
+                        <button
+                          onClick={() => router.push('/dashboard/test-setup')}
+                          className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30"
+                        >
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Test My Setup
+                        </button>
                       </div>
-                      <h3 className="text-base sm:text-xl font-semibold text-foreground mb-2">
-                        No Leads Yet
-                      </h3>
-                      
-                      {/* Visual Flow for Mobile */}
-                      <div className="flex flex-col items-center gap-2 mb-4 mx-auto max-w-xs">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <span className="text-lg">📞</span>
-                          <span>Missed Call</span>
-                        </div>
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <span className="text-lg">💬</span>
-                          <span>Text Sent</span>
-                        </div>
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <span className="text-lg">👤</span>
-                          <span>Lead Created</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-muted-foreground max-w-md mx-auto text-xs sm:text-base mb-4">
-                        When someone misses a call, ReplyFlow will automatically create a lead here.
-                      </p>
-                      
-                      {/* Test Setup CTA */}
-                      <button
-                        onClick={() => router.push('/dashboard/test-setup')}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Test My Setup
-                      </button>
                     </div>
                   )
                 })()}
