@@ -590,8 +590,9 @@ export default function SettingsContent() {
       // Calculate offset for header and tabs
       const header = document.querySelector('header')
       const headerHeight = header ? header.offsetHeight : 0
+      const spacerHeight = 64 // Height of h-16 spacer
       const tabsHeight = 60 // Approximate height of tab navigation
-      const offset = headerHeight + tabsHeight + 120
+      const offset = headerHeight + spacerHeight + tabsHeight
       
       // Calculate which section should be active
       let computedActiveSection = 'general'
@@ -643,7 +644,7 @@ export default function SettingsContent() {
         const element = document.getElementById(hash)
         if (element) {
           // Manual offset scrolling to account for sticky header
-          const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
+          const HEADER_OFFSET = 124 // Adjust based on actual header + spacer + tabs height
           const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
           
           window.scrollTo({
@@ -694,7 +695,7 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
       
       // Manual offset scrolling to account for sticky header
-      const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
+      const HEADER_OFFSET = 124 // Adjust based on actual header + spacer + tabs height
       const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
       
       window.scrollTo({
@@ -727,13 +728,16 @@ export default function SettingsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
+        <div className="min-h-screen bg-background dark:bg-background">
           {/* Header */}
           <AppHeader title="Settings" />
 
-            {/* Main Content */}
-            <div className="flex-1 pt-24 sm:pt-28 lg:pt-32 px-3 sm:px-4 lg:px-6 pb-20">
-              <div className="max-w-[1180px] mx-auto">
+          {/* Spacer to account for fixed header height */}
+          <div className="h-16"></div>
+
+          {/* Main Content */}
+          <main className="px-3 sm:px-4 lg:px-6 pb-20">
+            <div className="max-w-[1180px] mx-auto">
 
             {/* Back to Dashboard Link */}
             <div className="mb-3 sm:mb-6">
@@ -760,7 +764,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-4 sm:mb-6 sticky top-[4.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2">
+            <div className="mb-4 sm:mb-6 sticky top-0 z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2">
               <nav className="flex items-center gap-1 overflow-x-auto max-w-[1180px] mx-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
@@ -1722,6 +1726,7 @@ export default function SettingsContent() {
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+          </main>
         </div>
       </BusinessGuard>
     </AuthGuard>
