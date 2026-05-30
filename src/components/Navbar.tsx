@@ -115,7 +115,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                         pathname === '/demo'
 
   const handleSignOut = async () => {
-    await signOut()
+    await signOut({ manual: true })
   }
 
   if (loading || businessLoading) {

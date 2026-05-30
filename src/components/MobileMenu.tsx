@@ -35,7 +35,7 @@ export default function MobileMenu() {
   }
 
   const handleLogout = async () => {
-    await signOut()
+    await signOut({ manual: true })
     setIsOpen(false)
   }
 

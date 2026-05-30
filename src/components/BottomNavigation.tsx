@@ -46,7 +46,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const handleLogout = async () => {
     console.log('[MOBILE LOGOUT CLICKED] User tapped Logout button')
     try {
-      await signOut()
+      await signOut({ manual: true })
       console.log('[MOBILE LOGOUT SUCCESS] User signed out successfully')
       router.push('/')
     } catch (error) {

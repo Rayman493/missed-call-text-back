@@ -10,7 +10,7 @@ interface AuthContextType {
   session: any
   loading: boolean
   user: any
-  signOut: () => Promise<void>
+  signOut: (options?: { manual?: boolean }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -106,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading, router, isClient, pathname])
 
   // Sign out function that clears all sensitive data
-  const signOut = async () => {
+  const signOut = async (options?: { manual?: boolean }) => {
+    const isManualLogout = options?.manual !== false // Default to true if not specified
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
@@ -141,11 +142,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null)
       setUser(null)
       
-      // Redirect: stay on homepage if already there, otherwise go to signin
-      if (pathname === '/') {
+      // Redirect: manual logout goes to homepage, session expiration goes to signin
+      if (isManualLogout) {
         router.push('/')
       } else {
-        router.push('/auth/signin')
+        // Session expiration: go to signin if not already on homepage
+        if (pathname === '/') {
+          router.push('/')
+        } else {
+          router.push('/auth/signin')
+        }
       }
     } catch (error) {
       console.error('[Auth] Sign out error:', error)

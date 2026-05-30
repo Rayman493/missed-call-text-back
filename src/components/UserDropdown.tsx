@@ -82,7 +82,7 @@ export default function UserDropdown() {
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      await signOut({ manual: true })
     } catch (error) {
       console.error('Sign out error:', error)
     }
