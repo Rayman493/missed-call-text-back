@@ -163,7 +163,7 @@ export default function PublicHome() {
               Never Miss a Lead Again
             </h1>
             <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
-              ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads so your business never loses another opportunity.
+              ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads to help you reduce missed opportunities.
             </p>
 
             {/* Benefit Bullets */}
@@ -549,8 +549,8 @@ export default function PublicHome() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Appointment Booked</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">Job scheduled and confirmed</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Lead Captured</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Customer information recorded</p>
             </motion.div>
           </div>
           
@@ -674,8 +674,8 @@ export default function PublicHome() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Appointment Booked</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Job scheduled and confirmed</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Lead Captured</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Customer information recorded</p>
               </div>
             </motion.div>
           </div>
@@ -752,8 +752,8 @@ export default function PublicHome() {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-foreground mb-1">Appointment Booking</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Schedule calls and meetings automatically</p>
+                      <h4 className="font-semibold text-slate-900 dark:text-foreground mb-1">Calendar Integration</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">View and manage your schedule</p>
                     </div>
                   </div>
                 </div>

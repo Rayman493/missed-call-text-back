@@ -366,7 +366,7 @@ export default function CalendarPage() {
                         Connect Google Calendar
                       </h2>
                       <p className="text-slate-600 dark:text-muted-foreground mb-8 max-w-md mx-auto">
-                        Connect your Google Calendar to view and manage appointments from ReplyFlow.
+                        Connect your Google Calendar to view your schedule from ReplyFlow.
                       </p>
                       <Link
                         href="/dashboard/settings#integrations"
