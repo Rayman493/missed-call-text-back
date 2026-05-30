@@ -591,7 +591,7 @@ export default function SettingsContent() {
       const header = document.querySelector('header')
       const headerHeight = header ? header.offsetHeight : 0
       const tabsHeight = 60 // Approximate height of tab navigation
-      const offset = headerHeight + tabsHeight + 80
+      const offset = headerHeight + tabsHeight + 120
       
       // Calculate which section should be active
       let computedActiveSection = 'general'
@@ -643,7 +643,7 @@ export default function SettingsContent() {
         const element = document.getElementById(hash)
         if (element) {
           // Manual offset scrolling to account for sticky header
-          const HEADER_OFFSET = 100 // Adjust based on actual header + tabs height
+          const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
           const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
           
           window.scrollTo({
@@ -694,7 +694,7 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
       
       // Manual offset scrolling to account for sticky header
-      const HEADER_OFFSET = 100 // Adjust based on actual header + tabs height
+      const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
       const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
       
       window.scrollTo({
@@ -732,7 +732,7 @@ export default function SettingsContent() {
           <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 pt-2 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20">
+            <div className="flex-1 pt-24 sm:pt-28 lg:pt-32 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1180px] mx-auto">
 
             {/* Back to Dashboard Link */}
@@ -760,7 +760,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-4 sm:mb-6 sticky top-[4.5rem] z-50 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
+            <div className="mb-4 sm:mb-6 sticky top-[4.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2">
               <nav className="flex items-center gap-1 overflow-x-auto max-w-[1180px] mx-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
@@ -818,7 +818,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-2 sm:space-y-2.5 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Business Info</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your business identity and contact information.</p>
                 <div className="space-y-1 sm:space-y-1.5">
@@ -896,7 +896,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
                 <div className="mb-1 sm:mb-2">
                   <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1229,7 +1229,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Integrations</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Connect third-party services to extend ReplyFlow's capabilities.</p>
                 
@@ -1286,7 +1286,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-32">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
@@ -1364,7 +1364,7 @@ export default function SettingsContent() {
 
               
               {/* Security Section */}
-              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
                 <div className="space-y-1.5 sm:space-y-2">
@@ -1403,7 +1403,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-24">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Manage your subscription and billing.</p>
                 <div className="space-y-2 sm:space-y-3">
