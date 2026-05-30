@@ -16,6 +16,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   const { user, loading, signOut } = useAuth()
   const { business, loading: businessLoading } = useBusinessSafe()
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const isLoggedIn = user && !loading
   
@@ -91,13 +92,20 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       >
                         Dashboard
                       </Link>
-                      {/* Mobile Dashboard Link */}
-                      <Link
-                        href="/dashboard"
-                        className={`sm:hidden text-sm font-medium px-2 py-1 ${isPublicPage && !forceDark ? 'text-slate-300 dark:text-slate-300 hover:text-blue-400 dark:hover:text-blue-400 hover:underline' : 'text-slate-300 hover:text-blue-400 hover:underline'} transition-colors`}
+                      {/* Mobile Hamburger Menu */}
+                      <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className={`sm:hidden p-2 rounded-md ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
+                        aria-label="Toggle menu"
                       >
-                        Dashboard
-                      </Link>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {isMobileMenuOpen ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                          )}
+                        </svg>
+                      </button>
                     </>
                   ) : (
                     // Other public pages: show navigation options
@@ -153,6 +161,20 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   >
                     Leads
                   </Link>
+                  {/* Mobile Hamburger Menu */}
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="sm:hidden p-2 rounded-md text-gray-300 hover:text-white transition-colors"
+                    aria-label="Toggle menu"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isMobileMenuOpen ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      )}
+                    </svg>
+                  </button>
                 </>
               )}
               
@@ -225,6 +247,44 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           )}
         </nav>
       </div>
+      
+      {/* Mobile Menu Dropdown */}
+      {isLoggedIn && isMobileMenuOpen && (
+        <div className="sm:hidden bg-[#0b1220] border-b border-slate-800">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <nav className="flex flex-col space-y-3">
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard/leads"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+              >
+                Leads
+              </Link>
+              <Link
+                href="/dashboard/calendar"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+              >
+                Calendar
+              </Link>
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+              >
+                Settings
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
