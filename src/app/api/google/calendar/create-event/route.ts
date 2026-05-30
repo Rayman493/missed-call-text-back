@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
+  console.log('[Calendar Create] auth check start')
+  
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const cookieStore = cookies()
-    
-    // Get user session
+    // Get the user's session using the same pattern as working routes
+    const supabase = createServerSupabaseClient()
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    if (sessionError || !session) {
+
+    if (sessionError) {
+      console.error('[Calendar Create] Session error:', sessionError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = session.user
+    if (!session) {
+      console.log('[Calendar Create] No session found')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[Calendar Create] user found:', session.user.id)
 
     const body = await request.json()
     const { title, date, startTime, endTime, allDay, description, eventType } = body
@@ -27,23 +29,105 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
     }
 
-    // Get business and calendar integration
+    console.log('[Calendar Create] token lookup start')
+
+    // Get the user's business using the same pattern as working routes
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, google_calendar_connected, google_calendar_token')
-      .eq('owner_id', user.id)
+      .select('id')
+      .eq('user_id', session.user.id)
       .single()
 
-    if (businessError || !business) {
+    if (businessError) {
+      console.error('[Calendar Create] Business lookup error:', businessError)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    if (!business.google_calendar_connected || !business.google_calendar_token) {
-      return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 400 })
+    if (!business) {
+      console.log('[Calendar Create] No business found for user:', session.user.id)
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Create event in Google Calendar
-    const accessToken = business.google_calendar_token
+    console.log('[Calendar Create] Business found:', business.id)
+
+    // Get the calendar integration using the same pattern as working routes
+    const { data: integration, error: integrationError } = await supabase
+      .from('calendar_integrations')
+      .select('*')
+      .eq('business_id', business.id)
+      .eq('provider', 'google')
+      .single()
+
+    if (integrationError) {
+      console.error('[Calendar Create] Integration lookup error:', integrationError)
+      if (integrationError.code === 'PGRST116') {
+        console.log('[Calendar Create] No integration found')
+        return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 403 })
+      }
+      return NextResponse.json({ error: 'Calendar not connected' }, { status: 404 })
+    }
+
+    if (!integration) {
+      console.log('[Calendar Create] Integration data is null')
+      return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 403 })
+    }
+
+    console.log('[Calendar Create] Google token found')
+
+    // Check if token is expired and refresh if needed (same as events route)
+    let accessToken = integration.access_token
+    if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
+      console.log('[Calendar Create] Token expired, attempting refresh')
+      
+      // Token expired, refresh it
+      if (!integration.refresh_token) {
+        console.error('[Calendar Create] No refresh token available')
+        return NextResponse.json({ error: 'Cannot refresh token: no refresh token available' }, { status: 401 })
+      }
+
+      console.log('[Calendar Create] Refreshing token')
+      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          refresh_token: integration.refresh_token,
+          grant_type: 'refresh_token',
+        }),
+      })
+
+      if (!refreshResponse.ok) {
+        const errorText = await refreshResponse.text()
+        console.error('[Calendar Create] Token refresh failed:', refreshResponse.status, errorText)
+        return NextResponse.json({ error: 'Failed to refresh token' }, { status: 401 })
+      }
+
+      const tokenData = await refreshResponse.json()
+      accessToken = tokenData.access_token
+      console.log('[Calendar Create] Token refreshed successfully')
+
+      // Update the integration with new token
+      const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+      console.log('[Calendar Create] Updating integration with new token')
+      
+      const { error: updateError } = await supabase
+        .from('calendar_integrations')
+        .update({
+          access_token: tokenData.access_token,
+          expires_at: expiresAt,
+        })
+        .eq('id', integration.id)
+
+      if (updateError) {
+        console.error('[Calendar Create] Failed to update integration:', updateError)
+        // Continue anyway, we have the new token
+      }
+    }
+
+    console.log('[Calendar Create] event create start')
     
     let start: any = {}
     let end: any = {}
@@ -79,6 +163,8 @@ export async function POST(request: NextRequest) {
       end,
     }
 
+    console.log('[Calendar Create] Creating event with data:', { title, date, allDay })
+
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events`,
       {
@@ -93,12 +179,22 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[Google Calendar Create Event] Error:', response.status, errorText)
-      return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
+      console.error('[Calendar Create] failed with reason:', response.status, errorText)
+      
+      // Handle specific Google Calendar API errors
+      if (response.status === 401) {
+        return NextResponse.json({ error: 'Google Calendar authorization failed' }, { status: 401 })
+      } else if (response.status === 403) {
+        return NextResponse.json({ error: 'Insufficient permissions for Google Calendar' }, { status: 403 })
+      } else if (response.status === 429) {
+        return NextResponse.json({ error: 'Too many requests to Google Calendar' }, { status: 429 })
+      }
+      
+      return NextResponse.json({ error: 'Failed to create event in Google Calendar' }, { status: 500 })
     }
 
     const createdEvent = await response.json()
-    console.log('[Google Calendar Create Event] Created event:', createdEvent.id)
+    console.log('[Calendar Create] event create success:', createdEvent.id)
 
     return NextResponse.json({
       event: {
@@ -112,7 +208,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[Google Calendar Create Event] Unexpected error:', error)
+    console.error('[Calendar Create] Unexpected error:', error)
     return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }
