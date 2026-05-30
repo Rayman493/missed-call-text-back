@@ -688,18 +688,52 @@ export default function LeadsPage() {
                   
                   // STATE 3: FULLY ACTIVE
                   return (
-                    <div className="text-center py-12 sm:py-16">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
-                        <svg className="w-7 h-7 sm:w-8 sm:h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center py-8 sm:py-16">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-5">
+                        <svg className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                         </svg>
                       </div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                        No active leads
+                      <h3 className="text-base sm:text-xl font-semibold text-foreground mb-2">
+                        No Leads Yet
                       </h3>
-                      <p className="text-muted-foreground max-w-md mx-auto text-sm sm:text-base">
-                        Your captured leads will appear here automatically once ReplyFlow is live and monitoring your business line.
+                      
+                      {/* Visual Flow for Mobile */}
+                      <div className="flex flex-col items-center gap-2 mb-4 mx-auto max-w-xs">
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <span className="text-lg">📞</span>
+                          <span>Missed Call</span>
+                        </div>
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <span className="text-lg">💬</span>
+                          <span>Text Sent</span>
+                        </div>
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <span className="text-lg">👤</span>
+                          <span>Lead Created</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-muted-foreground max-w-md mx-auto text-xs sm:text-base mb-4">
+                        When someone misses a call, ReplyFlow will automatically create a lead here.
                       </p>
+                      
+                      {/* Test Setup CTA */}
+                      <button
+                        onClick={() => router.push('/dashboard/test-setup')}
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Test My Setup
+                      </button>
                     </div>
                   )
                 })()}

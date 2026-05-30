@@ -383,7 +383,7 @@ export default function CalendarPage() {
                       {/* Floating Add Event button for mobile */}
                       <button
                         onClick={handleAddEvent}
-                        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40"
+                        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >
                         <Plus className="w-6 h-6" />

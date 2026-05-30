@@ -29,7 +29,7 @@ export default function StatCard({
     bg-card
     border border-slate-300 dark:border-border/60 
     rounded-xl shadow-sm hover:shadow-md
-    p-3 sm:p-4 
+    p-2 sm:p-4 
     h-full
     transition-all duration-200
     hover:-translate-y-[2px]

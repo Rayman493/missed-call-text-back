@@ -4,30 +4,36 @@ interface CalendarDayCellProps {
   day: number
   isCurrentMonth: boolean
   isToday: boolean
+  isSelected?: boolean
   events?: ReactNode
   overflowCount?: number
   onClick?: () => void
 }
 
-export default function CalendarDayCell({ 
-  day, 
-  isCurrentMonth, 
-  isToday, 
+export default function CalendarDayCell({
+  day,
+  isCurrentMonth,
+  isToday,
+  isSelected,
   events,
   overflowCount,
-  onClick 
+  onClick
 }: CalendarDayCellProps) {
   return (
     <div
       onClick={onClick}
       className={`
         min-h-[55px] sm:min-h-[65px] md:min-h-[75px] p-1 sm:p-1.5 md:p-2 rounded-sm border transition-all duration-150 cursor-pointer active:scale-95
-        ${isCurrentMonth 
-          ? 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]' 
+        ${isCurrentMonth
+          ? 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
           : 'bg-slate-50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/50 opacity-50'
         }
-        ${isToday 
-          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background dark:ring-offset-slate-900' 
+        ${isToday
+          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background dark:ring-offset-slate-900'
+          : ''
+        }
+        ${isSelected
+          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 shadow-md'
           : ''
         }
       `}
