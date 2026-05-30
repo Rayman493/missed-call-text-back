@@ -139,7 +139,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
         {/* Group hamburger and logo together on the left */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Mobile Hamburger Menu - Always on left for mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
