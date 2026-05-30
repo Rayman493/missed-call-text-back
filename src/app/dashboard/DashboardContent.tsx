@@ -1185,7 +1185,7 @@ export default function DashboardContent() {
                     
                     {/* Dashboard Metrics - Priority 1 */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className="mb-6 transition-opacity duration-300">
+                      <div className="mb-3 sm:mb-6 transition-opacity duration-300">
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
@@ -1194,7 +1194,7 @@ export default function DashboardContent() {
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-3">
+                        <div className="transition-opacity duration-300 mb-2 sm:mb-3">
                           {business?.id && (
                             <RecentLeadsSection 
                               businessId={business.id} 
@@ -1210,7 +1210,7 @@ export default function DashboardContent() {
 
                     {/* Needs Attention Card - Priority 3 */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className="mb-2 sm:mb-3 transition-opacity duration-300">
                         <NeedsAttentionCard business={business} setupHealth={setupHealth} />
                       </div>
                     </SectionErrorBoundary>
@@ -1218,14 +1218,14 @@ export default function DashboardContent() {
                     
                     {/* Recent Activity Card - Priority 5 */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className="mb-2 sm:mb-3 transition-opacity duration-300">
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
                     
                     {/* Follow-Up Activity Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className="mb-2 sm:mb-3 transition-opacity duration-300">
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>

@@ -216,6 +216,45 @@ export default function PublicHome() {
               </Link>
             </div>
 
+            {/* Works For Section - Mobile Conversion */}
+            <div className="mt-6 sm:mt-8">
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
+                Works for:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Plumbers</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">HVAC</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Electricians</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Landscapers</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Contractors</span>
+                </div>
+              </div>
+            </div>
+
             {/* UI Mockup */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}

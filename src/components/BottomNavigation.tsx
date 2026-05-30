@@ -112,69 +112,116 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
             onClick={() => setIsMoreMenuOpen(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 rounded-t-2xl z-50 md:hidden animate-in slide-in-from-bottom duration-200">
-            <div className="p-4">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 rounded-t-3xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
+            <div className="p-4 pb-6">
+              {/* Drag Handle */}
+              <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-4" />
+              
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">More</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Menu</h2>
                 <button
                   onClick={() => setIsMoreMenuOpen(false)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
                 >
                   <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                 </button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Link
-                  href="/dashboard/settings"
+                  href="/dashboard"
                   onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
                 >
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="w-11 h-11 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Home className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <div className="font-medium text-slate-900 dark:text-foreground">Settings</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Manage your account settings</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 dark:text-foreground">Dashboard</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Overview and metrics</div>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/dashboard/leads"
+                  onClick={() => setIsMoreMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
+                >
+                  <div className="w-11 h-11 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 dark:text-foreground">Leads</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Manage your leads</div>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/dashboard/calendar"
+                  onClick={() => setIsMoreMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
+                >
+                  <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 dark:text-foreground">Calendar</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Schedule and events</div>
                   </div>
                 </Link>
                 
                 <Link
                   href="/dashboard/settings"
                   onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
                 >
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                  <div className="w-11 h-11 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 dark:text-foreground">Settings</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Configure your account</div>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setIsMoreMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
+                >
+                  <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium text-slate-900 dark:text-foreground">Account</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Account information and billing</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Billing and profile</div>
                   </div>
                 </Link>
                 
                 <Link
                   href="/"
                   onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
                 >
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <div className="w-11 h-11 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <ExternalLink className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium text-slate-900 dark:text-foreground">View Public Site</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Go to ReplyFlow homepage</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Go to homepage</div>
                   </div>
                 </Link>
                 
+                <div className="h-px bg-slate-200 dark:bg-slate-700 my-2" />
+                
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors w-full"
+                  className="flex items-center gap-4 p-4 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors w-full active:scale-[0.98]"
                 >
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                  <div className="w-11 h-11 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </div>
-                  <div className="text-left">
+                  <div className="flex-1 text-left">
                     <div className="font-medium text-red-600 dark:text-red-400">Logout</div>
                     <div className="text-sm text-slate-500 dark:text-slate-400">Sign out of your account</div>
                   </div>
