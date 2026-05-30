@@ -230,10 +230,10 @@ export default async function Home() {
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
               <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-                Turn Missed Calls Into Booked Jobs
+                Never Miss a Lead Again
               </h1>
               <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed mt-5 sm:mt-6">
-                ReplyFlowHQ texts missed callers instantly, captures call details with AI, and organizes every lead in one simple dashboard.
+                ReplyFlowHQ captures every customer call with AI receptionist, instant text responses, and smart follow-ups—all in one lead management platform.
               </p>
               
               {/* Pricing Information */}
@@ -330,8 +330,8 @@ export default async function Home() {
               <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">2</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-3">If you miss it, ReplyFlow responds</h3>
-              <p className="text-sm text-slate-600 dark:text-muted-foreground leading-relaxed">AI answers the call or sends an instant text response</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-3">AI answers OR text is sent</h3>
+              <p className="text-sm text-slate-600 dark:text-muted-foreground leading-relaxed">AI receptionist answers live or instant text response is sent</p>
             </div>
             
             {/* Card 3 */}
@@ -348,8 +348,8 @@ export default async function Home() {
               <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">4</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-3">You get an organized lead summary</h3>
-              <p className="text-sm text-slate-600 dark:text-muted-foreground leading-relaxed">View call details, transcripts, and follow-up in your dashboard</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-3">Lead captured in dashboard</h3>
+              <p className="text-sm text-slate-600 dark:text-muted-foreground leading-relaxed">All customer details organized in your lead management dashboard</p>
             </div>
           </div>
         </div>
@@ -569,35 +569,68 @@ export default async function Home() {
                 </ul>
               </div>
 
-              {/* Voicemail & Call Capture */}
+              {/* Calendar Integration */}
               <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mb-4">
                   <svg className="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Voicemail & Call Capture</h3>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Calendar Integration</h3>
                 <p className="text-slate-600 dark:text-muted-foreground mb-4">
-                  Comprehensive missed call handling with voicemail capture capabilities
+                  Sync with Google Calendar for smart scheduling and appointment booking
                 </p>
                 <ul className="space-y-2 text-sm text-slate-600 dark:text-muted-foreground">
                   <li className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Missed call handling</span>
+                    <span>Google Calendar sync</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Voicemail capture</span>
+                    <span>Smart scheduling</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Call recording options</span>
+                    <span>Appointment booking</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Business Hours Routing */}
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-3">Business Hours Routing</h3>
+                <p className="text-slate-600 dark:text-muted-foreground mb-4">
+                  Intelligent call routing based on your business hours and availability
+                </p>
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Business hours detection</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>After-hours handling</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Smart call forwarding</span>
                   </li>
                 </ul>
               </div>
@@ -613,10 +646,10 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-              Example Conversation
+              AI Call Intake & SMS Conversations
             </h2>
             <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-              Here's what your customers experience after a missed call
+              See how AI answers calls and follows up with SMS to capture every lead
             </p>
           </div>
           
@@ -782,47 +815,41 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-              Trusted by local businesses
+              Results local businesses see
             </h2>
             <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-              Built for businesses that value every customer interaction
+              Real impact from businesses that never miss a lead
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+                <span className="text-2xl font-bold text-white">3x</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">TCPA Compliant</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">More Leads Captured</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground">
-                Follows SMS best practices and compliance guidelines
+                Businesses capture 3x more leads that would have been lost to missed calls
               </p>
             </div>
             
             <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 border border-emerald-100 dark:border-emerald-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                <span className="text-2xl font-bold text-white">85%</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Secure & Private</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Faster Response Times</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground">
-                Your data is encrypted and never shared with third parties
+                Instant responses mean 85% of customers book within 24 hours
               </p>
             </div>
             
             <div className="bg-white dark:bg-card/80 border border-slate-200 dark:border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 border border-purple-100 dark:border-purple-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                <span className="text-2xl font-bold text-white">24/7</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Instant Setup</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Always Available</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground">
-                Get started in minutes with no technical expertise needed
+                AI answers calls around the clock so you never miss an opportunity
               </p>
             </div>
           </div>
@@ -836,10 +863,10 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
           <div>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
-              Turn your missed calls into booked jobs
+              Never Miss a Lead Again
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
-              ReplyFlowHQ helps local service businesses capture every lead, understand every caller, and never miss an opportunity.
+              ReplyFlowHQ captures every customer call with AI receptionist, instant text responses, and smart follow-ups—all in one platform.
             </p>
             <Link
               href="/signup"
