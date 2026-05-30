@@ -750,26 +750,28 @@ export default function SettingsContent() {
             <div className="flex-1 pt-6 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1000px] mx-auto">
 
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground mb-2">
-                Settings
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Manage your business settings and automation preferences.
-              </p>
-            </div>
+            {/* Settings Header Block - Solid Background */}
+            <div className="bg-background dark:bg-background pb-6 mb-6">
+              {/* Page Header */}
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground mb-2">
+                  Settings
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Manage your business settings and automation preferences.
+                </p>
+              </div>
 
-            {/* Settings Navigation Tabs */}
-            <div className="mb-6 sticky top-[3.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-3">
-              <nav className="flex items-center gap-2 overflow-x-auto">
-                <button
-                  onClick={() => handleSectionClick('general')}
-                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
-                    activeSection === 'general'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
+              {/* Settings Navigation Tabs */}
+              <div className="sticky top-[3.5rem] z-40 bg-background dark:bg-background border-b border-slate-200 dark:border-slate-800 py-3">
+                <nav className="flex items-center gap-2 overflow-x-auto">
+                  <button
+                    onClick={() => handleSectionClick('general')}
+                    className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                      activeSection === 'general'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
                 >
                   General
                 </button>
@@ -777,7 +779,7 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('automation')}
                   className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -787,7 +789,7 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('integrations')}
                   className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'integrations'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -797,7 +799,7 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('contacts')}
                   className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -807,13 +809,14 @@ export default function SettingsContent() {
                   onClick={() => handleSectionClick('account')}
                   className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   Account
                 </button>
               </nav>
+              </div>
             </div>
 
             {/* Settings Sections */}
