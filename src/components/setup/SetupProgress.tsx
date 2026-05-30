@@ -349,51 +349,65 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
         <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-green-900 dark:text-green-100">ReplyFlow fully configured</h3>
-                <p className="text-sm text-green-700 dark:text-green-300">System is operational and monitoring missed calls.</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-green-900 dark:text-green-100">System Status: Healthy</h3>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300">ReplyFlow fully configured and operational</p>
               </div>
             </div>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
             >
-              <svg 
-                className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
-          
+
           {/* Status Pills */}
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-4">
             {setupHealth?.smsActive && (
-              <div className="inline-flex items-center px-2.5 py-1 bg-green-100 dark:bg-green-900/50 rounded-full">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-xs font-medium text-green-800 dark:text-green-200">SMS Active</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-xs font-semibold text-green-800 dark:text-green-200">SMS Active</span>
               </div>
             )}
             {setupHealth?.forwardingVerified && (
-              <div className="inline-flex items-center px-2.5 py-1 bg-green-100 dark:bg-green-900/50 rounded-full">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-xs font-medium text-green-800 dark:text-green-200">Forwarding Verified</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-xs font-semibold text-green-800 dark:text-green-200">Forwarding Verified</span>
               </div>
             )}
-            {setupHealth?.calendarConnected && (
-              <div className="inline-flex items-center px-2.5 py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                <span className="text-xs font-medium text-blue-800 dark:text-blue-200">Calendar Connected</span>
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs font-semibold text-green-800 dark:text-green-200">Monitoring Calls</span>
+            </div>
+          </div>
+
+          {/* Last Checked */}
+          <div className="mt-4 pt-3 border-t border-green-200 dark:border-green-800">
+            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+              Last Checked: Just Now
+            </p>
           </div>
         </div>
 
