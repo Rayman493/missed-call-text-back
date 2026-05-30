@@ -39,11 +39,11 @@ export default function AppHeader({
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2 border-0">
           <div className="flex items-center justify-between h-9">
             {/* Left side - Logo only on mobile */}
-            <div className="flex items-center gap-3 md:gap-8">
+            <div className="flex items-center gap-2 md:gap-8">
               {/* Logo */}
               <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90 transition">
-                <BrandIcon size={40} className="sm:size-36" />
-                <span className="text-[18px] md:text-xl lg:text-2xl font-bold tracking-tight">
+                <BrandIcon size={36} className="sm:size-36" />
+                <span className="text-[17px] md:text-xl lg:text-2xl font-bold tracking-tight">
                   <span className="text-white">ReplyFlow</span>
                   <span className="text-blue-400">HQ</span>
                 </span>
