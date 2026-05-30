@@ -3,7 +3,7 @@
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import Link from 'next/link'
-import { MessageCircle, Users, Clock } from 'lucide-react'
+import { MessageCircle, Users, Clock, Phone, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function DemoPage() {
   return (
@@ -44,9 +44,75 @@ export default function DemoPage() {
         </div>
       </div>
 
+      {/* Workflow Timeline */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <Phone className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Customer Calls</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Missed Call</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Automatic Text</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Customer Replies</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <Users className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Lead Created</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Follow-Up Ready</span>
+          </div>
+        </div>
+      </div>
+
       {/* Conversation Demo Card */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-2xl mx-auto">
+          {/* Missed Call Event */}
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">Arctic Air HVAC</p>
+                <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">Missed Call</p>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">2:33 PM</p>
+            </div>
+          </div>
+
+          {/* Automated Text Sent */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Automated Text Sent</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">2:34 PM</p>
+            </div>
+          </div>
+
           <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
             {/* Business Message 1 - ReplyFlow sends first text after missed call */}
             <div className="flex justify-end mb-4">
@@ -88,6 +154,36 @@ export default function DemoPage() {
               </div>
             </div>
           </div>
+
+          {/* Lead Card */}
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <p className="font-semibold text-green-900 dark:text-green-100">Lead Created</p>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-300">Phone:</span>
+                <span className="text-green-900 dark:text-green-100 font-medium">(412) 555-0123</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-300">Issue:</span>
+                <span className="text-green-900 dark:text-green-100 font-medium">AC not cooling</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-300">Location:</span>
+                <span className="text-green-900 dark:text-green-100 font-medium">Pittsburgh</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-300">Status:</span>
+                <span className="text-green-900 dark:text-green-100 font-medium">New Lead</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-300">Source:</span>
+                <span className="text-green-900 dark:text-green-100 font-medium">Missed Call</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -96,21 +192,24 @@ export default function DemoPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 text-center">
             <div className="flex justify-center mb-2">
+              <Phone className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Missed Call Detected</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">ReplyFlow activates when you can't answer</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 text-center">
+            <div className="flex justify-center mb-2">
               <MessageCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">Instant text-back</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Automated Text Sent</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Instant text-back to recover the opportunity</p>
           </div>
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 text-center">
             <div className="flex justify-center mb-2">
               <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">Lead captured</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 text-center">
-            <div className="flex justify-center mb-2">
-              <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">Follow-up ready</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Lead Captured</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Conversation saved in your dashboard</p>
           </div>
         </div>
       </div>
