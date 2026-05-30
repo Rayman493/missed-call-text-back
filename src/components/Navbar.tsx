@@ -74,6 +74,23 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     }
   }, [isMobileMenuOpen])
 
+  // Close mobile menu when scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      window.addEventListener('scroll', handleScroll, { passive: true })
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [isMobileMenuOpen])
+
   // Unified close menu function
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
@@ -158,13 +175,31 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 // Public pages: show simplified navigation
                 <>
                   {isHomepage ? (
-                    // Homepage: show Dashboard only on desktop
+                    // Homepage: show full navigation on desktop
                     <>
                       <Link
                         href="/dashboard"
-                        className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                       >
                         Dashboard
+                      </Link>
+                      <Link
+                        href="/dashboard/leads"
+                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
+                      >
+                        Leads
+                      </Link>
+                      <Link
+                        href="/dashboard/calendar"
+                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
+                      >
+                        Calendar
+                      </Link>
+                      <Link
+                        href="/dashboard/settings"
+                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
+                      >
+                        Settings
                       </Link>
                     </>
                   ) : (
@@ -175,13 +210,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                         <>
                           <Link
                             href="/home"
-                            className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                            className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                           >
                             Home
                           </Link>
                           <Link
                             href="/demo"
-                            className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                            className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                           >
                             Demo
                           </Link>
@@ -191,7 +226,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {!isHomepage && !isContentPage && (
                         <Link
                           href="/faq"
-                          className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors hidden sm:block`}
+                          className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                         >
                           FAQ
                         </Link>
@@ -204,15 +239,27 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/dashboard"
-                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
+                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/dashboard/leads"
-                    className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
+                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
                   >
                     Leads
+                  </Link>
+                  <Link
+                    href="/dashboard/calendar"
+                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
+                  >
+                    Calendar
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
+                  >
+                    Settings
                   </Link>
                 </>
               )}
