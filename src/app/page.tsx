@@ -6,6 +6,7 @@ import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
+import TabbedDemoSection from '@/components/TabbedDemoSection'
 import { motion } from 'framer-motion'
 
 // Structured Data for Google Search
@@ -1103,111 +1104,7 @@ export default async function Home() {
 
       {/* Tabbed Demo Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                See ReplyFlow In Action
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Watch how AI voicemail intake recovers missed opportunities
-              </p>
-            </div>
-            
-            <div className="max-w-4xl mx-auto">
-              {/* Tab Navigation */}
-              <div className="flex justify-center mb-8">
-                <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1 inline-flex">
-                  <button className="px-6 py-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-md text-sm font-medium shadow-sm">
-                    AI Voicemail Intake
-                  </button>
-                  <button className="px-6 py-3 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                    SMS Recovery
-                  </button>
-                </div>
-              </div>
-              
-              {/* Tab Content - AI Voicemail Intake */}
-              <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
-                <div className="space-y-4">
-                  {/* AI Message */}
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">Thanks for calling Wolfie Plumbing. How can I help you today?</p>
-                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:34 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message */}
-                  <div className="flex justify-end mb-4">
-                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">My water heater stopped working.</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:34 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* AI Message */}
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">I'd be happy to help. May I have your name?</p>
-                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:35 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message */}
-                  <div className="flex justify-end mb-4">
-                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">John Smith.</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:35 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* AI Message */}
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">What's the best phone number to reach you?</p>
-                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:36 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message */}
-                  <div className="flex justify-end mb-4">
-                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">(555) 123-4567</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:36 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* AI Message */}
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">Thanks John. Is the water heater leaking or just not heating water?</p>
-                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:37 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message */}
-                  <div className="flex justify-end mb-4">
-                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm">It's leaking pretty badly. There's water everywhere.</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:37 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Lead Summary */}
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-600 dark:text-green-400">✅</span>
-                      <p className="text-sm text-green-800 dark:text-green-200">
-                        <strong>Lead Captured:</strong> John Smith - Urgent water heater leak. Phone: (555) 123-4567. Priority: High.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <TabbedDemoSection />
       </HomepageErrorBoundary>
 
       {/* Know Why They Called Section */}
