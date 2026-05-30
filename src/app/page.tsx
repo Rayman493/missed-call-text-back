@@ -227,7 +227,7 @@ export default async function Home() {
       <HomepageErrorBoundary>
         <section className="relative flex flex-col items-center justify-center py-12 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
-          <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-4 relative z-10">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8 space-y-4 relative z-10">
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
               <h1 className="text-3xl sm:text-4xl md:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
@@ -237,49 +237,6 @@ export default async function Home() {
                 Turn missed calls into conversations.
               </p>
               
-              {/* Benefit Bullets - Desktop Only */}
-              {/* Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="mt-4 sm:mt-5 hidden sm:block">
-                <div className="w-fit mx-auto flex flex-col items-center space-y-1.5 sm:space-y-2">
-                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm sm:text-base md:text-lg">Missed-call text-back</span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm sm:text-base md:text-lg">AI voicemail intake</span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm sm:text-base md:text-lg">Lead inbox and conversation history</span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 text-center justify-center">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm sm:text-base md:text-lg">Works with your existing business number</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Pricing Information - Desktop Only */}
-              <div id="pricing-section" className="flex flex-col items-center gap-0.5 mt-2 sm:mt-3 hidden sm:block">
-                <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm sm:text-base">14-day free trial</span>
-                <span className="text-slate-700 dark:text-foreground text-sm sm:text-base">$49/month after trial</span>
-              </div>
-              
-              {/* Trust Copy - Desktop Only */}
-              <div className="flex flex-col items-center gap-0.5 mt-1 sm:mt-2 hidden sm:block">
-                <span className="text-slate-500 dark:text-muted-foreground text-xs sm:text-sm">No contracts. Cancel anytime.</span>
-                <span className="text-slate-500 dark:text-muted-foreground text-xs sm:text-sm">Keep using the business number you already advertise everywhere.</span>
-              </div>
-              
               <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 {/* Primary CTA */}
                 <Link
@@ -288,6 +245,28 @@ export default async function Home() {
                 >
                   Start 14-Day Free Trial
                 </Link>
+              </div>
+
+              {/* Small Trust Indicators - Desktop Only */}
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 hidden sm:block">
+                <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Keep Your Existing Number</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Setup In Under 5 Minutes</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>No Contracts</span>
+                </div>
               </div>
 
               {/* Trust Pills - Mobile Only */}
@@ -506,51 +485,6 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
-      {/* Mobile-Only: Trust Signals Section */}
-      <HomepageErrorBoundary>
-        <section className="bg-slate-50 dark:bg-muted py-12 sm:hidden">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-foreground">Works with your existing number</div>
-              </div>
-              
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-foreground">Setup in under 5 minutes</div>
-              </div>
-              
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-foreground">14-day free trial</div>
-              </div>
-              
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-foreground">No contracts</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </HomepageErrorBoundary>
-
       {/* Mobile-Only: Pricing Section */}
       <HomepageErrorBoundary>
         <section className="bg-white dark:bg-background py-12 border-t border-slate-200 dark:border-slate-800 sm:hidden">
@@ -578,10 +512,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                How ReplyFlow Captures Every Opportunity
+                How ReplyFlow Works
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Whether a call is answered by AI or missed entirely, ReplyFlow helps turn callers into customers.
+                When you miss a call, ReplyFlow helps turn it into a conversation.
               </p>
             </div>
             
@@ -605,15 +539,15 @@ export default async function Home() {
                 </svg>
               </div>
               
-              {/* AI Voicemail OR Missed Call - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+              {/* Call Goes Unanswered - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
               <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">AI Voicemail OR Missed Call</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">AI takes message or call goes to voicemail</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Call Goes Unanswered</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">You can't answer the phone</p>
               </div>
               
               {/* Arrow */}
@@ -623,15 +557,33 @@ export default async function Home() {
                 </svg>
               </div>
               
-              {/* Automated SMS Sent - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+              {/* AI Voicemail Intake - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
               <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">AI Voicemail Intake</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Captures details automatically</p>
+              </div>
+              
+              {/* Arrow */}
+              <div className="flex-1 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
+              
+              {/* Automated Text-Back - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Automated SMS Sent</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Instant text back to customer</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Automated Text-Back</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Sends message to the caller</p>
               </div>
               
               {/* Arrow */}
@@ -643,13 +595,13 @@ export default async function Home() {
               
               {/* Lead Captured - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
               <div className="flex flex-col items-center text-center group min-h-[200px]">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Lead Captured</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Customer information saved</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Lead appears in your dashboard</p>
               </div>
               
               {/* Arrow */}
