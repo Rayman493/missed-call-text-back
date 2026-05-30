@@ -57,8 +57,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
   return (
     <>
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 z-50 pb-safe">
+      {/* Bottom Navigation Bar - Mobile Only */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 z-50 pb-safe md:hidden">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             {navItems.map((item) => {
@@ -95,10 +95,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         </div>
       </nav>
 
-      {/* More Menu Modal */}
+      {/* More Menu Modal - Mobile Only */}
       {isMoreMenuOpen && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
             onClick={() => setIsMoreMenuOpen(false)}
           />

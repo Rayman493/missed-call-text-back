@@ -312,7 +312,7 @@ export default function CalendarPage() {
           <AppHeader title="Calendar" />
 
           {/* Main Content */}
-          <div className="flex-1 pt-1 sm:pt-2 lg:pt-4 px-1 sm:px-2 lg:px-3 pb-20">
+          <div className="flex-1 pt-1 sm:pt-2 lg:pt-4 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
             <div className="max-w-[1600px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
