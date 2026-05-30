@@ -62,10 +62,25 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
+        {/* Mobile Hamburger Menu - Always on left for mobile */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className={`sm:hidden p-3 rounded-md ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
+          aria-label="Toggle menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+
         {/* Logo */}
         <Link 
           href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-          className="flex items-center gap-1 sm:gap-2.5 hover:opacity-90 transition"
+          className="flex items-center gap-1 sm:gap-2.5 hover:opacity-90 transition flex-1 justify-center sm:justify-start"
         >
           <BrandIcon size={40} className="sm:hidden" />
           <BrandIcon size={36} className="hidden sm:block" />
@@ -84,7 +99,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 // Public pages: show simplified navigation
                 <>
                   {isHomepage ? (
-                    // Homepage: show Dashboard and Account
+                    // Homepage: show Dashboard only on desktop
                     <>
                       <Link
                         href="/dashboard"
@@ -92,20 +107,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       >
                         Dashboard
                       </Link>
-                      {/* Mobile Hamburger Menu */}
-                      <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className={`sm:hidden p-2 rounded-md ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
-                        aria-label="Toggle menu"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {isMobileMenuOpen ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                          )}
-                        </svg>
-                      </button>
                     </>
                   ) : (
                     // Other public pages: show navigation options
@@ -136,13 +137,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                           FAQ
                         </Link>
                       )}
-                      {/* Mobile navigation */}
-                      <Link
-                        href="/dashboard"
-                        className={`sm:hidden text-sm font-medium px-2 py-1 ${isPublicPage && !forceDark ? 'text-slate-300 dark:text-slate-300 hover:text-blue-400 dark:hover:text-blue-400 hover:underline' : 'text-slate-300 hover:text-blue-400 hover:underline'} transition-colors`}
-                      >
-                        Dashboard
-                      </Link>
                     </>
                   )}
                 </>
@@ -161,20 +155,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   >
                     Leads
                   </Link>
-                  {/* Mobile Hamburger Menu */}
-                  <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="sm:hidden p-2 rounded-md text-gray-300 hover:text-white transition-colors"
-                    aria-label="Toggle menu"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {isMobileMenuOpen ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      )}
-                    </svg>
-                  </button>
                 </>
               )}
               
@@ -249,39 +229,120 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
       </div>
       
       {/* Mobile Menu Dropdown */}
-      {isLoggedIn && isMobileMenuOpen && (
+      {isMobileMenuOpen && (
         <div className="sm:hidden bg-[#0b1220] border-b border-slate-800">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-            <nav className="flex flex-col space-y-3">
-              <Link
-                href="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/leads"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-              >
-                Leads
-              </Link>
-              <Link
-                href="/dashboard/calendar"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-              >
-                Calendar
-              </Link>
-              <Link
-                href="/dashboard/settings"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-              >
-                Settings
-              </Link>
-            </nav>
+            {isLoggedIn ? (
+              // Signed-in users: Application navigation
+              <nav className="flex flex-col space-y-3">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/dashboard/leads"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Leads
+                </Link>
+                <Link
+                  href="/dashboard/calendar"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Calendar
+                </Link>
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Settings
+                </Link>
+                <Link
+                  href="/home"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  View Public Site
+                </Link>
+              </nav>
+            ) : (
+              // Signed-out users: Marketing navigation
+              <nav className="flex flex-col space-y-3">
+                <button
+                  onClick={() => {
+                    // Scroll to features section
+                    const featuresSection = document.getElementById('features-section');
+                    if (featuresSection) {
+                      featuresSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => {
+                    // Scroll to AI section
+                    const aiSection = document.getElementById('ai-receptionist-section');
+                    if (aiSection) {
+                      aiSection.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      // Fallback to AI receptionist page
+                      window.location.href = '/ai-receptionist';
+                    }
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
+                >
+                  AI Receptionist
+                </button>
+                <button
+                  onClick={() => {
+                    // Scroll to pricing section
+                    const pricingSection = document.getElementById('pricing-section');
+                    if (pricingSection) {
+                      pricingSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
+                >
+                  Pricing
+                </button>
+                <Link
+                  href="/faq"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  FAQ
+                </Link>
+                <Link
+                  href="/compliance"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Compliance
+                </Link>
+                
+                {/* Optional CTA at bottom for signed-out users */}
+                <div className="pt-4 mt-4 border-t border-slate-700">
+                  <Link
+                    href="/auth?mode=signup"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full bg-blue-600 text-white font-semibold rounded-lg px-4 py-3 text-center hover:bg-blue-700 transition-colors"
+                  >
+                    Start Free Trial
+                  </Link>
+                </div>
+              </nav>
+            )}
           </div>
         </div>
       )}

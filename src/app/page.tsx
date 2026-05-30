@@ -230,23 +230,42 @@ export default async function Home() {
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
               <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-                Never Miss Another Lead
+                Never Miss a Lead Again
               </h1>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
-                <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
-                  <span className="text-blue-700 dark:text-blue-300 font-semibold">AI Receptionist</span>
-                </div>
-                <span className="text-slate-500 dark:text-slate-400 text-lg">+</span>
-                <div className="bg-emerald-100 dark:bg-emerald-900/30 px-4 py-2 rounded-full">
-                  <span className="text-emerald-700 dark:text-emerald-300 font-semibold">Missed Call Text Back</span>
-                </div>
-              </div>
-              <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl leading-relaxed mt-6">
-                Complete lead capture platform that answers every call and captures every opportunity
+              <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-6">
+                ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads so your business never loses another opportunity.
               </p>
               
+              {/* Benefit Bullets */}
+              <div className="mt-8 space-y-3 max-w-2xl mx-auto">
+                <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">AI answers incoming calls</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Instant missed-call text back</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Lead inbox and conversation history</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Works with your existing business number</span>
+                </div>
+              </div>
+              
               {/* Pricing Information */}
-              <div className="flex flex-col items-center gap-2 mt-4">
+              <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
                 <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
                 <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
               </div>
@@ -267,39 +286,67 @@ export default async function Home() {
                 </Link>
               </div>
 
-              {/* Trust/Simplicity Bar */}
+              {/* Core Capabilities Feature Row */}
               <div className="mt-12 pt-8 border-t border-slate-200/60 dark:border-slate-700/60">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
                   <div className="flex flex-col items-center text-center">
-                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Works with your existing number
+                      AI Receptionist
                     </span>
                   </div>
                   <div className="flex flex-col items-center text-center">
-                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                      AI call summaries
+                      Missed Call Recovery
                     </span>
                   </div>
                   <div className="flex flex-col items-center text-center">
-                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
+                    </div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Instant missed-call texts
+                      Lead Management
                     </span>
                   </div>
                   <div className="flex flex-col items-center text-center">
-                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Built for local service businesses
+                      Calendar Scheduling
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Business Hours
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Follow-Up Automation
                     </span>
                   </div>
                 </div>
@@ -313,98 +360,150 @@ export default async function Home() {
 
       {/* Two Ways ReplyFlow Captures Leads Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <section id="ai-receptionist-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 Two Ways ReplyFlow Captures Leads
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Every customer call is handled, every lead is captured
+                Whether a call gets answered or missed, ReplyFlow helps recover the opportunity.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {/* AI Receptionist */}
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-lg p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* AI Receptionist Card */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">AI Receptionist</h3>
-                    <p className="text-slate-600 dark:text-muted-foreground">Answers calls live</p>
+                    <p className="text-blue-700 dark:text-blue-300 font-medium">Answers calls instantly</p>
                   </div>
                 </div>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Answers every call instantly</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Collects caller information</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Captures reason for calling</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Available 24/7</span>
-                  </li>
-                </ul>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">1</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Customer calls your business</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Incoming call rings your business number</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">2</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">AI answers instantly</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Professional AI receptionist engages caller</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">3</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects name</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">AI gathers customer name and details</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">4</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects phone number</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Confirms caller's contact information</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">5</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects service request</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Understands reason for calling</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">6</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Creates a lead automatically</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Lead appears in your dashboard instantly</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              {/* Missed Call Text Back */}
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-lg p-8">
+              {/* Missed Call Recovery Card */}
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">Missed Call Text Back</h3>
-                    <p className="text-slate-600 dark:text-muted-foreground">Sends instant SMS</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">Missed Call Recovery</h3>
+                    <p className="text-emerald-700 dark:text-emerald-300 font-medium">Sends instant SMS</p>
                   </div>
                 </div>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Instant text responses</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Captures missed opportunities</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Customizable messaging</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-slate-700 dark:text-slate-300">Follow-up automation</span>
-                  </li>
-                </ul>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">1</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Call goes unanswered</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Customer call goes to voicemail</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">2</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">ReplyFlow sends a text immediately</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Automated SMS reaches out within seconds</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">3</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Customer replies</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Customer responds with their needs</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-sm font-bold">4</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Lead is created automatically</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">All details captured in your dashboard</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -653,217 +752,189 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
-      {/* Features Section */}
+      {/* Complete Features Grid Section */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-slate-900 py-24 border-t border-slate-200 dark:border-slate-800">
+        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                Complete Lead Capture Platform
+                Everything You Need To Capture More Leads
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-3xl mx-auto">
-                Six powerful tools to capture every lead and grow your business
+                Complete lead capture platform with all the tools your business needs
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               
               {/* AI Receptionist */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-6 shadow-sm border border-blue-200 dark:border-blue-800">
-                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">AI Receptionist</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  24/7 AI answers calls, collects details, and captures every lead instantly
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">AI Receptionist</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Answers calls and gathers customer information
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Answers every call instantly</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Collects caller information</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Available 24/7</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  <span>✓ 24/7 Available</span>
+                  <span>✓ Live Answering</span>
+                </div>
               </div>
 
               {/* Missed Call Text Back */}
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-2xl p-6 shadow-sm border border-emerald-200 dark:border-emerald-800">
-                <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">Missed Call Text Back</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  Instant SMS responses capture leads that would otherwise be lost forever
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Missed Call Text Back</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Automatically texts missed callers
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Automatic text responses</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Customizable messaging</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Follow-up automation</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>✓ Instant Response</span>
+                  <span>✓ Custom Messages</span>
+                </div>
               </div>
 
               {/* Lead Inbox */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 shadow-sm border border-purple-200 dark:border-purple-800">
-                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">Lead Inbox</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  Unified inbox for all customer conversations and lead management
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Lead Inbox</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  View every conversation in one place
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>All conversations in one place</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Lead status tracking</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Conversation history</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-medium">
+                  <span>✓ Unified View</span>
+                  <span>✓ Status Tracking</span>
+                </div>
               </div>
 
-              {/* Follow-Up Automation */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-2xl p-6 shadow-sm border border-orange-200 dark:border-orange-800">
-                <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              {/* Call Transcripts */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">Follow-Up Automation</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  Smart follow-ups based on business hours and customer preferences
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Call Transcripts</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Review AI call conversations
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Business-hours scheduling</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Automated reminders</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Smart timing</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                  <span>✓ Full Transcripts</span>
+                  <span>✓ AI Summaries</span>
+                </div>
               </div>
 
-              {/* Calendar Integration */}
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-2xl p-6 shadow-sm border border-teal-200 dark:border-teal-800">
-                <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Calendar Scheduling */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">Calendar Integration</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  Sync with Google Calendar for appointments and scheduling
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Calendar Scheduling</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Manage appointments and events
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Google Calendar sync</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Smart scheduling</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Appointment booking</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium">
+                  <span>✓ Google Sync</span>
+                  <span>✓ Smart Booking</span>
+                </div>
               </div>
 
-              {/* Business Hours Routing */}
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-2xl p-6 shadow-sm border border-yellow-200 dark:border-yellow-800">
-                <div className="w-12 h-12 bg-yellow-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Business Hours */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">Business Hours Routing</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  Intelligent call routing based on your business hours
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Business Hours</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Automations respect operating hours
                 </p>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Business hours detection</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>After-hours handling</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span>Smart call forwarding</span>
-                  </li>
-                </ul>
+                <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                  <span>✓ Hour Detection</span>
+                  <span>✓ After Hours</span>
+                </div>
+              </div>
+
+              {/* Follow-Up Automation */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Follow-Up Automation</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Automatically nurture leads
+                </p>
+                <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 font-medium">
+                  <span>✓ Smart Timing</span>
+                  <span>✓ Auto Reminders</span>
+                </div>
+              </div>
+
+              {/* Dedicated Business Number */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Dedicated Business Number</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Professional business communications
+                </p>
+                <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                  <span>✓ Local Numbers</span>
+                  <span>✓ Professional</span>
+                </div>
+              </div>
+
+              {/* Works With Existing Number */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Works With Existing Number</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  No need to change your advertised number
+                </p>
+                <div className="flex items-center gap-2 text-xs text-pink-600 dark:text-pink-400 font-medium">
+                  <span>✓ Keep Number</span>
+                  <span>✓ Easy Setup</span>
+                </div>
+              </div>
+
+              {/* Mobile Friendly */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h9m-9 0a9 9 0 01-9-9m9 9V3m9 9a9 9 0 01-9-9m-9 9a9 9 0 019-9m-9 9h9m-9-9a9 9 0 019 9m9-9V3m0 9a9 9 0 01-9 9" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Mobile Friendly</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Manage leads anywhere
+                </p>
+                <div className="flex items-center gap-2 text-xs text-cyan-600 dark:text-cyan-400 font-medium">
+                  <span>✓ Responsive</span>
+                  <span>✓ Any Device</span>
+                </div>
               </div>
 
             </div>
@@ -871,76 +942,113 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
-      {/* Example Conversation Section */}
+      {/* Tabbed Demo Section */}
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-              AI Call Intake & SMS Conversations
-            </h2>
-            <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-              See how AI answers calls and follows up with SMS to capture every lead
-            </p>
-          </div>
-          
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
-              {/* AI Call Summary Note */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">📞</span>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>AI Call Summary:</strong> John Smith called about leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon.
-                  </p>
-                </div>
-              </div>
-
-              {/* Business Message 1 - ReplyFlow sends first text */}
-              <div className="flex justify-end mb-5">
-                <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                  <p className="text-sm text-white">Hi John, this is Premier Plumbing. I heard you're dealing with a leaking water heater - that sounds urgent! When would be a good time to call you back this afternoon?</p>
-                  <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
+                See ReplyFlow In Action
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
+                Watch how AI answers calls and recovers missed opportunities
+              </p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto">
+              {/* Tab Navigation */}
+              <div className="flex justify-center mb-8">
+                <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1 inline-flex">
+                  <button className="px-6 py-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-md text-sm font-medium shadow-sm">
+                    AI Receptionist Call
+                  </button>
+                  <button className="px-6 py-3 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                    SMS Recovery
+                  </button>
                 </div>
               </div>
               
-              {/* Customer Message 1 */}
-              <div className="flex justify-start mb-5">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                  <p className="text-sm text-slate-800 dark:text-slate-200">Thanks for responding! Anytime after 3 PM would work. The water is really coming out fast.</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
-                </div>
-              </div>
-              
-              {/* Business Message 2 */}
-              <div className="flex justify-end mb-5">
-                <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                  <p className="text-sm text-white">Perfect - I'll call you at 3:15 PM. In the meantime, can you turn off the water supply to the heater? There should be a valve near the heater.</p>
-                  <p className="text-xs text-blue-200 mt-1">2:36 PM</p>
-                </div>
-              </div>
-              
-              {/* Customer Message 2 */}
-              <div className="flex justify-start mb-5">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                  <p className="text-sm text-slate-800 dark:text-slate-200">Found it and turned it off. You're a lifesaver! See you at 3:15.</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:37 PM</p>
-                </div>
-              </div>
-              
-              {/* Lead Summary */}
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-green-600 dark:text-green-400">✅</span>
-                  <p className="text-sm text-green-800 dark:text-green-200">
-                    <strong>Lead Captured:</strong> Urgent water heater replacement job scheduled for 3:15 PM today.
-                  </p>
+              {/* Tab Content - AI Receptionist Call */}
+              <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
+                <div className="space-y-4">
+                  {/* AI Message */}
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">Thanks for calling Wolfie Plumbing. How can I help you today?</p>
+                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:34 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* Customer Message */}
+                  <div className="flex justify-end mb-4">
+                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">My water heater stopped working.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:34 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* AI Message */}
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">I'd be happy to help. May I have your name?</p>
+                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:35 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* Customer Message */}
+                  <div className="flex justify-end mb-4">
+                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">John Smith.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:35 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* AI Message */}
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">What's the best phone number to reach you?</p>
+                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:36 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* Customer Message */}
+                  <div className="flex justify-end mb-4">
+                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">(555) 123-4567</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:36 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* AI Message */}
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-blue-600 text-white rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">Thanks John. Is the water heater leaking or just not heating water?</p>
+                      <p className="text-xs text-blue-200 mt-1">AI Assistant • 2:37 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* Customer Message */}
+                  <div className="flex justify-end mb-4">
+                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
+                      <p className="text-sm">It's leaking pretty badly. There's water everywhere.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Customer • 2:37 PM</p>
+                    </div>
+                  </div>
+                  
+                  {/* Lead Summary */}
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 dark:text-green-400">✅</span>
+                      <p className="text-sm text-green-800 dark:text-green-200">
+                        <strong>Lead Captured:</strong> John Smith - Urgent water heater leak. Phone: (555) 123-4567. Priority: High.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </HomepageErrorBoundary>
 
       {/* Know Why They Called Section */}
@@ -1108,24 +1216,39 @@ export default async function Home() {
 
       {/* CTA Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-br from-slate-50 to-white dark:from-muted dark:to-background py-24 sm:py-28 border-t border-slate-200 dark:border-border">
-        <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
-              Never Miss a Lead Again
-            </h2>
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
-              ReplyFlowHQ captures every customer call with AI receptionist, instant text responses, and smart follow-ups—all in one platform.
-            </p>
-            <Link
-              href="/signup"
-              className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
-            >
-              Start Your 14-Day Free Trial
-            </Link>
+        <section className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 py-24 sm:py-28 border-t border-blue-200 dark:border-blue-800">
+          <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
+                Start Capturing More Leads Today
+              </h2>
+              <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
+                AI answers calls.<br />
+                ReplyFlow recovers missed opportunities.<br />
+                Your business grows without hiring additional staff.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                <Link
+                  href="/signup"
+                  className="h-14 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
+                >
+                  Start 14-Day Free Trial
+                </Link>
+                <Link
+                  href="/demo"
+                  className="h-14 px-8 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-semibold rounded-xl shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg border border-blue-200 dark:border-blue-800"
+                >
+                  View Demo
+                </Link>
+              </div>
+              
+              <div className="mt-8 text-sm text-slate-600 dark:text-slate-400">
+                No contracts. Cancel anytime.
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </HomepageErrorBoundary>
       <HomepageFooter />
       </PageBackground>
