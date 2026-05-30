@@ -153,7 +153,7 @@ export default function PublicHome() {
       <section id="features-section" className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
         <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -165,7 +165,7 @@ export default function PublicHome() {
             <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
               ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads so your business never loses another opportunity.
             </p>
-            
+
             {/* Benefit Bullets */}
             <div className="mt-8 space-y-3 max-w-2xl mx-auto">
               <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
@@ -193,19 +193,19 @@ export default function PublicHome() {
                 <span className="text-base">Works with your existing business number</span>
               </div>
             </div>
-            
+
             {/* Pricing Information */}
             <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
               <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
             </div>
-            
+
             {/* Trust Copy */}
             <div className="flex flex-col items-center gap-1 mt-3">
               <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
               <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
             </div>
-            
+
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
               {/* Primary CTA */}
               <Link
@@ -215,6 +215,114 @@ export default function PublicHome() {
                 Start Free Trial
               </Link>
             </div>
+
+            {/* UI Mockup */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+              className="mt-16 w-full max-w-4xl mx-auto"
+            >
+              <div className="relative rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+                {/* Mockup Header */}
+                <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="flex-1 text-center">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">ReplyFlow Dashboard</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mockup Content */}
+                <div className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Lead Card Mockup */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Latest Lead</span>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-foreground">John Smith</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">(555) 123-4567</div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Missed call 2 min ago</div>
+                    </div>
+
+                    {/* Activity Card Mockup */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Recent Activity</span>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-slate-700 dark:text-slate-300">Auto-text sent to Jane</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                          <span className="text-xs text-slate-700 dark:text-slate-300">Lead captured from Mike</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                          <span className="text-xs text-slate-700 dark:text-slate-300">Follow-up scheduled</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metrics Card Mockup */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">This Month</span>
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">Leads</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-foreground">24</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">Texts Sent</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-foreground">18</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">Conversion</span>
+                          <span className="text-sm font-bold text-green-600">75%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Message Preview Mockup */}
+                  <div className="mt-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                          <p className="text-xs text-slate-700 dark:text-slate-300">Hi! I noticed you called earlier. How can I help you today?</p>
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Auto-sent via ReplyFlow</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Enhanced Trust Indicators */}
             <div className="mt-16 pt-10 border-t border-slate-200/60 dark:border-slate-700/60">
