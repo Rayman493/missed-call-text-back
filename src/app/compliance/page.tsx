@@ -506,12 +506,12 @@ export default function CompliancePage() {
             </div>
           </section>
 
-          {/* AI Receptionist Compliance */}
+          {/* AI Voicemail Intake Compliance */}
           <section>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
-                  AI Receptionist Compliance
+                  AI Voicemail Intake Compliance
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">

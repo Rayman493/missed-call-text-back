@@ -455,14 +455,14 @@ export default function FAQPage() {
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-4">
-                How does the AI Receptionist work?
+                How does AI voicemail intake work?
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  When a call goes unanswered, ReplyFlow can answer on your behalf, collect caller information, and save the conversation details inside your account.
+                  When a call goes unanswered and forwards to ReplyFlow, AI captures caller information through voicemail.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  The AI Receptionist can capture the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
+                  AI voicemail intake can capture the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
                 </p>
               </div>
             </div>
@@ -476,10 +476,10 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes.</strong> Businesses can use SMS-only workflows without enabling AI receptionist features.
+                  <strong>Yes.</strong> Businesses can use SMS-only workflows without enabling AI voicemail intake.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow offers flexible options - you can use traditional missed-call text responses, or enable the AI Receptionist for call answering and information capture. Choose what works best for your business.
+                  ReplyFlow offers flexible options - you can use traditional missed-call text responses, or enable AI voicemail intake for caller information capture after missed calls. Choose what works best for your business.
                 </p>
               </div>
             </div>

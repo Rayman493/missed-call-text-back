@@ -407,22 +407,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 </button>
                 <button
                   onClick={() => {
-                    // Scroll to AI section
-                    const aiSection = document.getElementById('ai-receptionist-section');
-                    if (aiSection) {
-                      aiSection.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                      // Fallback to AI receptionist page
-                      window.location.href = '/ai-receptionist';
-                    }
-                    closeMobileMenu();
-                  }}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
-                >
-                  AI Receptionist
-                </button>
-                <button
-                  onClick={() => {
                     // Scroll to pricing section
                     const pricingSection = document.getElementById('pricing-section');
                     if (pricingSection) {

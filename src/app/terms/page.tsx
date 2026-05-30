@@ -268,7 +268,7 @@ export default function TermsPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-muted-foreground leading-relaxed">
-                    ReplyFlow may provide AI-assisted communication tools including virtual receptionist functionality, transcription, summarization, and automated responses.
+                    ReplyFlow may provide AI-assisted communication tools including AI voicemail intake, transcription, summarization, and automated responses.
                   </p>
                   <div className="mt-6">
                     <h3 className="text-lg font-medium text-foreground mb-3">Business Acknowledgments</h3>

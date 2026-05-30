@@ -683,7 +683,7 @@ export default function PublicHome() {
       </section>
 
       {/* Two Ways ReplyFlow Captures Leads Section */}
-      <section id="ai-receptionist-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+      <section id="two-ways-capture-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <motion.h2 

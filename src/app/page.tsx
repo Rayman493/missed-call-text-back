@@ -58,7 +58,7 @@ function HomepageFooter() {
               <span className="text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-8 max-w-md text-base leading-relaxed">
-              AI Receptionist, missed call recovery, lead capture, calendar integration, 
+              Missed call recovery, AI voicemail intake, lead capture, calendar integration, 
               and follow-up automation for businesses that can't afford to miss opportunities.
             </p>
             <div className="flex items-center gap-4">
@@ -541,7 +541,7 @@ export default async function Home() {
 
       {/* Two Ways ReplyFlow Captures Leads Section */}
       <HomepageErrorBoundary>
-        <section id="ai-receptionist-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <section id="two-ways-capture-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
@@ -982,7 +982,7 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               
-              {/* AI Receptionist */}
+              {/* AI Voicemail Intake */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-4">
                   <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-3">
@@ -990,14 +990,14 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">AI Receptionist</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">
-                  Answers calls instantly and gathers customer information 24/7
+                  Captures caller details after missed calls
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium mt-auto">
-                  <span>✓ Live Answering</span>
-                  <span>✓ 24/7 Available</span>
+                  <span>✓ Voicemail Intake</span>
+                  <span>✓ Caller Details</span>
                 </div>
               </div>
 
@@ -1039,7 +1039,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Calendar Scheduling */}
+              {/* Calendar Integration */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-4">
                   <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mb-3">
@@ -1047,14 +1047,14 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">Calendar Scheduling</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">Calendar Integration</h3>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">
-                  Manage appointments and sync with Google Calendar
+                  View and sync your existing calendar appointments
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium mt-auto">
                   <span>✓ Google Sync</span>
-                  <span>✓ Smart Booking</span>
+                  <span>✓ View Appointments</span>
                 </div>
               </div>
 
@@ -1110,7 +1110,7 @@ export default async function Home() {
                 See ReplyFlow In Action
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Watch how AI answers calls and recovers missed opportunities
+                Watch how AI voicemail intake recovers missed opportunities
               </p>
             </div>
             
@@ -1119,7 +1119,7 @@ export default async function Home() {
               <div className="flex justify-center mb-8">
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1 inline-flex">
                   <button className="px-6 py-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-md text-sm font-medium shadow-sm">
-                    AI Receptionist Call
+                    AI Voicemail Intake
                   </button>
                   <button className="px-6 py-3 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
                     SMS Recovery
@@ -1127,7 +1127,7 @@ export default async function Home() {
                 </div>
               </div>
               
-              {/* Tab Content - AI Receptionist Call */}
+              {/* Tab Content - AI Voicemail Intake */}
               <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
                 <div className="space-y-4">
                   {/* AI Message */}
@@ -1363,9 +1363,9 @@ export default async function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Grow Revenue</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Track Your Leads</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Convert more leads into paying customers
+                Monitor and manage captured leads in one place
               </p>
             </div>
           </div>
