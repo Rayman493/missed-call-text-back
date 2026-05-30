@@ -747,36 +747,22 @@ export default function SettingsContent() {
           <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 pt-24 sm:pt-28 lg:pt-32 px-3 sm:px-4 lg:px-6 pb-20">
-              <div className="max-w-[1180px] mx-auto">
+            <div className="flex-1 pt-6 px-3 sm:px-4 lg:px-6 pb-20">
+              <div className="max-w-[1000px] mx-auto">
 
-            {/* Back to Dashboard Link */}
-            <div className="mb-3 sm:mb-6">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 rounded-lg transition-all duration-200 group"
-              >
-                <svg 
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:-translate-x-0.5" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M15 19l-7-7 7-7" 
-                  />
-                </svg>
-                <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden">Back</span>
-              </Link>
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground mb-2">
+                Settings
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Manage your business settings and automation preferences.
+              </p>
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-6 sm:mb-8 sticky top-[4.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-4">
-              <nav className="flex items-center gap-2 overflow-x-auto max-w-[1180px] mx-auto">
+            <div className="mb-6 sticky top-[3.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-3">
+              <nav className="flex items-center gap-2 overflow-x-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
                   className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
