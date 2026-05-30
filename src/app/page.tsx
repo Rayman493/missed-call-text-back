@@ -691,115 +691,149 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
-      {/* AI Receptionist Call Transcript Section */}
+      {/* AI Voicemail Intake Section - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-muted py-24 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                AI Receptionist in Action
+                AI Voicemail Intake
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                See how our AI answers calls and captures every detail
+                When you miss a call, ReplyFlow captures the details automatically.
               </p>
             </div>
             
             <div className="max-w-4xl mx-auto">
-              <div className="bg-slate-900 dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-                {/* Call Header */}
-                <div className="bg-slate-800 dark:bg-slate-900 px-6 py-4 border-b border-slate-700">
-                  <div className="flex items-center justify-between">
+              <div className="grid gap-6">
+                {/* Step 1: Incoming Call */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                        </svg>
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">1</span>
                       </div>
+                      <div className="text-white font-semibold">Incoming Call</div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <div className="text-white font-semibold">Incoming Call</div>
-                        <div className="text-slate-400 text-sm">+1 (555) 123-4567</div>
+                        <div className="font-semibold text-slate-900 dark:text-foreground">Premier Plumbing</div>
+                        <div className="text-slate-600 dark:text-slate-400 text-sm">(555) 123-4567</div>
+                      </div>
+                      <div className="text-blue-600 dark:text-blue-400 font-medium">
+                        Ringing...
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">LIVE</span>
-                      <span className="text-slate-400 text-sm">2:34 PM</span>
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                      Ringing...
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                      Ringing...
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                      Ringing...
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        No Answer
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                {/* Call Transcript */}
-                <div className="p-6 space-y-4">
-                  {/* AI Receptionist */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+
+                {/* Step 2: Forwarded to ReplyFlow */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">2</span>
+                      </div>
+                      <div className="text-white font-semibold">Forwarded to ReplyFlow</div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-blue-600 text-white rounded-2xl rounded-tl-none px-4 py-3 max-w-lg">
-                        <p className="text-sm">Hi, this is Premier Plumbing's AI assistant. How can I help you today?</p>
+                      <div className="text-slate-700 dark:text-slate-300">
+                        Call automatically forwards after your normal ring time
                       </div>
-                      <div className="text-slate-400 text-xs mt-1">AI Receptionist • 2:34 PM</div>
                     </div>
                   </div>
-                  
-                  {/* Caller */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">JS</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-slate-700 dark:bg-slate-600 text-white rounded-2xl rounded-tr-none px-4 py-3 max-w-lg">
-                        <p className="text-sm">Hi, I have a leaking water heater and water is everywhere! Can someone help?</p>
+                </div>
+
+                {/* Step 3: AI Voicemail Message */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">3</span>
                       </div>
-                      <div className="text-slate-400 text-xs mt-1">John Smith • 2:35 PM</div>
+                      <div className="text-white font-semibold">AI Voicemail Message</div>
                     </div>
                   </div>
-                  
-                  {/* AI Receptionist */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-blue-600 text-white rounded-2xl rounded-tl-none px-4 py-3 max-w-lg">
-                        <p className="text-sm">I understand that's urgent! Let me get some details to help you faster. What's your address and is the water heater gas or electric?</p>
+                  <div className="p-6">
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                          </svg>
+                        </div>
+                        <div className="font-semibold text-slate-900 dark:text-foreground">Premier Plumbing AI</div>
                       </div>
-                      <div className="text-slate-400 text-xs mt-1">AI Receptionist • 2:35 PM</div>
+                      <div className="text-slate-700 dark:text-slate-300 space-y-2">
+                        <p>"Hi, you've reached Premier Plumbing.</p>
+                        <p>Sorry we missed your call.</p>
+                        <p>Please leave your name, phone number, and a brief description of what you need help with.</p>
+                        <p>We'll get back to you shortly."</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Caller */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">JS</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-slate-700 dark:bg-slate-600 text-white rounded-2xl rounded-tr-none px-4 py-3 max-w-lg">
-                        <p className="text-sm">123 Main Street, Apartment 4B. It's electric. The water is really coming out fast!</p>
+                </div>
+
+                {/* Step 4: Captured Lead Card */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">4</span>
                       </div>
-                      <div className="text-slate-400 text-xs mt-1">John Smith • 2:36 PM</div>
+                      <div className="text-white font-semibold">Captured Lead</div>
                     </div>
                   </div>
-                  
-                  {/* AI Summary */}
-                  <div className="bg-blue-900/50 border border-blue-700 rounded-xl p-4 mt-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                        <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2h-1a1 1 0 100-2h1a4 4 0 014 4v6a4 4 0 01-4 4H6a4 4 0 01-4-4V5a4 4 0 014-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-blue-400 font-semibold">AI Call Summary</span>
+                  <div className="p-6">
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Name</div>
+                          <div className="font-semibold text-slate-900 dark:text-foreground">John Smith</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Phone</div>
+                          <div className="font-semibold text-slate-900 dark:text-foreground">(555) 123-4567</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Service</div>
+                          <div className="font-semibold text-slate-900 dark:text-foreground">Water heater leaking</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Status</div>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                            New Lead
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <ul className="text-slate-300 text-sm space-y-1">
-                      <li>• <strong>Caller:</strong> John Smith, 123 Main Street Apt 4B</li>
-                      <li>• <strong>Issue:</strong> Electric water heater leaking heavily</li>
-                      <li>• <strong>Urgency:</strong> High - active water leak</li>
-                      <li>• <strong>Next Step:</strong> Immediate callback needed</li>
-                    </ul>
                   </div>
                 </div>
               </div>

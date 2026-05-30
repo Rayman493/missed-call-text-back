@@ -846,10 +846,16 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* Tabbed Demo Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+      {/* AI Voicemail Intake Section - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+      <section className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-muted py-24 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -857,7 +863,7 @@ export default function PublicHome() {
               viewport={{ once: true }}
               className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4"
             >
-              See ReplyFlow in Action
+              AI Voicemail Intake
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -866,9 +872,9 @@ export default function PublicHome() {
               viewport={{ once: true }}
               className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
             >
-              Experience both our AI Receptionist and Missed Call Recovery in real scenarios
+              When you miss a call, ReplyFlow captures the details automatically.
             </motion.p>
-          </div>
+          </motion.div>
           
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -877,155 +883,162 @@ export default function PublicHome() {
             viewport={{ once: true }}
             className="max-w-4xl mx-auto"
           >
-            {/* Tab Navigation */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                <button
-                  onClick={() => setActiveTab('ai')}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'ai' 
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  AI Receptionist Call
-                </button>
-                <button
-                  onClick={() => setActiveTab('sms')}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'sms' 
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  SMS Recovery
-                </button>
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'ai' ? (
-              // AI Receptionist Call Demo
-              <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">AI Receptionist Call Demo</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Our AI answers calls and captures leads automatically</p>
+            <div className="grid gap-6">
+              {/* Step 1: Incoming Call */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
+                viewport={{ once: true }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">1</span>
+                    </div>
+                    <div className="text-white font-semibold">Incoming Call</div>
+                  </div>
                 </div>
-                
-                {/* Call Interface */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-4 border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">AI</span>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Premier Plumbing</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm">(555) 123-4567</div>
+                    </div>
+                    <div className="text-blue-600 dark:text-blue-400 font-medium">
+                      Ringing...
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                    Ringing...
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                    Ringing...
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                    Ringing...
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      No Answer
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Step 2: Forwarded to ReplyFlow */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+                viewport={{ once: true }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">2</span>
+                    </div>
+                    <div className="text-white font-semibold">Forwarded to ReplyFlow</div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    <div className="text-slate-700 dark:text-slate-300">
+                      Call automatically forwards after your normal ring time
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Step 3: AI Voicemail Message */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.5 }}
+                viewport={{ once: true }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">3</span>
+                    </div>
+                    <div className="text-white font-semibold">AI Voicemail Message</div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                        </svg>
+                      </div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Premier Plumbing AI</div>
+                    </div>
+                    <div className="text-slate-700 dark:text-slate-300 space-y-2">
+                      <p>"Hi, you've reached Premier Plumbing.</p>
+                      <p>Sorry we missed your call.</p>
+                      <p>Please leave your name, phone number, and a brief description of what you need help with.</p>
+                      <p>We'll get back to you shortly."</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Step 4: Captured Lead Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.6 }}
+                viewport={{ once: true }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">4</span>
+                    </div>
+                    <div className="text-white font-semibold">Captured Lead</div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Name</div>
+                        <div className="font-semibold text-slate-900 dark:text-foreground">John Smith</div>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-foreground">ReplyFlow AI</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Virtual Receptionist</p>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Phone</div>
+                        <div className="font-semibold text-slate-900 dark:text-foreground">(555) 123-4567</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Service</div>
+                        <div className="font-semibold text-slate-900 dark:text-foreground">Water heater leaking</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Status</div>
+                        <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                          New Lead
+                        </div>
                       </div>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">2:34 PM</div>
-                  </div>
-                  
-                  {/* Call Transcript */}
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 font-medium">AI:</span>
-                      <p className="text-slate-700 dark:text-slate-300">Thank you for calling Wolfie Plumbing. I'm your virtual assistant. How can I help you today?</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-emerald-600 font-medium">Customer:</span>
-                      <p className="text-slate-700 dark:text-slate-300">Hi, I need to install a new water heater.</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 font-medium">AI:</span>
-                      <p className="text-slate-700 dark:text-slate-300">I'd be happy to help you with that! What size water heater do you need and is it gas or electric?</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-emerald-600 font-medium">Customer:</span>
-                      <p className="text-slate-700 dark:text-slate-300">50 gallon gas water heater.</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 font-medium">AI:</span>
-                      <p className="text-slate-700 dark:text-slate-300">Perfect! What's your zip code so I can check availability and provide an accurate quote?</p>
-                    </div>
                   </div>
                 </div>
-                
-                {/* Lead Summary */}
-                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Lead Captured</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-slate-600 dark:text-slate-400">Service:</span> <span className="font-medium">Water Heater Installation</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Size:</span> <span className="font-medium">50 Gallon</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Type:</span> <span className="font-medium">Gas</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Status:</span> <span className="font-medium text-emerald-600">Qualified Lead</span></div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // SMS Recovery Demo
-              <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-10 shadow-lg border border-slate-200 dark:border-slate-800">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">SMS Recovery Demo</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Automatic text response when you miss a call</p>
-                </div>
-                
-                {/* SMS Conversation */}
-                <div className="space-y-4">
-                  {/* Business Message 1 - ReplyFlow sends first text */}
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm text-white">Sorry we missed your call — this is Wolfie Plumbing. How can we help?</p>
-                      <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message 1 */}
-                  <div className="flex justify-start">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm text-slate-800 dark:text-slate-200">Do you install water heaters?</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Business Message 2 */}
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm text-white">Yes, we do. What size water heater do you need?</p>
-                      <p className="text-xs text-blue-200 mt-1">2:36 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Customer Message 2 */}
-                  <div className="flex justify-start">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm text-slate-800 dark:text-slate-200">50 gallon gas</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:37 PM</p>
-                    </div>
-                  </div>
-                  
-                  {/* Business Message 3 */}
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600 rounded-2xl rounded-br-none px-5 py-3 shadow-sm max-w-[85%]">
-                      <p className="text-sm text-white">Perfect — we can help with that. What zip code are you located in?</p>
-                      <p className="text-xs text-blue-200 mt-1">2:38 PM</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Lead Summary */}
-                <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800 mt-4">
-                  <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Lead Captured</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-slate-600 dark:text-slate-400">Service:</span> <span className="font-medium">Water Heater Installation</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Size:</span> <span className="font-medium">50 Gallon</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Type:</span> <span className="font-medium">Gas</span></div>
-                    <div><span className="text-slate-600 dark:text-slate-400">Status:</span> <span className="font-medium text-emerald-600">Active Conversation</span></div>
-                  </div>
-                </div>
-              </div>
-            )}
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
