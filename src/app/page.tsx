@@ -698,10 +698,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                AI Voicemail Intake
+                How ReplyFlow Works
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                When you miss a call, ReplyFlow captures the details automatically.
+                See what happens when a customer calls and you can't answer.
               </p>
             </div>
             
@@ -845,14 +845,14 @@ export default async function Home() {
 
       {/* Dashboard Showcase Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-32 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-20">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                Everything in One Dashboard
+                Everything In One Dashboard
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Manage leads, conversations, calendar, and AI calls from a single platform
+                Manage leads, conversations, follow-ups, and call activity from one place.
               </p>
             </div>
             
@@ -868,7 +868,7 @@ export default async function Home() {
                   </div>
                 </div>
                 
-                <div className="p-4 space-y-4">
+                <div className="p-4 sm:p-6 md:p-8 space-y-4 md:space-y-6">
                   {/* Navigation Tabs */}
                   <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                     <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg">Leads</button>
