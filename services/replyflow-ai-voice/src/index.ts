@@ -894,6 +894,294 @@ wss.on('connection', (ws, req) => {
     let forwardedFrom: string = '';
     let callOutcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' = 'completed';
 
+    // Ingestion function to save call data - moved to correct scope
+    const ingestCallData = async () => {
+      const sessionSessionId = (ws as any).sessionId || '';
+      const sessionBusinessId = (ws as any).businessId || '';
+      const sessionCallSid = (ws as any).callSid || '';
+      const sessionCallerPhone = (ws as any).callerPhone || '';
+      const sessionForwardedFrom = (ws as any).forwardedFrom || '';
+      
+      console.log('[AI INGEST START] call ended');
+      console.log('[AI INGEST TRANSCRIPT COUNT]', { transcriptLength: transcript.length });
+      console.log('[AI INGEST SUPABASE AVAILABLE]', { hasSupabase: !!supabase });
+      console.log('[AI INGEST] session data', { 
+        sessionId: sessionSessionId, 
+        businessId: sessionBusinessId, 
+        callSid: sessionCallSid, 
+        callerPhone: sessionCallerPhone,
+        forwardedFrom: sessionForwardedFrom
+      });
+      
+      // Check for existing AI call record (idempotency protection)
+      if (!supabase) {
+        console.log('[AI INGEST FAILED] supabase client not available for ingestion');
+        return;
+      }
+      
+      console.log('[AI INGEST INSERT START] checking for existing record');
+      const { data: existingRecord, error: existingError } = await supabase
+        .from('ai_call_records')
+        .select('id, created_at')
+        .eq('call_sid', sessionCallSid)
+        .single();
+      
+      if (existingError && existingError.code !== 'PGRST116') {
+        console.log('[AI INGEST FAILED] error checking existing record', existingError);
+        return;
+      }
+      
+      if (existingRecord) {
+        console.log('[AI INGEST] record already exists, updating instead of creating', { 
+          existingId: existingRecord.id, 
+          createdAt: existingRecord.created_at 
+        });
+        // Update existing record instead of creating duplicate
+        // Convert structured transcript to string format
+        const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
+        console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+        
+        try {
+          // Extract structured fields from transcript
+          console.log('[AI INGEST] extracting fields...');
+          const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, urgencyLevel, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
+
+The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
+
+Transcript:
+${fullTranscript}
+
+Return only JSON, no other text.`;
+
+          const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
+                { role: 'user', content: extractionPrompt },
+              ],
+              temperature: 0,
+            }),
+          });
+
+          const extractionData = await extractionResponse.json();
+          const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+          console.log('[AI EXTRACTION RESULT]', extractedFields);
+
+          // Update existing AI call record
+          const { error: updateError } = await supabase
+            .from('ai_call_records')
+            .update({
+              transcript: transcript,
+              extracted_info: extractedFields,
+              summary: extractedFields.summary || null,
+              extraction_failed: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingRecord.id);
+
+          if (updateError) {
+            console.log('[AI INGEST FAILED] error updating existing record', updateError);
+            throw updateError;
+          }
+          
+          console.log('[AI INGEST INSERT SUCCESS] existing record updated successfully');
+          return;
+        } catch (error) {
+          console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
+          
+          // Update with transcript only if extraction failed
+          const { error: fallbackUpdateError } = await supabase
+            .from('ai_call_records')
+            .update({
+              transcript: transcript,
+              extraction_failed: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingRecord.id);
+
+          if (fallbackUpdateError) {
+            console.log('[AI INGEST FAILED] fallback update also failed', fallbackUpdateError);
+          } else {
+            console.log('[AI INGEST INSERT SUCCESS] fallback update successful');
+          }
+          return;
+        }
+      }
+      
+      // Create new AI call record if no existing record found
+      console.log('[AI INGEST INSERT START] no existing record, creating new AI call record');
+      
+      // Convert structured transcript to string format
+      const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
+      console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+      
+      try {
+        // Extract structured fields from transcript
+        console.log('[AI INGEST] extracting fields...');
+        const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, urgencyLevel, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
+
+The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
+
+Transcript:
+${fullTranscript}
+
+Return only JSON, no other text.`;
+
+        const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4',
+            messages: [
+              { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
+              { role: 'user', content: extractionPrompt },
+            ],
+            temperature: 0,
+          }),
+        });
+
+        const extractionData = await extractionResponse.json();
+        const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+        console.log('[AI EXTRACTION RESULT]', extractedFields);
+
+        // Create new AI call record
+        console.log('[AI INGEST INSERT START] creating new AI call record...');
+        const { data: newRecord, error: newRecordError } = await supabase
+          .from('ai_call_records')
+          .insert({
+            business_id: sessionBusinessId,
+            lead_id: null, // Will be set after lead creation
+            conversation_id: null, // Will be set after conversation creation
+            caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
+            forwarded_from: sessionForwardedFrom,
+            call_sid: sessionCallSid,
+            ai_session_id: sessionSessionId,
+            outcome: 'completed',
+            transcript: transcript,
+            extracted_info: extractedFields,
+            summary: extractedFields.summary || null,
+            extraction_failed: false,
+          })
+          .select()
+          .single();
+
+        if (newRecordError) {
+          console.log('[AI INGEST FAILED] new AI call record creation error', newRecordError);
+          throw newRecordError;
+        }
+        
+        console.log('[AI INGEST INSERT SUCCESS] new AI call record created successfully', { recordId: newRecord.id });
+
+        // Upsert lead
+        if (!supabase) {
+          console.log('[AI INGEST FAILED] supabase client not available for lead creation');
+          return;
+        }
+        console.log('[AI INGEST INSERT START] lead upserting...');
+        const { data: lead, error: leadError } = await supabase
+          .from('leads')
+          .upsert({
+            business_id: sessionBusinessId,
+            phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
+            name: extractedFields.callerName || null,
+            source: 'ai_voice',
+            status: 'new',
+          }, {
+            onConflict: 'business_id,phone',
+          })
+          .select()
+          .single();
+
+        if (leadError) {
+          console.log('[AI INGEST FAILED] lead upsert error', leadError);
+          throw leadError;
+        }
+
+        console.log('[AI INGEST INSERT SUCCESS] lead upserted successfully', { leadId: lead.id });
+
+        // Upsert conversation
+        console.log('[AI INGEST INSERT START] conversation upserting...');
+        const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
+          .upsert({
+            business_id: sessionBusinessId,
+            lead_id: lead.id,
+            status: 'ai_completed',
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'business_id,lead_id',
+          })
+          .select()
+          .single();
+
+        if (conversationError) {
+          console.log('[AI INGEST FAILED] conversation upsert error', conversationError);
+          throw conversationError;
+        }
+
+        console.log('[AI INGEST INSERT SUCCESS] conversation upserted successfully', { conversationId: conversation.id });
+
+        // Update AI call record with lead and conversation IDs
+        console.log('[AI INGEST INSERT START] updating AI record with lead/conversation IDs');
+        const { error: updateError } = await supabase
+          .from('ai_call_records')
+          .update({
+            lead_id: lead.id,
+            conversation_id: conversation.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', newRecord.id);
+
+        if (updateError) {
+          console.log('[AI INGEST FAILED] error updating AI record with IDs', updateError);
+          throw updateError;
+        }
+
+        console.log('[AI INGEST INSERT SUCCESS] AI record updated with lead/conversation IDs');
+        console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
+        return;
+
+      } catch (error) {
+        console.log('[AI INGEST FAILED] extraction failed during creation, creating with transcript only', error);
+        
+        // Create with transcript only if extraction failed
+        const { data: fallbackRecord, error: fallbackError } = await supabase
+          .from('ai_call_records')
+          .insert({
+            business_id: sessionBusinessId,
+            lead_id: null,
+            conversation_id: null,
+            caller_phone: sessionCallerPhone || 'unknown',
+            forwarded_from: sessionForwardedFrom,
+            call_sid: sessionCallSid,
+            ai_session_id: sessionSessionId,
+            outcome: 'completed',
+            transcript: transcript,
+            extracted_info: null,
+            summary: null,
+            extraction_failed: true,
+          })
+          .select()
+          .single();
+
+        if (fallbackError) {
+          console.log('[AI INGEST FAILED] fallback creation also failed', fallbackError);
+        } else {
+          console.log('[AI INGEST INSERT SUCCESS] fallback creation successful', { recordId: fallbackRecord.id });
+        }
+        return;
+      }
+    };
+
     // Intake state machine
     let intakeData: IntakeData | null = null;
     let businessName: string = 'ReplyFlow';
@@ -2304,6 +2592,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
         attempted: openaiInitAttempted,
         succeeded: openaiInitSucceeded,
         failed: openaiInitFailed,
+      });
+      
+      // Call ingestion when main WebSocket closes
+      console.log('[AI INGEST WEBSOCKET CLOSE] Starting ingestion due to WebSocket close');
+      ingestCallData().catch(error => {
+        console.log('[AI INGEST WEBSOCKET CLOSE FAILED]', error);
       });
     });
 
