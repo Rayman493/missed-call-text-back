@@ -161,18 +161,14 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-6 px-4">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                Missed calls, text replies, and follow-up activity will appear here
-              </p>
-            </div>
+        <div className="text-center py-4 px-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+              No recent activity yet
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Your activity feed will show missed calls, incoming texts, outgoing messages, and follow-up activity.
+            </p>
           </div>
         </div>
       ) : (

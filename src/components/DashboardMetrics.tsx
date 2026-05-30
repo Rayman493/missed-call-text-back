@@ -198,11 +198,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
             <div className={`h-1 ${getMetricAccentColor(metric.type)}`}></div>
-            <div className="p-2 sm:p-3">
-              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                <div className={`w-6 h-6 sm:w-7 sm:h-7 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+            <div className="p-3 sm:p-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                   {getMetricIcon(metric.type)}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
@@ -210,54 +210,37 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 </div>
               </div>
 
-              <div className="space-y-0">
-                <div className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-foreground">
+              <div className="space-y-1 flex-1 flex flex-col justify-center">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground leading-none">
                   {metric.value.toLocaleString()}
                 </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mt-1">
                   {getMetricLabel(metric.type)}
                 </div>
-                {metric.value === 0 && (
-                  <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {getEmptyStateText(metric.type)}
-                  </div>
-                )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Empty State Guidance */}
+      {/* Simplified Empty State */}
       {metrics.missedCallsCaptured === 0 && metrics.leadsGenerated === 0 && metrics.messagesSent === 0 && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-              <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-                Ready to capture your first missed call?
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">
+                No missed calls captured yet
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Once your phone forwarding is set up, ReplyFlow will automatically capture missed calls and convert them into leads. 
-                These metrics will show your business growth in real-time.
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                Run a test call to verify your setup and see your first lead appear here.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span>Missed calls captured appear here</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                  <span>Leads are generated automatically</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span>Messages sent to customers</span>
-                </div>
-              </div>
             </div>
+            <button
+              onClick={() => window.location.href = '/dashboard/test-setup'}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+            >
+              Run Test Call
+            </button>
           </div>
         </div>
       )}

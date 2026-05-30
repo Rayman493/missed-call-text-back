@@ -208,9 +208,11 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
   return (
     <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-slate-300 dark:border-slate-700/60 rounded-xl p-2 sm:p-3 min-h-[130px] shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-foreground">Needs Attention</h3>
+        <h3 className="text-base font-semibold text-foreground">
+          {topItem?.type === 'healthy' ? 'System Health' : 'Needs Attention'}
+        </h3>
         <div className="text-xs text-muted-foreground">
-          {attentionItems.length > 1 ? `${attentionItems.length} items` : 'Top priority'}
+          {topItem?.type === 'healthy' ? 'All systems operational' : attentionItems.length > 1 ? `${attentionItems.length} items` : 'Top priority'}
         </div>
       </div>
 
@@ -242,13 +244,13 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
           <div className="flex-1">
             <p className="text-sm font-semibold text-green-800 dark:text-green-200">All Systems Operational</p>
             <p className="text-xs mt-0.5 text-green-600 dark:text-green-300">
-              ReplyFlow is actively monitoring and responding to missed calls.
+              ReplyFlow is monitoring missed calls and automated text-back is ready.
             </p>
           </div>
         </div>
       )}
 
-      {attentionItems.length > 1 && (
+      {attentionItems.length > 1 && topItem?.type !== 'healthy' && (
         <div className="mt-2 text-center">
           <p className="text-xs text-muted-foreground">
             {attentionItems.length - 1} additional item{attentionItems.length - 1 !== 1 ? 's' : ''} need attention
