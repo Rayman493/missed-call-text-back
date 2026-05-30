@@ -92,12 +92,43 @@ export default function CalendarPage() {
 
   const handleDayClick = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return
-    
+
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
     const clickedDate = new Date(year, month, day)
     setSelectedDay(clickedDate)
     setIsDayDetailOpen(true)
+  }
+
+  const getThisWeekEvents = () => {
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
+
+    return events.filter(event => {
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return false
+      const eventDate = new Date(eventDateRaw)
+      return eventDate >= startOfWeek && eventDate <= endOfWeek
+    }).length
+  }
+
+  const getThisMonthEvents = () => {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+    return events.filter(event => {
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return false
+      const eventDate = new Date(eventDateRaw)
+      return eventDate >= startOfMonth && eventDate <= endOfMonth
+    }).length
   }
 
   const getEventsForDay = (date: Date) => {
@@ -349,6 +380,33 @@ export default function CalendarPage() {
                   {/* Connected State */}
                   {calendarConnected && (
                     <div>
+                      {/* Calendar Summary Row */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-4 sm:gap-6 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Upcoming Events</p>
+                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{events.length}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">This Week</p>
+                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">This Month</p>
+                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
                         {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
                         <div className="lg:col-span-3 order-1 lg:order-1">
