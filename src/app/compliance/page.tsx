@@ -506,6 +506,145 @@ export default function CompliancePage() {
             </div>
           </section>
 
+          {/* AI Receptionist Compliance */}
+          <section>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  AI Receptionist Compliance
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    ReplyFlow may provide AI-assisted call handling capabilities that complement our SMS compliance framework.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Telecommunications Compliance</h3>
+                      <p className="text-blue-800 dark:text-blue-200 text-sm">
+                        Businesses remain responsible for compliance with local telecommunications regulations governing call handling, recording, and customer communications.
+                      </p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">AI-Assisted Features</h3>
+                      <p className="text-green-800 dark:text-green-200 text-sm">
+                        AI call answering and information capture are designed to assist businesses while maintaining compliance with applicable regulations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Call Recording & Transcript Notice */}
+          <section>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  Call Recording & Transcript Notice
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Certain ReplyFlow features may store call transcripts, summaries, or recordings for business use.
+                  </p>
+                  <div className="mt-6">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Business Responsibility</h3>
+                      <p className="text-amber-800 dark:text-amber-200 text-sm">
+                        Businesses are responsible for obtaining any legally required notices or consent for call recording or transcript storage in their jurisdiction.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">
+                        <strong>Transcript Storage</strong> - Call conversations may be stored as text transcripts
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">
+                        <strong>AI Summaries</strong> - AI-generated call summaries may be created for business use
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">
+                        <strong>Business Records</strong> - Stored information serves as business communication records
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Voice + SMS Compliance */}
+          <section>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  Voice + SMS Compliance
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    ReplyFlow supports both SMS communication and AI-assisted voice workflows within a unified compliance framework.
+                  </p>
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm">
+                          <strong>Voice Services</strong> - AI-assisted call answering and information capture
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm">
+                          <strong>Transcript Storage</strong> - Call conversation records and AI summaries
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm">
+                          <strong>SMS Services</strong> - Traditional missed-call text response automation
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 00-2.812 2.812 3.066 3.066 0 01-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 00-2.812-2.812 3.066 3.066 0 01-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 002.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm">
+                          <strong>Unified Platform</strong> - Single compliance framework for all communication channels
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      <strong>Business Responsibility:</strong> Businesses remain responsible for lawful use of the platform and compliance with all applicable regulations for both voice and SMS communications.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Business Responsibilities */}
           <section>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">

@@ -434,6 +434,108 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* Does ReplyFlow replace my phone number? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Does ReplyFlow replace my phone number?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>No.</strong> Keep your existing business number and forward unanswered calls to ReplyFlow.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  ReplyFlow works alongside your current phone system. When calls go unanswered, they can be forwarded to ReplyFlow for AI-assisted intake or automatic SMS responses, while you keep using the business number you already advertise everywhere.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* How does the AI Receptionist work? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                How does the AI Receptionist work?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  When a call goes unanswered, ReplyFlow can answer on your behalf, collect caller information, and save the conversation details inside your account.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  The AI Receptionist can capture the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Can I use ReplyFlow without AI? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can I use ReplyFlow without AI?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes.</strong> Businesses can use SMS-only workflows without enabling AI receptionist features.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  ReplyFlow offers flexible options - you can use traditional missed-call text responses, or enable the AI Receptionist for call answering and information capture. Choose what works best for your business.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What information does the AI collect? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                What information does the AI collect?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  Depending on the conversation, the AI may collect the caller's name, reason for calling, urgency, callback information, and relevant business details.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  The AI is designed to capture operationally important information that helps you understand the customer's needs and prioritize follow-up appropriately.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Are AI conversations saved? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Are AI conversations saved?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  Conversation details, transcripts, and call summaries may be stored within ReplyFlow for business use.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  This allows you to review conversations, track customer interactions, and maintain a complete record of customer communications for your business operations.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Can ReplyFlow answer calls after business hours? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can ReplyFlow answer calls after business hours?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes.</strong> Businesses can configure after-hours handling and AI-assisted call intake.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  ReplyFlow works 24/7 to ensure you never miss a lead, whether during business hours, after hours, or on weekends. The AI can handle calls and collect information anytime.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* How do I contact support? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">

@@ -204,6 +204,41 @@ export default function PrivacyPage() {
             </div>
           </section>
 
+          {/* Voice Calls and AI Services */}
+          <section>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                  Voice Calls and AI Services
+                </h2>
+                <div className="prose prose-gray dark:prose-invert max-w-none">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    ReplyFlow may process inbound telephone calls, voicemail recordings, call transcripts, call summaries, and AI-assisted conversations for the purpose of lead capture, customer communication, service improvement, and platform functionality.
+                  </p>
+                  <div className="mt-6">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-3">
+                      Depending on enabled features, ReplyFlow may store:
+                    </p>
+                    <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <li>• Caller phone numbers</li>
+                      <li>• SMS conversations</li>
+                      <li>• Voicemail recordings</li>
+                      <li>• AI-generated call summaries</li>
+                      <li>• Call transcripts</li>
+                      <li>• Lead information</li>
+                      <li>• Communication history</li>
+                    </ul>
+                  </div>
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Third-Party Processing:</strong> Voice and AI processing may utilize third-party service providers including telephony and artificial intelligence providers.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Data Security */}
           <section>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">

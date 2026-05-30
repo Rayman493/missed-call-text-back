@@ -64,6 +64,14 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
+                  href="/ai-receptionist" 
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
+                >
+                  AI Receptionist
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/dashboard" 
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
                 >
