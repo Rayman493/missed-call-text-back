@@ -347,12 +347,18 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                    Your first captured lead will appear here
+                    Waiting for your first lead
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Missed calls will automatically create leads
+                    Run a test call to verify your setup.
                   </p>
                 </div>
+                <Link
+                  href="/dashboard/test-setup"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                >
+                  Run Test Call
+                </Link>
               </div>
             )}
           </div>
