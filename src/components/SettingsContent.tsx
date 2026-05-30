@@ -206,11 +206,18 @@ export default function SettingsContent() {
   const fetchIgnoredContacts = async () => {
     setIsLoadingIgnored(true)
     try {
+      // Check if user is authenticated before making request
+      if (!user) {
+        console.log('[Settings] User not authenticated, skipping ignored contacts fetch')
+        return
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        throw new Error('Not authenticated')
+        console.log('[Settings] No session token, skipping ignored contacts fetch')
+        return
       }
 
       const response = await fetch('/api/ignored-contacts', {
@@ -220,14 +227,21 @@ export default function SettingsContent() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.log('[Settings] Unauthorized response, user may need to re-authenticate')
+          return
+        }
         throw new Error('Failed to fetch ignored contacts')
       }
 
       const data = await response.json()
       setIgnoredContacts(data.ignoredContacts || [])
     } catch (error) {
-      console.error('Error fetching ignored contacts:', error)
-      showToast('Failed to fetch ignored contacts', 'error')
+      console.error('[Settings] Error fetching ignored contacts:', error)
+      // Only show toast for non-authentication errors
+      if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
+        showToast('Failed to fetch ignored contacts', 'error')
+      }
     } finally {
       setIsLoadingIgnored(false)
     }
@@ -367,7 +381,7 @@ export default function SettingsContent() {
 
   // Google Calendar handlers
   const fetchCalendarStatus = async () => {
-    if (!business) return
+    if (!business || !user) return
     
     setIsLoadingCalendar(true)
     try {
@@ -375,6 +389,7 @@ export default function SettingsContent() {
       const token = session?.access_token
 
       if (!token) {
+        console.log('[Settings] No session token for calendar status, skipping fetch')
         setCalendarConnected(false)
         return
       }
@@ -387,7 +402,7 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Unauthorized
+          console.log('[Settings] Unauthorized calendar status response, user may need to re-authenticate')
           setCalendarConnected(false)
           return
         }
@@ -508,9 +523,9 @@ export default function SettingsContent() {
     }
   }
 
-  // Fetch ignored contacts when business loads
+  // Fetch ignored contacts when business loads and user is authenticated
   useEffect(() => {
-    if (business) {
+    if (business && user) {
       fetchIgnoredContacts()
       // Initialize spam filtering state from business data
       const settings = getAutomationSettings()
@@ -522,7 +537,7 @@ export default function SettingsContent() {
       // Fetch calendar status
       fetchCalendarStatus()
     }
-  }, [business])
+  }, [business, user])
 
   // Check URL params for calendar connection status
   useEffect(() => {
@@ -643,7 +658,7 @@ export default function SettingsContent() {
         const element = document.getElementById(hash)
         if (element) {
           // Manual offset scrolling to account for sticky header
-          const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
+          const HEADER_OFFSET = 180 // Adjust based on actual header + tabs height
           const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
           
           window.scrollTo({
@@ -694,7 +709,7 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
       
       // Manual offset scrolling to account for sticky header
-      const HEADER_OFFSET = 140 // Adjust based on actual header + tabs height
+      const HEADER_OFFSET = 180 // Adjust based on actual header + tabs height
       const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
       
       window.scrollTo({
@@ -760,13 +775,13 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs */}
-            <div className="mb-4 sm:mb-6 sticky top-[4.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-2">
-              <nav className="flex items-center gap-1 overflow-x-auto max-w-[1180px] mx-auto">
+            <div className="mb-6 sm:mb-8 sticky top-[4.5rem] z-40 bg-background dark:bg-background backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-4">
+              <nav className="flex items-center gap-2 overflow-x-auto max-w-[1180px] mx-auto">
                 <button
                   onClick={() => handleSectionClick('general')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'general'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -774,9 +789,9 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -784,9 +799,9 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('integrations')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'integrations'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -794,9 +809,9 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -804,9 +819,9 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20 ring-offset-2'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -816,25 +831,27 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-2 sm:space-y-2.5 pb-40">
+            <div className="space-y-4 sm:space-y-6 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-32">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Business Info</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your business identity and contact information.</p>
-                <div className="space-y-1 sm:space-y-1.5">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-40">
+                <div className="mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
+                </div>
+                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <label className="block text-[10px] sm:text-xs font-semibold text-slate-900 dark:text-foreground mb-0.5">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
                       Business Phone Number
                     </label>
                     <input
@@ -842,7 +859,7 @@ export default function SettingsContent() {
                       value={formBusiness.business_phone_number || ''}
                       onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     />
                   </div>
                 </div>

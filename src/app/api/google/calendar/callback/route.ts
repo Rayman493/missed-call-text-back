@@ -6,7 +6,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI
 
 export async function GET(request: NextRequest) {
-  console.log('[Google Calendar Callback] Request received')
+  console.log('[CALENDAR IMPORT START] Google Calendar Callback request received')
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
   const state = searchParams.get('state')
@@ -143,10 +143,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    console.log('[Google Calendar Callback] Integration saved successfully')
+    console.log('[CALENDAR IMPORT SUCCESS] Integration saved successfully')
+    console.log('[GOOGLE CALENDAR FETCH] Calendar integration ready for event fetching')
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
   } catch (error) {
-    console.error('[Google Calendar Callback] Unexpected error:', error)
+    console.error('[CALENDAR IMPORT ERROR] Unexpected error in callback flow:', error)
+    console.error('[GOOGLE AUTH STATUS] OAuth callback failed')
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 }

@@ -492,11 +492,11 @@ export default function LeadsPage() {
               />
               <StatCard
                 value={leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
-                label="Active Conversations"
+                label="Active Leads"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'active').length === 0 
-                    ? 'No Ongoing Conversations' 
-                    : 'Conversations Open'
+                    ? 'No active leads' 
+                    : 'Leads being worked on'
                 }
                 icon="💬"
                 iconColor="green"
@@ -504,11 +504,11 @@ export default function LeadsPage() {
               />
               <StatCard
                 value={leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
-                label="Completed Follow-ups"
+                label="Completed Leads"
                 description={
                   leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length === 0 
-                    ? 'No Follow-Ups Yet' 
-                    : 'Reminders Completed'
+                    ? 'No completed leads yet' 
+                    : 'Successfully completed'
                 }
                 icon="📅"
                 iconColor="slate"

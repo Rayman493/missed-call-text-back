@@ -61,6 +61,7 @@ import LeadEngagementCard from '@/components/LeadEngagementCard'
 import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
+import DashboardMetrics from '@/components/DashboardMetrics'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
@@ -1181,6 +1182,13 @@ export default function DashboardContent() {
                 {hasActiveSubscription(business) ? (
                   <>
                     
+                    {/* Dashboard Metrics - Priority 1 */}
+                    <SectionErrorBoundary sectionName="DashboardMetrics">
+                      <div className="mb-6 transition-opacity duration-300">
+                        <DashboardMetrics business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
                     {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}

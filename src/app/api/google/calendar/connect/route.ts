@@ -6,7 +6,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI
 
 export async function GET(request: NextRequest) {
-  console.log('[Google Calendar Connect] Request received')
+  console.log('[CALENDAR IMPORT START] Google Calendar Connect request received')
   
   try {
     // Validate environment variables
@@ -90,10 +90,12 @@ export async function GET(request: NextRequest) {
       `prompt=consent&` +
       `state=${encodeURIComponent(state)}`
 
-    console.log('[Google Calendar Connect] Generated auth URL')
+    console.log('[CALENDAR IMPORT SUCCESS] Generated auth URL successfully')
+    console.log('[GOOGLE AUTH STATUS] OAuth flow initiated successfully')
     return NextResponse.json({ authUrl })
   } catch (error) {
-    console.error('[Google Calendar Connect] Unexpected error:', error)
+    console.error('[CALENDAR IMPORT ERROR] Unexpected error in connect flow:', error)
+    console.error('[GOOGLE AUTH STATUS] OAuth flow failed')
     return NextResponse.json(
       { error: 'Failed to initiate OAuth flow' },
       { status: 500 }
