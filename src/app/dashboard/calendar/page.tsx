@@ -44,6 +44,7 @@ export default function CalendarPage() {
   const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
+  const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
@@ -407,37 +408,70 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
-                        {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
-                        <div className="lg:col-span-3 order-1 lg:order-1">
-                          <CalendarGrid
-                            month={currentMonth}
-                            events={visibleMonthEvents}
-                            onPreviousMonth={goToPreviousMonth}
-                            onNextMonth={goToNextMonth}
-                            onToday={goToToday}
-                            onAddEvent={handleAddEvent}
-                            onDayClick={handleDayClick}
-                            renderEvent={(event, day) => (
-                              <EventPill
-                                title={event.summary}
-                                time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
-                                isHoliday={event.isHoliday}
-                                onClick={() => {
-                                  if (event.htmlLink) {
-                                    window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-                                  }
-                                }}
-                              />
-                            )}
-                          />
-                        </div>
-
-                        {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
-                        <div className="lg:col-span-1 order-2 lg:order-2">
-                          <UpcomingAgenda events={events} maxEvents={8} />
+                      {/* View Mode Toggle - Mobile */}
+                      <div className="mb-4">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                          <button
+                            onClick={() => setViewMode('month')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                              viewMode === 'month'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            }`}
+                          >
+                            Month
+                          </button>
+                          <button
+                            onClick={() => setViewMode('agenda')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                              viewMode === 'agenda'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            }`}
+                          >
+                            Agenda
+                          </button>
                         </div>
                       </div>
+
+                      {/* Conditionally render Month or Agenda view */}
+                      {viewMode === 'month' ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+                          {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
+                          <div className="lg:col-span-3 order-1 lg:order-1">
+                            <CalendarGrid
+                              month={currentMonth}
+                              events={visibleMonthEvents}
+                              onPreviousMonth={goToPreviousMonth}
+                              onNextMonth={goToNextMonth}
+                              onToday={goToToday}
+                              onAddEvent={handleAddEvent}
+                              onDayClick={handleDayClick}
+                              renderEvent={(event, day) => (
+                                <EventPill
+                                  title={event.summary}
+                                  time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
+                                  isHoliday={event.isHoliday}
+                                  onClick={() => {
+                                    if (event.htmlLink) {
+                                      window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
+                                    }
+                                  }}
+                                />
+                              )}
+                            />
+                          </div>
+
+                          {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
+                          <div className="lg:col-span-1 order-2 lg:order-2">
+                            <UpcomingAgenda events={events} maxEvents={8} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <UpcomingAgenda events={events} maxEvents={20} />
+                        </div>
+                      )}
 
                       {/* Floating Add Event button for mobile */}
                       <button
