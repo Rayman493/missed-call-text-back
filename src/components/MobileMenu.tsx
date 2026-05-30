@@ -66,8 +66,11 @@ export default function MobileMenu() {
 
   // Menu items for logged-out users on homepage
   const homepagePublicMenuItems = [
+    { href: '/', label: 'Home' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/faq', label: 'FAQ' },
+    { href: '/demo', label: 'Demo' },
     { href: '/auth?mode=signin', label: 'Sign In' },
-    { href: '/auth?mode=signup', label: 'Sign Up' },
   ]
 
   // Menu items for logged-out users (other pages)
