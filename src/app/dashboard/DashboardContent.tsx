@@ -45,6 +45,7 @@ import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import GettingStarted from '@/components/GettingStarted'
+import BottomNavigation from '@/components/BottomNavigation'
 import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
@@ -1448,6 +1449,7 @@ export default function DashboardContent() {
           </div>
         </BusinessGuard>
       </AuthGuard>
+      <BottomNavigation />
     </DashboardErrorBoundary>
   )
 }

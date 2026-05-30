@@ -12,6 +12,7 @@ import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import GettingStarted from '@/components/GettingStarted'
 import AppHeader from '@/components/AppHeader'
+import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
 import { 
   formatPhoneNumber, 
@@ -890,6 +891,7 @@ export default function LeadsPage() {
           </main>
       </div>
       </BusinessGuard>
+      <BottomNavigation />
     </AuthGuard>
   )
 }

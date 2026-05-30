@@ -8,6 +8,7 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
+import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
@@ -418,6 +419,7 @@ export default function CalendarPage() {
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
         </div>
       </BusinessGuard>
+      <BottomNavigation />
     </AuthGuard>
   )
 }
