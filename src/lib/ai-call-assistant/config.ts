@@ -18,9 +18,29 @@ export const AI_CONFIG = {
   
   // Comma-separated list of allowed business IDs for QA testing
   // Empty string = no businesses allowed
-  allowedBusinessIds: process.env.AI_CALL_ASSISTANT_ALLOWED_BUSINESS_IDS
-    ? process.env.AI_CALL_ASSISTANT_ALLOWED_BUSINESS_IDS.split(',').map(id => id.trim())
-    : [],
+  allowedBusinessIds: (() => {
+    const raw = process.env.AI_CALL_ASSISTANT_ALLOWED_BUSINESS_IDS?.trim() ?? ''
+    
+    // Debug logging
+    console.log('[AI ALLOWLIST DEBUG] rawEnvValue=', JSON.stringify(raw))
+    
+    // Treat 'true' or 'false' as blank (these are likely boolean coercion issues)
+    if (raw === '' || raw === 'true' || raw === 'false') {
+      if (raw === 'true' || raw === 'false') {
+        console.warn('[AI ALLOWLIST DEBUG] WARNING: Environment variable contains boolean value, treating as blank')
+      }
+      console.log('[AI ALLOWLIST DEBUG] parsedAllowlist=[]')
+      return []
+    }
+    
+    const allowedBusinessIds = raw
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean)
+    
+    console.log('[AI ALLOWLIST DEBUG] parsedAllowlist=', allowedBusinessIds)
+    return allowedBusinessIds
+  })(),
   
   // OpenAI API configuration
   openai: {
