@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { Home, Users, Calendar, Settings, User, ExternalLink, LogOut, X } from 'lucide-react'
 
 interface BottomNavigationProps {
@@ -11,6 +12,8 @@ interface BottomNavigationProps {
 
 export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { signOut } = useAuth()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
 
   // Hide bottom nav on public pages
@@ -38,6 +41,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       return pathname === '/dashboard'
     }
     return pathname?.startsWith(href)
+  }
+
+  const handleLogout = async () => {
+    console.log('[MOBILE LOGOUT CLICKED] User tapped Logout button')
+    try {
+      await signOut()
+      console.log('[MOBILE LOGOUT SUCCESS] User signed out successfully')
+      router.push('/')
+    } catch (error) {
+      console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
+    }
+    setIsMoreMenuOpen(false)
   }
 
   return (
@@ -143,10 +158,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 </Link>
                 
                 <button
-                  onClick={() => {
-                    setIsMoreMenuOpen(false)
-                    if (onLogout) onLogout()
-                  }}
+                  onClick={handleLogout}
                   className="flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors w-full"
                 >
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
