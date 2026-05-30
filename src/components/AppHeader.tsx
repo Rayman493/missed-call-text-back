@@ -46,9 +46,9 @@ export default function AppHeader({
               </div>
               
               {/* Logo */}
-              <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-1.5 hover:opacity-90 transition">
-                <BrandIcon size={36} className="sm:size-22" />
-                <span className="text-[16px] md:text-xl lg:text-2xl font-bold tracking-tight">
+              <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90 transition">
+                <BrandIcon size={40} className="sm:size-36" />
+                <span className="text-[18px] md:text-xl lg:text-2xl font-bold tracking-tight">
                   <span className="text-white">ReplyFlow</span>
                   <span className="text-blue-400">HQ</span>
                 </span>
@@ -65,21 +65,21 @@ export default function AppHeader({
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
               
-              {/* System Health - visible on dashboard only */}
+              {/* System Health - visible on desktop dashboard only (hidden on mobile) */}
               {!isPublicPage && (
                 <button
                   onClick={() => setShowHealthModal(true)}
-                  className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+                  className="hidden md:flex h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
                   aria-label="System Health"
                 >
                   <Activity className="w-4 h-4" />
                 </button>
               )}
               
-              {/* Settings gear icon - visible on all screen sizes */}
+              {/* Settings gear icon - visible on desktop only (hidden on mobile) */}
               <Link
                 href="/dashboard/settings"
-                className={`h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors ${
+                className={`hidden md:flex h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors ${
                   pathname?.startsWith('/dashboard/settings') ? 'text-white bg-slate-800/70' : ''
                 }`}
                 aria-label="Settings"
@@ -87,8 +87,10 @@ export default function AppHeader({
                 <Settings className="w-4 h-4" />
               </Link>
               
-              {/* User dropdown - rightmost element */}
-              <UserDropdown />
+              {/* User dropdown - visible on desktop only (hidden on mobile) */}
+              <div className="hidden md:block">
+                <UserDropdown />
+              </div>
             </div>
           </div>
         </div>

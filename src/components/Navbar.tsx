@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
 import UserDropdown from '@/components/UserDropdown'
@@ -16,9 +16,68 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   const { user, loading, signOut } = useAuth()
   const { business, loading: businessLoading } = useBusinessSafe()
   const pathname = usePathname()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const previousPathname = useRef(pathname)
 
   const isLoggedIn = user && !loading
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (pathname !== previousPathname.current) {
+      setIsMobileMenuOpen(false)
+      previousPathname.current = pathname
+    }
+  }, [pathname])
+
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('keydown', handleEscapeKey)
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey)
+      document.body.style.overflow = ''
+    }
+  }, [isMobileMenuOpen])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        // Check if the click is outside the mobile menu and not on the hamburger button
+        const hamburgerButton = event.target as HTMLElement
+        if (!hamburgerButton.closest('[aria-label="Toggle menu"]')) {
+          setIsMobileMenuOpen(false)
+        }
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMobileMenuOpen])
+
+  // Unified close menu function
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false)
+  }
   
   // Check if we're on a public/marketing page
   const isPublicPage = pathname === '/' || 
@@ -228,44 +287,56 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         </nav>
       </div>
       
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="sm:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={closeMobileMenu}
+          aria-label="Close menu"
+        />
+      )}
+
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden bg-[#0b1220] border-b border-slate-800">
+        <div 
+          ref={mobileMenuRef}
+          className="sm:hidden fixed top-0 left-0 right-0 bg-[#0b1220] border-b border-slate-800 z-50 max-h-[80vh] overflow-y-auto"
+        >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
             {isLoggedIn ? (
               // Signed-in users: Application navigation
               <nav className="flex flex-col space-y-3">
                 <Link
                   href="/dashboard"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/dashboard/leads"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   Leads
                 </Link>
                 <Link
                   href="/dashboard/calendar"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   Calendar
                 </Link>
                 <Link
                   href="/dashboard/settings"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   Settings
                 </Link>
                 <Link
                   href="/home"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   View Public Site
@@ -281,7 +352,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     if (featuresSection) {
                       featuresSection.scrollIntoView({ behavior: 'smooth' });
                     }
-                    setIsMobileMenuOpen(false);
+                    closeMobileMenu();
                   }}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
                 >
@@ -297,7 +368,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       // Fallback to AI receptionist page
                       window.location.href = '/ai-receptionist';
                     }
-                    setIsMobileMenuOpen(false);
+                    closeMobileMenu();
                   }}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
                 >
@@ -310,7 +381,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     if (pricingSection) {
                       pricingSection.scrollIntoView({ behavior: 'smooth' });
                     }
-                    setIsMobileMenuOpen(false);
+                    closeMobileMenu();
                   }}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
                 >
@@ -318,14 +389,14 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 </button>
                 <Link
                   href="/faq"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   FAQ
                 </Link>
                 <Link
                   href="/compliance"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
                   Compliance
@@ -335,7 +406,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <div className="pt-4 mt-4 border-t border-slate-700">
                   <Link
                     href="/auth?mode=signup"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className="w-full bg-blue-600 text-white font-semibold rounded-lg px-4 py-3 text-center hover:bg-blue-700 transition-colors"
                   >
                     Start Free Trial

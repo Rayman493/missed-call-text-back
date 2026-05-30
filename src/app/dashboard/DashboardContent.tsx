@@ -44,7 +44,6 @@ import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
-import LiveActivity from '@/components/LiveActivity'
 import GettingStarted from '@/components/GettingStarted'
 import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
@@ -61,7 +60,6 @@ import FollowUpActivityCard from '@/components/FollowUpActivityCard'
 import LeadEngagementCard from '@/components/LeadEngagementCard'
 import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
-import TodaysActivity from '@/components/TodaysActivity'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -1182,20 +1180,7 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* Live Activity Section - Top Priority */}
-                    <SectionErrorBoundary sectionName="LiveActivity">
-                      {/* Hide LiveActivity when Setup Progress is visible to avoid redundant messaging */}
-                      {!(!isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="mb-3 transition-opacity duration-300">
-                          <LiveActivity 
-                            isOnboardingComplete={isOnboardingComplete}
-                            provisioningStatus={business?.provisioning_status || 'pending'}
-                            forwardingVerified={business?.forwarding_verified || false}
-                          />
-                        </div>
-                      )}
-                    </SectionErrorBoundary>
-
+                    
                     {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}

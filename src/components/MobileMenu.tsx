@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const { user, loading } = useAuth()
+  const { user, loading, signOut } = useAuth()
 
   // Check if we're on the homepage
   const isHomepage = pathname === '/'
@@ -32,6 +32,17 @@ export default function MobileMenu() {
     }
     // Exact match for other routes
     return pathname === path
+  }
+
+  const handleLogout = async () => {
+    await signOut()
+    setIsOpen(false)
+  }
+
+  const handleAccountAction = () => {
+    // For now, just close the menu
+    // In the future, this could open a modal or navigate to account settings
+    setIsOpen(false)
   }
 
   // Show loading skeleton while auth is loading
@@ -79,6 +90,10 @@ export default function MobileMenu() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/calendar', label: 'Calendar' },
+    { href: '/dashboard/settings', label: 'Settings' },
+    { href: '#', label: 'Account' }, // This will be handled by UserDropdown
+    { href: '/home', label: 'View Public Site' },
+    { href: '#', label: 'Logout' }, // This will be handled by logout function
   ]
 
   // Determine menu items based on auth state and page
@@ -112,20 +127,46 @@ export default function MobileMenu() {
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute left-3 right-3 top-14 z-50 bg-card rounded-lg shadow-xl border border-border py-1 transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-2 duration-200">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={`block px-4 py-2 text-sm transition-colors ${
-                  isActive(item.href)
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-medium'
-                    : 'text-foreground hover:bg-muted/50'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {menuItems.map((item) => {
+              if (item.href === '#' && item.label === 'Account') {
+                return (
+                  <button
+                    key="account"
+                    onClick={handleAccountAction}
+                    className="block w-full px-4 py-2 text-sm text-left transition-colors text-foreground hover:bg-muted/50"
+                  >
+                    Account
+                  </button>
+                )
+              }
+              
+              if (item.href === '#' && item.label === 'Logout') {
+                return (
+                  <button
+                    key="logout"
+                    onClick={handleLogout}
+                    className="block w-full px-4 py-2 text-sm text-left transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                  >
+                    Logout
+                  </button>
+                )
+              }
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`block px-4 py-2 text-sm transition-colors ${
+                    isActive(item.href)
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-medium'
+                      : 'text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
         </>
       )}
