@@ -112,6 +112,21 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     }
   }
 
+  const getMetricAccentColor = (type: string) => {
+    switch (type) {
+      case 'missedCalls':
+        return 'bg-blue-500'
+      case 'leads':
+        return 'bg-emerald-500'
+      case 'messages':
+        return 'bg-purple-500'
+      case 'conversations':
+        return 'bg-orange-500'
+      default:
+        return 'bg-slate-500'
+    }
+  }
+
   const getMetricLabel = (type: string) => {
     switch (type) {
       case 'missedCalls':
@@ -168,25 +183,25 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
-                {getMetricIcon(metric.type)}
+          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+            <div className={`h-1 ${getMetricAccentColor(metric.type)}`}></div>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`w-8 h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+                  {getMetricIcon(metric.type)}
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  {metrics.period}
+                </div>
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
-                {metrics.period}
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground">
-                {metric.value.toLocaleString()}
-              </div>
-              <div className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                {getMetricLabel(metric.type)}
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {getMetricDescription(metric.type)}
+
+              <div className="space-y-0.5">
+                <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
+                  {metric.value.toLocaleString()}
+                </div>
+                <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {getMetricLabel(metric.type)}
+                </div>
               </div>
             </div>
           </div>
