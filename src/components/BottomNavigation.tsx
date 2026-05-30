@@ -69,7 +69,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   href={item.href}
                   className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-blue-600 dark:text-blue-400 scale-105'
+                      ? 'text-blue-600 dark:text-blue-400 scale-110'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
                   }`}
                 >
@@ -77,7 +77,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     <div className="absolute -top-1 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
                   )}
                   <Icon className="w-6 h-6 mb-1 transition-transform duration-200" />
-                  <span className="text-[10px] font-medium">{item.label}</span>
+                  <span className={`text-[10px] font-medium transition-colors ${
+                    isActive(item.href) ? 'font-semibold' : ''
+                  }`}>{item.label}</span>
                 </Link>
               )
             })}
@@ -87,7 +89,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(true)}
               className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-blue-600 dark:text-blue-400 scale-105'
+                  ? 'text-blue-600 dark:text-blue-400 scale-110'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
               }`}
             >
@@ -95,7 +97,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <div className="absolute -top-1 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
               )}
               <Settings className="w-6 h-6 mb-1 transition-transform duration-200" />
-              <span className="text-[10px] font-medium">More</span>
+              <span className={`text-[10px] font-medium transition-colors ${
+                isMoreMenuOpen ? 'font-semibold' : ''
+              }`}>More</span>
             </button>
           </div>
         </div>

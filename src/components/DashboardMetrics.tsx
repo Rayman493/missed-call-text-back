@@ -185,9 +185,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         ].map((metric) => (
           <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
             <div className={`h-1 ${getMetricAccentColor(metric.type)}`}></div>
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`w-8 h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+            <div className="p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                   {getMetricIcon(metric.type)}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
@@ -196,10 +196,10 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               </div>
 
               <div className="space-y-0.5">
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground">
                   {metric.value.toLocaleString()}
                 </div>
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">
                   {getMetricLabel(metric.type)}
                 </div>
               </div>
