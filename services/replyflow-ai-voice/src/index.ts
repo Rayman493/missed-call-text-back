@@ -21,10 +21,30 @@ const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, verse, cedar, marin
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Initialize Supabase client
-const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+// Log environment variables for debugging
+log(LogLevel.INFO, '[ENV DEBUG] SUPABASE_URL exists:', !!SUPABASE_URL);
+log(LogLevel.INFO, '[ENV DEBUG] SUPABASE_SERVICE_ROLE_KEY exists:', !!SUPABASE_SERVICE_ROLE_KEY);
+log(LogLevel.INFO, '[ENV DEBUG] OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
+
+// Initialize Supabase client with proper error handling
+let supabase: ReturnType<typeof createClient> | null = null;
+
+if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+  try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    log(LogLevel.INFO, '[SUPABASE INIT SUCCESS] Supabase client created successfully');
+  } catch (error) {
+    log(LogLevel.ERROR, '[SUPABASE INIT FAILED] Failed to create Supabase client:', error);
+    supabase = null;
+  }
+} else {
+  log(LogLevel.ERROR, '[SUPABASE INIT FAILED] Missing required environment variables:');
+  if (!SUPABASE_URL) log(LogLevel.ERROR, '[SUPABASE INIT FAILED] - SUPABASE_URL is missing');
+  if (!SUPABASE_SERVICE_ROLE_KEY) log(LogLevel.ERROR, '[SUPABASE INIT FAILED] - SUPABASE_SERVICE_ROLE_KEY is missing');
+  supabase = null;
+}
 
 // Intake state machine types
 type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'complete';
@@ -939,9 +959,15 @@ wss.on('connection', (ws, req) => {
 
           // Extract call forwarding information from Twilio start event
           const callInfo = message.start || {};
+          
+          // Log raw call info for debugging
+          console.log('[TWILIO START DEBUG] callInfo:', JSON.stringify(callInfo, null, 2));
+          console.log('[TWILIO START DEBUG] customParameters:', JSON.stringify(callInfo.customParameters, null, 2));
+          
           const forwardedFrom = callInfo.customParameters?.ForwardedFrom || req.headers['x-forwarded-from'] || '';
           const called = callInfo.customParameters?.Called || callInfo.callSid || '';
           const to = callInfo.customParameters?.To || '';
+          const from = callInfo.customParameters?.From || callInfo.from || '';
           
           // Store forwardedFrom for ingestion
           (ws as any).forwardedFrom = forwardedFrom;
@@ -968,16 +994,33 @@ wss.on('connection', (ws, req) => {
           const customParams = message.start?.customParameters || {};
           log(LogLevel.INFO, '[AI POC] received custom parameters', customParams);
 
+          // Log parameter extraction for debugging
+          console.log('[PARAM EXTRACTION DEBUG] urlSessionId:', urlSessionId);
+          console.log('[PARAM EXTRACTION DEBUG] urlBusinessId:', urlBusinessId);
+          console.log('[PARAM EXTRACTION DEBUG] urlCallSid:', urlCallSid);
+          console.log('[PARAM EXTRACTION DEBUG] customParams.sessionId:', customParams.sessionId);
+          console.log('[PARAM EXTRACTION DEBUG] customParams.businessId:', customParams.businessId);
+          console.log('[PARAM EXTRACTION DEBUG] customParams.callSid:', customParams.callSid);
+          console.log('[PARAM EXTRACTION DEBUG] customParams.callerPhone:', customParams.callerPhone);
+          console.log('[PARAM EXTRACTION DEBUG] callInfo.caller:', callInfo.caller);
+          console.log('[PARAM EXTRACTION DEBUG] from:', from);
+
           const sessionId = customParams.sessionId || urlSessionId;
           const callSid = customParams.callSid || urlCallSid;
           const businessId = customParams.businessId || urlBusinessId;
-          const callerPhone = customParams.callerPhone || callInfo.caller || '';
+          const callerPhone = customParams.callerPhone || from || callInfo.caller || '';
 
           // Set session variables for ingestion
           (ws as any).sessionId = sessionId;
           (ws as any).businessId = businessId;
           (ws as any).callSid = callSid;
           (ws as any).callerPhone = callerPhone;
+
+          // Log final extracted values
+          console.log('[FINAL PARAMS] sessionId:', sessionId);
+          console.log('[FINAL PARAMS] businessId:', businessId);
+          console.log('[FINAL PARAMS] callSid:', callSid);
+          console.log('[FINAL PARAMS] callerPhone:', callerPhone);
 
           log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId, callerPhone });
 
@@ -1474,7 +1517,7 @@ Do NOT:
                 
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
-                  console.log('[SESSION UPDATED - SENDING GREETING]');
+                  console.log('[GREETING START] Sending greeting after session.updated');
                   const greetingText = `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today?`;
                   const exactInstruction = `Say exactly this sentence and nothing else: "${greetingText}"`;
                   const greetingMessage = {
@@ -1622,7 +1665,7 @@ Do NOT:
                 console.log('[OPENAI RECV] response.output_audio.delta');
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
-                console.log('[AUDIO DELTA RECEIVED]');
+                console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
                 console.log('[FORWARDING PCMU DIRECTLY] - no conversion needed');
                 
                 const streamSid = twilioHandler.getStreamSid();
@@ -1632,6 +1675,8 @@ Do NOT:
                   console.log('[AUDIO OUT] SKIPPED - streamSid not available yet');
                   return;
                 }
+                
+                console.log('[AUDIO SENT TO TWILIO] Sending audio to Twilio WebSocket');
                 
                 // Forward PCMU directly to Twilio
                 const mediaMessage = {
