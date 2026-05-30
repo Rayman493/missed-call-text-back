@@ -224,20 +224,20 @@ export default async function Home() {
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       {(() => { console.log('[ROOT PAGE] before safe Hero Section'); return null; })()}
       <HomepageErrorBoundary>
-        <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
+        <section className="relative flex flex-col items-center justify-center py-12 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
-          <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-8 relative z-10">
+          <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-6 relative z-10">
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
                 Never Miss a Lead Again
               </h1>
-              <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-6">
+              <p className="text-base md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-4">
                 ReplyFlow answers calls with AI, texts back missed callers, and automatically captures leads so your business never loses another opportunity.
               </p>
               
               {/* Benefit Bullets */}
-              <div className="mt-8 space-y-3 max-w-2xl mx-auto">
+              <div className="mt-6 space-y-2 max-w-2xl mx-auto">
                 <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -265,18 +265,18 @@ export default async function Home() {
               </div>
               
               {/* Pricing Information */}
-              <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
-                <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-                <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
+              <div id="pricing-section" className="flex flex-col items-center gap-1 mt-3">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold text-base">14-day free trial</span>
+                <span className="text-slate-700 dark:text-foreground text-base">$49/month after trial</span>
               </div>
               
               {/* Trust Copy */}
-              <div className="flex flex-col items-center gap-1 mt-3">
+              <div className="flex flex-col items-center gap-1 mt-2">
                 <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
                 <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
               </div>
               
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 {/* Primary CTA */}
                 <Link
                   href="/signup"

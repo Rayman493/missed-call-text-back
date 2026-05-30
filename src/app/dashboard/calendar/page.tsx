@@ -349,8 +349,8 @@ export default function CalendarPage() {
                   {calendarConnected && (
                     <div>
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
-                        {/* Calendar Grid - takes 3 columns on large screens */}
-                        <div className="lg:col-span-3">
+                        {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
+                        <div className="lg:col-span-3 order-1 lg:order-1">
                           <CalendarGrid
                             month={currentMonth}
                             events={visibleMonthEvents}
@@ -374,8 +374,8 @@ export default function CalendarPage() {
                           />
                         </div>
 
-                        {/* Upcoming Agenda Sidebar - takes 1 column on large screens */}
-                        <div className="lg:col-span-1">
+                        {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
+                        <div className="lg:col-span-1 order-2 lg:order-2">
                           <UpcomingAgenda events={events} maxEvents={8} />
                         </div>
                       </div>

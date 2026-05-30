@@ -144,9 +144,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6">
+          <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
             <div className="animate-pulse">
               <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
               <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
@@ -161,16 +161,16 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   return (
     <div className="space-y-4">
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[
           { type: 'missedCalls', value: metrics.missedCallsCaptured },
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-12 h-12 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                 {getMetricIcon(metric.type)}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
@@ -178,14 +178,14 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <div className="text-2xl font-bold text-slate-900 dark:text-foreground">
+            <div className="space-y-1">
+              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground">
                 {metric.value.toLocaleString()}
               </div>
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <div className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                 {getMetricLabel(metric.type)}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {getMetricDescription(metric.type)}
               </div>
             </div>
