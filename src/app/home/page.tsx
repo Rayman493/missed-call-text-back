@@ -702,59 +702,89 @@ export default function PublicHome() {
               viewport={{ once: true }}
               className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto"
             >
-              Whether a call gets answered or missed, ReplyFlow helps recover the opportunity.
+              Whether a call goes to AI voicemail or is missed entirely, ReplyFlow helps capture the opportunity.
             </motion.p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* AI Receptionist Card */}
+            {/* AI Voicemail Intake Card - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
               viewport={{ once: true }}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl border border-blue-200 dark:border-blue-800 p-8 relative overflow-hidden"
+              className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-xl p-8"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">AI Receptionist</h3>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                  Our AI answers incoming calls instantly, captures customer information, and qualifies leads before they even speak to a human.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-foreground mb-1">24/7 Call Answering</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Never miss a call, day or night</p>
-                    </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
+                  <p className="text-blue-700 dark:text-blue-300 font-medium">Captures details after a missed call</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">1</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-foreground mb-1">Lead Qualification</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">AI asks qualifying questions automatically</p>
-                    </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">Customer calls your business</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Incoming call rings your existing business number</div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-foreground mb-1">Calendar Integration</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">View and manage your schedule</p>
-                    </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">2</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">If you do not answer</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">The call forwards to ReplyFlow after your normal ring time</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">3</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">AI voicemail answers</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">ReplyFlow asks for the caller's name and reason for calling</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">4</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">Captures caller details</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Name, phone number, and service request are saved</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">5</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">Creates a lead automatically</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">The lead appears in your dashboard</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm font-bold">6</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-foreground">Follow-up can begin</div>
+                    <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">You can text the caller from the conversation inbox</div>
                   </div>
                 </div>
               </div>

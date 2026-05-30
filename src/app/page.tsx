@@ -548,22 +548,22 @@ export default async function Home() {
                 Two Ways ReplyFlow Captures Leads
               </h2>
               <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Whether a call gets answered or missed, ReplyFlow helps recover the opportunity.
+                Whether a call goes to AI voicemail or is missed entirely, ReplyFlow helps capture the opportunity.
               </p>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* AI Receptionist Card */}
+              {/* AI Voicemail Intake Card - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">AI Receptionist</h3>
-                    <p className="text-blue-700 dark:text-blue-300 font-medium">Answers calls instantly</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
+                    <p className="text-blue-700 dark:text-blue-300 font-medium">Captures details after a missed call</p>
                   </div>
                 </div>
                 
@@ -574,7 +574,7 @@ export default async function Home() {
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900 dark:text-foreground">Customer calls your business</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Incoming call rings your business number</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Incoming call rings your existing business number</div>
                     </div>
                   </div>
                   
@@ -583,8 +583,8 @@ export default async function Home() {
                       <span className="text-white text-sm font-bold">2</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-foreground">AI answers instantly</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Professional AI receptionist engages caller</div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">If you do not answer</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">The call forwards to ReplyFlow after your normal ring time</div>
                     </div>
                   </div>
                   
@@ -593,8 +593,8 @@ export default async function Home() {
                       <span className="text-white text-sm font-bold">3</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects name</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">AI gathers customer name and details</div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">AI voicemail answers</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">ReplyFlow asks for the caller's name and reason for calling</div>
                     </div>
                   </div>
                   
@@ -603,8 +603,8 @@ export default async function Home() {
                       <span className="text-white text-sm font-bold">4</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects phone number</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Confirms caller's contact information</div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Captures caller details</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Name, phone number, and service request are saved</div>
                     </div>
                   </div>
                   
@@ -613,8 +613,8 @@ export default async function Home() {
                       <span className="text-white text-sm font-bold">5</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-foreground">Collects service request</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Understands reason for calling</div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Creates a lead automatically</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">The lead appears in your dashboard</div>
                     </div>
                   </div>
                   
@@ -623,8 +623,8 @@ export default async function Home() {
                       <span className="text-white text-sm font-bold">6</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-foreground">Creates a lead automatically</div>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">Lead appears in your dashboard instantly</div>
+                      <div className="font-semibold text-slate-900 dark:text-foreground">Follow-up can begin</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm mt-1">You can text the caller from the conversation inbox</div>
                     </div>
                   </div>
                 </div>
