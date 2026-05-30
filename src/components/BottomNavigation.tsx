@@ -67,28 +67,34 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
+                  className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                      ? 'text-blue-600 dark:text-blue-400 scale-105'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
                   }`}
                 >
-                  <Icon className="w-6 h-6 mb-1" />
+                  {isActive(item.href) && (
+                    <div className="absolute -top-1 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
+                  )}
+                  <Icon className="w-6 h-6 mb-1 transition-transform duration-200" />
                   <span className="text-[10px] font-medium">{item.label}</span>
                 </Link>
               )
             })}
-            
+
             {/* More Button */}
             <button
               onClick={() => setIsMoreMenuOpen(true)}
-              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
+              className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  ? 'text-blue-600 dark:text-blue-400 scale-105'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
               }`}
             >
-              <Settings className="w-6 h-6 mb-1" />
+              {isMoreMenuOpen && (
+                <div className="absolute -top-1 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
+              )}
+              <Settings className="w-6 h-6 mb-1 transition-transform duration-200" />
               <span className="text-[10px] font-medium">More</span>
             </button>
           </div>
