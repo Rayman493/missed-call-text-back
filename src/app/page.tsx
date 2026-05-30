@@ -354,17 +354,17 @@ export default async function Home() {
               </p>
             </div>
             
-            {/* Desktop: Horizontal Flow */}
+            {/* Desktop: Horizontal Flow - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
             <div className="hidden lg:flex items-center justify-between gap-4 max-w-5xl mx-auto">
               {/* Customer Calls */}
-              <div className="flex flex-col items-center text-center group">
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Customer Calls</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Incoming call from potential customer</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Customer Calls</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Incoming call from potential customer</p>
               </div>
               
               {/* Arrow */}
@@ -375,14 +375,14 @@ export default async function Home() {
               </div>
               
               {/* AI Voicemail OR Missed Call - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex flex-col items-center text-center group">
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">AI Voicemail OR Missed Call</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">AI takes message or call goes to voicemail</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">AI Voicemail OR Missed Call</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">AI takes message or call goes to voicemail</p>
               </div>
               
               {/* Arrow */}
@@ -393,14 +393,14 @@ export default async function Home() {
               </div>
               
               {/* Automated SMS Sent - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex flex-col items-center text-center group">
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Automated SMS Sent</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Instant text back to customer</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Automated SMS Sent</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Instant text back to customer</p>
               </div>
               
               {/* Arrow */}
@@ -410,15 +410,15 @@ export default async function Home() {
                 </svg>
               </div>
               
-              {/* Lead Captured */}
-              <div className="flex flex-col items-center text-center group">
+              {/* Lead Captured - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Lead Captured</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Customer information saved</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Lead Captured</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Customer information saved</p>
               </div>
               
               {/* Arrow */}
@@ -429,27 +429,27 @@ export default async function Home() {
               </div>
               
               {/* Conversation Started - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex flex-col items-center text-center group">
+              <div className="flex flex-col items-center text-center group min-h-[200px]">
                 <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Conversation Started</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Customer engaged via SMS</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2 min-h-[72px] flex items-center justify-center">Conversation Started</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[56px] flex items-center justify-center">Customer engaged via SMS</p>
               </div>
             </div>
             
-            {/* Mobile: Vertical Flow */}
-            <div className="lg:hidden space-y-6 max-w-md mx-auto">
+            {/* Mobile: Vertical Flow - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+            <div className="lg:hidden space-y-4 max-w-md mx-auto">
               {/* Customer Calls */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 min-h-[100px]">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Customer Calls</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Incoming call from potential customer</p>
                 </div>
@@ -463,13 +463,13 @@ export default async function Home() {
               </div>
               
               {/* AI Voicemail OR Missed Call - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 min-h-[100px]">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">AI Voicemail OR Missed Call</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">AI takes message or call goes to voicemail</p>
                 </div>
@@ -483,13 +483,13 @@ export default async function Home() {
               </div>
               
               {/* Automated SMS Sent - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 min-h-[100px]">
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Automated SMS Sent</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Instant text back to customer</p>
                 </div>
@@ -502,14 +502,14 @@ export default async function Home() {
                 </svg>
               </div>
               
-              {/* Lead Captured */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              {/* Lead Captured - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 min-h-[100px]">
                 <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Lead Captured</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Customer information saved</p>
                 </div>
@@ -523,13 +523,13 @@ export default async function Home() {
               </div>
               
               {/* Conversation Started - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 min-h-[100px]">
                 <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Conversation Started</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Customer engaged via SMS</p>
                 </div>
