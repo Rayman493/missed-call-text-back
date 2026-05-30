@@ -58,8 +58,8 @@ function HomepageFooter() {
               <span className="text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-8 max-w-md text-base leading-relaxed">
-              Conversational missed-call response automation for modern businesses. 
-              Capture leads and provide exceptional customer service.
+              AI Receptionist, missed call recovery, lead capture, calendar integration, 
+              and follow-up automation for businesses that can't afford to miss opportunities.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -282,7 +282,7 @@ export default async function Home() {
                   href="/signup"
                   className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
               </div>
 
@@ -340,9 +340,9 @@ export default async function Home() {
 
       {/* How ReplyFlow Captures Every Opportunity Flow */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-16 border-t border-slate-200 dark:border-border">
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-12 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 How ReplyFlow Captures Every Opportunity
               </h2>
@@ -932,9 +932,9 @@ export default async function Home() {
 
       {/* Complete Features Grid Section */}
       <HomepageErrorBoundary>
-        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-20 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 Everything You Need To Capture More Leads
               </h2>
@@ -943,7 +943,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               
               {/* AI Receptionist */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
@@ -954,11 +954,11 @@ export default async function Home() {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">AI Receptionist</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Answers calls and gathers customer information
+                  Answers calls instantly and gathers customer information 24/7
                 </p>
                 <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                  <span>✓ 24/7 Available</span>
                   <span>✓ Live Answering</span>
+                  <span>✓ 24/7 Available</span>
                 </div>
               </div>
 
@@ -971,7 +971,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Missed Call Text Back</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Automatically texts missed callers
+                  Automatically texts missed callers to recover every opportunity
                 </p>
                 <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                   <span>✓ Instant Response</span>
@@ -988,28 +988,11 @@ export default async function Home() {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Lead Inbox</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  View every conversation in one place
+                  View every conversation and lead in one unified dashboard
                 </p>
                 <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-medium">
                   <span>✓ Unified View</span>
                   <span>✓ Status Tracking</span>
-                </div>
-              </div>
-
-              {/* Call Transcripts */}
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Call Transcripts</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Review AI call conversations
-                </p>
-                <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
-                  <span>✓ Full Transcripts</span>
-                  <span>✓ AI Summaries</span>
                 </div>
               </div>
 
@@ -1022,7 +1005,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Calendar Scheduling</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Manage appointments and events
+                  Manage appointments and sync with Google Calendar
                 </p>
                 <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium">
                   <span>✓ Google Sync</span>
@@ -1030,20 +1013,20 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Business Hours */}
+              {/* AI Call Summaries */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Business Hours</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">AI Call Summaries</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Automations respect operating hours
+                  Review AI call transcripts and intelligent summaries
                 </p>
-                <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                  <span>✓ Hour Detection</span>
-                  <span>✓ After Hours</span>
+                <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                  <span>✓ Full Transcripts</span>
+                  <span>✓ AI Summaries</span>
                 </div>
               </div>
 
@@ -1056,62 +1039,11 @@ export default async function Home() {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Follow-Up Automation</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Automatically nurture leads
+                  Automatically nurture leads with smart timing and reminders
                 </p>
                 <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 font-medium">
                   <span>✓ Smart Timing</span>
                   <span>✓ Auto Reminders</span>
-                </div>
-              </div>
-
-              {/* Dedicated Business Number */}
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Dedicated Business Number</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Professional business communications
-                </p>
-                <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                  <span>✓ Local Numbers</span>
-                  <span>✓ Professional</span>
-                </div>
-              </div>
-
-              {/* Works With Existing Number */}
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Works With Existing Number</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  No need to change your advertised number
-                </p>
-                <div className="flex items-center gap-2 text-xs text-pink-600 dark:text-pink-400 font-medium">
-                  <span>✓ Keep Number</span>
-                  <span>✓ Easy Setup</span>
-                </div>
-              </div>
-
-              {/* Mobile Friendly */}
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h9m-9 0a9 9 0 01-9-9m9 9V3m9 9a9 9 0 01-9-9m-9 9a9 9 0 019-9m-9 9h9m-9-9a9 9 0 019 9m9-9V3m0 9a9 9 0 01-9 9" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-2">Mobile Friendly</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Manage leads anywhere
-                </p>
-                <div className="flex items-center gap-2 text-xs text-cyan-600 dark:text-cyan-400 font-medium">
-                  <span>✓ Responsive</span>
-                  <span>✓ Any Device</span>
                 </div>
               </div>
 
@@ -1328,14 +1260,14 @@ export default async function Home() {
       {/* Trust Section */}
       {(() => { console.log('[ROOT PAGE] before Trust Section'); return null; })()}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-24 border-t border-slate-200 dark:border-border">
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-20 border-t border-slate-200 dark:border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-              Business Value You Get
+              Built for Local Service Businesses
             </h2>
             <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-              Real results from businesses that capture every lead
+              Created for businesses that can't afford to miss calls
             </p>
           </div>
           
