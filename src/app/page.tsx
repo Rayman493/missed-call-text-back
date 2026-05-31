@@ -241,14 +241,15 @@ export default async function Home() {
                 {/* Primary CTA */}
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center h-14 px-10 min-w-[200px] bg-blue-600 text-white font-bold text-lg rounded-xl shadow-xl hover:bg-blue-700 hover:shadow-2xl transition-all duration-200 hover:scale-105"
+                  className="inline-flex items-center justify-center h-12 sm:h-14 px-6 sm:px-10 min-w-[200px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-xl hover:bg-blue-700 hover:shadow-2xl transition-all duration-200 hover:scale-105"
                 >
-                  Start 14-Day Free Trial
+                  <span className="sm:hidden">Start Free Trial</span>
+                  <span className="hidden sm:inline">Start 14-Day Free Trial</span>
                 </Link>
               </div>
 
               {/* Pricing Information - Desktop and Mobile */}
-              <div className="mt-3 flex flex-col items-center gap-0.5">
+              <div className="mt-4 sm:mt-3 flex flex-col items-center gap-0.5">
                 <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">14-Day Free Trial</span>
                 <span className="text-sm text-slate-600 dark:text-slate-400">$49/month after trial</span>
               </div>
@@ -276,7 +277,7 @@ export default async function Home() {
               </div>
 
               {/* Trust Pills - Mobile Only */}
-              <div className="mt-4 flex flex-col items-center gap-2 sm:hidden">
+              <div className="mt-6 flex flex-col items-center gap-2 sm:hidden">
                 <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                   <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -502,9 +503,9 @@ export default async function Home() {
                 <div className="text-slate-600 dark:text-slate-400 text-sm mb-4">Keep using the business number you already advertise.</div>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center h-12 px-8 bg-blue-600 text-white font-bold text-base rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-200"
+                  className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white font-bold text-base rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-200"
                 >
-                  Start 14-Day Free Trial
+                  Start Free Trial
                 </Link>
               </div>
             </div>
