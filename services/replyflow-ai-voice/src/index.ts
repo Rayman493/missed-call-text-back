@@ -1519,6 +1519,7 @@ Return only JSON, no other text.`;
             }
             
             console.log('[STREAM CLONED] websocket created, readyState:', openAiWs.readyState);
+            console.log('[OPENAI STATE BEFORE LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
             
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
@@ -1575,8 +1576,16 @@ Return only JSON, no other text.`;
             let sessionUpdatedReceived = false;
             
             // Attach listeners - using minimal endpoint pattern
+            console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
+            
+            // Check if websocket is already open and send session.update immediately
+            if (openAiWs.readyState === WebSocket.OPEN) {
+              console.log('[OPENAI WEBSOCKET ALREADY OPEN] sending session.update immediately');
+            }
+            
             openAiWs.on('open', () => {
               console.log('[STREAM CLONED] OPEN event fired');
+              console.log('[OPENAI WEBSOCKET STATE] readyState:', openAiWs?.readyState, 'OPEN:', WebSocket.OPEN);
               opened = true;
               console.log('[OPENAI AUDIT] open listener attached');
               console.log('[OPENAI RAW] open');
@@ -1697,10 +1706,13 @@ Do NOT:
                 }
               };
 
+              console.log('[OPENAI SEND PATH ENTERED]');
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
+              console.log("[OPENAI SEND] session.update", JSON.stringify(sessionUpdatePayload, null, 2));
               console.log("[SESSION.UPDATE RAW SENT]", rawSessionUpdate);
               if (openAiWs) {
+                console.log('[OPENAI OUTBOUND] session.update');
                 openAiWs.send(rawSessionUpdate);
               }
               
