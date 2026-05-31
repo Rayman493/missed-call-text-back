@@ -417,11 +417,11 @@ async function createFallbackLead(
       .from('leads')
       .upsert({
         business_id: businessId,
-        caller_phone: callerPhone,
+        phone: callerPhone,
         source: 'ai_voice_fallback',
         status: 'new',
       }, {
-        onConflict: 'business_id,caller_phone',
+        onConflict: 'business_id,phone',
       })
       .select()
       .single();
@@ -886,6 +886,45 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// Clean call ending function
+async function endCallCleanly(ws: any, twilioHandler: any) {
+  try {
+    const callSid = (ws as any).callSid;
+    const businessId = (ws as any).businessId;
+    
+    if (!callSid) {
+      console.log('[AI CALL HANGUP FAILED] No callSid available');
+      return;
+    }
+    
+    console.log('[AI CALL HANGUP SCHEDULED]', { 
+      callSid,
+      businessId,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Use Twilio REST API to end the call
+    const twilioClient = (twilioHandler as any).twilioClient;
+    if (twilioClient && callSid) {
+      await twilioClient.calls(callSid).update({ status: 'completed' });
+      console.log('[AI CALL HANGUP SUCCESS]', { 
+        callSid,
+        method: 'REST API',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Fallback: close the WebSocket connection
+      console.log('[AI CALL HANGUP FALLBACK] Closing WebSocket connection');
+      ws.close();
+    }
+  } catch (error) {
+    console.log('[AI CALL HANGUP FAILED]', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
 // Create WebSocket server for Twilio Media Streams
 const wss = new WebSocketServer({ server, path: '/stream' });
 
@@ -1146,10 +1185,11 @@ Return only JSON, no other text.`;
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
-            caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
+            phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
+            name: extractedFields?.callerName || null,
             status: 'new',
           }, {
-            onConflict: 'business_id,caller_phone',
+            onConflict: 'business_id,phone',
           })
           .select()
           .single();
@@ -1665,8 +1705,11 @@ CORE INFO IS ENOUGH when the business can realistically follow up confidently. D
 CALL ENDING SEQUENCE:
 Once you have enough useful information, naturally end the call:
 
-1. Briefly summarize: "Got it — I have that you're calling about {reason}. I'll pass this along to {businessName}."
-2. Clear release: "You're all set, and you can hang up whenever you're ready."
+1. Briefly summarize: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
+2. IMPORTANT: Include the hidden marker [CALL_COMPLETE] at the end of your final response to signal call completion.
+3. Do NOT ask any more questions after the closing message.
+
+EXAMPLE CLOSING: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day. [CALL_COMPLETE]"
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -1679,9 +1722,11 @@ Do NOT ask:
 
 CALLER CLOSING SIGNALS:
 If caller says goodbye, thanks, that's all, okay, sounds good, or similar:
-- Acknowledge briefly
-- Close the call politely
-- Do not ask another question
+- Acknowledge briefly: "Thank you for calling, have a great day."
+- Include the hidden marker [CALL_COMPLETE] at the end
+- Close immediately without asking more questions
+
+EXAMPLE: "Thank you for calling, have a great day. [CALL_COMPLETE]"
 
 BEHAVIOR REQUIREMENTS:
 - Naturally guide conversation based on priority order
@@ -1997,7 +2042,21 @@ Do NOT:
                 // Accumulate assistant transcript deltas
                 if (message.delta) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.delta });
-                  transcript.push({ role: 'assistant', text: message.delta, timestamp: new Date().toISOString() });
+                  
+                  // Check for [CALL_COMPLETE] marker
+                  if (message.delta.includes('[CALL_COMPLETE]')) {
+                    console.log('[AI CALL COMPLETE MARKER DETECTED]', { 
+                      delta: message.delta,
+                      timestamp: new Date().toISOString()
+                    });
+                    (ws as any).callComplete = true;
+                  }
+                  
+                  // Remove [CALL_COMPLETE] marker from transcript (don't store in database)
+                  const cleanDelta = message.delta.replace('[CALL_COMPLETE]', '').trim();
+                  if (cleanDelta) {
+                    transcript.push({ role: 'assistant', text: cleanDelta, timestamp: new Date().toISOString() });
+                  }
                   
                   // Log transcript state after accumulation
                   console.log('[AI TRANSCRIPT STATE]', {
@@ -2027,7 +2086,21 @@ Do NOT:
                 // Accumulate complete assistant transcript
                 if (message.transcript) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
-                  transcript.push({ role: 'assistant', text: message.transcript, timestamp: new Date().toISOString() });
+                  
+                  // Check for [CALL_COMPLETE] marker
+                  if (message.transcript.includes('[CALL_COMPLETE]')) {
+                    console.log('[AI CALL COMPLETE MARKER DETECTED]', { 
+                      transcript: message.transcript,
+                      timestamp: new Date().toISOString()
+                    });
+                    (ws as any).callComplete = true;
+                  }
+                  
+                  // Remove [CALL_COMPLETE] marker from transcript (don't store in database)
+                  const cleanTranscript = message.transcript.replace('[CALL_COMPLETE]', '').trim();
+                  if (cleanTranscript) {
+                    transcript.push({ role: 'assistant', text: cleanTranscript, timestamp: new Date().toISOString() });
+                  }
                   
                   // Log transcript state after accumulation
                   console.log('[AI TRANSCRIPT STATE]', {
@@ -2036,7 +2109,20 @@ Do NOT:
                   });
                 }
                 
-                // Check for AI intake completion patterns
+                // Handle call completion if marker was detected
+                if ((ws as any).callComplete && !(ws as any).hangupScheduled) {
+                  console.log('[AI CALL COMPLETE CLOSING STARTED]', { 
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  // Schedule hangup after closing message (2-3 seconds)
+                  (ws as any).hangupScheduled = true;
+                  setTimeout(async () => {
+                    await endCallCleanly(ws, twilioHandler);
+                  }, 2500); // 2.5 second delay
+                }
+                
+                // Check for AI intake completion patterns (legacy - kept for compatibility)
                 const assistantTranscript = message.transcript || '';
                 const completionPatterns = [
                   'got it',
@@ -2392,10 +2478,11 @@ Return only JSON, no other text.`;
                   .from('leads')
                   .upsert({
                     business_id: sessionBusinessId,
-                    caller_phone: sessionCallerPhone,
+                    phone: sessionCallerPhone,
+                    name: extractedFields?.callerName || null,
                     status: 'new',
                   }, {
-                    onConflict: 'business_id,caller_phone',
+                    onConflict: 'business_id,phone',
                   })
                   .select()
                   .single();
@@ -2638,10 +2725,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .from('leads')
                     .upsert({
                       business_id: sessionBusinessId,
-                      caller_phone: sessionCallerPhone,
+                      phone: sessionCallerPhone,
                       status: 'new',
                     }, {
-                      onConflict: 'business_id,caller_phone',
+                      onConflict: 'business_id,phone',
                     })
                     .select()
                     .single();
