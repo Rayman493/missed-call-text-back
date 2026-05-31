@@ -1197,21 +1197,17 @@ Return only JSON, no other text.`;
           summarySaved: !!newRecord.summary
         });
 
-        // Upsert lead
-        if (!supabase) {
-          console.log('[AI INGEST FAILED] supabase client not available for lead creation');
-          return;
-        }
-        console.log('[AI LEAD LOOKUP]', { 
+        // NOW CREATE LEAD AND CONVERSATION AND LINK TO AI_CALL_RECORDS
+        console.log('[AI LEAD LOOKUP START]', { 
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone,
-          operation: 'lead upsert'
+          operation: 'lead upsert for ai_call_records linking'
         });
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
-            caller_phone: sessionCallerPhone, // DEBUG: No fallback to see actual value
+            caller_phone: sessionCallerPhone,
             status: 'new',
           }, {
             onConflict: 'business_id,caller_phone',
@@ -1219,18 +1215,24 @@ Return only JSON, no other text.`;
           .select()
           .single();
 
+        console.log('[AI LEAD LOOKUP RESULT]', { 
+          leadId: lead?.id || 'null',
+          leadError: leadError?.message || 'none',
+          callerPhone: sessionCallerPhone
+        });
+
         if (leadError) {
-          console.log('[LEAD INSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: leadError.message });
+          console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: leadError.message });
           throw leadError;
         }
 
-        console.log('[LEAD INSERT SUCCESS]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
+        console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
 
-        // Upsert conversation
-        console.log('[AI CONVERSATION LOOKUP]', { 
+        // Create or update conversation
+        console.log('[AI CONVERSATION LOOKUP START]', { 
           businessId: sessionBusinessId,
           leadId: lead.id,
-          operation: 'conversation upsert'
+          operation: 'conversation upsert for ai_call_records linking'
         });
         const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
@@ -1245,31 +1247,21 @@ Return only JSON, no other text.`;
           .select()
           .single();
 
+        console.log('[AI CONVERSATION LOOKUP RESULT]', { 
+          conversationId: conversation?.id || 'null',
+          conversationError: conversationError?.message || 'none',
+          leadId: lead.id
+        });
+
         if (conversationError) {
-          console.log('[AI INGEST FAILED] conversation upsert error', conversationError);
+          console.log('[AI CONVERSATION UPSERT FAILED]', conversationError);
           throw conversationError;
         }
 
-        console.log('[AI INGEST INSERT SUCCESS] conversation upserted successfully', { conversationId: conversation.id });
-
-        // Store lead and conversation IDs in AI session context for ingestion
-        (ws as any).leadId = lead.id;
-        (ws as any).conversationId = conversation.id;
-        console.log('[AI LEAD LINK]', {
-          leadId: lead.id,
-          conversationId: conversation.id,
-          callerPhone: sessionCallerPhone,
-          businessId: sessionBusinessId
-        });
-        console.log('[AI SESSION LINKED IDS]', { 
-          leadId: lead.id, 
-          conversationId: conversation.id, 
-          callerPhone: sessionCallerPhone, 
-          callSid: sessionCallSid 
-        });
+        console.log('[AI CONVERSATION UPSERT RESULT]', { conversationId: conversation.id, leadId: lead.id });
 
         // Update AI call record with lead and conversation IDs
-        console.log('[AI LINK RESULT]', { 
+        console.log('[AI CALL RECORD LINK UPDATE START]', { 
           operation: 'updating ai_call_records with lead/conversation IDs',
           recordId: newRecord.id,
           leadId: lead.id,
@@ -1286,12 +1278,19 @@ Return only JSON, no other text.`;
           })
           .eq('id', newRecord.id);
 
+        console.log('[AI CALL RECORD LINK UPDATE RESULT]', { 
+          updateError: updateError?.message || 'none',
+          recordId: newRecord.id,
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
+
         if (updateError) {
-          console.log('[AI INGEST FAILED] error updating AI record with IDs', updateError);
+          console.log('[AI CALL RECORD LINK UPDATE FAILED]', updateError);
           throw updateError;
         }
 
-        console.log('[AI INGEST INSERT SUCCESS] AI record updated with lead/conversation IDs');
+        console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
         return;
 
