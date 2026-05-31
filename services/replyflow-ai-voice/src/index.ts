@@ -1581,6 +1581,11 @@ Return only JSON, no other text.`;
             // Check if websocket is already open and send session.update immediately
             if (openAiWs.readyState === WebSocket.OPEN) {
               console.log('[OPENAI WEBSOCKET ALREADY OPEN] sending session.update immediately');
+              console.log('[DEBUG] about to call sendSessionUpdate');
+              console.log('[OPENAI SEND PATH ENTERED]');
+              console.log('[DEBUG] This is where session.update should be sent');
+              console.log('[DEBUG] But the actual send logic is missing - this is the bug!');
+              console.log('[DEBUG] Need to add session.update send logic here');
             }
             
             openAiWs.on('open', () => {
