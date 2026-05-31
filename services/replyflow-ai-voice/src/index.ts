@@ -1839,6 +1839,9 @@ Do NOT:
                         prefix_padding_ms: 500,
                         silence_duration_ms: 1800,
                         create_response: true
+                      },
+                      transcription: {
+                        model: "whisper-1"
                       }
                       // We intentionally use a longer silence duration to prevent the AI from responding during natural caller pauses.
                     },
@@ -1851,6 +1854,16 @@ Do NOT:
                   }
                 }
               };
+
+              // Log transcription configuration
+              console.log("[SESSION TRANSCRIPTION CONFIG]", {
+                transcriptionEnabled: !!sessionUpdatePayload.session.audio.input.transcription,
+                transcriptionModel: sessionUpdatePayload.session.audio.input.transcription?.model || 'not_set',
+                inputFormat: sessionUpdatePayload.session.audio.input.format?.type || 'not_set',
+                turnDetection: sessionUpdatePayload.session.audio.input.turn_detection?.type || 'not_set',
+                outputFormat: sessionUpdatePayload.session.audio.output.format?.type || 'not_set',
+                voice: sessionUpdatePayload.session.audio.output.voice || 'not_set'
+              });
 
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
