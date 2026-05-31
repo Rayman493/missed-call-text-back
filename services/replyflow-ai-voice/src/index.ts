@@ -1229,7 +1229,7 @@ Return only JSON, no other text.`;
             business_id: sessionBusinessId,
             lead_id: lead.id,
             status: 'ai_completed',
-            updated_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
           }, {
             onConflict: 'business_id,lead_id',
           })
@@ -1271,6 +1271,9 @@ Return only JSON, no other text.`;
           .update({
             lead_id: lead.id,
             conversation_id: conversation.id,
+            caller_phone: sessionCallerPhone || 'unknown',
+            summary: extractedFields.summary,
+            extracted_info: extractedFields,
           })
           .eq('id', newRecord.id);
 
@@ -2145,6 +2148,12 @@ Do NOT:
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.input_audio_transcription.completed');
                 console.log('[FINAL USER TRANSCRIPT]:', message.transcript || 'null');
+                
+                // Store user transcript in transcript array
+                if (message.transcript) {
+                  console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: message.transcript });
+                  transcript.push({ role: 'user', text: message.transcript, timestamp: new Date().toISOString() });
+                }
               }
               if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
