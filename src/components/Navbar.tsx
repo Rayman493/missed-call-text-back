@@ -395,32 +395,20 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             ) : (
               // Signed-out users: Marketing navigation
               <nav className="flex flex-col space-y-3">
-                <button
-                  onClick={() => {
-                    // Scroll to features section
-                    const featuresSection = document.getElementById('features-section');
-                    if (featuresSection) {
-                      featuresSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    closeMobileMenu();
-                  }}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
+                <Link
+                  href="/"
+                  onClick={closeMobileMenu}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
-                  Features
-                </button>
-                <button
-                  onClick={() => {
-                    // Scroll to pricing section
-                    const pricingSection = document.getElementById('pricing-section');
-                    if (pricingSection) {
-                      pricingSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    closeMobileMenu();
-                  }}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2 text-left"
+                  Home
+                </Link>
+                <Link
+                  href="/demo"
+                  onClick={closeMobileMenu}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
                 >
-                  Pricing
-                </button>
+                  Demo
+                </Link>
                 <Link
                   href="/faq"
                   onClick={closeMobileMenu}
@@ -428,22 +416,22 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 >
                   FAQ
                 </Link>
-                <Link
-                  href="/compliance"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Compliance
-                </Link>
                 
-                {/* Optional CTA at bottom for signed-out users */}
-                <div className="pt-4 mt-4 border-t border-slate-700">
+                {/* Auth actions at bottom for signed-out users */}
+                <div className="pt-4 mt-4 border-t border-slate-700 space-y-2">
+                  <Link
+                    href="/auth?mode=signin"
+                    onClick={closeMobileMenu}
+                    className="w-full text-gray-300 hover:text-white font-medium rounded-lg px-4 py-3 text-center transition-colors"
+                  >
+                    Sign In
+                  </Link>
                   <Link
                     href="/auth?mode=signup"
                     onClick={closeMobileMenu}
                     className="w-full bg-blue-600 text-white font-semibold rounded-lg px-4 py-3 text-center hover:bg-blue-700 transition-colors"
                   >
-                    Start Free Trial
+                    Sign Up
                   </Link>
                 </div>
               </nav>
