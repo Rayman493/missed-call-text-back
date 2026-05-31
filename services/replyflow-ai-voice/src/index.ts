@@ -1144,18 +1144,27 @@ Return only JSON, no other text.`;
         }
 
         // Create new AI call record
-        console.log('[AI INGEST INSERT START] creating new AI call record...');
+        console.log('[AI SAVE START] creating new AI call record...');
         const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: null, // Will be set after lead creation
             conversation_id: null, // Will be set after conversation creation
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
+            ai_session_id: sessionSessionId,
             transcript: Array.isArray(transcript) ? transcript : [],
             outcome: 'completed',
-            extraction_failed: false
+            extraction_failed: false,
+            extracted_info: extractedFields,
+            summary: extractedFields.summary
           };
-        console.log('[AI CALL RECORD INSERT PAYLOAD]', mainInsertPayload);
+        console.log('[AI SAVE PAYLOAD]', {
+          recordType: 'ai_call_records',
+          hasExtractedInfo: !!extractedFields,
+          hasSummary: !!extractedFields?.summary,
+          extractedFieldsKeys: extractedFields ? Object.keys(extractedFields) : [],
+          payloadKeys: Object.keys(mainInsertPayload)
+        });
         const { data: newRecord, error: newRecordError } = await supabase
           .from('ai_call_records')
           .insert(mainInsertPayload)
@@ -1163,18 +1172,32 @@ Return only JSON, no other text.`;
           .single();
 
         if (newRecordError) {
-          console.log('[AI CALL RECORD SAVE FAILED]', newRecordError);
+          console.log('[AI SAVE RESULT]', { 
+            success: false, 
+            error: newRecordError.message,
+            operation: 'ai_call_records insert'
+          });
           throw newRecordError;
         }
         
-        console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: newRecord.id });
+        console.log('[AI SAVE RESULT]', { 
+          success: true, 
+          recordId: newRecord.id,
+          operation: 'ai_call_records insert',
+          extractedInfoSaved: !!newRecord.extracted_info,
+          summarySaved: !!newRecord.summary
+        });
 
         // Upsert lead
         if (!supabase) {
           console.log('[AI INGEST FAILED] supabase client not available for lead creation');
           return;
         }
-        console.log('[AI INGEST INSERT START] lead upserting...');
+        console.log('[AI LEAD LOOKUP]', { 
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone,
+          operation: 'lead upsert'
+        });
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .upsert({
@@ -1195,7 +1218,11 @@ Return only JSON, no other text.`;
         console.log('[LEAD INSERT SUCCESS]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
 
         // Upsert conversation
-        console.log('[AI INGEST INSERT START] conversation upserting...');
+        console.log('[AI CONVERSATION LOOKUP]', { 
+          businessId: sessionBusinessId,
+          leadId: lead.id,
+          operation: 'conversation upsert'
+        });
         const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
           .upsert({
@@ -1233,7 +1260,12 @@ Return only JSON, no other text.`;
         });
 
         // Update AI call record with lead and conversation IDs
-        console.log('[AI INGEST INSERT START] updating AI record with lead/conversation IDs');
+        console.log('[AI LINK RESULT]', { 
+          operation: 'updating ai_call_records with lead/conversation IDs',
+          recordId: newRecord.id,
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
         const { error: updateError } = await supabase
           .from('ai_call_records')
           .update({
