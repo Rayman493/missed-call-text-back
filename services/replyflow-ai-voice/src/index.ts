@@ -1998,6 +1998,12 @@ Do NOT:
                 if (message.delta) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.delta });
                   transcript.push({ role: 'assistant', text: message.delta, timestamp: new Date().toISOString() });
+                  
+                  // Log transcript state after accumulation
+                  console.log('[AI TRANSCRIPT STATE]', {
+                    transcriptLength: transcript.length,
+                    transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
+                  });
                 }
               }
               if (message.type === 'response.output_audio_transcript.done') {
@@ -2022,6 +2028,12 @@ Do NOT:
                 if (message.transcript) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
                   transcript.push({ role: 'assistant', text: message.transcript, timestamp: new Date().toISOString() });
+                  
+                  // Log transcript state after accumulation
+                  console.log('[AI TRANSCRIPT STATE]', {
+                    transcriptLength: transcript.length,
+                    transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
+                  });
                 }
                 
                 // Check for AI intake completion patterns
@@ -2136,6 +2148,10 @@ Do NOT:
               
               console.log('[AI INGEST START] call ended');
               console.log('[AI INGEST] transcript captured', { transcriptLength: transcript.length });
+              console.log('[AI TRANSCRIPT STATE]', {
+                transcriptLength: transcript.length,
+                transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
+              });
               console.log('[AI INGEST] session data', { 
                 sessionId: sessionSessionId, 
                 businessId: sessionBusinessId, 
@@ -2152,7 +2168,8 @@ Do NOT:
                 leadId: sessionLeadId,
                 conversationId: sessionConversationId,
                 sessionId: sessionSessionId,
-                transcriptLength: transcript.length
+                transcriptLength: transcript.length,
+                transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
               });
               
               // Check for existing AI call record (idempotency protection)
@@ -2345,6 +2362,12 @@ Return only JSON, no other text.`;
                     summary: extractedFields.summary,
                     extraction_failed: false
                   };
+                console.log('[AI TRANSCRIPT STATE]', {
+                    transcriptLength: transcript.length,
+                    transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
+                    transcriptType: typeof transcript,
+                    isArray: Array.isArray(transcript)
+                  });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', insertPayload);
                 const { data: newRecord, error: newRecordError } = await supabase
                   .from('ai_call_records')
@@ -2546,6 +2569,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     outcome: 'completed',
                     extraction_failed: false
                   };
+                console.log('[AI TRANSCRIPT STATE]', {
+                    transcriptLength: transcript.length,
+                    transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
+                    transcriptType: typeof transcript,
+                    isArray: Array.isArray(transcript)
+                  });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', transcriptInsertPayload);
                 const { error: aiRecordError } = await supabase
                   .from('ai_call_records')
@@ -2584,6 +2613,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       summary: `AI call transcript: ${fullTranscript}`,
                       extraction_failed: true
                     };
+                  console.log('[AI TRANSCRIPT STATE]', {
+                      transcriptLength: transcript.length,
+                      transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
+                      transcriptType: typeof transcript,
+                      isArray: Array.isArray(transcript)
+                    });
                   console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
                   const { data: fallbackRecord, error: fallbackRecordError } = await supabase
                     .from('ai_call_records')
