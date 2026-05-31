@@ -469,16 +469,20 @@ async function createFallbackLead(
     }
 
     // Create AI call record for the fallback
-    const { error: aiRecordError } = await supabase
-      .from('ai_call_records')
-      .insert({
+    const fallbackCallRecordPayload = {
         business_id: businessId,
         lead_id: lead.id,
         conversation_id: conversation.id,
-        caller_phone: callerPhone,
-        call_sid: callSid,
+        caller_phone: callerPhone || 'unknown',
+        call_sid: callSid || 'unknown',
         transcript: [],
-      });
+        outcome: 'completed',
+        extraction_failed: false
+      };
+    console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackCallRecordPayload);
+    const { error: aiRecordError } = await supabase
+      .from('ai_call_records')
+      .insert(fallbackCallRecordPayload);
 
     if (aiRecordError) {
       console.log('[LEAD CREATED FROM FALLBACK] AI call record creation error:', aiRecordError);
@@ -2272,9 +2276,9 @@ Return only JSON, no other text.`;
                     business_id: sessionBusinessId,
                     lead_id: null, // Will be set after lead creation
                     conversation_id: null, // Will be set after conversation creation
-                    caller_phone: sessionCallerPhone,
-                    call_sid: sessionCallSid,
-                    transcript: transcript,
+                    caller_phone: sessionCallerPhone || 'unknown',
+                    call_sid: sessionCallSid || 'unknown',
+                    transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'completed',
                     extracted_info: extractedFields,
                     summary: extractedFields.summary,
@@ -2471,16 +2475,20 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                 
                 // Create AI call record
                 console.log('[AI INGEST] creating AI call record...');
-                const { error: aiRecordError } = await supabase
-                  .from('ai_call_records')
-                  .insert({
+                const transcriptInsertPayload = {
                     business_id: sessionBusinessId,
                     lead_id: lead.id,
                     conversation_id: conversation.id,
-                    caller_phone: sessionCallerPhone,
-                    call_sid: sessionCallSid,
-                    transcript: transcript,
-                  });
+                    caller_phone: sessionCallerPhone || 'unknown',
+                    call_sid: sessionCallSid || 'unknown',
+                    transcript: Array.isArray(transcript) ? transcript : [],
+                    outcome: 'completed',
+                    extraction_failed: false
+                  };
+                console.log('[AI CALL RECORD INSERT PAYLOAD]', transcriptInsertPayload);
+                const { error: aiRecordError } = await supabase
+                  .from('ai_call_records')
+                  .insert(transcriptInsertPayload);
 
                 if (aiRecordError) {
                   console.log('[AI INGEST] AI call record creation error', aiRecordError);
@@ -2506,9 +2514,9 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       business_id: sessionBusinessId,
                       lead_id: null,
                       conversation_id: null,
-                      caller_phone: sessionCallerPhone,
-                      call_sid: sessionCallSid,
-                      transcript: transcript,
+                      caller_phone: sessionCallerPhone || 'unknown',
+                      call_sid: sessionCallSid || 'unknown',
+                      transcript: Array.isArray(transcript) ? transcript : [],
                       outcome: 'completed',
                       extracted_info: null,
                       summary: `AI call transcript: ${fullTranscript}`,
