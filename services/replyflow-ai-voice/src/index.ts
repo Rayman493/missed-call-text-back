@@ -897,12 +897,6 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       return;
     }
     
-    console.log('[AI CALL HANGUP SCHEDULED]', { 
-      callSid,
-      businessId,
-      timestamp: new Date().toISOString()
-    });
-    
     // Use Twilio REST API to end the call
     const twilioClient = (twilioHandler as any).twilioClient;
     if (twilioClient && callSid) {
@@ -914,7 +908,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       });
     } else {
       // Fallback: close the WebSocket connection
-      console.log('[AI CALL HANGUP FALLBACK] Closing WebSocket connection');
+      console.log('[AI CALL HANGUP FAILED] Twilio client not available, closing WebSocket');
       ws.close();
     }
   } catch (error) {
@@ -1185,7 +1179,7 @@ Return only JSON, no other text.`;
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
-            caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
+            caller_phone: sessionCallerPhone, // DEBUG: No fallback to see actual value
             status: 'new',
           }, {
             onConflict: 'business_id,caller_phone',
@@ -1387,7 +1381,26 @@ Return only JSON, no other text.`;
           console.log('[Voice] routing_reason', { routingReason });
 
           const customParams = message.start?.customParameters || {};
+          console.log('[TWILIO CUSTOM PARAMETERS]', {
+            ForwardedFrom: customParams.ForwardedFrom,
+            Called: customParams.Called,
+            To: customParams.To,
+            From: customParams.From,
+            sessionId: customParams.sessionId,
+            businessId: customParams.businessId,
+            callSid: customParams.callSid,
+            callerPhone: customParams.callerPhone
+          });
           log(LogLevel.INFO, '[AI POC] received custom parameters', customParams);
+
+          console.log('[TWILIO START EVENT]', {
+            callSid: urlCallSid,
+            businessId: urlBusinessId,
+            sessionId: urlSessionId,
+            from: from,
+            callInfo: callInfo,
+            customParameters: customParams
+          });
 
           // Log parameter extraction for debugging
           console.log('[PARAM EXTRACTION DEBUG] urlSessionId:', urlSessionId);
@@ -1410,6 +1423,14 @@ Return only JSON, no other text.`;
           (ws as any).businessId = businessId;
           (ws as any).callSid = callSid;
           (ws as any).callerPhone = callerPhone;
+          
+          console.log('[AI SESSION CONTEXT CREATED]', {
+            sessionId: sessionId,
+            businessId: businessId,
+            callSid: callSid,
+            callerPhone: callerPhone,
+            forwardedFrom: forwardedFrom
+          });
 
           // Log final extracted values
           console.log('[FINAL PARAMS] sessionId:', sessionId);
@@ -1710,11 +1731,11 @@ CORE INFO IS ENOUGH when the business can realistically follow up confidently. D
 CALL ENDING SEQUENCE:
 Once you have enough useful information, naturally end the call:
 
-1. Briefly summarize: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
-2. IMPORTANT: Include the hidden marker [CALL_COMPLETE] at the end of your final response to signal call completion.
-3. Do NOT ask any more questions after the closing message.
+1. Say exactly: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
+2. Do NOT ask any more questions after the closing message.
+3. Stop talking after the closing message.
 
-EXAMPLE CLOSING: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day. [CALL_COMPLETE]"
+EXAMPLE CLOSING: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -1728,10 +1749,9 @@ Do NOT ask:
 CALLER CLOSING SIGNALS:
 If caller says goodbye, thanks, that's all, okay, sounds good, or similar:
 - Acknowledge briefly: "Thank you for calling, have a great day."
-- Include the hidden marker [CALL_COMPLETE] at the end
 - Close immediately without asking more questions
 
-EXAMPLE: "Thank you for calling, have a great day. [CALL_COMPLETE]"
+EXAMPLE: "Thank you for calling, have a great day."
 
 BEHAVIOR REQUIREMENTS:
 - Naturally guide conversation based on priority order
@@ -2048,17 +2068,27 @@ Do NOT:
                 if (message.delta) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.delta });
                   
-                  // Check for [CALL_COMPLETE] marker
-                  if (message.delta.includes('[CALL_COMPLETE]')) {
-                    console.log('[AI CALL COMPLETE MARKER DETECTED]', { 
-                      delta: message.delta,
+                  // Check for natural closing phrases
+                  const closingPhrases = [
+                    "I'll pass this along",
+                    "someone will follow up",
+                    "thanks for calling",
+                    "have a great day",
+                    "Thank you for calling",
+                    "have a great day"
+                  ];
+                  
+                  const cleanDelta = message.delta.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                  
+                  // Check for natural closing in the cleaned text
+                  if (closingPhrases.some(phrase => cleanDelta.toLowerCase().includes(phrase.toLowerCase()))) {
+                    console.log('[AI NATURAL CLOSING DETECTED]', { 
+                      delta: cleanDelta,
                       timestamp: new Date().toISOString()
                     });
                     (ws as any).callComplete = true;
                   }
                   
-                  // Remove [CALL_COMPLETE] marker from transcript (don't store in database)
-                  const cleanDelta = message.delta.replace('[CALL_COMPLETE]', '').trim();
                   if (cleanDelta) {
                     transcript.push({ role: 'assistant', text: cleanDelta, timestamp: new Date().toISOString() });
                   }
@@ -2092,17 +2122,27 @@ Do NOT:
                 if (message.transcript) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
                   
-                  // Check for [CALL_COMPLETE] marker
-                  if (message.transcript.includes('[CALL_COMPLETE]')) {
-                    console.log('[AI CALL COMPLETE MARKER DETECTED]', { 
-                      transcript: message.transcript,
+                  // Check for natural closing phrases
+                  const closingPhrases = [
+                    "I'll pass this along",
+                    "someone will follow up",
+                    "thanks for calling",
+                    "have a great day",
+                    "Thank you for calling",
+                    "have a great day"
+                  ];
+                  
+                  const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                  
+                  // Check for natural closing in the cleaned text
+                  if (closingPhrases.some(phrase => cleanTranscript.toLowerCase().includes(phrase.toLowerCase()))) {
+                    console.log('[AI NATURAL CLOSING DETECTED]', { 
+                      transcript: cleanTranscript,
                       timestamp: new Date().toISOString()
                     });
                     (ws as any).callComplete = true;
                   }
                   
-                  // Remove [CALL_COMPLETE] marker from transcript (don't store in database)
-                  const cleanTranscript = message.transcript.replace('[CALL_COMPLETE]', '').trim();
                   if (cleanTranscript) {
                     transcript.push({ role: 'assistant', text: cleanTranscript, timestamp: new Date().toISOString() });
                   }
@@ -2114,13 +2154,13 @@ Do NOT:
                   });
                 }
                 
-                // Handle call completion if marker was detected
+                // Handle call completion if natural closing was detected
                 if ((ws as any).callComplete && !(ws as any).hangupScheduled) {
-                  console.log('[AI CALL COMPLETE CLOSING STARTED]', { 
+                  console.log('[AI CALL HANGUP SCHEDULED]', { 
                     timestamp: new Date().toISOString()
                   });
                   
-                  // Schedule hangup after closing message (2-3 seconds)
+                  // Schedule hangup after closing message (2.5 seconds)
                   (ws as any).hangupScheduled = true;
                   setTimeout(async () => {
                     await endCallCleanly(ws, twilioHandler);
@@ -2444,7 +2484,7 @@ Return only JSON, no other text.`;
                     business_id: sessionBusinessId,
                     lead_id: sessionLeadId,
                     conversation_id: sessionConversationId,
-                    caller_phone: sessionCallerPhone || 'unknown',
+                    caller_phone: sessionCallerPhone, // DEBUG: No fallback to see actual value
                     call_sid: sessionCallSid || 'unknown',
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
