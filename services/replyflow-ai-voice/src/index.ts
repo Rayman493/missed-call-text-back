@@ -2147,15 +2147,39 @@ Return only JSON, no other text.`;
                   });
 
                   const extractionData = await extractionResponse.json();
-                  const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-                  console.log('[AI EXTRACTION RESULT]', extractedFields);
+                  console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
+                  
+                  let extractedFields;
+                  try {
+                    extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+                    console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
+                  } catch (parseError) {
+                    console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
+                    console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback transcript');
+                    // Create fallback extracted fields from transcript
+                    extractedFields = {
+                      callerName: null,
+                      reasonForCalling: null,
+                      urgencyLevel: null,
+                      importantDetails: null,
+                      addressOrLocation: null,
+                      preferredCallbackTime: null,
+                      summary: `AI call transcript: ${fullTranscript}`
+                    };
+                  }
 
                   // Update existing AI call record
+                  const updatePayload = {
+                      transcript: transcript,
+                      extracted_info: extractedFields,
+                      summary: extractedFields.summary,
+                      extraction_failed: false,
+                      updated_at: new Date().toISOString()
+                    };
+                  console.log('[AI CALL RECORD UPDATE PAYLOAD]', updatePayload);
                   const { error: updateError } = await supabase
                     .from('ai_call_records')
-                    .update({
-                      transcript: transcript,
-                    })
+                    .update(updatePayload)
                     .eq('id', existingRecord.id);
 
                   if (updateError) {
@@ -2221,30 +2245,54 @@ Return only JSON, no other text.`;
                 });
 
                 const extractionData = await extractionResponse.json();
-                const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-                console.log('[AI EXTRACTION RESULT]', extractedFields);
+                console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
+                
+                let extractedFields;
+                try {
+                  extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+                  console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
+                } catch (parseError) {
+                  console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
+                  console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback transcript');
+                  // Create fallback extracted fields from transcript
+                  extractedFields = {
+                    callerName: null,
+                    reasonForCalling: null,
+                    urgencyLevel: null,
+                    importantDetails: null,
+                    addressOrLocation: null,
+                    preferredCallbackTime: null,
+                    summary: `AI call transcript: ${fullTranscript}`
+                  };
+                }
 
                 // Create new AI call record
                 console.log('[AI INGEST] creating new AI call record...');
-                const { data: newRecord, error: newRecordError } = await supabase
-                  .from('ai_call_records')
-                  .insert({
+                const insertPayload = {
                     business_id: sessionBusinessId,
                     lead_id: null, // Will be set after lead creation
                     conversation_id: null, // Will be set after conversation creation
                     caller_phone: sessionCallerPhone,
                     call_sid: sessionCallSid,
                     transcript: transcript,
-                  })
+                    outcome: 'completed',
+                    extracted_info: extractedFields,
+                    summary: extractedFields.summary,
+                    extraction_failed: false
+                  };
+                console.log('[AI CALL RECORD INSERT PAYLOAD]', insertPayload);
+                const { data: newRecord, error: newRecordError } = await supabase
+                  .from('ai_call_records')
+                  .insert(insertPayload)
                   .select()
                   .single();
 
                 if (newRecordError) {
-                  console.log('[AI INGEST] new AI call record creation error', newRecordError);
+                  console.log('[AI CALL RECORD SAVE FAILED]', newRecordError);
                   throw newRecordError;
                 }
                 
-                console.log('[AI INGEST] new AI call record created successfully', { recordId: newRecord.id });
+                console.log('[AI CALL RECORD SAVED]', { recordId: newRecord.id });
 
                 // Upsert lead
                 if (!supabase) {
@@ -2258,7 +2306,6 @@ Return only JSON, no other text.`;
                     business_id: sessionBusinessId,
                     caller_phone: sessionCallerPhone,
                     name: extractedFields.callerName || null,
-                    source: 'ai_voice',
                     status: 'new',
                   }, {
                     onConflict: 'business_id,caller_phone',
@@ -2455,25 +2502,31 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                 
                 try {
                   console.log('[AI INGEST] creating fallback AI call record...');
-                  const { data: fallbackRecord, error: fallbackRecordError } = await supabase
-                    .from('ai_call_records')
-                    .insert({
+                  const fallbackInsertPayload = {
                       business_id: sessionBusinessId,
                       lead_id: null,
                       conversation_id: null,
                       caller_phone: sessionCallerPhone,
                       call_sid: sessionCallSid,
                       transcript: transcript,
-                    })
+                      outcome: 'completed',
+                      extracted_info: null,
+                      summary: `AI call transcript: ${fullTranscript}`,
+                      extraction_failed: true
+                    };
+                  console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+                  const { data: fallbackRecord, error: fallbackRecordError } = await supabase
+                    .from('ai_call_records')
+                    .insert(fallbackInsertPayload)
                     .select()
                     .single();
 
                   if (fallbackRecordError) {
-                    console.log('[AI INGEST] fallback record creation error', fallbackRecordError);
+                    console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
                     throw fallbackRecordError;
                   }
                   
-                  console.log('[AI INGEST] fallback record created successfully', { recordId: fallbackRecord.id });
+                  console.log('[AI CALL RECORD SAVED]', { recordId: fallbackRecord.id });
                   
                   // Create lead and conversation for fallback case
                   const { data: fallbackLead, error: fallbackLeadError } = await supabase
@@ -2481,7 +2534,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .upsert({
                       business_id: sessionBusinessId,
                       caller_phone: sessionCallerPhone,
-                      source: 'ai_voice',
                       status: 'new',
                     }, {
                       onConflict: 'business_id,caller_phone',
@@ -2529,7 +2581,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   }
 
                   // Save transcript as message
-                  const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
                   const { error: fallbackMessageError } = await supabase
                     .from('messages')
                     .insert({
