@@ -1147,8 +1147,6 @@ Return only JSON, no other text.`;
           .upsert({
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
-            name: extractedFields.callerName || null,
-            source: 'ai_voice',
             status: 'new',
           }, {
             onConflict: 'business_id,caller_phone',
@@ -1184,6 +1182,16 @@ Return only JSON, no other text.`;
         }
 
         console.log('[AI INGEST INSERT SUCCESS] conversation upserted successfully', { conversationId: conversation.id });
+
+        // Store lead and conversation IDs in AI session context for ingestion
+        (ws as any).leadId = lead.id;
+        (ws as any).conversationId = conversation.id;
+        console.log('[AI SESSION LINKED IDS]', { 
+          leadId: lead.id, 
+          conversationId: conversation.id, 
+          callerPhone: sessionCallerPhone, 
+          callSid: sessionCallSid 
+        });
 
         // Update AI call record with lead and conversation IDs
         console.log('[AI INGEST INSERT START] updating AI record with lead/conversation IDs');
@@ -1986,6 +1994,11 @@ Do NOT:
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta:', message.delta || 'null');
+                // Accumulate assistant transcript deltas
+                if (message.delta) {
+                  console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.delta });
+                  transcript.push({ role: 'assistant', text: message.delta, timestamp: new Date().toISOString() });
+                }
               }
               if (message.type === 'response.output_audio_transcript.done') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.done:', message.transcript || 'null');
@@ -2005,8 +2018,14 @@ Do NOT:
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
                 
+                // Accumulate complete assistant transcript
+                if (message.transcript) {
+                  console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
+                  transcript.push({ role: 'assistant', text: message.transcript, timestamp: new Date().toISOString() });
+                }
+                
                 // Check for AI intake completion patterns
-                const transcript = message.transcript || '';
+                const assistantTranscript = message.transcript || '';
                 const completionPatterns = [
                   'got it',
                   'i have that',
@@ -2020,13 +2039,13 @@ Do NOT:
                 ];
                 
                 const hasCompletionPattern = completionPatterns.some(pattern => 
-                  transcript.toLowerCase().includes(pattern)
+                  assistantTranscript.toLowerCase().includes(pattern)
                 );
                 
                 if (hasCompletionPattern) {
                   console.log('[AI INTAKE COMPLETE] AI appears to be ending the call');
                   console.log('[AI CLOSING MESSAGE SENT]', {
-                    transcript: transcript.substring(0, 200),
+                    transcript: assistantTranscript.substring(0, 200),
                     sessionId: sessionId,
                     businessId: businessId,
                     timestamp: new Date().toISOString()
@@ -2112,6 +2131,8 @@ Do NOT:
               const sessionCallSid = (ws as any).callSid || '';
               const sessionCallerPhone = (ws as any).callerPhone || '';
               const sessionForwardedFrom = (ws as any).forwardedFrom || '';
+              const sessionLeadId = (ws as any).leadId || null;
+              const sessionConversationId = (ws as any).conversationId || null;
               
               console.log('[AI INGEST START] call ended');
               console.log('[AI INGEST] transcript captured', { transcriptLength: transcript.length });
@@ -2120,7 +2141,18 @@ Do NOT:
                 businessId: sessionBusinessId, 
                 callSid: sessionCallSid, 
                 callerPhone: sessionCallerPhone,
-                forwardedFrom: sessionForwardedFrom
+                forwardedFrom: sessionForwardedFrom,
+                leadId: sessionLeadId,
+                conversationId: sessionConversationId
+              });
+              
+              console.log('[AI INGEST FINAL CONTEXT]', {
+                businessId: sessionBusinessId,
+                callerPhone: sessionCallerPhone,
+                leadId: sessionLeadId,
+                conversationId: sessionConversationId,
+                sessionId: sessionSessionId,
+                transcriptLength: transcript.length
               });
               
               // Check for existing AI call record (idempotency protection)
@@ -2302,10 +2334,11 @@ Return only JSON, no other text.`;
                 console.log('[AI INGEST] creating new AI call record...');
                 const insertPayload = {
                     business_id: sessionBusinessId,
-                    lead_id: null, // Will be set after lead creation
-                    conversation_id: null, // Will be set after conversation creation
+                    lead_id: sessionLeadId,
+                    conversation_id: sessionConversationId,
                     caller_phone: sessionCallerPhone || 'unknown',
                     call_sid: sessionCallSid || 'unknown',
+                    ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'completed',
                     extracted_info: extractedFields,
@@ -2337,7 +2370,6 @@ Return only JSON, no other text.`;
                   .upsert({
                     business_id: sessionBusinessId,
                     caller_phone: sessionCallerPhone,
-                    name: extractedFields.callerName || null,
                     status: 'new',
                   }, {
                     onConflict: 'business_id,caller_phone',
@@ -2509,6 +2541,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     conversation_id: conversation.id,
                     caller_phone: sessionCallerPhone || 'unknown',
                     call_sid: sessionCallSid || 'unknown',
+                    ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'completed',
                     extraction_failed: false
@@ -2540,12 +2573,13 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   console.log('[AI INGEST] creating fallback AI call record...');
                   const fallbackInsertPayload = {
                       business_id: sessionBusinessId,
-                      lead_id: null,
-                      conversation_id: null,
+                      lead_id: sessionLeadId,
+                      conversation_id: sessionConversationId,
                       caller_phone: sessionCallerPhone || 'unknown',
                       call_sid: sessionCallSid || 'unknown',
+                      ai_session_id: sessionSessionId,
                       transcript: Array.isArray(transcript) ? transcript : [],
-                      outcome: 'completed',
+                      outcome: 'ai_failed',
                       extracted_info: null,
                       summary: `AI call transcript: ${fullTranscript}`,
                       extraction_failed: true
