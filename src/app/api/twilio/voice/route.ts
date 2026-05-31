@@ -202,6 +202,17 @@ export async function POST(request: NextRequest) {
       CallSid,
       CallStatus: params.CallStatus
     });
+
+    // Add comprehensive webhook input logging
+    console.log('[TWILIO VOICE WEBHOOK INPUT]', {
+      From: From || 'undefined',
+      To: To || 'undefined', 
+      Called: Called || 'undefined',
+      ForwardedFrom: ForwardedFrom || 'undefined',
+      CallSid: CallSid || 'undefined',
+      Caller: Caller || 'undefined',
+      Direction: Direction || 'undefined'
+    });
     
     if (!From || !To) {
       console.error('[Twilio Voice] Missing required fields:', { From, To });
@@ -573,6 +584,19 @@ export async function POST(request: NextRequest) {
             
             console.log('[AI POC] stream url:', flyWsUrl)
 
+            // Add comprehensive outbound parameter logging
+            console.log('[STREAM PARAMS OUTBOUND]', {
+              sessionId: session.id,
+              callSid: CallSid,
+              businessId: business.id,
+              callType: callPath,
+              callerPhone: From,
+              from: From,
+              to: To,
+              called: Called,
+              forwardedFrom: ForwardedFrom
+            });
+
             // Return TwiML with Media Stream to Fly.io
             // Parameters are passed as <Parameter> elements, not query params
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -583,6 +607,11 @@ export async function POST(request: NextRequest) {
       <Parameter name="callSid" value="${CallSid}" />
       <Parameter name="businessId" value="${business.id}" />
       <Parameter name="callType" value="${callPath}" />
+      <Parameter name="callerPhone" value="${From}" />
+      <Parameter name="from" value="${From}" />
+      <Parameter name="to" value="${To}" />
+      <Parameter name="called" value="${Called}" />
+      <Parameter name="forwardedFrom" value="${ForwardedFrom}" />
     </Stream>
   </Connect>
 </Response>`
