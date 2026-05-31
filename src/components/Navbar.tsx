@@ -274,11 +274,11 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             // Logged-out navigation
             <>
               {isHomepage ? (
-                // Homepage: show Sign In and Sign Up (Sign In hidden on mobile)
+                // Homepage: show Sign In and Sign Up (both visible on mobile)
                 <>
                   <Link
                     href="/auth?mode=signin"
-                    className={`text-xs sm:text-sm font-medium whitespace-nowrap hidden sm:block ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
+                    className={`text-xs sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
                   >
                     Sign In
                   </Link>

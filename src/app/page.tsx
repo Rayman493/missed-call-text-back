@@ -241,7 +241,7 @@ export default async function Home() {
                 {/* Primary CTA */}
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center h-12 sm:h-14 px-6 sm:px-10 min-w-[200px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-xl hover:bg-blue-700 hover:shadow-2xl transition-all duration-200 hover:scale-105"
+                  className="inline-flex items-center justify-center h-11 sm:h-12 px-4 sm:px-8 w-[280px] sm:w-auto sm:min-w-[240px] bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 hover:scale-105"
                 >
                   <span className="sm:hidden">Start Free Trial</span>
                   <span className="hidden sm:inline">Start 14-Day Free Trial</span>
@@ -295,52 +295,6 @@ export default async function Home() {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <span>Keep Your Existing Number</span>
-                </div>
-              </div>
-
-              {/* Enhanced Trust Indicators - Desktop Only */}
-              <div className="mt-4 sm:mt-6 sm:pt-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 hidden sm:block">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
-                  <div className="flex flex-col items-center text-center group">
-                    <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                      <svg className="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                      Works with your existing number
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center text-center group">
-                    <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                      <svg className="w-7 h-7 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                      Setup in under 5 minutes
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center text-center group">
-                    <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                      <svg className="w-7 h-7 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                      14-day free trial
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center text-center group">
-                    <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                      <svg className="w-7 h-7 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                      Built for local businesses
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -503,7 +457,7 @@ export default async function Home() {
                 <div className="text-slate-600 dark:text-slate-400 text-sm mb-4">Keep using the business number you already advertise.</div>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white font-bold text-base rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-200"
+                  className="inline-flex items-center justify-center h-11 px-4 w-[280px] bg-blue-600 text-white font-bold text-sm rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-200"
                 >
                   Start Free Trial
                 </Link>
