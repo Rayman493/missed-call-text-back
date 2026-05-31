@@ -1897,15 +1897,28 @@ Do NOT:
 
               // Log input audio events
               if (message.type === 'input_audio_buffer.speech_started') {
-                console.log('[VAD] speech started');
+                console.log('[USER AUDIO] speech started');
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
-                console.log('[VAD] speech stopped');
+                console.log('[USER AUDIO] speech stopped');
+              }
+              if (message.type === 'input_audio_buffer.committed') {
+                console.log('[USER AUDIO] committed:', message.transcript || 'null');
+              }
+              if (message.type === 'conversation.item.created') {
+                console.log('[USER ITEM] created:', message.item?.type || 'unknown');
+              }
+              if (message.type === 'conversation.item.done') {
+                console.log('[USER ITEM] done:', message.item?.type || 'unknown');
+              }
+              if (message.type === 'conversation.item.completed') {
+                console.log('[USER ITEM] completed:', message.item?.type || 'unknown');
               }
 
               // Listen for FINAL transcript events
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 const userTranscript = message.transcript || '';
+                console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                 console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
                 console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                 transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
@@ -2145,17 +2158,7 @@ Do NOT:
                   }
                 }
               }
-              if (message.type === 'conversation.item.input_audio_transcription.completed') {
-                console.log('[OPENAI RECV] conversation.item.input_audio_transcription.completed');
-                console.log('[FINAL USER TRANSCRIPT]:', message.transcript || 'null');
-                
-                // Store user transcript in transcript array
-                if (message.transcript) {
-                  console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: message.transcript });
-                  transcript.push({ role: 'user', text: message.transcript, timestamp: new Date().toISOString() });
-                }
-              }
-              if (message.type === 'conversation.item.output_audio_transcription.completed') {
+                            if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
                 
