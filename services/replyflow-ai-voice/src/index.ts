@@ -1121,6 +1121,15 @@ Return only JSON, no other text.`;
           }),
         });
 
+        // Log final transcript state before extraction
+        console.log('[FINAL TRANSCRIPT FOR EXTRACTION]', {
+          transcriptLength: transcript.length,
+          first10Entries: transcript.slice(0, 10).map(t => `${t.role}: ${t.text}`),
+          userEntries: transcript.filter(t => t.role === 'user').length,
+          assistantEntries: transcript.filter(t => t.role === 'assistant').length,
+          hasUserContent: transcript.some(t => t.role === 'user' && t.text.trim() !== '')
+        });
+
         const extractionData = await extractionResponse.json();
         console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
         
@@ -1895,6 +1904,25 @@ Do NOT:
               console.log('[OPENAI WS] message type', { type: message.type });
               console.log('[OPENAI WS] message payload', JSON.stringify(message, null, 2));
 
+              // Log ALL events containing input_audio, transcript, or transcription
+              if (message.type && (
+                message.type.includes('input_audio') ||
+                message.type.includes('transcript') ||
+                message.type.includes('transcription') ||
+                message.type.includes('conversation.item') ||
+                message.type.includes('response.')
+              )) {
+                console.log('[USER TRANSCRIPT EVENT]', {
+                  type: message.type,
+                  hasInputAudio: !!message.input_audio,
+                  hasTranscript: !!message.transcript,
+                  hasTranscription: !!message.transcription,
+                  hasContent: !!message.content,
+                  hasItem: !!message.item,
+                  item: message.item || null
+                });
+              }
+
               // Log input audio events
               if (message.type === 'input_audio_buffer.speech_started') {
                 console.log('[USER AUDIO] speech started');
@@ -1907,21 +1935,63 @@ Do NOT:
               }
               if (message.type === 'conversation.item.created') {
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
+                if (message.item?.type === 'user') {
+                  console.log('[USER TRANSCRIPT FOUND]', {
+                    eventType: 'conversation.item.created',
+                    itemType: message.item.type,
+                    hasContent: !!message.item.content,
+                    content: message.item.content || null,
+                    transcript: message.item.content?.[0]?.transcript || null
+                  });
+                }
               }
               if (message.type === 'conversation.item.done') {
                 console.log('[USER ITEM] done:', message.item?.type || 'unknown');
+                if (message.item?.type === 'user') {
+                  console.log('[USER TRANSCRIPT FOUND]', {
+                    eventType: 'conversation.item.done',
+                    itemType: message.item.type,
+                    hasContent: !!message.item.content,
+                    content: message.item.content || null,
+                    transcript: message.item.content?.[0]?.transcript || null
+                  });
+                }
               }
               if (message.type === 'conversation.item.completed') {
                 console.log('[USER ITEM] completed:', message.item?.type || 'unknown');
+                if (message.item?.type === 'user') {
+                  console.log('[USER TRANSCRIPT FOUND]', {
+                    eventType: 'conversation.item.completed',
+                    itemType: message.item.type,
+                    hasContent: !!message.item.content,
+                    content: message.item.content || null,
+                    transcript: message.item.content?.[0]?.transcript || null
+                  });
+                }
               }
 
               // Listen for FINAL transcript events
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 const userTranscript = message.transcript || '';
-                console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
-                console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
-                console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
-                transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                console.log('[USER TRANSCRIPTION COMPLETED]', {
+                  transcript: userTranscript,
+                  itemId: message.item_id,
+                  isEmpty: !userTranscript || userTranscript.trim() === ''
+                });
+                
+                if (userTranscript && userTranscript.trim() !== '') {
+                  console.log('[USER TRANSCRIPT FOUND]', userTranscript);
+                  console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                  console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
+                  console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                  transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                } else {
+                  console.log('[USER TRANSCRIPT MISSING]', {
+                    reason: 'transcript is null or empty',
+                    transcript: userTranscript,
+                    itemId: message.item_id
+                  });
+                }
                 
                 // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady) {
