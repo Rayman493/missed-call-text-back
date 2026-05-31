@@ -1578,22 +1578,9 @@ Return only JSON, no other text.`;
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
             
-            // Check if websocket is already open and send session.update immediately
-            if (openAiWs.readyState === WebSocket.OPEN) {
-              console.log('[OPENAI WEBSOCKET ALREADY OPEN] sending session.update immediately');
-              console.log('[DEBUG] about to call sendSessionUpdate');
+            // Define sendSessionUpdate helper function
+            const sendSessionUpdate = () => {
               console.log('[OPENAI SEND PATH ENTERED]');
-              console.log('[DEBUG] This is where session.update should be sent');
-              console.log('[DEBUG] But the actual send logic is missing - this is the bug!');
-              console.log('[DEBUG] Need to add session.update send logic here');
-            }
-            
-            openAiWs.on('open', () => {
-              console.log('[STREAM CLONED] OPEN event fired');
-              console.log('[OPENAI WEBSOCKET STATE] readyState:', openAiWs?.readyState, 'OPEN:', WebSocket.OPEN);
-              opened = true;
-              console.log('[OPENAI AUDIT] open listener attached');
-              console.log('[OPENAI RAW] open');
               console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
@@ -1711,7 +1698,6 @@ Do NOT:
                 }
               };
 
-              console.log('[OPENAI SEND PATH ENTERED]');
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
               console.log("[OPENAI SEND] session.update", JSON.stringify(sessionUpdatePayload, null, 2));
@@ -1723,6 +1709,25 @@ Do NOT:
               
               // Greeting will be sent after session.updated is received
               console.log('[SESSION] waiting for session.updated before sending greeting');
+            };
+            
+            // Check if websocket is already open and send session.update immediately
+            if (openAiWs.readyState === WebSocket.OPEN) {
+              console.log('[OPENAI WEBSOCKET ALREADY OPEN] sending session.update immediately');
+              try {
+                sendSessionUpdate();
+              } catch (err) {
+                console.error('[OPENAI SEND PATH ERROR]', err);
+              }
+            }
+            
+            openAiWs.on('open', () => {
+              console.log('[STREAM CLONED] OPEN event fired');
+              console.log('[OPENAI WEBSOCKET STATE] readyState:', openAiWs?.readyState, 'OPEN:', WebSocket.OPEN);
+              opened = true;
+              console.log('[OPENAI AUDIT] open listener attached');
+              console.log('[OPENAI RAW] open');
+              sendSessionUpdate();
             });
             console.log('[OPENAI AUDIT] open listener attached');
 
