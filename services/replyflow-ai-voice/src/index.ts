@@ -417,11 +417,11 @@ async function createFallbackLead(
       .from('leads')
       .upsert({
         business_id: businessId,
-        phone: callerPhone,
+        caller_phone: callerPhone,
         source: 'ai_voice_fallback',
         status: 'new',
       }, {
-        onConflict: 'business_id,phone',
+        onConflict: 'business_id,caller_phone',
       })
       .select()
       .single();
@@ -1185,11 +1185,10 @@ Return only JSON, no other text.`;
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
-            phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
-            name: extractedFields?.callerName || null,
+            caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
             status: 'new',
           }, {
-            onConflict: 'business_id,phone',
+            onConflict: 'business_id,caller_phone',
           })
           .select()
           .single();
@@ -1226,6 +1225,12 @@ Return only JSON, no other text.`;
         // Store lead and conversation IDs in AI session context for ingestion
         (ws as any).leadId = lead.id;
         (ws as any).conversationId = conversation.id;
+        console.log('[AI LEAD LINK]', {
+          leadId: lead.id,
+          conversationId: conversation.id,
+          callerPhone: sessionCallerPhone,
+          businessId: sessionBusinessId
+        });
         console.log('[AI SESSION LINKED IDS]', { 
           leadId: lead.id, 
           conversationId: conversation.id, 
@@ -2478,11 +2483,10 @@ Return only JSON, no other text.`;
                   .from('leads')
                   .upsert({
                     business_id: sessionBusinessId,
-                    phone: sessionCallerPhone,
-                    name: extractedFields?.callerName || null,
+                    caller_phone: sessionCallerPhone,
                     status: 'new',
                   }, {
-                    onConflict: 'business_id,phone',
+                    onConflict: 'business_id,caller_phone',
                   })
                   .select()
                   .single();
@@ -2725,10 +2729,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .from('leads')
                     .upsert({
                       business_id: sessionBusinessId,
-                      phone: sessionCallerPhone,
+                      caller_phone: sessionCallerPhone,
                       status: 'new',
                     }, {
-                      onConflict: 'business_id,phone',
+                      onConflict: 'business_id,caller_phone',
                     })
                     .select()
                     .single();
