@@ -1089,30 +1089,52 @@ Return only JSON, no other text.`;
         });
 
         const extractionData = await extractionResponse.json();
-        const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-        console.log('[AI EXTRACTION RESULT]', extractedFields);
+        console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
+        
+        let extractedFields;
+        try {
+          extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
+          console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
+        } catch (parseError) {
+          console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
+          console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback values');
+          // Create fallback extracted fields
+          extractedFields = {
+            callerName: null,
+            reasonForCalling: null,
+            urgencyLevel: null,
+            importantDetails: null,
+            addressOrLocation: null,
+            preferredCallbackTime: null,
+            summary: fullTranscript || 'AI call completed'
+          };
+        }
 
         // Create new AI call record
         console.log('[AI INGEST INSERT START] creating new AI call record...');
-        const { data: newRecord, error: newRecordError } = await supabase
-          .from('ai_call_records')
-          .insert({
+        const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: null, // Will be set after lead creation
             conversation_id: null, // Will be set after conversation creation
-            caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
-            call_sid: sessionCallSid,
-            transcript: transcript,
-          })
+            caller_phone: sessionCallerPhone || 'unknown',
+            call_sid: sessionCallSid || 'unknown',
+            transcript: Array.isArray(transcript) ? transcript : [],
+            outcome: 'completed',
+            extraction_failed: false
+          };
+        console.log('[AI CALL RECORD INSERT PAYLOAD]', mainInsertPayload);
+        const { data: newRecord, error: newRecordError } = await supabase
+          .from('ai_call_records')
+          .insert(mainInsertPayload)
           .select()
           .single();
 
         if (newRecordError) {
-          console.log('[AI INGEST FAILED] new AI call record creation error', newRecordError);
+          console.log('[AI CALL RECORD SAVE FAILED]', newRecordError);
           throw newRecordError;
         }
         
-        console.log('[AI INGEST INSERT SUCCESS] new AI call record created successfully', { recordId: newRecord.id });
+        console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: newRecord.id });
 
         // Upsert lead
         if (!supabase) {
@@ -1186,23 +1208,29 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST FAILED] extraction failed during creation, creating with transcript only', error);
         
         // Create with transcript only if extraction failed
-        const { data: fallbackRecord, error: fallbackError } = await supabase
-          .from('ai_call_records')
-          .insert({
+        const fallbackInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: null,
             conversation_id: null,
             caller_phone: sessionCallerPhone || 'unknown',
-            call_sid: sessionCallSid,
-            transcript: transcript,
-          })
+            call_sid: sessionCallSid || 'unknown',
+            transcript: Array.isArray(transcript) ? transcript : [],
+            outcome: 'unknown',
+            extracted_info: null,
+            summary: fullTranscript || 'AI call completed',
+            extraction_failed: true
+          };
+        console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+        const { data: fallbackRecord, error: fallbackError } = await supabase
+          .from('ai_call_records')
+          .insert(fallbackInsertPayload)
           .select()
           .single();
 
         if (fallbackError) {
-          console.log('[AI INGEST FAILED] fallback creation also failed', fallbackError);
+          console.log('[AI CALL RECORD SAVE FAILED]', fallbackError);
         } else {
-          console.log('[AI INGEST INSERT SUCCESS] fallback creation successful', { recordId: fallbackRecord.id });
+          console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: fallbackRecord.id });
         }
         return;
       }
@@ -2491,10 +2519,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   .insert(transcriptInsertPayload);
 
                 if (aiRecordError) {
-                  console.log('[AI INGEST] AI call record creation error', aiRecordError);
+                  console.log('[AI CALL RECORD SAVE FAILED]', aiRecordError);
                   // Don't throw here - the main ingestion succeeded
                 } else {
-                  console.log('[AI INGEST] AI call record created successfully');
+                  console.log('[AI CALL RECORD SAVE SUCCESS]');
                 }
                 
                 console.log('[AI INGEST COMPLETE] all data saved successfully');
