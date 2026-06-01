@@ -149,6 +149,19 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Voicemail recordings fetched:", voicemailRecordings?.length || 0)
 
+    // Fetch AI call records for this lead with RLS protection
+    const { data: aiCallRecords, error: aiCallError } = await supabase
+      .from("ai_call_records")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+
+    if (aiCallError) {
+      console.log("[lead-details API] AI call records error:", aiCallError)
+    }
+
+    console.log("[lead-details API] AI call records fetched:", aiCallRecords?.length || 0)
+
     // Fetch follow-up jobs for this lead with RLS protection
     const { data: followUpJobs } = await supabase
       .from("follow_up_jobs")
@@ -166,14 +179,15 @@ export async function GET(request: NextRequest) {
       messagesWithMedia.filter(m => m.media && m.media.length > 0).length)
 
     // Return enhanced response
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       lead: {
         ...lead,
         conversation,
         messages: messagesWithMedia,
         voicemailRecordings: voicemailRecordings || [],
-        followUpJobs: followUpJobs || []
+        followUpJobs: followUpJobs || [],
+        aiCallRecords: aiCallRecords || []
       }
     })
   } catch (error) {
