@@ -1525,10 +1525,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Phone</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
-                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
+                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                         <button
-                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
                           className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                           <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1536,9 +1536,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </svg>
                         </button>
                       )}
-                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                         <a
-                          href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                          href={`tel:${leadData?.phone_number || lead?.phone}`}
                           className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
                         >
                           <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1686,12 +1686,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
+              {/* Lead Details Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Lead Details</h3>
+                <div className="space-y-3">
+                  {leadData?.created_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Created</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
+                    </div>
+                  )}
+                  {leadData?.last_message_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Last Activity</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Messages</span>
+                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* AI Call Summary Card */}
               <AICallDetails
                 leadId={lead?.id || ''}
                 businessId={business?.id || ''}
                 conversationId={leadData?.conversation?.id}
-                callerPhone={leadData?.phone_number || lead?.caller_phone}
+                callerPhone={leadData?.phone_number || lead?.phone}
               />
 
               {/* Follow-Up Automation Card */}
@@ -1752,6 +1775,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+
+            {/* Automatic Follow-ups for Desktop */}
+            <div className="mt-6">
+              <AutomaticFollowUpsControl 
+                followUpJobs={followUpJobs} 
+                leadId={params.id}
+                onUpdate={() => {
+                  // Refresh lead data to show updated follow-ups
+                  getLeadDetails(params.id).then(setLeadData)
+                }}
+              />
+            </div>
         </div>
         )}
 
@@ -1759,6 +1794,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
         <div className="lg:hidden">
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
+            {/* Mobile Quick Actions Bar */}
+            <div className="border-b border-border/50 px-3 py-2.5 bg-background/50">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
+                  <a
+                    href={`tel:${leadData?.phone_number || lead?.phone}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+                    title="Call customer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                    </svg>
+                    <span>Call</span>
+                  </a>
+                )}
+                <button
+                  onClick={() => {
+                    const composer = document.querySelector('textarea')
+                    if (composer) composer.focus()
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
+                  title="Send text message"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03 8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Text</span>
+                </button>
+                <button
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full transition-colors border border-gray-200 dark:border-gray-800 flex-shrink-0"
+                  title="More actions"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                  <span>More</span>
+                </button>
+              </div>
+            </div>
             {/* Message Thread */}
             <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh - 280px)' }}>
               {loading ? (
@@ -1818,21 +1893,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Sticky Call Customer Button for Mobile */}
-          {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
-            <div className="lg:hidden fixed top-20 right-4 z-40">
-              <a
-                href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <span>Call</span>
-              </a>
-            </div>
-          )}
-
+          
           {/* Mobile Collapsible Sections */}
           <div className="mt-6 space-y-3">
             {/* Customer Information Section */}
@@ -1891,11 +1952,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Phone</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
                       {/* Copy Phone Button */}
-                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                         <button
-                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
                           className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                           <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1904,9 +1965,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </button>
                       )}
                       {/* Call Customer Button */}
-                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                         <a
-                          href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                          href={`tel:${leadData?.phone_number || lead?.phone}`}
                           className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
                         >
                           <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2111,7 +2172,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 leadId={lead?.id || ''}
                 businessId={business?.id || ''}
                 conversationId={leadData?.conversation?.id}
-                callerPhone={leadData?.phone_number || lead?.caller_phone}
+                callerPhone={leadData?.phone_number || lead?.phone}
               />
             </div>
 
@@ -2136,9 +2197,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {mobileActionsExpanded && (
                 <div className="px-4 pb-4 space-y-2">
                   {/* Call Customer Button */}
-                  {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                  {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                     <a
-                      href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                      href={`tel:${leadData?.phone_number || lead?.phone}`}
                       className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2150,9 +2211,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   
                   {/* Copy Buttons */}
                   <div className="grid grid-cols-2 gap-2">
-                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                    {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                       <button
-                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
                         className="px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

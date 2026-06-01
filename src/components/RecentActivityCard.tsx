@@ -108,7 +108,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             id: `voicemail-${voicemail.id}`,
             type: 'voicemail_received',
             title: 'Voicemail received',
-            description: `Voicemail from ${voicemail.caller_phone}`,
+            description: `Voicemail from ${voicemail.phone}`,
             timestamp: voicemail.created_at,
             icon: <Mic className="w-3 h-3" />,
             color: 'text-purple-600 dark:text-purple-400'

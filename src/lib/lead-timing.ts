@@ -56,8 +56,8 @@ export function getCustomerInfoForCopy(lead: any): string {
     parts.push(`Name: ${lead.contact_name}`);
   }
   
-  if (lead.caller_phone && lead.caller_phone !== '+10000000000') {
-    parts.push(`Phone: ${lead.caller_phone}`);
+  if (lead.phone && lead.phone !== '+10000000000') {
+    parts.push(`Phone: ${lead.phone}`);
   }
   
   if (lead.company_name) {

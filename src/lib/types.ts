@@ -82,7 +82,7 @@ export interface Business {
 export interface Lead {
   id: string;
   business_id: string;
-  caller_phone: string;
+  phone: string;
   status: string;
   first_contact_at: string | null;
   last_message_at: string | null;

@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       console.log('[demo-send-text] Creating new demo lead for phone:', demoPhone)
       demoLead = await db.createLead({
         business_id: business.id,
-        caller_phone: demoPhone,
+        phone: demoPhone,
         status: 'new',
         first_contact_at: new Date().toISOString(),
         last_message_at: null,

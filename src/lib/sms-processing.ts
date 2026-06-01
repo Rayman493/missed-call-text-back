@@ -96,7 +96,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log(`[SMS Processing] No existing lead, creating new lead`)
     lead = await db.createLead({
       business_id: business.id,
-      caller_phone: normalizedCustomerPhone,
+      phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
       first_contact_at: new Date().toISOString(),
       last_message_at: new Date().toISOString(),
@@ -159,7 +159,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[CONSENT] lead after update:`, {
         id: updatedLead.id,
         opted_out: updatedLead.opted_out,
-        caller_phone: updatedLead.caller_phone
+        phone: updatedLead.phone
       })
       lead = updatedLead
     } else {

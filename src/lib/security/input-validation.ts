@@ -25,7 +25,7 @@ export const emailSchema = z.string()
 // Lead-specific validation
 export const leadCreateSchema = z.object({
   business_id: uuidSchema,
-  caller_phone: phoneNumberSchema,
+  phone: phoneNumberSchema,
   status: z.enum(['new', 'contacted', 'qualified', 'closed', 'blocked']),
   first_contact_at: z.string().datetime().optional(),
   opted_out: z.boolean().default(false)

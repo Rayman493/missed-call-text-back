@@ -100,7 +100,7 @@ export const db = {
       .from('leads')
       .select('*')
       .in('business_id', businessIds)
-      .eq('caller_phone', phone)
+      .eq('phone', phone)
       .limit(1) // Get first match if multiple exist
       .single()
     
@@ -202,7 +202,7 @@ export const db = {
       .from('filtering_decision_logs')
       .select('*')
       .eq('business_id', businessId)
-      .eq('caller_phone', phoneNumber)
+      .eq('phone', phoneNumber)
       .eq('decision', 'allowed')
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
@@ -222,7 +222,7 @@ export const db = {
   // Smart filtering - create filtering decision log
   async createFilteringDecisionLog(logData: {
     business_id: string
-    caller_phone: string
+    phone: string
     call_sid?: string
     decision: string
     reason: string
@@ -611,7 +611,7 @@ export const db = {
       .from('leads')
       .select('*')
       .eq('business_id', businessId)
-      .eq('caller_phone', callerPhone)
+      .eq('phone', callerPhone)
       .single()
     
     if (error) {
@@ -660,7 +660,7 @@ export const db = {
     const { data, error } = await supabaseAdmin
       .from('leads')
       .upsert(lead, {
-        onConflict: 'business_id,caller_phone'
+        onConflict: 'business_id,phone'
       })
       .select()
       .single()
@@ -794,7 +794,7 @@ export const db = {
       .from('call_events')
       .select('*')
       .eq('business_id', businessId)
-      .eq('caller_phone', callerPhone)
+      .eq('phone', callerPhone)
       .order('created_at', { ascending: false })
     
     if (error) {

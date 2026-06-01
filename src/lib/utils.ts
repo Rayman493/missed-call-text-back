@@ -99,8 +99,8 @@ export function getLeadDisplayName(lead: any): string {
   }
 
   // Try formatted phone number
-  if (lead.customer_phone || lead.caller_phone) {
-    const phone = lead.customer_phone || lead.caller_phone
+  if (lead.customer_phone || lead.phone) {
+    const phone = lead.customer_phone || lead.phone
     const formatted = formatPhoneNumber(phone)
     if (formatted !== 'Latest Lead') {
       return formatted

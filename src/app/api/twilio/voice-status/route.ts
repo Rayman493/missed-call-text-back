@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
           .from("leads")
           .insert([{
             business_id: business.id,
-            caller_phone: normalizedCallerPhone,
+            phone: normalizedCallerPhone,
             status: 'new',
             first_contact_at: new Date().toISOString(),
             last_message_at: new Date().toISOString()

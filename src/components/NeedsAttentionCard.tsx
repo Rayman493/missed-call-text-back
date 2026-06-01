@@ -36,7 +36,7 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
         // Check for leads awaiting response
         const { data: awaitingLeads } = await supabase
           .from('leads')
-          .select('id, caller_phone, created_at, messages')
+          .select('id, phone, created_at, messages')
           .eq('business_id', business.id)
           .is('last_message_at', null)
 
@@ -57,7 +57,7 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
         const { data: recentReplies } = await supabase
           .from('messages')
-          .select('lead_id, created_at, leads!inner(caller_phone)')
+          .select('lead_id, created_at, leads!inner(phone)')
           .eq('business_id', business.id)
           .eq('direction', 'inbound')
           .gte('created_at', twentyFourHoursAgo)
@@ -69,7 +69,7 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
           items.push({
             type: 'customer_replied',
             title: 'Customer Replied',
-            description: `${formatRelativeTime(reply.created_at)} from ${formatPhoneNumber(reply.leads.caller_phone)}`,
+            description: `${formatRelativeTime(reply.created_at)} from ${formatPhoneNumber(reply.leads.phone)}`,
             priority: 'medium',
             link: `/dashboard/leads/${reply.lead_id}`,
             linkText: 'View Conversation'

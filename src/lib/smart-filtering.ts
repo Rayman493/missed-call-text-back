@@ -319,7 +319,7 @@ async function logFilteringDecision(
   try {
     await db.createFilteringDecisionLog({
       business_id: businessId,
-      caller_phone: callerPhone,
+      phone: callerPhone,
       call_sid: callSid,
       decision,
       reason,

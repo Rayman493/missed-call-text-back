@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       console.log('[VOICEMAIL] No existing lead found, creating new lead')
       lead = await db.createLead({
         business_id: business.id,
-        caller_phone: normalizedCallerPhone,
+        phone: normalizedCallerPhone,
         status: 'new',
         first_contact_at: new Date().toISOString(),
         last_message_at: null,
