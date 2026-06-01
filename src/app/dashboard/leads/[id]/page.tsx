@@ -112,6 +112,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
   const [mobileInternalNotesExpanded, setMobileInternalNotesExpanded] = useState(false)
+  const latestMessageRef = useRef<HTMLDivElement>(null)
   const [mobileLeadHealthExpanded, setMobileLeadHealthExpanded] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
   
@@ -1298,117 +1299,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Conversation Thread - Conditional Rendering */}
+      {/* Conversation Thread - CSS-based Layout */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
-        {!isMobileView ? (
-          /* Desktop Layout - 2 Column */
-          <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
-            {/* Mobile Quick Actions Bar */}
-            <div className="border-b border-border/50 px-3 py-2.5 bg-background/50">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                <button
-                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
-                  title="Call customer"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                  </svg>
-                  <span>Call</span>
-                </button>
-                <button
-                  onClick={() => {
-                    const composer = document.querySelector('textarea')
-                    if (composer) composer.focus()
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
-                  title="Send text message"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03 8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <span>Text</span>
-                </button>
-                <button
-                  onClick={() => setShowCustomerInfoModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full transition-colors border border-gray-200 dark:border-gray-800 flex-shrink-0"
-                  title="Add note"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <span>Note</span>
-                </button>
-                <button
-                  onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full transition-colors border border-gray-200 dark:border-gray-800 flex-shrink-0"
-                  title="Lead details"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Details</span>
-                </button>
-              </div>
-            </div>
-            
-            {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-3 sm:p-4 lg:p-5 overflow-y-auto scroll-smooth pb-4" style={{ minHeight: '200px', maxHeight: 'calc(100dvh - 320px)' }}>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : messagesArray.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-                    Start the conversation
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    Send your first message to connect with this customer.
-                  </p>
-                </div>
-              ) : (
-                <MobileConversationMessageList
-                  messagesArray={messagesArray}
-                  conversationTimeline={conversationTimeline}
-                  sending={sending}
-                  handleRetry={handleRetry}
-                  getErrorMessage={getErrorMessage}
-                  onImageLoad={handleImageLoad}
-                />
-              )}
-            </div>
-
-            {/* Send Message Input */}
-            <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
-              <MobileConversationComposer
-                message={message}
-                setMessage={setMessage}
-                handleSendMessage={handleSendMessage}
-                sending={sending}
-              />
-            </div>
-            {error && (
-              <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
-                error.includes('verification') || error.includes('carrier')
-                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-              }`}>
-                <p>{error}</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Desktop Layout - 2 Column */
-          <div className="hidden lg:flex gap-6">
-            {/* Left Column - Conversation (70%) */}
-            <div className="flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
-              {/* Quick Actions Bar */}
+        
+        {/* Desktop Layout */}
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+          {/* Desktop Conversation Section */}
+          <section className="flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
+            <div className="bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col flex-1">
+              {/* Desktop Quick Actions Bar */}
               <div className="border-b border-border/50 px-4 sm:px-5 lg:px-6 py-3 bg-background/50">
                 <div className="flex items-center gap-2">
                   <button
@@ -1423,41 +1322,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                   <button
                     onClick={() => {
-                      const composer = document.querySelector('textarea')
-                      if (composer) composer.focus()
+                      const phone = leadData?.phone_number || lead?.phone
+                      if (phone) {
+                        copyToClipboard(phone)
+                      }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
-                    title="Send text message"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors"
+                    title="Copy phone number"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span className="hidden sm:inline">Send Text</span>
-                  </button>
-                  <button
-                    onClick={() => setShowCustomerInfoModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors border border-gray-200 dark:border-gray-800"
-                    title="Add note"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span className="hidden sm:inline">Add Note</span>
-                  </button>
-                  <button
-                    disabled={true}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/20 text-gray-400 dark:text-gray-600 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-800 cursor-not-allowed"
-                    title="Coming Soon"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="hidden sm:inline">Follow-Up</span>
+                    <span className="hidden sm:inline">Copy</span>
                   </button>
                 </div>
               </div>
-              {/* Message Thread */}
-              <div ref={conversationContainerRef} className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden scroll-smooth">
+              
+              {/* Desktop Message Thread */}
+              <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth flex-1" style={{ minHeight: '200px' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1466,820 +1348,267 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="text-center py-8 sm:py-12 animate-fadeIn">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
                       <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
-                    <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-                      Start the conversation
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                      Send your first message to connect with this customer.
-                    </p>
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No messages yet</h3>
+                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
                   </div>
                 ) : (
-                  <DesktopConversationMessageList
-                    messagesArray={messagesArray}
-                    conversationTimeline={conversationTimeline}
-                    sending={sending}
-                    handleRetry={handleRetry}
-                    getErrorMessage={getErrorMessage}
-                    onImageLoad={handleImageLoad}
-                  />
+                  <div className="space-y-4 sm:space-y-6">
+                    {messagesArray.map((message: any, index: number) => {
+                      const isLatest = index === messagesArray.length - 1
+                      return (
+                        <div
+                          key={message.id}
+                          ref={isLatest ? latestMessageRef : null}
+                          className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
+                        >
+                          <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-2xl px-4 py-3 shadow-sm`}>
+                            <p className={`text-sm sm:text-base ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
+                            <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
+                              {formatRelativeTime(message.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
-
-              {/* Send Message Input */}
-              <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
-                <ConversationComposer
-                  message={message}
-                  setMessage={setMessage}
-                  handleSendMessage={handleSendMessage}
-                  sending={sending}
-                />
-              </div>
-              {error && (
-                <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
-                  error.includes('verification') || error.includes('carrier')
-                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-                }`}>
-                  <p>{error}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column - Full Lead Panel (30%) */}
-            <div className="flex-[0.3] overflow-y-auto space-y-4" data-sidebar>
-              {/* Customer Details Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
-                  <button
-                    onClick={() => setShowCustomerInfoModal(true)}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
-                  >
-                    Edit
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Phone</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
-                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                        <button
-                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
-                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      )}
-                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                        <a
-                          href={`tel:${leadData?.phone_number || lead?.phone}`}
-                          className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
-                        >
-                          <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {(() => {
-                    const leadTiming = calculateLeadTiming(leadData || lead);
-                    return (
-                      <div className="space-y-2">
-                        {leadTiming.lastContacted && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Last Contact</span>
-                            <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
-                          </div>
-                        )}
-                        {leadTiming.lastResponse && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Last Response</span>
-                            <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                  {leadData?.contact_name && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Name</span>
-                      <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
-                    </div>
-                  )}
-                  {leadData?.company_name && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Company</span>
-                      <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
-                    </div>
-                  )}
-                  {leadData?.tags && leadData.tags.length > 0 && (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Tags</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {leadData.tags.map((tag: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {leadData?.notes && (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Notes</span>
-                      <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
-                    </div>
-                  )}
-
-                  <div className="pt-3 border-t border-border">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
-                        className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy Customer Info
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
-                        className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Copy Summary
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Internal Notes Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
-                </div>
-                <div className="space-y-3">
+              
+              {/* Desktop Message Composer */}
+              <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
+                <div className="flex gap-3">
                   <textarea
-                    value={internalNotes}
-                    onChange={(e) => setInternalNotes(e.target.value)}
-                    onBlur={handleSaveNotes}
-                    placeholder="Add internal notes about this lead..."
-                    className="w-full min-h-[100px] p-3 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a message..."
+                    className="flex-1 min-h-[60px] max-h-[120px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    rows={2}
                   />
-                  <p className="text-xs text-slate-400">Notes are internal only - not sent to customer</p>
-                </div>
-              </div>
-
-              {/* Lead Health Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Lead Health</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Source</span>
-                    <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Status</span>
-                    <div className="flex-shrink-0">
-                      <LeadStatusDropdown 
-                        currentStatus={leadData?.status || 'new'} 
-                        onStatusChange={async (newStatus) => {
-                          // Handle status change if needed
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Follow-up Status</span>
-                    <span className="text-sm font-medium text-foreground">
-                      {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
-                       followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
-                       'None'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Messages</span>
-                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Voicemails</span>
-                    <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
-                  </div>
-                  {leadData?.last_message_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Last Activity</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Lead Details Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Lead Details</h3>
-                <div className="space-y-3">
-                  {leadData?.created_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Created</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
-                    </div>
-                  )}
-                  {leadData?.last_message_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Last Activity</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Messages</span>
-                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Call Summary Card */}
-              <AICallDetails
-                leadId={lead?.id || ''}
-                businessId={business?.id || ''}
-                conversationId={leadData?.conversation?.id}
-                callerPhone={leadData?.phone_number || lead?.phone}
-              />
-
-              {/* Follow-Up Automation Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Up Automation</h3>
-                <div className="space-y-3">
-                  {followUpJobs?.find((job: any) => job.status === 'pending') ? (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Next Follow-Up</span>
-                        <span className="text-sm font-medium text-foreground">
-                          {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
-                        </span>
-                      </div>
-                      <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                        Edit Follow-Ups
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-center py-2">
-                        <p className="text-xs text-muted-foreground">No active follow-ups</p>
-                      </div>
-                      <button className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors">
-                        Configure Follow-Ups
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions Card */}
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
-                <div className="space-y-2">
                   <button
-                    onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    onClick={handleSendMessage}
+                    disabled={!message.trim() || sending}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
                   >
-                    Call Lead
-                  </button>
-                  <button
-                    onClick={() => setShowLeadInfo(true)}
-                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
-                  >
-                    View Full Details
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Mark Closed
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Block Contact
+                    {sending ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        <span className="hidden sm:inline">Send</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             </div>
-
-            {/* Automatic Follow-ups for Desktop */}
+          </section>
+          
+          {/* Desktop Sidebar */}
+          <aside className="space-y-4 overflow-y-auto max-h-[calc(100vh-320px)]" data-sidebar>
+            {/* DEBUG MARKER - DESKTOP SIDEBAR ACTIVE */}
+            <div className="bg-red-500 text-white p-2 text-xs font-bold rounded">
+              DESKTOP SIDEBAR ACTIVE
+            </div>
+            
+            {/* Customer Details Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Phone</span>
+                  <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <span className={`text-sm font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
+                    {leadData?.status || lead?.status || 'New'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Internal Notes Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Internal Notes</h3>
+              <textarea
+                placeholder="Add internal notes..."
+                className="w-full min-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Lead Health Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                </div>
+                <span className="text-sm font-medium text-foreground">75%</span>
+              </div>
+            </div>
+            
+            {/* Actions Card */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Call Lead
+                </button>
+                <button
+                  className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Mark Closed
+                </button>
+              </div>
+            </div>
+            
+            {/* Automatic Follow-ups */}
             <div className="mt-6">
               <AutomaticFollowUpsControl 
                 followUpJobs={followUpJobs} 
                 leadId={params.id}
                 onUpdate={() => {
-                  // Refresh lead data to show updated follow-ups
                   getLeadDetails(params.id).then(setLeadData)
                 }}
               />
             </div>
+          </aside>
         </div>
-        )}
-
-        {/* Mobile Layout - Single Column */}
-        {isMobileView && (
-        <div className="lg:hidden">
-          <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
-            {/* Mobile Quick Actions Bar */}
-            <div className="border-b border-border/50 px-3 py-2.5 bg-background/50">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                  <a
-                    href={`tel:${leadData?.phone_number || lead?.phone}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
-                    title="Call customer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                    </svg>
-                    <span>Call</span>
-                  </a>
-                )}
-                <button
-                  onClick={() => {
-                    const composer = document.querySelector('textarea')
-                    if (composer) composer.focus()
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
-                  title="Send text message"
+        
+        {/* Mobile Layout */}
+        <div className="lg:hidden space-y-4">
+          {/* Mobile Quick Actions */}
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
+                <a
+                  href={`tel:${leadData?.phone_number || lead?.phone}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+                  title="Call customer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03 8 9-8s9 3.582 9 8z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                   </svg>
-                  <span>Text</span>
-                </button>
-                <button
-                  onClick={() => setShowMoreActions(!showMoreActions)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full transition-colors border border-gray-200 dark:border-gray-800 flex-shrink-0"
-                  title="More actions"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                  <span>More</span>
-                </button>
-              </div>
-            </div>
-            {/* Message Thread */}
-            <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh - 280px)' }}>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : messagesArray.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-                    Start the conversation
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    Send your first message to connect with this customer.
-                  </p>
-                </div>
-              ) : (
-                <MobileConversationMessageList
-                  messagesArray={messagesArray}
-                  conversationTimeline={conversationTimeline}
-                  sending={sending}
-                  handleRetry={handleRetry}
-                  getErrorMessage={getErrorMessage}
-                  onImageLoad={handleImageLoad}
-                />
+                  <span>Call</span>
+                </a>
               )}
+              <button
+                onClick={() => {
+                  const composer = document.querySelector('textarea')
+                  if (composer) composer.focus()
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
+                title="Send text message"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Text</span>
+              </button>
+              <button
+                onClick={() => setShowLeadInfo(!showLeadInfo)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-full transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
+                title="More actions"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+                <span>More</span>
+              </button>
             </div>
-
-            {/* Send Message Input */}
-            <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
-              <MobileConversationComposer
-                message={message}
-                setMessage={setMessage}
-                handleSendMessage={handleSendMessage}
-                sending={sending}
-              />
-            </div>
-            {error && (
-              <div className={`text-sm p-3 rounded-lg border mx-4 mb-3 ${
-                error.includes('verification') || error.includes('carrier')
-                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-              }`}>
-                <p>{error}</p>
+          </div>
+          
+          {/* Mobile Message Thread */}
+          <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : messagesArray.length === 0 ? (
+              <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No messages yet</h3>
+                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+                {messagesArray.map((message: any, index: number) => {
+                  const isLatest = index === messagesArray.length - 1
+                  return (
+                    <div
+                      key={message.id}
+                      ref={isLatest ? latestMessageRef : null}
+                      className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
+                    >
+                      <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-2xl px-4 py-3 shadow-sm`}>
+                        <p className={`text-sm sm:text-base ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
+                        <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
+                          {formatRelativeTime(message.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
-
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-              <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
-            </div>
-          )}
-
           
-          {/* Mobile Collapsible Sections */}
-          <div className="mt-6 space-y-3">
-            {/* Customer Information Section */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <button
-                onClick={() => setMobileCustomerExpanded(!mobileCustomerExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowCustomerInfoModal(true)
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
-                  >
-                    Edit
-                  </button>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    mobileCustomerExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileCustomerExpanded && (
-                <div className="px-4 pb-4 space-y-3">
-                  {leadData?.contact_name ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Name</span>
-                      <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Name</span>
-                      <span className="text-sm text-muted-foreground">Not set</span>
-                    </div>
-                  )}
-                  {leadData?.company_name ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Company</span>
-                      <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Company</span>
-                      <span className="text-sm text-muted-foreground">Not set</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Phone</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
-                      {/* Copy Phone Button */}
-                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                        <button
-                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
-                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      )}
-                      {/* Call Customer Button */}
-                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                        <a
-                          href={`tel:${leadData?.phone_number || lead?.phone}`}
-                          className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
-                        >
-                          <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Last Contact/Last Response Times */}
-                  {(() => {
-                    const leadTiming = calculateLeadTiming(leadData || lead);
-                    return (
-                      <div className="space-y-2">
-                        {leadTiming.lastContacted && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Last Contact</span>
-                            <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
-                          </div>
-                        )}
-                        {leadTiming.lastResponse && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Last Response</span>
-                            <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                  {leadData?.tags && leadData.tags.length > 0 ? (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Tags</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {leadData.tags.map((tag: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Tags</span>
-                      <span className="text-sm text-muted-foreground">None</span>
-                    </div>
-                  )}
-                  {leadData?.notes ? (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Notes</span>
-                      <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Notes</span>
-                      <span className="text-sm text-muted-foreground">None</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Internal Notes Section */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <button
-                onClick={() => setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    mobileInternalNotesExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileInternalNotesExpanded && (
-                <div className="px-4 pb-4 space-y-3">
-                  <textarea
-                    value={internalNotes}
-                    onChange={(e) => setInternalNotes(e.target.value)}
-                    onBlur={handleSaveNotes}
-                    placeholder="Add internal notes about this lead..."
-                    className="w-full min-h-[80px] p-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    rows={3}
-                  />
-                  <p className="text-xs text-slate-400">Notes are internal only - not sent to customer</p>
-                </div>
-              )}
-            </div>
-
-            {/* Lead Details Section */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <button
-                onClick={() => setMobileLeadDetailsExpanded(!mobileLeadDetailsExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-              >
-                <h3 className="text-sm font-semibold text-foreground">Lead Details</h3>
-                <svg
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    mobileLeadDetailsExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileLeadDetailsExpanded && (
-                <div className="px-4 pb-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Status</span>
-                    <div className="flex-shrink-0">
-                      <LeadStatusDropdown 
-                        currentStatus={leadData?.status || 'new'} 
-                        onStatusChange={async (newStatus) => {
-                          // Handle status change if needed
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {leadData?.created_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Created</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.created_at)}</span>
-                    </div>
-                  )}
-                  {leadData?.last_message_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Last Activity</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Messages</span>
-                    <span className="text-sm text-foreground">{messagesArray.length}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Lead Health Section */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <button
-                onClick={() => setMobileLeadHealthExpanded(!mobileLeadHealthExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-              >
-                <h3 className="text-sm font-semibold text-foreground">Lead Health</h3>
-                <svg
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    mobileLeadHealthExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileLeadHealthExpanded && (
-                <div className="px-4 pb-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Source</span>
-                    <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Follow-up Status</span>
-                    <span className="text-sm font-medium text-foreground">
-                      {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
-                       followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
-                       'None'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Messages</span>
-                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Voicemails</span>
-                    <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
-                  </div>
-                  {leadData?.last_message_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Last Activity</span>
-                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* AI Call Details Section */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <AICallDetails
-                leadId={lead?.id || ''}
-                businessId={business?.id || ''}
-                conversationId={leadData?.conversation?.id}
-                callerPhone={leadData?.phone_number || lead?.phone}
+          {/* Mobile Message Composer */}
+          <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
+            <div className="flex gap-3">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message..."
+                className="flex-1 min-h-[60px] max-h-[120px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                rows={2}
               />
-            </div>
-
-            {/* Actions Section */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <button
-                onClick={() => setMobileActionsExpanded(!mobileActionsExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+                onClick={handleSendMessage}
+                disabled={!message.trim() || sending}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
               >
-                <h3 className="text-sm font-semibold text-foreground">Actions</h3>
-                <svg
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    mobileActionsExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileActionsExpanded && (
-                <div className="px-4 pb-4 space-y-2">
-                  {/* Call Customer Button */}
-                  {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                    <a
-                      href={`tel:${leadData?.phone_number || lead?.phone}`}
-                      className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      Call Customer
-                    </a>
-                  )}
-                  
-                  {/* Copy Buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                      <button
-                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.phone, 'Phone number copied')}
-                        className="px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy Phone
-                      </button>
-                    )}
-                    <button
-                      onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
-                      className="px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy Info
-                    </button>
-                  </div>
-                  
-                  {/* Copy Summary Button */}
-                  <button
-                    onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
-                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
+                {sending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-                    Copy Summary
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowLeadInfo(true)}
-                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
-                  >
-                    View Full Details
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Mark Closed
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Block Contact
-                  </button>
-                </div>
-              )}
+                    <span className="hidden sm:inline">Send</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-
+          
           {/* Automatic Follow-ups */}
           <div className="mt-6 sm:mt-8 lg:mt-10">
             <AutomaticFollowUpsControl 
               followUpJobs={followUpJobs} 
               leadId={params.id}
               onUpdate={() => {
-                // Refresh lead data to show updated follow-ups
                 getLeadDetails(params.id).then(setLeadData)
               }}
             />
           </div>
         </div>
-        )}
       </div>
-
+          /* Desktop Layout - 2 Column */
       {/* Mobile Bottom Sheet for Lead Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
@@ -2686,3 +2015,4 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     </main>
   )
 }
+

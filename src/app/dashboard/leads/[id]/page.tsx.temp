@@ -1,0 +1,26 @@
+// This is a temporary file to hold the corrected JSX structure
+
+// The broken conditional structure needs to be replaced with:
+{!isMobileView ? (
+  <>
+    {/* Desktop Layout - 2 Column */}
+    <div className="hidden lg:flex gap-6">
+      {/* Left Column - Conversation (70%) */}
+      <div className="flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
+        {/* Desktop content here */}
+      </div>
+      
+      {/* Right Column - Full Lead Panel (30%) */}
+      <div className="flex-[0.3] overflow-y-auto space-y-4" data-sidebar>
+        {/* Desktop sidebar content here */}
+      </div>
+    </div>
+  </>
+) : (
+  <>
+    {/* Mobile Layout - Single Column */}
+    <div className="lg:hidden">
+      {/* Mobile content here */}
+    </div>
+  </>
+)}

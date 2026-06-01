@@ -45,8 +45,82 @@ import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 
+// Helper to normalize phone number for deduplication
+function normalizePhoneNumber(phone: string): string {
+  if (!phone) return ''
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '')
+  // Handle country code (assume US format)
+  if (digits.length === 10) {
+    return digits
+  } else if (digits.length === 11 && digits.startsWith('1')) {
+    return digits.substring(1)
+  }
+  return digits
+}
+
+// Helper to merge duplicate leads by phone number
+function mergeDuplicateLeads(leads: any[]): any[] {
+  const mergedLeads = new Map()
+  
+  for (const lead of leads) {
+    const normalizedPhone = normalizePhoneNumber(lead.phone || '')
+    const key = `${lead.business_id}_${normalizedPhone}`
+    
+    if (!mergedLeads.has(key)) {
+      // First occurrence, store as-is
+      mergedLeads.set(key, { ...lead })
+    } else {
+      // Merge with existing lead
+      const existing = mergedLeads.get(key)
+      
+      // Prefer Active status over New
+      const existingStatus = existing.status || 'new'
+      const newStatus = lead.status || 'new'
+      const preferredStatus = (existingStatus === 'active' && newStatus === 'new') ? 'active' : newStatus
+      
+      // Use latest activity timestamp
+      const existingActivity = getLatestActivity(existing)
+      const newActivity = getLatestActivity(lead)
+      const latestActivity = new Date(newActivity) > new Date(existingActivity) ? newActivity : existingActivity
+      
+      // Merge messages
+      const existingMessages = existing.messages || []
+      const newMessages = lead.messages || []
+      const allMessages = [...existingMessages, ...newMessages]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      
+      // Merge other fields, preferring the most recent/complete data
+      mergedLeads.set(key, {
+        ...existing,
+        ...lead,
+        status: preferredStatus,
+        last_activity_at: latestActivity,
+        messages: allMessages,
+        // Keep the most recent created_at for sorting
+        created_at: new Date(lead.created_at) > new Date(existing.created_at) ? lead.created_at : existing.created_at,
+        // Merge message counts
+        message_count: (existing.message_count || 0) + (lead.message_count || 0),
+        // Preserve AI summary if available
+        ai_summary: existing.ai_summary || lead.ai_summary,
+        // Preserve conversation ID if available
+        conversation_id: existing.conversation_id || lead.conversation_id,
+        // Use best available name
+        name: lead.name || existing.name,
+        // Use best available phone
+        phone: lead.phone || existing.phone,
+        // Use best available source
+        source: lead.source || existing.source
+      })
+    }
+  }
+  
+  return Array.from(mergedLeads.values())
+}
+
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
+  if (lead.last_activity_at) return lead.last_activity_at
   if (lead.last_message_at) return lead.last_message_at
   if (lead.first_contact_at) return lead.first_contact_at
   return lead.created_at
@@ -140,7 +214,18 @@ export default function LeadsPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setLeads(data || [])
+      
+      // Deduplicate leads by normalized phone number
+      const deduplicatedLeads = mergeDuplicateLeads(data || [])
+      
+      // Sort by latest activity
+      deduplicatedLeads.sort((a, b) => {
+        const aActivity = getLatestActivity(a)
+        const bActivity = getLatestActivity(b)
+        return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+      })
+      
+      setLeads(deduplicatedLeads)
 
       // Fetch missed call count
       const { count } = await supabase
@@ -170,26 +255,58 @@ export default function LeadsPage() {
   useRealtimeLeads(
     business?.id,
     (newLead) => {
-      setLeads(prev => [newLead, ...prev].slice(0, 100)) // Keep only latest 100
+      setLeads(prev => {
+        // Add new lead and re-deduplicate
+        const updatedLeads = [newLead, ...prev]
+        const deduplicated = mergeDuplicateLeads(updatedLeads)
+        // Sort by latest activity
+        deduplicated.sort((a, b) => {
+          const aActivity = getLatestActivity(a)
+          const bActivity = getLatestActivity(b)
+          return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+        })
+        return deduplicated.slice(0, 100) // Keep only latest 100
+      })
     },
     (newMessage) => {
-      // Update lead when new message arrives
-      setLeads(prev => prev.map(lead => {
-        if (lead.id === newMessage.lead_id) {
-          return {
-            ...lead,
-            messages: [...(lead.messages || []), newMessage],
-            last_message_at: newMessage.created_at
+      setLeads(prev => {
+        // Update lead when new message arrives and re-deduplicate
+        const updatedLeads = prev.map(lead => {
+          if (lead.id === newMessage.lead_id) {
+            return {
+              ...lead,
+              messages: [...(lead.messages || []), newMessage],
+              last_message_at: newMessage.created_at,
+              last_activity_at: newMessage.created_at
+            }
           }
-        }
-        return lead
-      }))
+          return lead
+        })
+        const deduplicated = mergeDuplicateLeads(updatedLeads)
+        // Sort by latest activity
+        deduplicated.sort((a, b) => {
+          const aActivity = getLatestActivity(a)
+          const bActivity = getLatestActivity(b)
+          return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+        })
+        return deduplicated
+      })
     },
     (updatedLead) => {
-      // Update lead when it changes
-      setLeads(prev => prev.map(lead => 
-        lead.id === updatedLead.id ? updatedLead : lead
-      ))
+      setLeads(prev => {
+        // Update lead when it changes and re-deduplicate
+        const updatedLeads = prev.map(lead => 
+          lead.id === updatedLead.id ? updatedLead : lead
+        )
+        const deduplicated = mergeDuplicateLeads(updatedLeads)
+        // Sort by latest activity
+        deduplicated.sort((a, b) => {
+          const aActivity = getLatestActivity(a)
+          const bActivity = getLatestActivity(b)
+          return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+        })
+        return deduplicated
+      })
     }
   )
 

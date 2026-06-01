@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       .from('leads')
       .select('*')
       .eq('business_id', business.id)
-      .eq('caller_phone', demoPhone)
+      .eq('phone', demoPhone)
       .limit(1)
       .single()
     
