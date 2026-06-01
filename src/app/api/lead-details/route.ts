@@ -150,17 +150,58 @@ export async function GET(request: NextRequest) {
     console.log("[lead-details API] Voicemail recordings fetched:", voicemailRecordings?.length || 0)
 
     // Fetch AI call records for this lead with RLS protection
-    const { data: aiCallRecords, error: aiCallError } = await supabase
+    console.log("[AI DETAILS FETCH START]", {
+      leadId: leadId,
+      businessId: lead.business_id,
+      callerPhone: lead.caller_phone
+    })
+
+    let aiCallRecords: any[] | null = null
+    let aiCallError: any = null
+
+    // First try by lead_id
+    const { data: aiCallRecordsByLead, error: aiCallErrorByLead } = await supabase
       .from("ai_call_records")
       .select("*")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
 
-    if (aiCallError) {
-      console.log("[lead-details API] AI call records error:", aiCallError)
+    console.log("[AI DETAILS FETCH BY LEAD RESULT]", {
+      count: aiCallRecordsByLead?.length || 0
+    })
+
+    if (!aiCallErrorByLead && aiCallRecordsByLead && aiCallRecordsByLead.length > 0) {
+      aiCallRecords = aiCallRecordsByLead
+    } else {
+      // Fallback to business_id + caller_phone lookup
+      console.log("[AI DETAILS FETCH BY PHONE FALLBACK START]")
+      const { data: aiCallRecordsByPhone, error: aiCallErrorByPhone } = await supabase
+        .from("ai_call_records")
+        .select("*")
+        .eq("business_id", lead.business_id)
+        .eq("caller_phone", lead.caller_phone)
+        .order("created_at", { ascending: false })
+
+      console.log("[AI DETAILS FETCH BY PHONE FALLBACK RESULT]", {
+        count: aiCallRecordsByPhone?.length || 0,
+        error: aiCallErrorByPhone?.message || 'none'
+      })
+
+      if (!aiCallErrorByPhone) {
+        aiCallRecords = aiCallRecordsByPhone
+        aiCallError = null
+      } else {
+        aiCallError = aiCallErrorByPhone
+      }
     }
 
-    console.log("[lead-details API] AI call records fetched:", aiCallRecords?.length || 0)
+    if (aiCallRecords && aiCallRecords.length > 0) {
+      console.log("[AI DETAILS SELECTED RECORD]", {
+        recordId: aiCallRecords[0].id,
+        summaryExists: !!aiCallRecords[0].summary,
+        extractedInfoExists: !!aiCallRecords[0].extracted_info
+      })
+    }
 
     // Fetch follow-up jobs for this lead with RLS protection
     const { data: followUpJobs } = await supabase
