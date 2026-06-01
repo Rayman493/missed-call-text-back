@@ -251,6 +251,63 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* Why does the text come from a different number? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Why does the text come from a different number?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  ReplyFlow provides a <strong>dedicated messaging line</strong> so conversations remain organized and customers can continue texting you after the missed call. Your existing business phone number remains unchanged.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Organized conversations</strong> - All customer messages go to one dedicated number for easy management
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Continuous conversation</strong> - Customers can reply and continue the conversation even after the initial missed call
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                      <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Your number stays the same</strong> - Your business phone number doesn't change, customers still call you at the same number
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Tip:</strong> The ReplyFlow messaging number appears in customer text conversations, but your business number remains unchanged for all incoming calls.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Is ReplyFlow TCPA compliant? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">

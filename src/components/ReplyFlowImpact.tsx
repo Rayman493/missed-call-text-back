@@ -118,7 +118,7 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
         </div>
       ) : (
         <div className="text-xs text-muted-foreground mt-2">
-          No activity yet - metrics will appear once you receive missed calls
+          No missed calls yet. Metrics will appear automatically when customers call.
         </div>
       )}
     </div>

@@ -1319,7 +1319,7 @@ export default function SettingsContent() {
                       </div>
                       <h3 className="text-[9px] sm:text-[10px] font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
                       <p className="text-[9px] text-slate-600 dark:text-muted-foreground max-w-[200px] mx-auto">
-                        Add employee, vendor, or spam numbers to prevent unwanted leads.
+                        Employee and vendor numbers will appear here when added.
                       </p>
                     </div>
                   ) : (

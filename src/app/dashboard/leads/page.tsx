@@ -20,6 +20,8 @@ import {
   truncateText, 
   getLeadStatusColor
 } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/clipboard'
+import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { 
   getSubscriptionStatusText, 
   isInTrialPeriod, 
@@ -803,6 +805,9 @@ export default function LeadsPage() {
                     const isUnread = hasUnread(lead.id)
                     const needsResponse = needsResponseCheck(lead.id)
 
+                    // Calculate lead timing
+                    const leadTiming = calculateLeadTiming(lead)
+
                     // Check if this is the newest lead (within 24 hours)
                     const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
@@ -864,8 +869,21 @@ export default function LeadsPage() {
                                   )}
                                 </div>
                                 
-                                {/* Time */}
-                                <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground/70 mb-2">{formatRelativeTime(lastActivity)}</p>
+                                {/* Last Contact/Last Response Times */}
+                                <div className="flex flex-wrap gap-3 mb-2 text-xs sm:text-sm">
+                                  {leadTiming.lastContacted && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-slate-500 dark:text-muted-foreground/70">Last Contact:</span>
+                                      <span className="text-slate-700 dark:text-foreground font-medium">{leadTiming.lastContacted}</span>
+                                    </div>
+                                  )}
+                                  {leadTiming.lastResponse && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-slate-500 dark:text-muted-foreground/70">Last Response:</span>
+                                      <span className="text-slate-700 dark:text-foreground font-medium">{leadTiming.lastResponse}</span>
+                                    </div>
+                                  )}
+                                </div>
                                 
                                 {/* Message Preview */}
                                 {latestMessage && (
@@ -881,10 +899,43 @@ export default function LeadsPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusClasses}`}>
-                              {statusBadge}
-                            </span>
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusClasses}`}>
+                                {statusBadge}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {/* Call Customer Button */}
+                              {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+                                <a
+                                  href={`tel:${lead.caller_phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                                >
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                  </svg>
+                                  <span className="hidden sm:inline">Call</span>
+                                </a>
+                              )}
+                              
+                              {/* Copy Phone Button */}
+                              {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(lead.caller_phone, 'Phone number copied');
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                                >
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                  <span className="hidden sm:inline">Copy</span>
+                                </button>
+                              )}
+                            </div>
                             <div className="text-blue-400 hover:text-blue-300 text-sm sm:text-base font-medium whitespace-nowrap">
                               View →
                             </div>

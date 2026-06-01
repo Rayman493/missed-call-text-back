@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { copyToClipboard } from '@/lib/clipboard'
+import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -1522,8 +1524,53 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Phone</span>
-                  <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                    {/* Copy Phone Button */}
+                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      <button
+                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Call Customer Button */}
+                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      <a
+                        href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                        className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
+                      >
+                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Last Contact/Last Response Times */}
+                {(() => {
+                  const leadTiming = calculateLeadTiming(leadData || lead);
+                  return (
+                    <div className="space-y-2">
+                      {leadTiming.lastContacted && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Last Contact</span>
+                          <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
+                        </div>
+                      )}
+                      {leadTiming.lastResponse && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Last Response</span>
+                          <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {leadData?.contact_name && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Name</span>
@@ -1554,6 +1601,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
                   </div>
                 )}
+
+                {/* Copy Actions */}
+                <div className="pt-3 border-t border-border">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
+                      className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy Customer Info
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
+                      className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Copy Summary
+                    </button>
+                  </div>
+                </div>
 
                 {/* Internal Notes Section */}
                 <div className="pt-3 border-t border-border">
@@ -1754,6 +1825,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          {/* Sticky Call Customer Button for Mobile */}
+          {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+            <div className="lg:hidden fixed top-20 right-4 z-40">
+              <a
+                href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span>Call</span>
+              </a>
+            </div>
+          )}
+
           {/* Mobile Collapsible Sections */}
           <div className="mt-6 space-y-3">
             {/* Customer Information Section */}
@@ -1811,8 +1897,53 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Phone</span>
-                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                      {/* Copy Phone Button */}
+                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                        <button
+                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      )}
+                      {/* Call Customer Button */}
+                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                        <a
+                          href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                          className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
+                        >
+                          <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Last Contact/Last Response Times */}
+                  {(() => {
+                    const leadTiming = calculateLeadTiming(leadData || lead);
+                    return (
+                      <div className="space-y-2">
+                        {leadTiming.lastContacted && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Last Contact</span>
+                            <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
+                          </div>
+                        )}
+                        {leadTiming.lastResponse && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Last Response</span>
+                            <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {leadData?.tags && leadData.tags.length > 0 ? (
                     <div>
                       <span className="text-xs text-muted-foreground">Tags</span>
@@ -2011,12 +2142,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
               {mobileActionsExpanded && (
                 <div className="px-4 pb-4 space-y-2">
+                  {/* Call Customer Button */}
+                  {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                    <a
+                      href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                      className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      Call Customer
+                    </a>
+                  )}
+                  
+                  {/* Copy Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                      <button
+                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                        className="px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy Phone
+                      </button>
+                    )}
+                    <button
+                      onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
+                      className="px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy Info
+                    </button>
+                  </div>
+                  
+                  {/* Copy Summary Button */}
                   <button
-                    onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
+                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
-                    Call Lead
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Copy Summary
                   </button>
+                  
                   <button
                     onClick={() => setShowLeadInfo(true)}
                     className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"

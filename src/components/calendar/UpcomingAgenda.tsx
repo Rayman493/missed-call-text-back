@@ -75,7 +75,8 @@ export default function UpcomingAgenda({ events, maxEvents = 5 }: UpcomingAgenda
           Upcoming Events
         </h3>
         <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">No upcoming events scheduled</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">No upcoming events</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Appointments and reminders will appear here.</p>
         </div>
       </div>
     )

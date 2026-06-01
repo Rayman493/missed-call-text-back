@@ -743,6 +743,208 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
+      {/* Why Businesses Choose ReplyFlow - Trust Section */}
+      <HomepageErrorBoundary>
+        <section className="bg-white dark:bg-background py-16 border-t border-slate-200 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
+                Why Businesses Choose ReplyFlow
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
+                The trusted solution for missed call recovery and lead capture
+              </p>
+            </div>
+
+            {/* Desktop 3x2 Grid Layout */}
+            <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6 mb-8">
+              {/* Works with your existing phone number */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Works with your existing phone number</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Keep the number your customers already know.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* No app required */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">No app required</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Customers simply call your business as normal.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Setup in under 5 minutes */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Setup in under 5 minutes</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Get started quickly with guided onboarding.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 14-day free trial */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">14-day free trial</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Try ReplyFlow risk-free before subscribing.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI-powered call intake */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered call intake</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information when you're unavailable.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Automatic lead capture */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Automatic lead capture</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Missed calls become organized leads automatically.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Stacked Cards */}
+            <div className="lg:hidden space-y-4">
+              {/* Works with your existing phone number */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Works with your existing phone number</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Keep the number your customers already know.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* No app required */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">No app required</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Customers simply call your business as normal.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Setup in under 5 minutes */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Setup in under 5 minutes</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Get started quickly with guided onboarding.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 14-day free trial */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">14-day free trial</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Try ReplyFlow risk-free before subscribing.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI-powered call intake */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered call intake</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information when you're unavailable.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Automatic lead capture */}
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Automatic lead capture</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Missed calls become organized leads automatically.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </HomepageErrorBoundary>
+
       
       {/* Final CTA Section */}
       <HomepageErrorBoundary>

@@ -156,9 +156,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="text-center py-8">
           <MessageCircle className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No AI Call Record Available</h3>
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No AI call records yet</h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            This lead doesn't have any AI call records available.
+            When AI handles a call, summaries and caller information will appear here.
           </p>
         </div>
       </div>
@@ -169,54 +169,76 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-6">
-      {/* AI Summary Card */}
+      {/* AI Summary Card - Redesigned */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Call Summary</h3>
+        {/* AI Status Badge */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+              {aiCallRecord.outcome === 'completed' ? 'AI Intake Complete' : 'AI Summary Available'}
+            </span>
+            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
             {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
           </span>
         </div>
-        
-        <div className="space-y-4">
-          {/* Generated Summary */}
+
+        {/* Structured Information Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          {/* Customer Section */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Summary</h4>
-            <p className="text-gray-600 dark:text-gray-400">
-              {extractedInfo?.summary || aiCallRecord.summary || 'No summary available'}
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Customer</h4>
+            <p className="text-base font-medium text-gray-900 dark:text-white">
+              {extractedInfo?.callerName || 'Not Provided'}
             </p>
           </div>
 
-          {/* Call Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Duration</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{calculateCallDuration()}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Call Time</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatRelativeTime(aiCallRecord.created_at)}
-                </p>
-              </div>
-            </div>
+          {/* Service Requested Section */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Service Requested</h4>
+            <p className="text-base font-medium text-gray-900 dark:text-white">
+              {extractedInfo?.reasonForCalling || 'Not Provided'}
+            </p>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">From</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatPhoneNumber(aiCallRecord.caller_phone)}
-                </p>
-              </div>
+          {/* Urgency Section */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Urgency</h4>
+            <div className="flex items-center">
+              {extractedInfo?.urgencyLevel ? (
+                <>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-2 ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                    {extractedInfo.urgencyLevel}
+                  </span>
+                  <span className="text-base font-medium text-gray-900 dark:text-white">
+                    {extractedInfo.urgencyLevel === 'urgent' ? 'Urgent' : extractedInfo.urgencyLevel === 'normal' ? 'Not Urgent' : extractedInfo.urgencyLevel}
+                  </span>
+                </>
+              ) : (
+                <span className="text-base font-medium text-gray-500 dark:text-gray-400">Unknown</span>
+              )}
             </div>
           </div>
+
+          {/* Call Time Section */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Call Time</h4>
+            <p className="text-base font-medium text-gray-900 dark:text-white">
+              {formatRelativeTime(aiCallRecord.created_at)}
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Summary</h4>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            {extractedInfo?.summary || aiCallRecord.summary || 'No summary available'}
+          </p>
         </div>
       </div>
 
