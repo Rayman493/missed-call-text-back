@@ -1411,11 +1411,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Desktop Sidebar */}
           <aside className="space-y-4 overflow-y-auto max-h-[calc(100vh-320px)]" data-sidebar>
-            {/* DEBUG MARKER - DESKTOP SIDEBAR ACTIVE */}
-            <div className="bg-red-500 text-white p-2 text-xs font-bold rounded">
-              DESKTOP SIDEBAR ACTIVE
-            </div>
-            
             {/* Customer Details Card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
@@ -1592,6 +1587,74 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className="hidden sm:inline">Send</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+          
+          {/* AI Intake Summary Card */}
+          {leadData?.ai_summary != null && business?.id && (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">AI Intake Summary</h3>
+              <AICallDetails 
+                leadId={params.id}
+                businessId={business.id}
+                conversationId={leadData?.conversation_id}
+                callerPhone={leadData?.phone_number || lead?.phone}
+              />
+            </div>
+          )}
+          
+          {/* Customer Details Card */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Phone</span>
+                <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <span className={`text-sm font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
+                  {leadData?.status || lead?.status || 'New'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Internal Notes Card */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Internal Notes</h3>
+            <textarea
+              placeholder="Add internal notes..."
+              className="w-full min-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          {/* Lead Health Card */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+              </div>
+              <span className="text-sm font-medium text-foreground">75%</span>
+            </div>
+          </div>
+          
+          {/* Actions Card */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Call Lead
+              </button>
+              <button
+                className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
+              >
+                Mark Closed
               </button>
             </div>
           </div>
