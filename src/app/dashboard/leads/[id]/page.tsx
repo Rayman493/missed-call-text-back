@@ -1405,7 +1405,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         ) : (
           /* Desktop Layout - 2 Column */
-          <div className="flex gap-6">
+          <div className="hidden lg:flex gap-6">
             {/* Left Column - Conversation (70%) */}
             <div className="flex-[0.7] bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
               {/* Quick Actions Bar */}
@@ -1490,7 +1490,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Send Message Input */}
               <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
-                <MobileConversationComposer
+                <ConversationComposer
                   message={message}
                   setMessage={setMessage}
                   handleSendMessage={handleSendMessage}
@@ -1508,257 +1508,250 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Right Column - Simplified Lead Panel (30%) */}
-            <div className="flex-[0.3] overflow-y-auto space-y-2" data-sidebar>
-            {/* Customer Information Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
-                <button
-                  onClick={() => setShowCustomerInfoModal(true)}
-                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
-                >
-                  Edit
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Phone</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
-                    {/* Copy Phone Button */}
-                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+            {/* Right Column - Full Lead Panel (30%) */}
+            <div className="flex-[0.3] overflow-y-auto space-y-4" data-sidebar>
+              {/* Customer Details Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
+                  <button
+                    onClick={() => setShowCustomerInfoModal(true)}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Phone</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.caller_phone)}</span>
+                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                        <button
+                          onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
+                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      )}
+                      {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
+                        <a
+                          href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
+                          className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
+                        >
+                          <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {(() => {
+                    const leadTiming = calculateLeadTiming(leadData || lead);
+                    return (
+                      <div className="space-y-2">
+                        {leadTiming.lastContacted && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Last Contact</span>
+                            <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
+                          </div>
+                        )}
+                        {leadTiming.lastResponse && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Last Response</span>
+                            <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {leadData?.contact_name && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Name</span>
+                      <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
+                    </div>
+                  )}
+                  {leadData?.company_name && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Company</span>
+                      <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
+                    </div>
+                  )}
+                  {leadData?.tags && leadData.tags.length > 0 && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Tags</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {leadData.tags.map((tag: string, index: number) => (
+                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {leadData?.notes && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Notes</span>
+                      <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-border">
+                    <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={() => copyToClipboard(leadData?.phone_number || lead?.caller_phone, 'Phone number copied')}
-                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
+                        className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                       >
-                        <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
+                        Copy Customer Info
                       </button>
-                    )}
-                    {/* Call Customer Button */}
-                    {(leadData?.phone_number || lead?.caller_phone) && (leadData?.phone_number || lead?.caller_phone) !== '+10000000000' && (
-                      <a
-                        href={`tel:${leadData?.phone_number || lead?.caller_phone}`}
-                        className="p-1 rounded bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
+                      <button
+                        onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
+                        className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                       >
-                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                      </a>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Last Contact/Last Response Times */}
-                {(() => {
-                  const leadTiming = calculateLeadTiming(leadData || lead);
-                  return (
-                    <div className="space-y-2">
-                      {leadTiming.lastContacted && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Last Contact</span>
-                          <span className="text-sm font-medium text-foreground">{leadTiming.lastContacted}</span>
-                        </div>
-                      )}
-                      {leadTiming.lastResponse && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Last Response</span>
-                          <span className="text-sm font-medium text-foreground">{leadTiming.lastResponse}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-                {leadData?.contact_name && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Name</span>
-                    <span className="text-sm font-medium text-foreground">{leadData.contact_name}</span>
-                  </div>
-                )}
-                {leadData?.company_name && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Company</span>
-                    <span className="text-sm font-medium text-foreground">{leadData.company_name}</span>
-                  </div>
-                )}
-                {leadData?.tags && leadData.tags.length > 0 && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Tags</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {leadData.tags.map((tag: string, index: number) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 text-xs rounded-full">
-                          {tag}
-                        </span>
-                      ))}
+                        Copy Summary
+                      </button>
                     </div>
                   </div>
-                )}
-                {leadData?.notes && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Notes</span>
-                    <p className="text-sm text-foreground mt-1 line-clamp-3">{leadData.notes}</p>
-                  </div>
-                )}
-
-                {/* Copy Actions */}
-                <div className="pt-3 border-t border-border">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => copyToClipboard(getCustomerInfoForCopy(leadData || lead), 'Customer info copied')}
-                      className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy Customer Info
-                    </button>
-                    <button
-                      onClick={() => copyToClipboard(getAISummaryForCopy(leadData || lead), 'Summary copied')}
-                      className="flex-1 min-w-[120px] px-3 py-2 border border-border hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Copy Summary
-                    </button>
-                  </div>
                 </div>
+              </div>
 
-                {/* Internal Notes Section */}
-                <div className="pt-3 border-t border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground font-medium">Internal Notes</span>
-                  </div>
+              {/* Internal Notes Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
+                </div>
+                <div className="space-y-3">
                   <textarea
                     value={internalNotes}
                     onChange={(e) => setInternalNotes(e.target.value)}
                     onBlur={handleSaveNotes}
                     placeholder="Add internal notes about this lead..."
-                    className="w-full min-h-[80px] p-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    rows={3}
+                    className="w-full min-h-[100px] p-3 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={4}
                   />
-                  <p className="text-xs text-slate-400 mt-1">Notes are internal only - not sent to customer</p>
+                  <p className="text-xs text-slate-400">Notes are internal only - not sent to customer</p>
                 </div>
-                {!leadData?.contact_name && !leadData?.company_name && !leadData?.tags && !leadData?.notes && (
-                  <div className="text-center py-2">
-                    <p className="text-xs text-muted-foreground">No customer details added yet.</p>
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Lead Health Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Lead Health</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Source</span>
-                  <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Status</span>
-                  <div className="flex-shrink-0">
-                    <LeadStatusDropdown 
-                      currentStatus={leadData?.status || 'new'} 
-                      onStatusChange={async (newStatus) => {
-                        // Handle status change if needed
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Follow-up Status</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
-                     followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
-                     'None'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Messages</span>
-                  <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Voicemails</span>
-                  <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
-                </div>
-                {leadData?.last_message_at && (
+              {/* Lead Health Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Lead Health</h3>
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Last Activity</span>
-                    <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
+                    <span className="text-xs text-muted-foreground">Source</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* AI Call Details */}
-            <AICallDetails
-              leadId={lead?.id || ''}
-              businessId={business?.id || ''}
-              conversationId={leadData?.conversation?.id}
-              callerPhone={leadData?.phone_number || lead?.caller_phone}
-            />
-
-            {/* Follow-Up Automation Section */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Up Automation</h3>
-              <div className="space-y-3">
-                {followUpJobs?.find((job: any) => job.status === 'pending') ? (
-                  <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <div className="flex-shrink-0">
+                      <LeadStatusDropdown 
+                        currentStatus={leadData?.status || 'new'} 
+                        onStatusChange={async (newStatus) => {
+                          // Handle status change if needed
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Follow-up Status</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
+                       followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
+                       'None'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Messages</span>
+                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Voicemails</span>
+                    <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
+                  </div>
+                  {leadData?.last_message_at && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Next Follow-Up</span>
-                      <span className="text-sm font-medium text-foreground">
-                        {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Last Activity</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
                     </div>
-                    <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                      Edit Follow-Ups
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-center py-2">
-                      <p className="text-xs text-muted-foreground">No active follow-ups</p>
-                    </div>
-                    <button className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors">
-                      Configure Follow-Ups
-                    </button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Actions Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Call Lead
-                </button>
-                <button
-                  onClick={() => setShowLeadInfo(true)}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
-                >
-                  View Full Details
-                </button>
-                <button
-                  className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Mark Closed
-                </button>
-                <button
-                  className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Block Contact
-                </button>
+              {/* AI Call Summary Card */}
+              <AICallDetails
+                leadId={lead?.id || ''}
+                businessId={business?.id || ''}
+                conversationId={leadData?.conversation?.id}
+                callerPhone={leadData?.phone_number || lead?.caller_phone}
+              />
+
+              {/* Follow-Up Automation Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Follow-Up Automation</h3>
+                <div className="space-y-3">
+                  {followUpJobs?.find((job: any) => job.status === 'pending') ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Next Follow-Up</span>
+                        <span className="text-sm font-medium text-foreground">
+                          {formatRelativeTime(followUpJobs.find((job: any) => job.status === 'pending').scheduled_at)}
+                        </span>
+                      </div>
+                      <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        Edit Follow-Ups
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center py-2">
+                        <p className="text-xs text-muted-foreground">No active follow-ups</p>
+                      </div>
+                      <button className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors">
+                        Configure Follow-Ups
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions Card */}
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
+                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Call Lead
+                  </button>
+                  <button
+                    onClick={() => setShowLeadInfo(true)}
+                    className="w-full px-3 py-2 border border-border hover:bg-muted text-foreground text-sm font-medium rounded-lg transition-colors"
+                  >
+                    View Full Details
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 border border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Mark Closed
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Block Contact
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
         </div>
         )}
 

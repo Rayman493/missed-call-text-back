@@ -163,7 +163,7 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 }
 
 function generateConfirmationMessage(intake: IntakeData): string {
-  console.log('[CONFIRMATION GENERATION] Creating confirmation message with collected data:', {
+  console.log('[CONFIRMATION GENERATED] Creating confirmation message with collected data:', {
     callerName: intake.callerName,
     callerReason: intake.callerReason,
     urgency: intake.urgency,
@@ -184,7 +184,8 @@ The project is ${urgency}.
 
 Is that correct?`;
 
-  console.log('[CONFIRMATION GENERATION] Generated confirmation:', confirmation);
+  console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
+  console.log('[CONFIRMATION GENERATED] confirmationState: pending');
   return confirmation;
 }
 
@@ -231,7 +232,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'confirmation':
       // Generate confirmation message with collected information
       const confirmationMessage = generateConfirmationMessage(intake);
-      console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmationMessage);
+      console.log('[CONFIRMATION RESPONSE SENT] Sending confirmation message to caller');
+      console.log('[CONFIRMATION RESPONSE SENT] confirmationState: pending_user_response');
       return {
         response: confirmationMessage,
         nextStage: 'complete'
@@ -1892,13 +1894,14 @@ STOP asking questions once you have enough actionable information:
 CORE INFO IS ENOUGH when the business can realistically follow up confidently. Do not keep asking optional questions.
 
 CALL ENDING SEQUENCE:
-Once you have enough useful information, naturally end the call:
+Once you have enough useful information, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
-2. Do NOT ask any more questions after the closing message.
-3. Stop talking after the closing message.
+1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're looking for help with [reason]. The project is [urgency]. Is that correct?"
+2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
+3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
+4. Do NOT ask any more questions after the final goodbye.
 
-EXAMPLE CLOSING: "Got it — I'll pass this along and someone will follow up with you. Thanks for calling, have a great day."
+IMPORTANT: You MUST get confirmation before the final goodbye. Do not skip the confirmation step.
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -2127,14 +2130,17 @@ Do NOT:
                 
                 // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady) {
-                  console.log('[AI INTAKE STAGE] current stage:', intakeData.stage);
+                  console.log('[INTAKE COMPLETION CHECK] Processing intake stage:', intakeData.stage);
+                  console.log('[INTAKE COMPLETION CHECK] User transcript:', userTranscript);
+                  console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
                   
                   // Special handling for confirmation stage
                   if (intakeData!.stage === 'confirmation' && userTranscript) {
-                    console.log('[CONFIRMATION PROCESSING] Checking user response:', userTranscript);
+                    console.log('[CONFIRMATION REQUIRED] Processing user response for confirmation:', userTranscript);
                     
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
+                      console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
                       console.log('[FINAL GOODBYE SENT] Sending final goodbye message');
                       
                       // Send final goodbye message
@@ -2148,18 +2154,28 @@ Do NOT:
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(goodbyeMessage));
                         console.log('[FINAL GOODBYE SENT] Goodbye message sent to OpenAI');
+                        console.log('[FINAL GOODBYE SENT] finalGoodbyeSent: true');
                       }
                       
                       // Schedule auto-hangup after goodbye message
                       console.log('[AUTO HANGUP SCHEDULED] Goodbye sent, scheduling hangup in 3 seconds');
+                      console.log('[AUTO HANGUP SCHEDULED] callSid:', (ws as any).callSid);
+                      console.log('[AUTO HANGUP SCHEDULED] sessionId:', (ws as any).sessionId);
+                      console.log('[AUTO HANGUP SCHEDULED] businessId:', (ws as any).businessId);
+                      console.log('[AUTO HANGUP SCHEDULED] confirmationState: accepted');
+                      console.log('[AUTO HANGUP SCHEDULED] hangupScheduled:', hangupScheduled);
+                      console.log('[AUTO HANGUP SCHEDULED] finalGoodbyeSent: true');
                       
                       setTimeout(async () => {
-                        console.log('[AUTO HANGUP EXECUTED] 3 seconds elapsed after goodbye, executing hangup');
+                        console.log('[AUTO HANGUP EXECUTING] 3 seconds elapsed after goodbye, executing hangup');
+                        console.log('[AUTO HANGUP EXECUTING] callSid:', (ws as any).callSid);
+                        console.log('[AUTO HANGUP EXECUTING] sessionId:', (ws as any).sessionId);
+                        console.log('[AUTO HANGUP EXECUTING] businessId:', (ws as any).businessId);
                         if (!hangupExecuted) {
                           hangupExecuted = true;
                           try {
                             await endCallCleanly(ws, twilioHandler);
-                            console.log('[AUTO HANGUP EXECUTED] Call termination completed after goodbye');
+                            console.log('[AUTO HANGUP SUCCESS] Call termination completed after goodbye');
                           } catch (error) {
                             console.log('[AUTO HANGUP FAILED] Error during hangup after goodbye:', error);
                           }
@@ -2173,6 +2189,7 @@ Do NOT:
                       return; // Skip the normal intake processing
                     } else {
                       console.log('[CONFIRMATION REJECTED] User did not confirm, asking for clarification');
+                      console.log('[CONFIRMATION REJECTED] confirmationState: rejected');
                       // Handle rejection - could ask for clarification or repeat
                       const clarificationMessage = {
                         type: 'response.create',
@@ -2183,6 +2200,7 @@ Do NOT:
                       
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(clarificationMessage));
+                        console.log('[CONFIRMATION REJECTED] Clarification message sent');
                       }
                       return; // Skip the normal intake processing
                     }
@@ -2213,42 +2231,21 @@ Do NOT:
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
                   
-                  // If intake is complete, save the lead summary and schedule hangup
+                  // Runtime guard: DO NOT allow final goodbye without confirmation
                   if (intakeData!.stage === 'complete' && !hangupScheduled) {
-                    console.log('[AUTO HANGUP CONDITIONS MET] Intake stage is complete, initiating auto-hangup sequence');
-                    console.log('[AUTO HANGUP CONDITIONS MET] Current state:', {
-                      stage: intakeData!.stage,
-                      hangupScheduled: hangupScheduled,
-                      hangupExecuted: hangupExecuted,
-                      callSid: (ws as any).callSid,
-                      businessId: (ws as any).businessId,
-                      sessionId: (ws as any).sessionId
-                    });
-                    hangupScheduled = true;
+                    console.log('[INTAKE COMPLETION CHECK] Intake marked as complete, checking if confirmation was received');
+                    console.log('[INTAKE COMPLETION CHECK] confirmationAccepted:', 'NOT_TRACKED');
+                    console.log('[INTAKE COMPLETION CHECK] This should not happen - confirmation must be processed first');
                     
-                    const leadSummary = generateLeadSummary(intakeData!);
-                    saveLeadSummary(leadSummary);
-                    console.log('[AUTO HANGUP CONDITIONS MET] intake complete, summary saved');
+                    // This should not happen - confirmation must be processed first
+                    // If we reach here, it means the AI bypassed confirmation
+                    console.log('[CONFIRMATION REQUIRED] Runtime guard activated - confirmation required before final goodbye');
+                    console.log('[CONFIRMATION REQUIRED] Forcing confirmation state instead of completion');
                     
-                    // Schedule auto-hangup after closing message
-                    console.log('[AUTO HANGUP SCHEDULED] Closing message sent, scheduling hangup in 3 seconds');
-                    console.log('[AUTO HANGUP SCHEDULED] Will terminate call in 3 seconds');
+                    // Force back to confirmation state
+                    intakeData!.stage = 'confirmation';
+                    return; // Skip any further processing
                     
-                    setTimeout(async () => {
-                      console.log('[AUTO HANGUP EXECUTED] 3 seconds elapsed, checking hangup execution');
-                      if (!hangupExecuted) {
-                        console.log('[AUTO HANGUP EXECUTED] Proceeding with hangup execution');
-                        hangupExecuted = true;
-                        try {
-                          await endCallCleanly(ws, twilioHandler);
-                          console.log('[AUTO HANGUP EXECUTED] Call termination function completed');
-                        } catch (error) {
-                          console.log('[AUTO HANGUP FAILED] Error during hangup execution:', error);
-                        }
-                      } else {
-                        console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
-                      }
-                    }, 3000); // 3 second delay
                   } else if (intakeData!.stage === 'complete' && hangupScheduled) {
                     console.log('[AUTO HANGUP SKIPPED] Hangup already scheduled for this call');
                   }
