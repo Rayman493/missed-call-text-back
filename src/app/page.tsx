@@ -261,19 +261,19 @@ export default async function Home() {
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Keep Your Existing Number</span>
+                    <span className="leading-none">Keep Your Existing Number</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Setup In Under 5 Minutes</span>
+                    <span className="leading-none">Setup In Under 5 Minutes</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>No Contracts</span>
+                    <span className="leading-none">No Contracts</span>
                   </div>
                 </div>
               </div>
@@ -285,19 +285,19 @@ export default async function Home() {
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>14-Day Free Trial</span>
+                    <span className="leading-none">14-Day Free Trial</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>No Contracts</span>
+                    <span className="leading-none">No Contracts</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>Keep Your Existing Number</span>
+                    <span className="leading-none">Keep Your Existing Number</span>
                   </div>
                 </div>
               </div>
@@ -969,7 +969,7 @@ export default async function Home() {
                   href="/demo"
                   className="h-14 px-8 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-semibold rounded-xl shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg border border-blue-200 dark:border-blue-800"
                 >
-                  Book Demo
+                  Watch Demo
                 </Link>
               </div>
               
