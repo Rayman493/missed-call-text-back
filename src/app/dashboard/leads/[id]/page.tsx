@@ -1608,7 +1608,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-          /* Desktop Layout - 2 Column */
+          {/* Desktop Layout - 2 Column */}
       {/* Mobile Bottom Sheet for Lead Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
