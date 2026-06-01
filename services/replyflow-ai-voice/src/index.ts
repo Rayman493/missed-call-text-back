@@ -204,7 +204,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       
     case 'complete':
       return {
-        response: 'Perfect, thanks. I\'ll pass this along to the team and someone will follow up shortly.',
+        response: 'Got it — I\'ll pass this along and someone will follow up with you. Thanks for calling, have a great day.',
         nextStage: 'complete'
       };
       
@@ -888,33 +888,72 @@ const server = createServer((req, res) => {
 
 // Clean call ending function
 async function endCallCleanly(ws: any, twilioHandler: any) {
+  console.log('[AI CALL HANGUP INITIATED] Starting call termination process');
+  
   try {
     const callSid = (ws as any).callSid;
     const businessId = (ws as any).businessId;
     
+    console.log('[AI CALL HANGUP VERIFICATION] Checking required parameters', {
+      hasCallSid: !!callSid,
+      hasBusinessId: !!businessId,
+      callSid: callSid || 'missing',
+      businessId: businessId || 'missing'
+    });
+    
     if (!callSid) {
-      console.log('[AI CALL HANGUP FAILED] No callSid available');
+      console.log('[AI CALL HANGUP FAILED] No callSid available for hangup');
       return;
     }
     
-    // Use Twilio REST API to end the call
+    // Verify Twilio client availability
     const twilioClient = (twilioHandler as any).twilioClient;
+    console.log('[AI CALL HANGUP VERIFICATION] Checking Twilio client availability', {
+      hasTwilioClient: !!twilioClient,
+      twilioClientType: typeof twilioClient
+    });
+    
     if (twilioClient && callSid) {
-      await twilioClient.calls(callSid).update({ status: 'completed' });
-      console.log('[AI CALL HANGUP SUCCESS]', { 
+      console.log('[AI CALL HANGUP EXECUTING] Using Twilio REST API to terminate call', {
+        callSid,
+        method: 'REST API calls.update',
+        targetStatus: 'completed'
+      });
+      
+      // Execute the hangup
+      const updateResult = await twilioClient.calls(callSid).update({ status: 'completed' });
+      
+      console.log('[AI CALL HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
         callSid,
         method: 'REST API',
+        resultStatus: updateResult.status,
         timestamp: new Date().toISOString()
       });
+      
+      // Verify the call status changed
+      if (updateResult.status === 'completed') {
+        console.log('[AI CALL HANGUP VERIFIED] Call status confirmed as completed');
+      } else {
+        console.log('[AI CALL HANGUP WARNING] Call status not confirmed as completed', {
+          actualStatus: updateResult.status
+        });
+      }
+      
     } else {
       // Fallback: close the WebSocket connection
-      console.log('[AI CALL HANGUP FAILED] Twilio client not available, closing WebSocket');
+      console.log('[AI CALL HANGUP FAILED] Twilio client not available, using WebSocket fallback');
+      console.log('[AI CALL HANGUP FALLBACK] Closing WebSocket connection');
       ws.close();
+      console.log('[AI CALL HANGUP FALLBACK] WebSocket closed');
     }
   } catch (error) {
-    console.log('[AI CALL HANGUP FAILED]', { 
+    console.log('[AI CALL HANGUP FAILED] Exception during call termination', { 
       error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      callSid: (ws as any).callSid,
+      businessId: (ws as any).businessId
     });
   }
 }
@@ -971,6 +1010,8 @@ wss.on('connection', (ws, req) => {
     let callSid: string = '';
     let forwardedFrom: string = '';
     let callOutcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' = 'completed';
+    let hangupScheduled = false;
+    let hangupExecuted = false;
 
     // Ingestion function to save call data - moved to correct scope
     const ingestCallData = async () => {
@@ -2034,11 +2075,35 @@ Do NOT:
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
                   
-                  // If intake is complete, save the lead summary
-                  if (intakeData!.stage === 'complete') {
+                  // If intake is complete, save the lead summary and schedule hangup
+                  if (intakeData!.stage === 'complete' && !hangupScheduled) {
+                    console.log('[AI CALL COMPLETE DETECTED] Intake stage is complete, initiating auto-hangup sequence');
+                    hangupScheduled = true;
+                    
                     const leadSummary = generateLeadSummary(intakeData!);
                     saveLeadSummary(leadSummary);
                     console.log('[AI INTAKE] intake complete, summary saved');
+                    
+                    // Schedule auto-hangup after closing message
+                    console.log('[AI CLOSING MESSAGE DETECTED] Closing message sent, scheduling hangup in 3 seconds');
+                    console.log('[AI HANGUP SCHEDULED] Will terminate call in 3 seconds');
+                    
+                    setTimeout(async () => {
+                      if (!hangupExecuted) {
+                        console.log('[AI HANGUP EXECUTING] 3 seconds elapsed, executing hangup');
+                        hangupExecuted = true;
+                        try {
+                          await endCallCleanly(ws, twilioHandler);
+                          console.log('[AI HANGUP SUCCESS] Call terminated successfully');
+                        } catch (error) {
+                          console.log('[AI HANGUP FAILED] Error during hangup:', error);
+                        }
+                      } else {
+                        console.log('[AI HANGUP SKIPPED] Hangup already executed');
+                      }
+                    }, 3000); // 3 second delay
+                  } else if (intakeData!.stage === 'complete' && hangupScheduled) {
+                    console.log('[AI HANGUP SKIPPED] Hangup already scheduled for this call');
                   }
                 }
               }

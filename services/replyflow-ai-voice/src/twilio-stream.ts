@@ -8,6 +8,7 @@
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
+import Twilio from 'twilio';
 
 export interface StreamConfig {
   sessionId: string;
@@ -24,10 +25,28 @@ export class TwilioStreamHandler {
   private mediaBuffer: Buffer[] = [];
   private turnDetectionTimer: NodeJS.Timeout | null = null;
   private lastAudioTime: number = 0;
+  private twilioClient: any = null;
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
     this.openAiClient = openAiClient || null;
+    
+    // Initialize Twilio client for hangup functionality
+    try {
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      
+      if (accountSid && authToken) {
+        this.twilioClient = Twilio(accountSid, authToken);
+        console.log('[TWILIO CLIENT] Initialized successfully for hangup functionality');
+      } else {
+        console.log('[TWILIO CLIENT] Missing credentials, hangup via REST API unavailable');
+        console.log('[TWILIO CLIENT] Required: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN');
+      }
+    } catch (error) {
+      console.log('[TWILIO CLIENT] Failed to initialize:', error);
+      this.twilioClient = null;
+    }
   }
 
   /**

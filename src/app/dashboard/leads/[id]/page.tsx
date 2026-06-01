@@ -109,6 +109,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
+  const [mobileInternalNotesExpanded, setMobileInternalNotesExpanded] = useState(false)
+  const [mobileLeadHealthExpanded, setMobileLeadHealthExpanded] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
   
   // Realtime subscription management
@@ -1296,8 +1298,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Thread - Conditional Rendering */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
-        {isMobileView ? (
-          /* Mobile Layout - Single Column */
+        {!isMobileView ? (
+          /* Desktop Layout - 2 Column */
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Mobile Quick Actions Bar */}
             <div className="border-b border-border/50 px-3 py-2.5 bg-background/50">
@@ -1689,8 +1691,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         )}
 
-        {/* Mobile Layout - Single Column - Disabled to prevent duplicate audio elements */}
-        {false && (
+        {/* Mobile Layout - Single Column */}
+        {isMobileView && (
         <div className="lg:hidden">
           <div className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-border overflow-hidden">
             {/* Message Thread */}
@@ -1843,6 +1845,41 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
+            {/* Internal Notes Section */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    mobileInternalNotesExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileInternalNotesExpanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  <textarea
+                    value={internalNotes}
+                    onChange={(e) => setInternalNotes(e.target.value)}
+                    onBlur={handleSaveNotes}
+                    placeholder="Add internal notes about this lead..."
+                    className="w-full min-h-[80px] p-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                  />
+                  <p className="text-xs text-slate-400">Notes are internal only - not sent to customer</p>
+                </div>
+              )}
+            </div>
+
             {/* Lead Details Section */}
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <button
@@ -1892,6 +1929,66 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Lead Health Section */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setMobileLeadHealthExpanded(!mobileLeadHealthExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Lead Health</h3>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    mobileLeadHealthExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileLeadHealthExpanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Source</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{leadData?.conversation?.source || lead?.source || 'unknown'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Follow-up Status</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {followUpJobs?.find((job: any) => job.status === 'pending') ? 'Active' : 
+                       followUpJobs?.find((job: any) => job.status === 'completed') ? 'Completed' : 
+                       'None'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Messages</span>
+                    <span className="text-sm font-medium text-foreground">{messagesArray.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Voicemails</span>
+                    <span className="text-sm font-medium text-foreground">{leadData?.voicemailRecordings?.length || 0}</span>
+                  </div>
+                  {leadData?.last_message_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Last Activity</span>
+                      <span className="text-sm text-foreground">{formatRelativeTime(leadData.last_message_at)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* AI Call Details Section */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <AICallDetails
+                leadId={lead?.id || ''}
+                businessId={business?.id || ''}
+                conversationId={leadData?.conversation?.id}
+                callerPhone={leadData?.phone_number || lead?.caller_phone}
+              />
             </div>
 
             {/* Actions Section */}
