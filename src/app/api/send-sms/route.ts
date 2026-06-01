@@ -201,7 +201,7 @@ export async function POST(request: Request) {
     console.log('[Manual SMS] Sending message:', {
       businessId: business.id,
       businessPhone: business.twilio_phone_number,
-      toPhone: lead.caller_phone,
+      toPhone: lead.phone,
       conversationId: conversation.id,
       isMms: mediaUrls.length > 0,
       mediaCount: mediaUrls.length,
@@ -211,13 +211,13 @@ export async function POST(request: Request) {
     // Send SMS or MMS
     if (mediaUrls.length > 0) {
       // Send MMS
-      messageSid = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
+      messageSid = await sendMms(business, lead.phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
         conversation_id: conversation.id,
       });
     } else {
       // Send SMS
-      messageSid = await sendSms(business, lead.caller_phone, sanitizedMessage, {
+      messageSid = await sendSms(business, lead.phone, sanitizedMessage, {
         lead_id: lead.id,
         conversation_id: conversation.id,
       });
