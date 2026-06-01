@@ -1671,6 +1671,18 @@ Return only JSON, no other text.`;
           // Instructions are now handled via session.update - disable old system
           console.log('[AI] using session.update instructions - old system disabled');
           
+          // Deployment verification and version logging
+          console.log('[AI INSTRUCTIONS VERSION] confirmation-flow-v2');
+          console.log('[AI CONFIRMATION FLOW] ENABLED - requires confirmation before final goodbye');
+          
+          try {
+            const { execSync } = require('child_process');
+            const gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+            console.log('[AI GIT COMMIT]', gitCommit);
+          } catch (error) {
+            console.log('[AI GIT COMMIT] unavailable - running in container');
+          }
+          
           // Store empty placeholder to avoid undefined errors
           (ws as any).aiInstructions = '';
 
@@ -1991,6 +2003,8 @@ Do NOT:
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
               console.log("[OPENAI SEND] session.update", JSON.stringify(sessionUpdatePayload, null, 2));
               console.log("[SESSION.UPDATE RAW SENT]", rawSessionUpdate);
+              console.log("[AI INSTRUCTIONS VERSION] confirmation-flow-v2 - session.update payload");
+              console.log("[AI CONFIRMATION FLOW] ACTIVE - instructions require confirmation before final goodbye");
               if (openAiWs) {
                 console.log('[OPENAI OUTBOUND] session.update');
                 openAiWs.send(rawSessionUpdate);
