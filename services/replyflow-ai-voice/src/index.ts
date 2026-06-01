@@ -276,11 +276,55 @@ function isConfirmationAccepted(transcript: string): boolean {
   const confirmationWords = [
     'yes', 'yeah', 'yep', 'correct', 'that\'s right', 'that is right', 
     'right', 'sounds good', 'good', 'perfect', 'exactly', 'affirmative',
-    'that\'s correct', 'that is correct', 'confirmed', 'confirm'
+    'that\'s correct', 'that is correct', 'confirmed', 'confirm',
+    'thanks', 'thank you', 'thank', 'okay', 'ok', 'alright', 'sure'
   ];
   
   const lowerTranscript = transcript.toLowerCase().trim();
-  return confirmationWords.some(word => lowerTranscript.includes(word));
+  const isAccepted = confirmationWords.some(word => lowerTranscript.includes(word));
+  
+  console.log('[CONFIRMATION INTERPRETED]', {
+    transcript: transcript,
+    lowerTranscript: lowerTranscript,
+    isAccepted: isAccepted,
+    reason: isAccepted ? 'positive_confirmation' : 'not_positive'
+  });
+  
+  if (isAccepted) {
+    console.log('[CONFIRMATION POSITIVE]', {
+      transcript: transcript,
+      matchedWords: confirmationWords.filter(word => lowerTranscript.includes(word))
+    });
+  }
+  
+  return isAccepted;
+}
+
+function isConfirmationRejected(transcript: string): boolean {
+  const rejectionWords = [
+    'no', 'incorrect', 'not right', 'that\'s wrong', 'that is wrong',
+    'change that', 'actually', 'that\'s not right', 'that is not right',
+    'wrong', 'mistake', 'incorrect', 'not correct'
+  ];
+  
+  const lowerTranscript = transcript.toLowerCase().trim();
+  const isRejected = rejectionWords.some(word => lowerTranscript.includes(word));
+  
+  console.log('[CONFIRMATION INTERPRETED]', {
+    transcript: transcript,
+    lowerTranscript: lowerTranscript,
+    isRejected: isRejected,
+    reason: isRejected ? 'negative_confirmation' : 'not_negative'
+  });
+  
+  if (isRejected) {
+    console.log('[CONFIRMATION NEGATIVE]', {
+      transcript: transcript,
+      matchedWords: rejectionWords.filter(word => lowerTranscript.includes(word))
+    });
+  }
+  
+  return isRejected;
 }
 
 // AI session state tracking functions
@@ -2169,42 +2213,20 @@ Do NOT:
                         openAiWs.send(JSON.stringify(goodbyeMessage));
                         console.log('[FINAL GOODBYE SENT] Goodbye message sent to OpenAI');
                         console.log('[FINAL GOODBYE SENT] finalGoodbyeSent: true');
+                        console.log('[FINAL GOODBYE_STARTED] Final goodbye response created');
                       }
                       
-                      // Schedule auto-hangup after goodbye message
-                      console.log('[AUTO HANGUP SCHEDULED] Goodbye sent, scheduling hangup in 3 seconds');
-                      console.log('[AUTO HANGUP SCHEDULED] callSid:', (ws as any).callSid);
-                      console.log('[AUTO HANGUP SCHEDULED] sessionId:', (ws as any).sessionId);
-                      console.log('[AUTO HANGUP SCHEDULED] businessId:', (ws as any).businessId);
-                      console.log('[AUTO HANGUP SCHEDULED] confirmationState: accepted');
-                      console.log('[AUTO HANGUP SCHEDULED] hangupScheduled:', hangupScheduled);
-                      console.log('[AUTO HANGUP SCHEDULED] finalGoodbyeSent: true');
-                      
-                      setTimeout(async () => {
-                        console.log('[AUTO HANGUP EXECUTING] 3 seconds elapsed after goodbye, executing hangup');
-                        console.log('[AUTO HANGUP EXECUTING] callSid:', (ws as any).callSid);
-                        console.log('[AUTO HANGUP EXECUTING] sessionId:', (ws as any).sessionId);
-                        console.log('[AUTO HANGUP EXECUTING] businessId:', (ws as any).businessId);
-                        if (!hangupExecuted) {
-                          hangupExecuted = true;
-                          try {
-                            await endCallCleanly(ws, twilioHandler);
-                            console.log('[AUTO HANGUP SUCCESS] Call termination completed after goodbye');
-                          } catch (error) {
-                            console.log('[AUTO HANGUP FAILED] Error during hangup after goodbye:', error);
-                          }
-                        } else {
-                          console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
-                        }
-                      }, 3000); // 3 second delay after goodbye
+                      // Set flag to track that final goodbye was sent
+                      // Hangup will be scheduled when response.done or response.output_item.done is received
+                      console.log('[FINAL GOODBYE PENDING] Waiting for final goodbye response completion before scheduling hangup');
                       
                       // Mark as complete to prevent further processing
                       intakeData!.stage = 'complete';
                       return; // Skip the normal intake processing
-                    } else {
-                      console.log('[CONFIRMATION REJECTED] User did not confirm, asking for clarification');
+                    } else if (isConfirmationRejected(userTranscript)) {
+                      console.log('[CONFIRMATION REJECTED] User rejected the information');
                       console.log('[CONFIRMATION REJECTED] confirmationState: rejected');
-                      // Handle rejection - could ask for clarification or repeat
+                      // Handle rejection - ask for clarification
                       const clarificationMessage = {
                         type: 'response.create',
                         response: {
@@ -2215,6 +2237,22 @@ Do NOT:
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(clarificationMessage));
                         console.log('[CONFIRMATION REJECTED] Clarification message sent');
+                      }
+                      return; // Skip the normal intake processing
+                    } else {
+                      console.log('[CONFIRMATION UNCLEAR] User response unclear, asking for clarification');
+                      console.log('[CONFIRMATION UNCLEAR] confirmationState: unclear');
+                      // Handle unclear response - ask for clarification
+                      const clarificationMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: 'Say exactly: "I apologize. Could you please confirm if the information I provided is correct? Please say yes or no."'
+                        }
+                      };
+                      
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(clarificationMessage));
+                        console.log('[CONFIRMATION UNCLEAR] Clarification message sent');
                       }
                       return; // Skip the normal intake processing
                     }
@@ -2291,6 +2329,36 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+                console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
+                
+                // Check if this is the final goodbye response and schedule hangup
+                if (intakeData && intakeData.stage === 'complete' && !hangupScheduled) {
+                  console.log('[FINAL GOODBYE AUDIO DONE] All audio for final goodbye completed');
+                  console.log('[AUTO HANGUP TIMER_STARTED] Starting 3-second countdown before hangup');
+                  console.log('[AUTO HANGUP TIMER_STARTED] callSid:', (ws as any).callSid);
+                  console.log('[AUTO HANGUP TIMER_STARTED] sessionId:', (ws as any).sessionId);
+                  console.log('[AUTO HANGUP TIMER_STARTED] businessId:', (ws as any).businessId);
+                  
+                  hangupScheduled = true;
+                  
+                  setTimeout(async () => {
+                    console.log('[AUTO HANGUP EXECUTING] 3 seconds elapsed after final goodbye, executing hangup');
+                    console.log('[AUTO HANGUP EXECUTING] callSid:', (ws as any).callSid);
+                    console.log('[AUTO HANGUP EXECUTING] sessionId:', (ws as any).sessionId);
+                    console.log('[AUTO HANGUP EXECUTING] businessId:', (ws as any).businessId);
+                    if (!hangupExecuted) {
+                      hangupExecuted = true;
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        console.log('[AUTO HANGUP SUCCESS] Call termination completed after final goodbye');
+                      } catch (error) {
+                        console.log('[AUTO HANGUP FAILED] Error during hangup after final goodbye:', error);
+                      }
+                    } else {
+                      console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
+                    }
+                  }, 3000); // 3 second delay after final goodbye completion
+                }
               }
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
