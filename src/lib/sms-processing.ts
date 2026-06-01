@@ -1,5 +1,4 @@
-import { db, supabaseAdmin } from '@/lib/supabase/admin'
-import { normalizePhoneNumber } from '@/lib/twilio'
+import { db, supabaseAdmin, normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
@@ -29,7 +28,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   })
   
   // Normalize customer phone number
-  const normalizedCustomerPhone = normalizePhoneNumber(from)
+  const normalizedCustomerPhone = normalizePhoneNumberForStorage(from)
   
   // Check for opt-out keywords (case-insensitive)
   const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']

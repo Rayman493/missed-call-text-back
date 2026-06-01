@@ -18,6 +18,31 @@ const supabaseServiceKey = getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 // Admin client for server-side operations (required for all server routes)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
+// Helper function to normalize phone number to E.164 format for storage
+export function normalizePhoneNumberForStorage(phone: string): string {
+  if (!phone) return ''
+  
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '')
+  
+  // Handle different formats
+  if (digits.length === 10) {
+    // US format without country code: 4125438580 -> +14125438580
+    return `+1${digits}`
+  } else if (digits.length === 11 && digits.startsWith('1')) {
+    // US format with country code: 14125438580 -> +14125438580
+    return `+${digits}`
+  } else if (digits.length === 11 && !digits.startsWith('1')) {
+    // International format without +: add +
+    return `+${digits}`
+  } else if (digits.length > 0) {
+    // Keep existing format if it starts with + or add +
+    return phone.startsWith('+') ? phone : `+${digits}`
+  }
+  
+  return phone // Return original if can't normalize
+}
+
 // Database helpers
 export const db = {
   // Media operations
@@ -607,11 +632,19 @@ export const db = {
 
   // Lead operations
   async getLeadByPhone(businessId: string, callerPhone: string): Promise<Lead | null> {
+    const normalizedPhone = normalizePhoneNumberForStorage(callerPhone)
+    
+    console.log('[LEAD LOOKUP NORMALIZED]', {
+      businessId,
+      rawPhone: callerPhone,
+      normalizedPhone
+    })
+    
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('business_id', businessId)
-      .eq('phone', callerPhone)
+      .eq('phone', normalizedPhone)
       .single()
     
     if (error) {
@@ -626,9 +659,20 @@ export const db = {
   },
 
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
+    const normalizedLead = {
+      ...lead,
+      phone: normalizePhoneNumberForStorage(lead.phone || '')
+    }
+    
+    console.log('[PHONE NORMALIZED]', {
+      rawPhone: lead.phone,
+      normalizedPhone: normalizedLead.phone,
+      source: 'createLead'
+    })
+    
     const { data, error } = await supabaseAdmin
       .from('leads')
-      .insert(lead)
+      .insert(normalizedLead)
       .select()
       .single()
     

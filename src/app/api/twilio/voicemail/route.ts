@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { db } from '@/lib/supabase/admin';
-import { normalizePhoneNumber, sendSms } from '@/lib/twilio';
+import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
+import { sendSms } from '@/lib/twilio';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     console.log('[VOICEMAIL] Business found:', business.id, business.name);
 
     // Normalize caller phone number
-    const normalizedCallerPhone = normalizePhoneNumber(from);
+    const normalizedCallerPhone = normalizePhoneNumberForStorage(from);
     console.log('[VOICEMAIL] Normalized caller phone:', normalizedCallerPhone);
 
     // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts

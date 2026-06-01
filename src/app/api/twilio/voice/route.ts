@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendSms } from '@/lib/twilio';
-import { normalizePhoneNumber } from '@/lib/twilio';
+import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { timelineEvents } from '@/lib/event-timeline';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { shouldSendAutoText } from '@/lib/smart-filtering';
@@ -122,16 +122,6 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
   return twiml;
 }
 
-// Helper to convert normalized 10-digit US number to E.164 format
-function toE164(phone: string): string {
-  const normalized = normalizePhoneNumber(phone);
-  // If it's 10 digits (US number), add +1 prefix
-  if (normalized.length === 10) {
-    return `+1${normalized}`;
-  }
-  // Otherwise assume it's already in E.164 or international format
-  return phone.startsWith('+') ? phone : `+${normalized}`;
-}
 
 export async function POST(request: NextRequest) {
   console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice')
@@ -230,17 +220,17 @@ export async function POST(request: NextRequest) {
     }
     
     // Normalize numbers to E.164 format
-    const normalizedFrom = toE164(From);
-    const normalizedTo = toE164(To);
+    const normalizedFrom = normalizePhoneNumberForStorage(From);
+    const normalizedTo = normalizePhoneNumberForStorage(To);
     
     console.log('[Twilio Voice] Normalized From:', normalizedFrom);
     console.log('[Twilio Voice] Normalized To:', normalizedTo);
     
     // Build candidate lookup numbers from Twilio destination fields
     const candidateNumbers = new Set<string>();
-    if (To) candidateNumbers.add(toE164(To));
-    if (Called) candidateNumbers.add(toE164(Called));
-    if (ForwardedFrom) candidateNumbers.add(toE164(ForwardedFrom));
+    if (To) candidateNumbers.add(normalizePhoneNumberForStorage(To));
+    if (Called) candidateNumbers.add(normalizePhoneNumberForStorage(Called));
+    if (ForwardedFrom) candidateNumbers.add(normalizePhoneNumberForStorage(ForwardedFrom));
     
     const uniqueCandidates = Array.from(candidateNumbers);
     console.log('[Voice] Candidate business lookup numbers:', uniqueCandidates);
@@ -673,8 +663,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Check if this is a setup completion call (caller matches business phone number)
-    const normalizedCallerPhone = normalizePhoneNumber(From);
-    const businessPhoneNumber = business.business_phone_number ? normalizePhoneNumber(business.business_phone_number) : null;
+    const normalizedCallerPhone = normalizePhoneNumberForStorage(From);
+    const businessPhoneNumber = business.business_phone_number ? normalizePhoneNumberForStorage(business.business_phone_number) : null;
     
     if (businessPhoneNumber && normalizedCallerPhone === businessPhoneNumber) {
       console.log('[Twilio Voice] Setup completion detected - caller matches business phone number:', normalizedCallerPhone);

@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/supabase/admin'
+import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { demoSmsRateLimiter, isValidPhoneNumber, sanitizeMessageContent } from '@/lib/security'
 
@@ -81,6 +81,15 @@ export async function POST(request: Request) {
 
     console.log('[demo-send-text] demoPhone:', demoPhone ? demoPhone.substring(0, 3) + '***' : 'null', 'businessName:', businessName || 'null')
 
+    // Normalize phone number to E.164 format for database operations
+    const normalizedDemoPhone = normalizePhoneNumberForStorage(demoPhone)
+    
+    console.log('[PHONE NORMALIZED]', {
+      rawPhone: demoPhone,
+      normalizedPhone: normalizedDemoPhone,
+      source: 'demo-send-text'
+    })
+
     // Get or create business for user
     const lookupResult = await db.getBusinessByUserId(user.id)
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
@@ -99,7 +108,7 @@ export async function POST(request: Request) {
       .from('leads')
       .select('*')
       .eq('business_id', business.id)
-      .eq('phone', demoPhone)
+      .eq('phone', normalizedDemoPhone)
       .limit(1)
       .single()
     
@@ -113,10 +122,10 @@ export async function POST(request: Request) {
       console.log('[demo-send-text] Reusing existing demo lead:', demoLead.id)
     } else {
       // Create new demo lead
-      console.log('[demo-send-text] Creating new demo lead for phone:', demoPhone)
+      console.log('[demo-send-text] Creating new demo lead for phone:', normalizedDemoPhone)
       demoLead = await db.createLead({
         business_id: business.id,
-        phone: demoPhone,
+        phone: normalizedDemoPhone,
         status: 'new',
         first_contact_at: new Date().toISOString(),
         last_message_at: null,
@@ -200,7 +209,7 @@ export async function POST(request: Request) {
         throw new Error(errorMsg)
       }
 
-      const messageSid = await sendSms(business, demoPhone, autoReplyMessage, {
+      const messageSid = await sendSms(business, normalizedDemoPhone, autoReplyMessage, {
         lead_id: demoLead.id,
         conversation_id: conversation.id
       })
