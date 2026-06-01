@@ -99,7 +99,7 @@ async function testSupabaseConnection() {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'complete';
+type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -162,6 +162,32 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
   };
 }
 
+function generateConfirmationMessage(intake: IntakeData): string {
+  console.log('[CONFIRMATION GENERATION] Creating confirmation message with collected data:', {
+    callerName: intake.callerName,
+    callerReason: intake.callerReason,
+    urgency: intake.urgency,
+    callbackNumber: intake.callbackNumber
+  });
+
+  const name = intake.callerName || 'there';
+  const reason = intake.callerReason || 'your inquiry';
+  const urgency = intake.urgency === 'urgent' ? 'urgent' : 'not urgent';
+
+  const confirmation = `Let me confirm I have everything correct.
+
+Your name is ${name}.
+
+You're looking for help with ${reason}.
+
+The project is ${urgency}.
+
+Is that correct?`;
+
+  console.log('[CONFIRMATION GENERATION] Generated confirmation:', confirmation);
+  return confirmation;
+}
+
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
   console.log('[AI INTAKE STAGE] current stage:', intake.stage);
   
@@ -199,12 +225,21 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       return {
         response: 'Is this urgent or can someone follow up later today?',
+        nextStage: 'confirmation'
+      };
+      
+    case 'confirmation':
+      // Generate confirmation message with collected information
+      const confirmationMessage = generateConfirmationMessage(intake);
+      console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmationMessage);
+      return {
+        response: confirmationMessage,
         nextStage: 'complete'
       };
       
     case 'complete':
       return {
-        response: 'Got it — I\'ll pass this along and someone will follow up with you. Thanks for calling, have a great day.',
+        response: 'Perfect. I\'ll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day.',
         nextStage: 'complete'
       };
       
@@ -233,6 +268,17 @@ function extractPhoneNumber(transcript: string): string {
 function extractUrgency(transcript: string): 'urgent' | 'normal' {
   const urgent = transcript.toLowerCase().match(/\burgent\b|\bemergency\b|\basap\b|\bimmediately\b|\bright away\b/);
   return urgent ? 'urgent' : 'normal';
+}
+
+function isConfirmationAccepted(transcript: string): boolean {
+  const confirmationWords = [
+    'yes', 'yeah', 'yep', 'correct', 'that\'s right', 'that is right', 
+    'right', 'sounds good', 'good', 'perfect', 'exactly', 'affirmative',
+    'that\'s correct', 'that is correct', 'confirmed', 'confirm'
+  ];
+  
+  const lowerTranscript = transcript.toLowerCase().trim();
+  return confirmationWords.some(word => lowerTranscript.includes(word));
 }
 
 // AI session state tracking functions
@@ -888,72 +934,105 @@ const server = createServer((req, res) => {
 
 // Clean call ending function
 async function endCallCleanly(ws: any, twilioHandler: any) {
-  console.log('[AI CALL HANGUP INITIATED] Starting call termination process');
+  console.log('[AUTO HANGUP START] Starting call termination process');
   
   try {
     const callSid = (ws as any).callSid;
     const businessId = (ws as any).businessId;
+    const sessionId = (ws as any).sessionId;
+    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
     
-    console.log('[AI CALL HANGUP VERIFICATION] Checking required parameters', {
+    console.log('[AUTO HANGUP CONDITIONS MET] Checking required parameters', {
       hasCallSid: !!callSid,
       hasBusinessId: !!businessId,
+      hasSessionId: !!sessionId,
+      hasTwilioAccountSid: !!twilioAccountSid,
       callSid: callSid || 'missing',
-      businessId: businessId || 'missing'
+      businessId: businessId || 'missing',
+      sessionId: sessionId || 'missing',
+      twilioAccountSid: twilioAccountSid ? 'present' : 'missing'
     });
     
     if (!callSid) {
-      console.log('[AI CALL HANGUP FAILED] No callSid available for hangup');
+      console.log('[AUTO HANGUP FAILED] No callSid available for hangup');
+      console.log('[AUTO HANGUP FAILED] callSid became unavailable at:', {
+        wsProperties: Object.getOwnPropertyNames(ws),
+        wsCallSid: (ws as any).callSid,
+        wsBusinessId: (ws as any).businessId,
+        wsSessionId: (ws as any).sessionId
+      });
       return;
     }
     
     // Verify Twilio client availability
     const twilioClient = (twilioHandler as any).twilioClient;
-    console.log('[AI CALL HANGUP VERIFICATION] Checking Twilio client availability', {
+    console.log('[AUTO HANGUP CONDITIONS MET] Checking Twilio client availability', {
       hasTwilioClient: !!twilioClient,
-      twilioClientType: typeof twilioClient
+      twilioClientType: typeof twilioClient,
+      twilioClientMethods: twilioClient ? Object.getOwnPropertyNames(twilioClient) : 'none'
     });
     
     if (twilioClient && callSid) {
-      console.log('[AI CALL HANGUP EXECUTING] Using Twilio REST API to terminate call', {
+      console.log('[AUTO HANGUP TWILIO REQUEST] Using Twilio REST API to terminate call', {
         callSid,
+        businessId,
+        sessionId,
+        twilioAccountSid,
         method: 'REST API calls.update',
-        targetStatus: 'completed'
+        targetStatus: 'completed',
+        timestamp: new Date().toISOString()
       });
       
       // Execute the hangup
       const updateResult = await twilioClient.calls(callSid).update({ status: 'completed' });
       
-      console.log('[AI CALL HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
+      console.log('[AUTO HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
         callSid,
+        businessId,
+        sessionId,
         method: 'REST API',
         resultStatus: updateResult.status,
+        resultDateCreated: updateResult.dateCreated,
+        resultDateUpdated: updateResult.dateUpdated,
+        resultPrice: updateResult.price,
+        resultPriceUnit: updateResult.priceUnit,
         timestamp: new Date().toISOString()
       });
       
       // Verify the call status changed
       if (updateResult.status === 'completed') {
-        console.log('[AI CALL HANGUP VERIFIED] Call status confirmed as completed');
+        console.log('[AUTO HANGUP SUCCESS] Call status confirmed as completed');
       } else {
-        console.log('[AI CALL HANGUP WARNING] Call status not confirmed as completed', {
-          actualStatus: updateResult.status
+        console.log('[AUTO HANGUP FAILED] Call status not confirmed as completed', {
+          actualStatus: updateResult.status,
+          callSid,
+          businessId
         });
       }
       
     } else {
       // Fallback: close the WebSocket connection
-      console.log('[AI CALL HANGUP FAILED] Twilio client not available, using WebSocket fallback');
-      console.log('[AI CALL HANGUP FALLBACK] Closing WebSocket connection');
+      console.log('[AUTO HANGUP FAILED] Twilio client not available, using WebSocket fallback');
+      console.log('[AUTO HANGUP FAILED] Twilio client details:', {
+        twilioClientExists: !!twilioClient,
+        callSidExists: !!callSid,
+        twilioClientType: typeof twilioClient,
+        twilioHandlerType: typeof twilioHandler
+      });
+      console.log('[AUTO HANGUP FALLBACK] Closing WebSocket connection');
       ws.close();
-      console.log('[AI CALL HANGUP FALLBACK] WebSocket closed');
+      console.log('[AUTO HANGUP FALLBACK] WebSocket closed');
     }
   } catch (error) {
-    console.log('[AI CALL HANGUP FAILED] Exception during call termination', { 
+    console.log('[AUTO HANGUP FAILED] Exception during call termination', { 
       error: error instanceof Error ? error.message : 'Unknown error',
       errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
       callSid: (ws as any).callSid,
-      businessId: (ws as any).businessId
+      businessId: (ws as any).businessId,
+      sessionId: (ws as any).sessionId,
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID
     });
   }
 }
@@ -2050,6 +2129,65 @@ Do NOT:
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady) {
                   console.log('[AI INTAKE STAGE] current stage:', intakeData.stage);
                   
+                  // Special handling for confirmation stage
+                  if (intakeData!.stage === 'confirmation' && userTranscript) {
+                    console.log('[CONFIRMATION PROCESSING] Checking user response:', userTranscript);
+                    
+                    if (isConfirmationAccepted(userTranscript)) {
+                      console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
+                      console.log('[FINAL GOODBYE SENT] Sending final goodbye message');
+                      
+                      // Send final goodbye message
+                      const goodbyeMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: 'Say exactly: "Perfect. I\'ll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."'
+                        }
+                      };
+                      
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(goodbyeMessage));
+                        console.log('[FINAL GOODBYE SENT] Goodbye message sent to OpenAI');
+                      }
+                      
+                      // Schedule auto-hangup after goodbye message
+                      console.log('[AUTO HANGUP SCHEDULED] Goodbye sent, scheduling hangup in 3 seconds');
+                      
+                      setTimeout(async () => {
+                        console.log('[AUTO HANGUP EXECUTED] 3 seconds elapsed after goodbye, executing hangup');
+                        if (!hangupExecuted) {
+                          hangupExecuted = true;
+                          try {
+                            await endCallCleanly(ws, twilioHandler);
+                            console.log('[AUTO HANGUP EXECUTED] Call termination completed after goodbye');
+                          } catch (error) {
+                            console.log('[AUTO HANGUP FAILED] Error during hangup after goodbye:', error);
+                          }
+                        } else {
+                          console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
+                        }
+                      }, 3000); // 3 second delay after goodbye
+                      
+                      // Mark as complete to prevent further processing
+                      intakeData!.stage = 'complete';
+                      return; // Skip the normal intake processing
+                    } else {
+                      console.log('[CONFIRMATION REJECTED] User did not confirm, asking for clarification');
+                      // Handle rejection - could ask for clarification or repeat
+                      const clarificationMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: 'Say exactly: "I apologize. Let me try again. Could you please confirm if the information I provided is correct?"'
+                        }
+                      };
+                      
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(clarificationMessage));
+                      }
+                      return; // Skip the normal intake processing
+                    }
+                  }
+                  
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
                   
@@ -2077,33 +2215,42 @@ Do NOT:
                   
                   // If intake is complete, save the lead summary and schedule hangup
                   if (intakeData!.stage === 'complete' && !hangupScheduled) {
-                    console.log('[AI CALL COMPLETE DETECTED] Intake stage is complete, initiating auto-hangup sequence');
+                    console.log('[AUTO HANGUP CONDITIONS MET] Intake stage is complete, initiating auto-hangup sequence');
+                    console.log('[AUTO HANGUP CONDITIONS MET] Current state:', {
+                      stage: intakeData!.stage,
+                      hangupScheduled: hangupScheduled,
+                      hangupExecuted: hangupExecuted,
+                      callSid: (ws as any).callSid,
+                      businessId: (ws as any).businessId,
+                      sessionId: (ws as any).sessionId
+                    });
                     hangupScheduled = true;
                     
                     const leadSummary = generateLeadSummary(intakeData!);
                     saveLeadSummary(leadSummary);
-                    console.log('[AI INTAKE] intake complete, summary saved');
+                    console.log('[AUTO HANGUP CONDITIONS MET] intake complete, summary saved');
                     
                     // Schedule auto-hangup after closing message
-                    console.log('[AI CLOSING MESSAGE DETECTED] Closing message sent, scheduling hangup in 3 seconds');
-                    console.log('[AI HANGUP SCHEDULED] Will terminate call in 3 seconds');
+                    console.log('[AUTO HANGUP SCHEDULED] Closing message sent, scheduling hangup in 3 seconds');
+                    console.log('[AUTO HANGUP SCHEDULED] Will terminate call in 3 seconds');
                     
                     setTimeout(async () => {
+                      console.log('[AUTO HANGUP EXECUTED] 3 seconds elapsed, checking hangup execution');
                       if (!hangupExecuted) {
-                        console.log('[AI HANGUP EXECUTING] 3 seconds elapsed, executing hangup');
+                        console.log('[AUTO HANGUP EXECUTED] Proceeding with hangup execution');
                         hangupExecuted = true;
                         try {
                           await endCallCleanly(ws, twilioHandler);
-                          console.log('[AI HANGUP SUCCESS] Call terminated successfully');
+                          console.log('[AUTO HANGUP EXECUTED] Call termination function completed');
                         } catch (error) {
-                          console.log('[AI HANGUP FAILED] Error during hangup:', error);
+                          console.log('[AUTO HANGUP FAILED] Error during hangup execution:', error);
                         }
                       } else {
-                        console.log('[AI HANGUP SKIPPED] Hangup already executed');
+                        console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
                       }
                     }, 3000); // 3 second delay
                   } else if (intakeData!.stage === 'complete' && hangupScheduled) {
-                    console.log('[AI HANGUP SKIPPED] Hangup already scheduled for this call');
+                    console.log('[AUTO HANGUP SKIPPED] Hangup already scheduled for this call');
                   }
                 }
               }
