@@ -709,7 +709,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-sm"></div>
+              <div className="absolute top-0 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-sm"></div>
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-200">
