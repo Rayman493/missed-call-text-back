@@ -681,7 +681,6 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
         status: 'new',
         created_at: leadSummary.timestamp,
         updated_at: leadSummary.timestamp,
-        call_sid: leadSummary.callSid,
       });
       
     if (error) {
@@ -3291,43 +3290,50 @@ Return only JSON, no other text.`;
                   console.log('[AI INGEST] supabase client not available');
                   return;
                 }
-                console.log('[AI INGEST] lead upserting...');
+                
+                const leadInsertPayload = {
+                  business_id: sessionBusinessId,
+                  caller_phone: sessionCallerPhone,
+                  status: 'new',
+                };
+                console.log('[LEAD CREATE START]', { payload: leadInsertPayload });
+                
                 const { data: lead, error: leadError } = await supabase
                   .from('leads')
-                  .upsert({
-                    business_id: sessionBusinessId,
-                    caller_phone: sessionCallerPhone,
-                    status: 'new',
-                  }, {
+                  .upsert(leadInsertPayload, {
                     onConflict: 'business_id,caller_phone',
                   })
                   .select()
                   .single();
 
                 if (leadError) {
-                  console.log('[AI INGEST] lead upsert error', leadError);
+                  console.log('[LEAD CREATE ERROR]', { error: leadError.message });
                   throw leadError;
                 }
+                console.log('[LEAD CREATE SUCCESS]', { leadId: lead.id });
                 console.log('[AI LEAD UPSERTED]', { leadId: lead.id });
 
                 // Create or update conversation
-                console.log('[AI INGEST] conversation updating...');
+                const conversationInsertPayload = {
+                  lead_id: lead.id,
+                  business_id: sessionBusinessId,
+                  status: 'active',
+                };
+                console.log('[CONVERSATION CREATE START]', { payload: conversationInsertPayload });
+                
                 const { data: conversation, error: conversationError } = await supabase
                   .from('conversations')
-                  .upsert({
-                    lead_id: lead.id,
-                    business_id: sessionBusinessId,
-                    status: 'active',
-                  }, {
+                  .upsert(conversationInsertPayload, {
                     onConflict: 'lead_id,business_id',
                   })
                   .select()
                   .single();
 
                 if (conversationError) {
-                  console.log('[AI INGEST] conversation update error', conversationError);
+                  console.log('[CONVERSATION CREATE ERROR]', { error: conversationError.message });
                   throw conversationError;
                 }
+                console.log('[CONVERSATION CREATE SUCCESS]', { conversationId: conversation.id });
                 console.log('[AI CONVERSATION UPDATED]', { conversationId: conversation.id });
 
                 // Update AI call record with lead_id and conversation_id
@@ -3346,6 +3352,11 @@ Return only JSON, no other text.`;
                   // Don't throw here - the record was created successfully
                 } else {
                   console.log('[AI INGEST] AI call record updated with lead and conversation IDs');
+                  console.log('[AI LINK SUCCESS]', {
+                    aiCallRecordId: newRecord.id,
+                    leadId: lead.id,
+                    conversationId: conversation.id
+                  });
                 }
 
                 // Save summary message
