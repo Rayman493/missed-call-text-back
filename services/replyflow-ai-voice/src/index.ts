@@ -1177,6 +1177,7 @@ wss.on('connection', (ws, req) => {
     const DEBUG_MESSAGE_LIMIT = 20;
     let mediaPacketCount = 0;
     let firstMediaPacketLogged = false;
+    let audioReceived = false;
     let openaiInitAttempted = false;
     let openaiInitSucceeded = false;
     let openaiInitFailed = false;
@@ -1722,6 +1723,13 @@ Return only JSON, no other text.`;
         // Log parsed frame (non-media only, or first media, or every 100th media)
         if (message.event === 'media') {
           mediaPacketCount++;
+          if (!audioReceived) {
+            audioReceived = true;
+            log(LogLevel.INFO, '[TWILIO AUDIO RECEIVED]', { 
+              packetCount: mediaPacketCount, 
+              timestamp: new Date().toISOString() 
+            });
+          }
           if (!firstMediaPacketLogged) {
             log(LogLevel.INFO, '[PARSED WS] FIRST MEDIA PACKET', JSON.stringify(message, null, 2));
             firstMediaPacketLogged = true;
@@ -2050,8 +2058,8 @@ Return only JSON, no other text.`;
             const audioBuffer: Buffer[] = [];
             
             // Phase 2: Dead Air Protection (3-second timeout)
-            let audioReceived = false;
             const deadAirTimeout = setTimeout(async () => {
+              console.log('[DEAD AIR DEBUG]', { audioReceived, mediaPacketCount, openAiReady: !!openAiWs, sessionReady: streamReady });
               if (!audioReceived) {
                 console.log('[DEAD AIR DETECTED] No audio received within 3 seconds');
                 await triggerVoicemailFallback(
