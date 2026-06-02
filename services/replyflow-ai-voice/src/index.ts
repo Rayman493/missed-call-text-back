@@ -1414,161 +1414,7 @@ Return only JSON, no other text.`;
           };
         }
 
-        // Create new AI call record
-        console.log('[AI SAVE START] creating new AI call record...');
-        const mainInsertPayload = {
-            business_id: sessionBusinessId,
-            lead_id: null, // Will be set after lead creation
-            conversation_id: null, // Will be set after conversation creation
-            caller_phone: sessionCallerPhone || 'unknown',
-            call_sid: sessionCallSid || 'unknown',
-            ai_session_id: sessionSessionId,
-            transcript: Array.isArray(transcript) ? transcript : [],
-            outcome: 'completed',
-            extraction_failed: false,
-            extracted_info: extractedFields,
-            summary: extractedFields.summary
-          };
-        console.log('[AI CALL RECORD OUTCOME]', {
-          outcome: mainInsertPayload.outcome,
-          callSid: mainInsertPayload.call_sid,
-          businessId: mainInsertPayload.business_id,
-          leadId: mainInsertPayload.lead_id,
-          conversationId: mainInsertPayload.conversation_id
-        });
-        console.log('[AI SAVE PAYLOAD]', {
-          recordType: 'ai_call_records',
-          hasExtractedInfo: !!extractedFields,
-          hasSummary: !!extractedFields?.summary,
-          extractedFieldsKeys: extractedFields ? Object.keys(extractedFields) : [],
-          payloadKeys: Object.keys(mainInsertPayload)
-        });
-
-        console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
-          file: 'services/replyflow-ai-voice/src/index.ts',
-          function: 'main AI save path',
-          sessionId: 'unknown',
-          callSid: sessionCallSid,
-          businessId: sessionBusinessId,
-          callerPhone: sessionCallerPhone
-        });
-
-        const { data: newRecord, error: newRecordError } = await supabase
-          .from('ai_call_records')
-          .insert(mainInsertPayload)
-          .select()
-          .single();
-
-        if (newRecordError) {
-          console.log('[AI SAVE RESULT]', { 
-            success: false, 
-            error: newRecordError.message,
-            operation: 'ai_call_records insert'
-          });
-          throw newRecordError;
-        }
-        
-        console.log('[AI SAVE RESULT]', {
-          success: true,
-          recordId: newRecord.id,
-          operation: 'ai_call_records insert',
-          extractedInfoSaved: !!newRecord.extracted_info,
-          summarySaved: !!newRecord.summary
-        });
-
-        // LINK AI CALL RECORD TO LEAD AND CONVERSATION
-        console.log('[AI LINK START]', {
-          recordId: newRecord.id,
-          businessId: sessionBusinessId,
-          callerPhone: sessionCallerPhone
-        });
-
-        const normalizedPhone = normalizePhoneNumberForStorage(sessionCallerPhone);
-        console.log('[AI CALL RECORD NORMALIZED PHONE]', {
-          originalPhone: sessionCallerPhone,
-          normalizedPhone: normalizedPhone
-        });
-
-        // Find lead by business_id + caller_phone
-        const { data: existingLead, error: leadLookupError } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('business_id', sessionBusinessId)
-          .eq('caller_phone', normalizedPhone)
-          .maybeSingle();
-
-        console.log('[AI CALL RECORD LEAD QUERY RESULT]', {
-          leadId: existingLead?.id || null,
-          error: leadLookupError?.message || 'none'
-        });
-
-        if (existingLead) {
-          console.log('[AI LINK LEAD FOUND]', { leadId: existingLead.id });
-
-          // Update ai_call_records with lead_id
-          const { error: updateLeadError } = await supabase
-            .from('ai_call_records')
-            .update({ lead_id: existingLead.id })
-            .eq('id', newRecord.id);
-
-          if (updateLeadError) {
-            console.log('[AI CALL RECORD LINK FAILURE]', {
-              error: 'Failed to update lead_id',
-              details: updateLeadError.message
-            });
-          } else {
-            console.log('[AI CALL RECORD LINK SUCCESS]', {
-              recordId: newRecord.id,
-              leadId: existingLead.id
-            });
-
-            // Find conversation linked to this lead
-            const { data: existingConversation, error: conversationLookupError } = await supabase
-              .from('conversations')
-              .select('*')
-              .eq('lead_id', existingLead.id)
-              .maybeSingle();
-
-            console.log('[AI CALL RECORD CONVERSATION QUERY RESULT]', {
-              conversationId: existingConversation?.id || null,
-              error: conversationLookupError?.message || 'none'
-            });
-
-            if (existingConversation) {
-              console.log('[AI LINK CONVERSATION FOUND]', { conversationId: existingConversation.id });
-
-              // Update ai_call_records with conversation_id
-              const { error: updateConversationError } = await supabase
-                .from('ai_call_records')
-                .update({ conversation_id: existingConversation.id })
-                .eq('id', newRecord.id);
-
-              if (updateConversationError) {
-                console.log('[AI CALL RECORD LINK FAILURE]', {
-                  error: 'Failed to update conversation_id',
-                  details: updateConversationError.message
-                });
-              } else {
-                console.log('[AI LINK SUCCESS]', {
-                  recordId: newRecord.id,
-                  leadId: existingLead.id,
-                  conversationId: existingConversation.id
-                });
-              }
-            } else {
-              console.log('[AI LINK CONVERSATION NOT FOUND]', {
-                leadId: existingLead.id
-              });
-            }
-          }
-        } else {
-          console.log('[AI LINK LEAD NOT FOUND]', {
-            businessId: sessionBusinessId,
-            callerPhone: normalizedPhone
-          });
-        }
-
-        // NOW CREATE LEAD AND CONVERSATION AND LINK TO AI_CALL_RECORDS
+        // Create lead and conversation BEFORE inserting ai_call_records
         console.log('[AI LEAD LOOKUP START]', { 
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone,
@@ -1631,35 +1477,73 @@ Return only JSON, no other text.`;
 
         console.log('[AI CONVERSATION UPSERT RESULT]', { conversationId: conversation.id, leadId: lead.id });
 
-        // Update AI call record with lead and conversation IDs
-        console.log('[AI CALL RECORD LINK UPDATE START]', { 
-          operation: 'updating ai_call_records with lead/conversation IDs',
-          recordId: newRecord.id,
-          leadId: lead.id,
-          conversationId: conversation.id
-        });
-        const { error: updateError } = await supabase
-          .from('ai_call_records')
-          .update({
+        // Create new AI call record with populated IDs
+        console.log('[AI SAVE START] creating new AI call record...');
+        const mainInsertPayload = {
+            business_id: sessionBusinessId,
             lead_id: lead.id,
             conversation_id: conversation.id,
             caller_phone: sessionCallerPhone || 'unknown',
-            summary: extractedFields.summary,
+            call_sid: sessionCallSid || 'unknown',
+            ai_session_id: sessionSessionId,
+            transcript: Array.isArray(transcript) ? transcript : [],
+            outcome: 'completed',
+            extraction_failed: false,
             extracted_info: extractedFields,
-          })
-          .eq('id', newRecord.id);
+            summary: extractedFields.summary
+          };
+        console.log('[AI CALL RECORD OUTCOME]', {
+          outcome: mainInsertPayload.outcome,
+          callSid: mainInsertPayload.call_sid,
+          businessId: mainInsertPayload.business_id,
+          leadId: mainInsertPayload.lead_id,
+          conversationId: mainInsertPayload.conversation_id
+        });
+        console.log('[AI SAVE PAYLOAD]', {
+          recordType: 'ai_call_records',
+          hasExtractedInfo: !!extractedFields,
+          hasSummary: !!extractedFields?.summary,
+          extractedFieldsKeys: extractedFields ? Object.keys(extractedFields) : [],
+          payloadKeys: Object.keys(mainInsertPayload)
+        });
 
-        console.log('[AI CALL RECORD LINK UPDATE RESULT]', { 
-          updateError: updateError?.message || 'none',
+        console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+          file: 'services/replyflow-ai-voice/src/index.ts',
+          function: 'main AI save path',
+          sessionId: 'unknown',
+          callSid: sessionCallSid,
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone
+        });
+
+        const { data: newRecord, error: newRecordError } = await supabase
+          .from('ai_call_records')
+          .insert(mainInsertPayload)
+          .select()
+          .single();
+
+        if (newRecordError) {
+          console.log('[AI SAVE RESULT]', { 
+            success: false, 
+            error: newRecordError.message,
+            operation: 'ai_call_records insert'
+          });
+          throw newRecordError;
+        }
+        
+        console.log('[AI SAVE RESULT]', {
+          success: true,
           recordId: newRecord.id,
+          operation: 'ai_call_records insert',
+          extractedInfoSaved: !!newRecord.extracted_info,
+          summarySaved: !!newRecord.summary
+        });
+
+        console.log('[AI LINK SUCCESS]', {
+          aiCallRecordId: newRecord.id,
           leadId: lead.id,
           conversationId: conversation.id
         });
-
-        if (updateError) {
-          console.log('[AI CALL RECORD LINK UPDATE FAILED]', updateError);
-          throw updateError;
-        }
 
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
