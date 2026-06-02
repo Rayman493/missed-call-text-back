@@ -524,7 +524,6 @@ async function createFallbackLead(
       .upsert({
         business_id: businessId,
         caller_phone: callerPhone,
-        source: 'ai_voice_fallback',
         status: 'new',
       }, {
         onConflict: 'business_id,caller_phone',
@@ -543,10 +542,9 @@ async function createFallbackLead(
       .upsert({
         lead_id: lead.id,
         business_id: businessId,
-        call_sid: callSid,
         status: 'active',
       }, {
-        onConflict: 'lead_id,call_sid',
+        onConflict: 'lead_id,business_id',
       })
       .select()
       .single();
@@ -1216,6 +1214,25 @@ wss.on('connection', (ws, req) => {
         const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
         console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
         
+        // Guard: Skip extraction if transcript is empty
+        if (!transcript || transcript.length === 0) {
+          console.log('[AI INGEST] transcript is empty, skipping extraction');
+          // Update with transcript only if extraction failed
+          const { error: fallbackUpdateError } = await supabase
+            .from('ai_call_records')
+            .update({
+              transcript: transcript,
+            })
+            .eq('id', existingRecord.id);
+
+          if (fallbackUpdateError) {
+            console.log('[AI INGEST FAILED] fallback update also failed', fallbackUpdateError);
+          } else {
+            console.log('[AI INGEST INSERT SUCCESS] fallback update successful (empty transcript)');
+          }
+          return;
+        }
+        
         try {
           // Extract structured fields from transcript
           console.log('[AI INGEST] extracting fields...');
@@ -1289,6 +1306,33 @@ Return only JSON, no other text.`;
       // Convert structured transcript to string format
       const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
       console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+      
+      // Guard: Skip extraction if transcript is empty
+      if (!transcript || transcript.length === 0) {
+        console.log('[AI INGEST] transcript is empty, skipping extraction');
+        // Create AI call record with empty transcript
+        const { data: emptyRecord, error: emptyRecordError } = await supabase
+          .from('ai_call_records')
+          .insert({
+            business_id: sessionBusinessId,
+            caller_phone: sessionCallerPhone || 'unknown',
+            call_sid: sessionCallSid || 'unknown',
+            transcript: [],
+            outcome: 'completed',
+            extracted_info: null,
+            summary: 'AI call completed (no transcript)',
+            extraction_failed: true
+          })
+          .select()
+          .single();
+
+        if (emptyRecordError) {
+          console.log('[AI INGEST FAILED] empty record creation failed', emptyRecordError);
+        } else {
+          console.log('[AI INGEST INSERT SUCCESS] empty record created successfully');
+        }
+        return;
+      }
       
       try {
         // Extract structured fields from transcript
@@ -1412,7 +1456,7 @@ Return only JSON, no other text.`;
         });
 
         // LINK AI CALL RECORD TO LEAD AND CONVERSATION
-        console.log('[AI CALL RECORD LEAD LOOKUP]', {
+        console.log('[AI LINK START]', {
           recordId: newRecord.id,
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone
@@ -1438,7 +1482,7 @@ Return only JSON, no other text.`;
         });
 
         if (existingLead) {
-          console.log('[AI CALL RECORD LEAD FOUND]', { leadId: existingLead.id });
+          console.log('[AI LINK LEAD FOUND]', { leadId: existingLead.id });
 
           // Update ai_call_records with lead_id
           const { error: updateLeadError } = await supabase
@@ -1470,7 +1514,7 @@ Return only JSON, no other text.`;
             });
 
             if (existingConversation) {
-              console.log('[AI CALL RECORD CONVERSATION FOUND]', { conversationId: existingConversation.id });
+              console.log('[AI LINK CONVERSATION FOUND]', { conversationId: existingConversation.id });
 
               // Update ai_call_records with conversation_id
               const { error: updateConversationError } = await supabase
@@ -1484,20 +1528,20 @@ Return only JSON, no other text.`;
                   details: updateConversationError.message
                 });
               } else {
-                console.log('[AI CALL RECORD LINK SUCCESS]', {
+                console.log('[AI LINK SUCCESS]', {
                   recordId: newRecord.id,
                   leadId: existingLead.id,
                   conversationId: existingConversation.id
                 });
               }
             } else {
-              console.log('[AI CALL RECORD CONVERSATION NOT FOUND]', {
+              console.log('[AI LINK CONVERSATION NOT FOUND]', {
                 leadId: existingLead.id
               });
             }
           }
         } else {
-          console.log('[AI CALL RECORD LEAD NOT FOUND]', {
+          console.log('[AI LINK LEAD NOT FOUND]', {
             businessId: sessionBusinessId,
             callerPhone: normalizedPhone
           });
@@ -2996,6 +3040,25 @@ Do NOT:
                 const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
                 console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
                 
+                // Guard: Skip extraction if transcript is empty
+                if (!transcript || transcript.length === 0) {
+                  console.log('[AI INGEST] transcript is empty, skipping extraction');
+                  // Update with transcript only if extraction failed
+                  const { error: fallbackUpdateError } = await supabase
+                    .from('ai_call_records')
+                    .update({
+                      transcript: transcript,
+                    })
+                    .eq('id', existingRecord.id);
+
+                  if (fallbackUpdateError) {
+                    console.log('[AI INGEST FAILED] fallback update also failed', fallbackUpdateError);
+                  } else {
+                    console.log('[AI INGEST] fallback update successful (empty transcript)');
+                  }
+                  return;
+                }
+                
                 try {
                   // Extract structured fields from transcript
                   console.log('[AI INGEST] extracting fields...');
@@ -3093,6 +3156,33 @@ Return only JSON, no other text.`;
               // Convert structured transcript to string format
               const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
               console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+              
+              // Guard: Skip extraction if transcript is empty
+              if (!transcript || transcript.length === 0) {
+                console.log('[AI INGEST] transcript is empty, skipping extraction');
+                // Create AI call record with empty transcript
+                const { data: emptyRecord, error: emptyRecordError } = await supabase
+                  .from('ai_call_records')
+                  .insert({
+                    business_id: sessionBusinessId,
+                    caller_phone: sessionCallerPhone || 'unknown',
+                    call_sid: sessionCallSid || 'unknown',
+                    transcript: [],
+                    outcome: 'completed',
+                    extracted_info: null,
+                    summary: 'AI call completed (no transcript)',
+                    extraction_failed: true
+                  })
+                  .select()
+                  .single();
+
+                if (emptyRecordError) {
+                  console.log('[AI INGEST FAILED] empty record creation failed', emptyRecordError);
+                } else {
+                  console.log('[AI INGEST INSERT SUCCESS] empty record created successfully');
+                }
+                return;
+              }
               
               try {
                 // Extract structured fields from transcript
@@ -3227,10 +3317,9 @@ Return only JSON, no other text.`;
                   .upsert({
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    call_sid: sessionCallSid,
                     status: 'active',
                   }, {
-                    onConflict: 'lead_id,call_sid',
+                    onConflict: 'lead_id,business_id',
                   })
                   .select()
                   .single();
@@ -3580,10 +3669,9 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .upsert({
                       lead_id: fallbackLead.id,
                       business_id: sessionBusinessId,
-                      call_sid: sessionCallSid,
                       status: 'active',
                     }, {
-                      onConflict: 'lead_id,call_sid',
+                      onConflict: 'lead_id,business_id',
                     })
                     .select()
                     .single();
