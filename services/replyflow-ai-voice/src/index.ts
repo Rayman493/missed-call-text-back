@@ -572,6 +572,16 @@ async function createFallbackLead(
         extraction_failed: false
       };
     console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackCallRecordPayload);
+
+    console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+      file: 'services/replyflow-ai-voice/src/index.ts',
+      function: 'leadCreatedFromFallback',
+      sessionId: 'unknown',
+      callSid: callSid || 'unknown',
+      businessId: businessId,
+      callerPhone: callerPhone || 'unknown'
+    });
+
     const { error: aiRecordError } = await supabase
       .from('ai_call_records')
       .insert(fallbackCallRecordPayload);
@@ -1340,6 +1350,16 @@ Return only JSON, no other text.`;
           extractedFieldsKeys: extractedFields ? Object.keys(extractedFields) : [],
           payloadKeys: Object.keys(mainInsertPayload)
         });
+
+        console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+          file: 'services/replyflow-ai-voice/src/index.ts',
+          function: 'main AI save path',
+          sessionId: 'unknown',
+          callSid: sessionCallSid,
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone
+        });
+
         const { data: newRecord, error: newRecordError } = await supabase
           .from('ai_call_records')
           .insert(mainInsertPayload)
@@ -1477,6 +1497,16 @@ Return only JSON, no other text.`;
             extraction_failed: true
           };
         console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+
+        console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+          file: 'services/replyflow-ai-voice/src/index.ts',
+          function: 'main AI save fallback after lead/conversation link error',
+          sessionId: 'unknown',
+          callSid: sessionCallSid,
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone
+        });
+
         const { data: fallbackRecord, error: fallbackError } = await supabase
           .from('ai_call_records')
           .insert(fallbackInsertPayload)
@@ -2917,6 +2947,16 @@ Return only JSON, no other text.`;
                     isArray: Array.isArray(transcript)
                   });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', insertPayload);
+
+                console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+                  file: 'services/replyflow-ai-voice/src/index.ts',
+                  function: 'AI ingest path',
+                  sessionId: 'unknown',
+                  callSid: sessionCallSid,
+                  businessId: sessionBusinessId,
+                  callerPhone: sessionCallerPhone
+                });
+
                 const { data: newRecord, error: newRecordError } = await supabase
                   .from('ai_call_records')
                   .insert(insertPayload)
@@ -3124,6 +3164,16 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     isArray: Array.isArray(transcript)
                   });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', transcriptInsertPayload);
+
+                console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+                  file: 'services/replyflow-ai-voice/src/index.ts',
+                  function: 'transcript-only insert',
+                  sessionId: 'unknown',
+                  callSid: sessionCallSid,
+                  businessId: sessionBusinessId,
+                  callerPhone: sessionCallerPhone
+                });
+
                 const { error: aiRecordError } = await supabase
                   .from('ai_call_records')
                   .insert(transcriptInsertPayload);
@@ -3168,6 +3218,16 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       isArray: Array.isArray(transcript)
                     });
                   console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+
+                  console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
+                    file: 'services/replyflow-ai-voice/src/index.ts',
+                    function: 'fallback transcript insert',
+                    sessionId: 'unknown',
+                    callSid: sessionCallSid,
+                    businessId: sessionBusinessId,
+                    callerPhone: sessionCallerPhone
+                  });
+
                   const { data: fallbackRecord, error: fallbackRecordError } = await supabase
                     .from('ai_call_records')
                     .insert(fallbackInsertPayload)
