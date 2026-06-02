@@ -20,6 +20,20 @@ import { createClient } from '@supabase/supabase-js';
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
+// Normalize phone number to E.164 US format
+function normalizePhoneNumberForStorage(phone: string): string {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  } else if (cleaned.length > 10) {
+    return `+${cleaned}`;
+  }
+  return phone;
+}
+
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, verse, cedar, marin
@@ -1375,13 +1389,105 @@ Return only JSON, no other text.`;
           throw newRecordError;
         }
         
-        console.log('[AI SAVE RESULT]', { 
-          success: true, 
+        console.log('[AI SAVE RESULT]', {
+          success: true,
           recordId: newRecord.id,
           operation: 'ai_call_records insert',
           extractedInfoSaved: !!newRecord.extracted_info,
           summarySaved: !!newRecord.summary
         });
+
+        // LINK AI CALL RECORD TO LEAD AND CONVERSATION
+        console.log('[AI CALL RECORD LEAD LOOKUP]', {
+          recordId: newRecord.id,
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone
+        });
+
+        const normalizedPhone = normalizePhoneNumberForStorage(sessionCallerPhone);
+        console.log('[AI CALL RECORD NORMALIZED PHONE]', {
+          originalPhone: sessionCallerPhone,
+          normalizedPhone: normalizedPhone
+        });
+
+        // Find lead by business_id + caller_phone
+        const { data: existingLead, error: leadLookupError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('business_id', sessionBusinessId)
+          .eq('caller_phone', normalizedPhone)
+          .maybeSingle();
+
+        console.log('[AI CALL RECORD LEAD QUERY RESULT]', {
+          leadId: existingLead?.id || null,
+          error: leadLookupError?.message || 'none'
+        });
+
+        if (existingLead) {
+          console.log('[AI CALL RECORD LEAD FOUND]', { leadId: existingLead.id });
+
+          // Update ai_call_records with lead_id
+          const { error: updateLeadError } = await supabase
+            .from('ai_call_records')
+            .update({ lead_id: existingLead.id })
+            .eq('id', newRecord.id);
+
+          if (updateLeadError) {
+            console.log('[AI CALL RECORD LINK FAILURE]', {
+              error: 'Failed to update lead_id',
+              details: updateLeadError.message
+            });
+          } else {
+            console.log('[AI CALL RECORD LINK SUCCESS]', {
+              recordId: newRecord.id,
+              leadId: existingLead.id
+            });
+
+            // Find conversation linked to this lead
+            const { data: existingConversation, error: conversationLookupError } = await supabase
+              .from('conversations')
+              .select('*')
+              .eq('lead_id', existingLead.id)
+              .maybeSingle();
+
+            console.log('[AI CALL RECORD CONVERSATION QUERY RESULT]', {
+              conversationId: existingConversation?.id || null,
+              error: conversationLookupError?.message || 'none'
+            });
+
+            if (existingConversation) {
+              console.log('[AI CALL RECORD CONVERSATION FOUND]', { conversationId: existingConversation.id });
+
+              // Update ai_call_records with conversation_id
+              const { error: updateConversationError } = await supabase
+                .from('ai_call_records')
+                .update({ conversation_id: existingConversation.id })
+                .eq('id', newRecord.id);
+
+              if (updateConversationError) {
+                console.log('[AI CALL RECORD LINK FAILURE]', {
+                  error: 'Failed to update conversation_id',
+                  details: updateConversationError.message
+                });
+              } else {
+                console.log('[AI CALL RECORD LINK SUCCESS]', {
+                  recordId: newRecord.id,
+                  leadId: existingLead.id,
+                  conversationId: existingConversation.id
+                });
+              }
+            } else {
+              console.log('[AI CALL RECORD CONVERSATION NOT FOUND]', {
+                leadId: existingLead.id
+              });
+            }
+          }
+        } else {
+          console.log('[AI CALL RECORD LEAD NOT FOUND]', {
+            businessId: sessionBusinessId,
+            callerPhone: normalizedPhone
+          });
+        }
 
         // NOW CREATE LEAD AND CONVERSATION AND LINK TO AI_CALL_RECORDS
         console.log('[AI LEAD LOOKUP START]', { 
@@ -1517,6 +1623,98 @@ Return only JSON, no other text.`;
           console.log('[AI CALL RECORD SAVE FAILED]', fallbackError);
         } else {
           console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: fallbackRecord.id });
+
+          // LINK AI CALL RECORD TO LEAD AND CONVERSATION
+          console.log('[AI CALL RECORD LEAD LOOKUP]', {
+            recordId: fallbackRecord.id,
+            businessId: sessionBusinessId,
+            callerPhone: sessionCallerPhone
+          });
+
+          const normalizedPhone = normalizePhoneNumberForStorage(sessionCallerPhone);
+          console.log('[AI CALL RECORD NORMALIZED PHONE]', {
+            originalPhone: sessionCallerPhone,
+            normalizedPhone: normalizedPhone
+          });
+
+          // Find lead by business_id + caller_phone
+          const { data: existingLead, error: leadLookupError } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('business_id', sessionBusinessId)
+            .eq('caller_phone', normalizedPhone)
+            .maybeSingle();
+
+          console.log('[AI CALL RECORD LEAD QUERY RESULT]', {
+            leadId: existingLead?.id || null,
+            error: leadLookupError?.message || 'none'
+          });
+
+          if (existingLead) {
+            console.log('[AI CALL RECORD LEAD FOUND]', { leadId: existingLead.id });
+
+            // Update ai_call_records with lead_id
+            const { error: updateLeadError } = await supabase
+              .from('ai_call_records')
+              .update({ lead_id: existingLead.id })
+              .eq('id', fallbackRecord.id);
+
+            if (updateLeadError) {
+              console.log('[AI CALL RECORD LINK FAILURE]', {
+                error: 'Failed to update lead_id',
+                details: updateLeadError.message
+              });
+            } else {
+              console.log('[AI CALL RECORD LINK SUCCESS]', {
+                recordId: fallbackRecord.id,
+                leadId: existingLead.id
+              });
+
+              // Find conversation linked to this lead
+              const { data: existingConversation, error: conversationLookupError } = await supabase
+                .from('conversations')
+                .select('*')
+                .eq('lead_id', existingLead.id)
+                .maybeSingle();
+
+              console.log('[AI CALL RECORD CONVERSATION QUERY RESULT]', {
+                conversationId: existingConversation?.id || null,
+                error: conversationLookupError?.message || 'none'
+              });
+
+              if (existingConversation) {
+                console.log('[AI CALL RECORD CONVERSATION FOUND]', { conversationId: existingConversation.id });
+
+                // Update ai_call_records with conversation_id
+                const { error: updateConversationError } = await supabase
+                  .from('ai_call_records')
+                  .update({ conversation_id: existingConversation.id })
+                  .eq('id', fallbackRecord.id);
+
+                if (updateConversationError) {
+                  console.log('[AI CALL RECORD LINK FAILURE]', {
+                    error: 'Failed to update conversation_id',
+                    details: updateConversationError.message
+                  });
+                } else {
+                  console.log('[AI CALL RECORD LINK SUCCESS]', {
+                    recordId: fallbackRecord.id,
+                    leadId: existingLead.id,
+                    conversationId: existingConversation.id
+                  });
+                }
+              } else {
+                console.log('[AI CALL RECORD CONVERSATION NOT FOUND]', {
+                  leadId: existingLead.id
+                });
+              }
+            }
+          } else {
+            console.log('[AI CALL RECORD LEAD NOT FOUND]', {
+              businessId: sessionBusinessId,
+              callerPhone: normalizedPhone
+            });
+          }
         }
         return;
       }
@@ -3183,6 +3381,82 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   // Don't throw here - the main ingestion succeeded
                 } else {
                   console.log('[AI CALL RECORD SAVE SUCCESS]');
+
+                  // LINK AI CALL RECORD TO LEAD AND CONVERSATION
+                  console.log('[AI CALL RECORD LEAD LOOKUP]', {
+                    recordId: 'unknown',
+                    businessId: sessionBusinessId,
+                    callerPhone: sessionCallerPhone
+                  });
+
+                  const normalizedPhone = normalizePhoneNumberForStorage(sessionCallerPhone);
+                  console.log('[AI CALL RECORD NORMALIZED PHONE]', {
+                    originalPhone: sessionCallerPhone,
+                    normalizedPhone: normalizedPhone
+                  });
+
+                  // Find lead by business_id + caller_phone
+                  const { data: existingLead, error: leadLookupError } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .eq('business_id', sessionBusinessId)
+                    .eq('caller_phone', normalizedPhone)
+                    .maybeSingle();
+
+                  console.log('[AI CALL RECORD LEAD QUERY RESULT]', {
+                    leadId: existingLead?.id || null,
+                    error: leadLookupError?.message || 'none'
+                  });
+
+                  if (existingLead) {
+                    console.log('[AI CALL RECORD LEAD FOUND]', { leadId: existingLead.id });
+
+                    // Find conversation linked to this lead
+                    const { data: existingConversation, error: conversationLookupError } = await supabase
+                      .from('conversations')
+                      .select('*')
+                      .eq('lead_id', existingLead.id)
+                      .maybeSingle();
+
+                    console.log('[AI CALL RECORD CONVERSATION QUERY RESULT]', {
+                      conversationId: existingConversation?.id || null,
+                      error: conversationLookupError?.message || 'none'
+                    });
+
+                    if (existingConversation) {
+                      console.log('[AI CALL RECORD CONVERSATION FOUND]', { conversationId: existingConversation.id });
+
+                      // Update ai_call_records with lead_id and conversation_id
+                      const { error: updateError } = await supabase
+                        .from('ai_call_records')
+                        .update({
+                          lead_id: existingLead.id,
+                          conversation_id: existingConversation.id
+                        })
+                        .eq('call_sid', sessionCallSid);
+
+                      if (updateError) {
+                        console.log('[AI CALL RECORD LINK FAILURE]', {
+                          error: 'Failed to update lead_id and conversation_id',
+                          details: updateError.message
+                        });
+                      } else {
+                        console.log('[AI CALL RECORD LINK SUCCESS]', {
+                          leadId: existingLead.id,
+                          conversationId: existingConversation.id
+                        });
+                      }
+                    } else {
+                      console.log('[AI CALL RECORD CONVERSATION NOT FOUND]', {
+                        leadId: existingLead.id
+                      });
+                    }
+                  } else {
+                    console.log('[AI CALL RECORD LEAD NOT FOUND]', {
+                      businessId: sessionBusinessId,
+                      callerPhone: normalizedPhone
+                    });
+                  }
                 }
                 
                 console.log('[AI INGEST COMPLETE] all data saved successfully');
