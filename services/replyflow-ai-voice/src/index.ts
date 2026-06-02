@@ -604,6 +604,12 @@ async function createFallbackLead(
       leadId: fallbackCallRecordPayload.lead_id,
       conversationId: fallbackCallRecordPayload.conversation_id
     });
+    console.log('[INSERT PATH A] leadCreatedFromFallback function', {
+      file: 'services/replyflow-ai-voice/src/index.ts',
+      line: 607,
+      lead_id: fallbackCallRecordPayload.lead_id,
+      conversation_id: fallbackCallRecordPayload.conversation_id
+    });
     console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackCallRecordPayload);
 
     console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
@@ -1637,6 +1643,12 @@ Return only JSON, no other text.`;
           businessId: fallbackInsertPayload.business_id,
           leadId: fallbackInsertPayload.lead_id,
           conversationId: fallbackInsertPayload.conversation_id
+        });
+        console.log('[INSERT PATH B] main AI save fallback after lead/conversation link error', {
+          file: 'services/replyflow-ai-voice/src/index.ts',
+          line: 1647,
+          lead_id: fallbackInsertPayload.lead_id,
+          conversation_id: fallbackInsertPayload.conversation_id
         });
         console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
 
@@ -3149,6 +3161,12 @@ Return only JSON, no other text.`;
                     transcriptType: typeof transcript,
                     isArray: Array.isArray(transcript)
                   });
+                console.log('[INSERT PATH C] AI ingest path', {
+                  file: 'services/replyflow-ai-voice/src/index.ts',
+                  line: 3158,
+                  lead_id: insertPayload.lead_id,
+                  conversation_id: insertPayload.conversation_id
+                });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', insertPayload);
 
                 console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
@@ -3384,6 +3402,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     transcriptType: typeof transcript,
                     isArray: Array.isArray(transcript)
                   });
+                console.log('[INSERT PATH D] transcript-only insert', {
+                  file: 'services/replyflow-ai-voice/src/index.ts',
+                  line: 3405,
+                  lead_id: transcriptInsertPayload.lead_id,
+                  conversation_id: transcriptInsertPayload.conversation_id
+                });
                 console.log('[AI CALL RECORD INSERT PAYLOAD]', transcriptInsertPayload);
 
                 console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
@@ -3556,6 +3580,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       transcriptType: typeof transcript,
                       isArray: Array.isArray(transcript)
                     });
+                  console.log('[INSERT PATH E] fallback transcript insert', {
+                    file: 'services/replyflow-ai-voice/src/index.ts',
+                    line: 3583,
+                    lead_id: fallbackInsertPayload.lead_id,
+                    conversation_id: fallbackInsertPayload.conversation_id
+                  });
                   console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
 
                   console.log('[ACTIVE AI RECORD INSERT PATH]', {
