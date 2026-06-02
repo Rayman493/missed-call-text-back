@@ -585,6 +585,13 @@ async function createFallbackLead(
         outcome: 'completed',
         extraction_failed: false
       };
+    console.log('[AI CALL RECORD OUTCOME]', {
+      outcome: fallbackCallRecordPayload.outcome,
+      callSid: fallbackCallRecordPayload.call_sid,
+      businessId: fallbackCallRecordPayload.business_id,
+      leadId: fallbackCallRecordPayload.lead_id,
+      conversationId: fallbackCallRecordPayload.conversation_id
+    });
     console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackCallRecordPayload);
 
     console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
@@ -1357,6 +1364,13 @@ Return only JSON, no other text.`;
             extracted_info: extractedFields,
             summary: extractedFields.summary
           };
+        console.log('[AI CALL RECORD OUTCOME]', {
+          outcome: mainInsertPayload.outcome,
+          callSid: mainInsertPayload.call_sid,
+          businessId: mainInsertPayload.business_id,
+          leadId: mainInsertPayload.lead_id,
+          conversationId: mainInsertPayload.conversation_id
+        });
         console.log('[AI SAVE PAYLOAD]', {
           recordType: 'ai_call_records',
           hasExtractedInfo: !!extractedFields,
@@ -1597,11 +1611,18 @@ Return only JSON, no other text.`;
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
             transcript: Array.isArray(transcript) ? transcript : [],
-            outcome: 'unknown',
+            outcome: 'completed',
             extracted_info: null,
             summary: fullTranscript || 'AI call completed',
             extraction_failed: true
           };
+        console.log('[AI CALL RECORD OUTCOME]', {
+          outcome: fallbackInsertPayload.outcome,
+          callSid: fallbackInsertPayload.call_sid,
+          businessId: fallbackInsertPayload.business_id,
+          leadId: fallbackInsertPayload.lead_id,
+          conversationId: fallbackInsertPayload.conversation_id
+        });
         console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
 
         console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
@@ -3138,6 +3159,13 @@ Return only JSON, no other text.`;
                     summary: extractedFields.summary,
                     extraction_failed: false
                   };
+                console.log('[AI CALL RECORD OUTCOME]', {
+                  outcome: insertPayload.outcome,
+                  callSid: insertPayload.call_sid,
+                  businessId: insertPayload.business_id,
+                  leadId: insertPayload.lead_id,
+                  conversationId: insertPayload.conversation_id
+                });
                 console.log('[AI TRANSCRIPT STATE]', {
                     transcriptLength: transcript.length,
                     transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
@@ -3355,6 +3383,13 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     outcome: 'completed',
                     extraction_failed: false
                   };
+                console.log('[AI CALL RECORD OUTCOME]', {
+                  outcome: transcriptInsertPayload.outcome,
+                  callSid: transcriptInsertPayload.call_sid,
+                  businessId: transcriptInsertPayload.business_id,
+                  leadId: transcriptInsertPayload.lead_id,
+                  conversationId: transcriptInsertPayload.conversation_id
+                });
                 console.log('[AI TRANSCRIPT STATE]', {
                     transcriptLength: transcript.length,
                     transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
@@ -3485,6 +3520,13 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       summary: `AI call transcript: ${fullTranscript}`,
                       extraction_failed: true
                     };
+                  console.log('[AI CALL RECORD OUTCOME]', {
+                    outcome: fallbackInsertPayload.outcome,
+                    callSid: fallbackInsertPayload.call_sid,
+                    businessId: fallbackInsertPayload.business_id,
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id
+                  });
                   console.log('[AI TRANSCRIPT STATE]', {
                       transcriptLength: transcript.length,
                       transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
