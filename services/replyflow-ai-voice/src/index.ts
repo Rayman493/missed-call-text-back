@@ -1552,11 +1552,76 @@ Return only JSON, no other text.`;
       } catch (error) {
         console.log('[AI INGEST FAILED] extraction failed during creation, creating with transcript only', error);
         
+        // Create lead and conversation BEFORE inserting ai_call_records (fallback path)
+        console.log('[AI LEAD LOOKUP START]', { 
+          businessId: sessionBusinessId,
+          callerPhone: sessionCallerPhone,
+          operation: 'lead upsert for fallback ai_call_records linking'
+        });
+        const { data: fallbackLead, error: fallbackLeadError } = await supabase
+          .from('leads')
+          .upsert({
+            business_id: sessionBusinessId,
+            caller_phone: sessionCallerPhone,
+            status: 'new',
+          }, {
+            onConflict: 'business_id,caller_phone',
+          })
+          .select()
+          .single();
+
+        console.log('[AI LEAD LOOKUP RESULT]', { 
+          leadId: fallbackLead?.id || 'null',
+          leadError: fallbackLeadError?.message || 'none',
+          callerPhone: sessionCallerPhone
+        });
+
+        if (fallbackLeadError) {
+          console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: fallbackLeadError.message });
+        }
+
+        let fallbackConversationId: string | null = null;
+        if (fallbackLead) {
+          console.log('[AI LEAD UPSERT RESULT]', { leadId: fallbackLead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
+
+          // Create or update conversation
+          console.log('[AI CONVERSATION LOOKUP START]', { 
+            businessId: sessionBusinessId,
+            leadId: fallbackLead.id,
+            operation: 'conversation upsert for fallback ai_call_records linking'
+          });
+          const { data: fallbackConversation, error: fallbackConversationError } = await supabase
+            .from('conversations')
+            .upsert({
+              business_id: sessionBusinessId,
+              lead_id: fallbackLead.id,
+              status: 'ai_completed',
+              last_activity_at: new Date().toISOString(),
+            }, {
+              onConflict: 'business_id,lead_id',
+            })
+            .select()
+            .single();
+
+          console.log('[AI CONVERSATION LOOKUP RESULT]', { 
+            conversationId: fallbackConversation?.id || 'null',
+            conversationError: fallbackConversationError?.message || 'none',
+            leadId: fallbackLead.id
+          });
+
+          if (fallbackConversationError) {
+            console.log('[AI CONVERSATION UPSERT FAILED]', fallbackConversationError);
+          } else {
+            console.log('[AI CONVERSATION UPSERT RESULT]', { conversationId: fallbackConversation.id, leadId: fallbackLead.id });
+            fallbackConversationId = fallbackConversation.id;
+          }
+        }
+
         // Create with transcript only if extraction failed
         const fallbackInsertPayload = {
             business_id: sessionBusinessId,
-            lead_id: null,
-            conversation_id: null,
+            lead_id: fallbackLead?.id || null,
+            conversation_id: fallbackConversationId,
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
             transcript: Array.isArray(transcript) ? transcript : [],
@@ -1594,95 +1659,11 @@ Return only JSON, no other text.`;
         } else {
           console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: fallbackRecord.id });
 
-          // LINK AI CALL RECORD TO LEAD AND CONVERSATION
-          console.log('[AI CALL RECORD LEAD LOOKUP]', {
-            recordId: fallbackRecord.id,
-            businessId: sessionBusinessId,
-            callerPhone: sessionCallerPhone
-          });
-
-          const normalizedPhone = normalizePhoneNumberForStorage(sessionCallerPhone);
-          console.log('[AI CALL RECORD NORMALIZED PHONE]', {
-            originalPhone: sessionCallerPhone,
-            normalizedPhone: normalizedPhone
-          });
-
-          // Find lead by business_id + caller_phone
-          const { data: existingLead, error: leadLookupError } = await supabase
-            .from('leads')
-            .select('*')
-            .eq('business_id', sessionBusinessId)
-            .eq('caller_phone', normalizedPhone)
-            .maybeSingle();
-
-          console.log('[AI CALL RECORD LEAD QUERY RESULT]', {
-            leadId: existingLead?.id || null,
-            error: leadLookupError?.message || 'none'
-          });
-
-          if (existingLead) {
-            console.log('[AI CALL RECORD LEAD FOUND]', { leadId: existingLead.id });
-
-            // Update ai_call_records with lead_id
-            const { error: updateLeadError } = await supabase
-              .from('ai_call_records')
-              .update({ lead_id: existingLead.id })
-              .eq('id', fallbackRecord.id);
-
-            if (updateLeadError) {
-              console.log('[AI CALL RECORD LINK FAILURE]', {
-                error: 'Failed to update lead_id',
-                details: updateLeadError.message
-              });
-            } else {
-              console.log('[AI CALL RECORD LINK SUCCESS]', {
-                recordId: fallbackRecord.id,
-                leadId: existingLead.id
-              });
-
-              // Find conversation linked to this lead
-              const { data: existingConversation, error: conversationLookupError } = await supabase
-                .from('conversations')
-                .select('*')
-                .eq('lead_id', existingLead.id)
-                .maybeSingle();
-
-              console.log('[AI CALL RECORD CONVERSATION QUERY RESULT]', {
-                conversationId: existingConversation?.id || null,
-                error: conversationLookupError?.message || 'none'
-              });
-
-              if (existingConversation) {
-                console.log('[AI CALL RECORD CONVERSATION FOUND]', { conversationId: existingConversation.id });
-
-                // Update ai_call_records with conversation_id
-                const { error: updateConversationError } = await supabase
-                  .from('ai_call_records')
-                  .update({ conversation_id: existingConversation.id })
-                  .eq('id', fallbackRecord.id);
-
-                if (updateConversationError) {
-                  console.log('[AI CALL RECORD LINK FAILURE]', {
-                    error: 'Failed to update conversation_id',
-                    details: updateConversationError.message
-                  });
-                } else {
-                  console.log('[AI CALL RECORD LINK SUCCESS]', {
-                    recordId: fallbackRecord.id,
-                    leadId: existingLead.id,
-                    conversationId: existingConversation.id
-                  });
-                }
-              } else {
-                console.log('[AI CALL RECORD CONVERSATION NOT FOUND]', {
-                  leadId: existingLead.id
-                });
-              }
-            }
-          } else {
-            console.log('[AI CALL RECORD LEAD NOT FOUND]', {
-              businessId: sessionBusinessId,
-              callerPhone: normalizedPhone
+          if (fallbackLead?.id && fallbackConversationId) {
+            console.log('[AI LINK SUCCESS]', {
+              aiCallRecordId: fallbackRecord.id,
+              leadId: fallbackLead.id,
+              conversationId: fallbackConversationId
             });
           }
         }
