@@ -113,7 +113,7 @@ async function testSupabaseConnection() {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_callback' | 'ask_urgency' | 'confirmation' | 'complete';
+type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -144,7 +144,9 @@ interface IntakeData {
   callerName?: string;
   callerReason?: string;
   callbackNumber?: string;
-  urgency?: 'urgent' | 'normal';
+  urgency?: 'urgent' | 'normal' | 'not_specified';
+  addressOrLocation?: string;
+  preferredCallbackTime?: string;
   businessName: string;
   callSid: string;
   businessId: string;
@@ -156,7 +158,9 @@ interface LeadSummary {
   callerName?: string;
   callbackNumber?: string;
   reason?: string;
-  urgency?: 'urgent' | 'normal';
+  urgency?: 'urgent' | 'normal' | 'not_specified';
+  addressOrLocation?: string;
+  preferredCallbackTime?: string;
   summary: string;
   timestamp: string;
   callSid: string;
@@ -165,6 +169,17 @@ interface LeadSummary {
 }
 
 // Intake state machine functions
+function getMissingRequiredFields(intake: IntakeData): string[] {
+  const missing: string[] = [];
+  if (!intake.callerName) missing.push('name');
+  // Phone is usually from caller ID, so we don't require it to be explicitly asked
+  if (!intake.callerReason) missing.push('reason for calling');
+  if (!intake.addressOrLocation) missing.push('address or location');
+  if (!intake.preferredCallbackTime) missing.push('preferred callback time');
+  if (!intake.urgency) missing.push('urgency');
+  return missing;
+}
+
 function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
   return {
     stage: 'ask_reason',
@@ -180,13 +195,17 @@ function generateConfirmationMessage(intake: IntakeData): string {
   console.log('[CONFIRMATION GENERATED] Creating confirmation message with collected data:', {
     callerName: intake.callerName,
     callerReason: intake.callerReason,
+    addressOrLocation: intake.addressOrLocation,
+    preferredCallbackTime: intake.preferredCallbackTime,
     urgency: intake.urgency,
     callbackNumber: intake.callbackNumber
   });
 
   const name = intake.callerName || 'there';
   const reason = intake.callerReason || 'your inquiry';
-  const urgency = intake.urgency === 'urgent' ? 'urgent' : 'not urgent';
+  const location = intake.addressOrLocation || 'not specified';
+  const callbackTime = intake.preferredCallbackTime || 'anytime';
+  const urgency = intake.urgency === 'urgent' ? 'urgent' : (intake.urgency === 'normal' ? 'not urgent' : 'not specified');
 
   const confirmation = `Let me confirm I have everything correct.
 
@@ -194,7 +213,11 @@ Your name is ${name}.
 
 You're looking for help with ${reason}.
 
-The project is ${urgency}.
+The work location is ${location}.
+
+Your preferred callback time is ${callbackTime}.
+
+The urgency is ${urgency}.
 
 Is that correct?`;
 
@@ -220,16 +243,26 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       return {
         response: 'Thanks. Can I get your name?',
-        nextStage: 'ask_callback'
+        nextStage: 'ask_address'
       };
       
-    case 'ask_callback':
+    case 'ask_address':
       if (transcript) {
-        intake.callbackNumber = extractPhoneNumber(transcript);
-        console.log('[AI CALLBACK CAPTURED]', intake.callbackNumber);
+        intake.addressOrLocation = transcript.trim();
+        console.log('[AI ADDRESS CAPTURED]', intake.addressOrLocation);
       }
       return {
-        response: "What's the best number to reach you back at?",
+        response: 'Thanks. What\'s the address or area where the work is needed?',
+        nextStage: 'ask_callback_time'
+      };
+      
+    case 'ask_callback_time':
+      if (transcript) {
+        intake.preferredCallbackTime = transcript.trim();
+        console.log('[AI CALLBACK TIME CAPTURED]', intake.preferredCallbackTime);
+      }
+      return {
+        response: 'Got it. What\'s a good time for someone to call you back?',
         nextStage: 'ask_urgency'
       };
       
@@ -281,9 +314,16 @@ function extractPhoneNumber(transcript: string): string {
   return match ? match[1] : transcript.trim();
 }
 
-function extractUrgency(transcript: string): 'urgent' | 'normal' {
+function extractUrgency(transcript: string): 'urgent' | 'normal' | 'not_specified' {
   const urgent = transcript.toLowerCase().match(/\burgent\b|\bemergency\b|\basap\b|\bimmediately\b|\bright away\b/);
-  return urgent ? 'urgent' : 'normal';
+  if (urgent) {
+    return 'urgent';
+  }
+  const normal = transcript.toLowerCase().match(/\bnormal\b|\bnot urgent\b|\blater\b|\bflexible\b|\bno rush\b/);
+  if (normal) {
+    return 'normal';
+  }
+  return 'not_specified';
 }
 
 function isConfirmationAccepted(transcript: string): boolean {
@@ -2186,21 +2226,22 @@ Note: The greeting will be handled separately via exact response.create instruct
 
 INFORMATION GATHERING PRIORITY ORDER:
 1. Reason for calling (most important - understand the core need)
-2. Urgency level (is this time-sensitive?)
-3. Caller name (for personalization)
-4. Important details about the issue/job/request (context for follow-up)
-5. Best callback number (only if caller ID is missing or unclear)
-6. Address/location (only if relevant to the business type or issue)
-7. Preferred callback timing (optional, lowest priority)
+2. Caller name (for personalization)
+3. Address or service location (where the work is needed)
+4. Preferred callback time (when to call back)
+5. Urgency level (is this time-sensitive?)
+6. Callback number (usually from caller ID, only ask if missing)
 
 CALL COMPLETION POLICY:
-STOP asking questions once you have enough actionable information:
+STOP asking questions once you have ALL required fields:
 - Reason for calling (required)
-- Caller name if provided (helpful)
-- Urgency if relevant (important for time-sensitive issues)
-- Important details (context for follow-up)
-- Callback number if caller ID is missing/unclear (only when needed)
-- Address/location only if relevant to the business type or issue
+- Caller name (required)
+- Address or service location (required - if caller declines, mark as "Not provided")
+- Preferred callback time (required - if caller says anytime/no preference, mark as "Anytime")
+- Urgency (required - if caller doesn't know, mark as "Not specified")
+- Callback number (usually from caller ID, only ask if missing)
+
+YOU MUST collect address/location, callback time, and urgency before finalizing. Do not end the call early.
 
 CORE INFO IS ENOUGH when the business can realistically follow up confidently. Do not keep asking optional questions.
 
@@ -2502,6 +2543,42 @@ Do NOT:
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
+                      
+                      // Check if all required fields are collected
+                      const missingFields = getMissingRequiredFields(intakeData!);
+                      if (missingFields.length > 0) {
+                        console.log('[MISSING REQUIRED FIELDS]', { missingFields });
+                        console.log('[INTAKE INCOMPLETE] Cannot finalize - missing required fields');
+                        
+                        // Ask for the next missing field
+                        const nextMissing = missingFields[0];
+                        let followUpMessage = '';
+                        if (nextMissing === 'address or location') {
+                          followUpMessage = 'Thanks. What\'s the address or area where the work is needed?';
+                        } else if (nextMissing === 'preferred callback time') {
+                          followUpMessage = 'Got it. What\'s a good time for someone to call you back?';
+                        } else if (nextMissing === 'urgency') {
+                          followUpMessage = 'Is this urgent, or is it flexible?';
+                        } else if (nextMissing === 'name') {
+                          followUpMessage = 'Could you please tell me your name?';
+                        } else if (nextMissing === 'reason for calling') {
+                          followUpMessage = 'What can I help you with today?';
+                        }
+                        
+                        const followUpPayload = {
+                          type: 'response.create',
+                          response: {
+                            instructions: `Say exactly: "${followUpMessage}"`
+                          }
+                        };
+                        
+                        if (openAiWs) {
+                          openAiWs.send(JSON.stringify(followUpPayload));
+                          console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpMessage });
+                        }
+                        return; // Skip normal intake processing
+                      }
+                      
                       console.log('[FINAL GOODBYE SENT] Sending final goodbye message');
                       
                       // Send final goodbye message
@@ -2573,9 +2650,12 @@ Do NOT:
                   if (intakeData!.stage === 'ask_name' && userTranscript) {
                     intakeData!.callerName = extractName(userTranscript);
                     console.log('[AI NAME CAPTURED]', intakeData!.callerName);
-                  } else if (intakeData!.stage === 'ask_callback' && userTranscript) {
-                    intakeData!.callbackNumber = extractPhoneNumber(userTranscript);
-                    console.log('[AI CALLBACK CAPTURED]', intakeData!.callbackNumber);
+                  } else if (intakeData!.stage === 'ask_address' && userTranscript) {
+                    intakeData!.addressOrLocation = userTranscript.trim();
+                    console.log('[AI ADDRESS CAPTURED]', intakeData!.addressOrLocation);
+                  } else if (intakeData!.stage === 'ask_callback_time' && userTranscript) {
+                    intakeData!.preferredCallbackTime = userTranscript.trim();
+                    console.log('[AI CALLBACK TIME CAPTURED]', intakeData!.preferredCallbackTime);
                   } else if (intakeData!.stage === 'ask_urgency' && userTranscript) {
                     intakeData!.urgency = extractUrgency(userTranscript);
                     console.log('[AI URGENCY CAPTURED]', intakeData!.urgency);
