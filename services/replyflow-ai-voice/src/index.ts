@@ -551,17 +551,32 @@ async function createFallbackLead(
     };
     console.log('[CONVERSATION INSERT PAYLOAD]', conversationInsertPayload);
     
-    const { data: conversation, error: conversationError } = await supabase
+    // Lookup existing conversation by lead_id
+    const { data: existingConversation, error: conversationLookupError } = await supabase
       .from('conversations')
-      .upsert({
-        lead_id: lead.id,
-        business_id: businessId,
-        status: 'active',
-      }, {
-        onConflict: 'lead_id,business_id',
-      })
-      .select()
-      .single();
+      .select('*')
+      .eq('lead_id', lead.id)
+      .maybeSingle();
+
+    let conversation;
+    let conversationError;
+    
+    if (existingConversation) {
+      conversation = existingConversation;
+      console.log('[LEAD CREATED FROM FALLBACK] Existing conversation found', { conversationId: conversation.id });
+    } else {
+      const result = await supabase
+        .from('conversations')
+        .insert({
+          lead_id: lead.id,
+          business_id: businessId,
+          status: 'active',
+        })
+        .select()
+        .single();
+      conversation = result.data;
+      conversationError = result.error;
+    }
 
     if (conversationError) {
       console.log('[LEAD CREATED FROM FALLBACK] Conversation creation error:', conversationError);
@@ -1459,18 +1474,33 @@ Return only JSON, no other text.`;
           leadId: lead.id,
           operation: 'conversation upsert for ai_call_records linking'
         });
-        const { data: conversation, error: conversationError } = await supabase
+        // Lookup existing conversation by lead_id
+        const { data: existingConversation, error: conversationLookupError } = await supabase
           .from('conversations')
-          .upsert({
-            business_id: sessionBusinessId,
-            lead_id: lead.id,
-            status: 'ai_completed',
-            last_activity_at: new Date().toISOString(),
-          }, {
-            onConflict: 'business_id,lead_id',
-          })
-          .select()
-          .single();
+          .select('*')
+          .eq('lead_id', lead.id)
+          .maybeSingle();
+
+        let conversation;
+        let conversationError;
+
+        if (existingConversation) {
+          conversation = existingConversation;
+          console.log('[AI CONVERSATION FOUND]', { conversationId: conversation.id });
+        } else {
+          const result = await supabase
+            .from('conversations')
+            .insert({
+              business_id: sessionBusinessId,
+              lead_id: lead.id,
+              status: 'ai_completed',
+              last_activity_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+          conversation = result.data;
+          conversationError = result.error;
+        }
 
         console.log('[AI CONVERSATION LOOKUP RESULT]', { 
           conversationId: conversation?.id || 'null',
@@ -1598,18 +1628,33 @@ Return only JSON, no other text.`;
             leadId: fallbackLead.id,
             operation: 'conversation upsert for fallback ai_call_records linking'
           });
-          const { data: fallbackConversation, error: fallbackConversationError } = await supabase
+          // Lookup existing conversation by lead_id
+          const { data: existingFallbackConversation, error: fallbackConversationLookupError } = await supabase
             .from('conversations')
-            .upsert({
-              business_id: sessionBusinessId,
-              lead_id: fallbackLead.id,
-              status: 'ai_completed',
-              last_activity_at: new Date().toISOString(),
-            }, {
-              onConflict: 'business_id,lead_id',
-            })
-            .select()
-            .single();
+            .select('*')
+            .eq('lead_id', fallbackLead.id)
+            .maybeSingle();
+
+          let fallbackConversation;
+          let fallbackConversationError;
+
+          if (existingFallbackConversation) {
+            fallbackConversation = existingFallbackConversation;
+            console.log('[AI CONVERSATION FOUND]', { conversationId: fallbackConversation.id });
+          } else {
+            const result = await supabase
+              .from('conversations')
+              .insert({
+                business_id: sessionBusinessId,
+                lead_id: fallbackLead.id,
+                status: 'ai_completed',
+                last_activity_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+            fallbackConversation = result.data;
+            fallbackConversationError = result.error;
+          }
 
           console.log('[AI CONVERSATION LOOKUP RESULT]', { 
             conversationId: fallbackConversation?.id || 'null',
@@ -3235,13 +3280,28 @@ Return only JSON, no other text.`;
                 };
                 console.log('[CONVERSATION CREATE START]', { payload: conversationInsertPayload });
                 
-                const { data: conversation, error: conversationError } = await supabase
+                // Lookup existing conversation by lead_id
+                const { data: existingConversation, error: conversationLookupError } = await supabase
                   .from('conversations')
-                  .upsert(conversationInsertPayload, {
-                    onConflict: 'lead_id,business_id',
-                  })
-                  .select()
-                  .single();
+                  .select('*')
+                  .eq('lead_id', lead.id)
+                  .maybeSingle();
+
+                let conversation;
+                let conversationError;
+
+                if (existingConversation) {
+                  conversation = existingConversation;
+                  console.log('[CONVERSATION FOUND]', { conversationId: conversation.id });
+                } else {
+                  const result = await supabase
+                    .from('conversations')
+                    .insert(conversationInsertPayload)
+                    .select()
+                    .single();
+                  conversation = result.data;
+                  conversationError = result.error;
+                }
 
                 if (conversationError) {
                   console.log('[CONVERSATION CREATE ERROR]', { error: conversationError.message });
@@ -3544,17 +3604,32 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     throw fallbackLeadError;
                   }
 
-                  const { data: fallbackConversation, error: fallbackConversationError } = await supabase
+                  // Lookup existing conversation by lead_id
+                  const { data: existingFallbackConversation, error: fallbackConversationLookupError } = await supabase
                     .from('conversations')
-                    .upsert({
-                      lead_id: fallbackLead.id,
-                      business_id: sessionBusinessId,
-                      status: 'active',
-                    }, {
-                      onConflict: 'lead_id,business_id',
-                    })
-                    .select()
-                    .single();
+                    .select('*')
+                    .eq('lead_id', fallbackLead.id)
+                    .maybeSingle();
+
+                  let fallbackConversation;
+                  let fallbackConversationError;
+
+                  if (existingFallbackConversation) {
+                    fallbackConversation = existingFallbackConversation;
+                    console.log('[AI INGEST] existing fallback conversation found', { conversationId: fallbackConversation.id });
+                  } else {
+                    const result = await supabase
+                      .from('conversations')
+                      .insert({
+                        lead_id: fallbackLead.id,
+                        business_id: sessionBusinessId,
+                        status: 'active',
+                      })
+                      .select()
+                      .single();
+                    fallbackConversation = result.data;
+                    fallbackConversationError = result.error;
+                  }
 
                   if (fallbackConversationError) {
                     console.log('[AI INGEST] fallback conversation creation error', fallbackConversationError);
