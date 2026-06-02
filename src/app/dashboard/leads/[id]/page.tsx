@@ -1605,13 +1605,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* AI Intake Summary Card */}
-          {leadData?.ai_summary != null && business?.id && (
+          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">AI Intake Summary</h3>
-              <AICallDetails 
+              <AICallDetails
                 leadId={params.id}
                 businessId={business.id}
-                conversationId={leadData?.conversation_id}
+                conversationId={leadData?.conversation?.id}
                 callerPhone={leadData?.phone_number || lead?.phone}
               />
             </div>
