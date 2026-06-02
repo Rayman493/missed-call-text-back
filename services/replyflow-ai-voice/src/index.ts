@@ -1255,6 +1255,10 @@ wss.on('connection', (ws, req) => {
     let awaitingGoodbyeOrSilence = false;
     let shouldHangupAfterAudioDone = false;
     let silenceAfterFinalMessageTimer: NodeJS.Timeout | null = null;
+    let confirmationAccepted = false;
+    let readyToClose = false;
+    let closingMode = false;
+    let finalAudioComplete = false;
     
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -2487,7 +2491,7 @@ Do NOT:
                   transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   
                   // Check for goodbye phrases after final message
-                  if (awaitingGoodbyeOrSilence) {
+                  if (closingMode) {
                     const goodbyePhrases = [
                       'thanks', 'thank you', 'okay thanks', 'sounds good', 
                       'bye', 'goodbye', 'have a good one', 'you too', 'appreciate it'
@@ -2496,7 +2500,7 @@ Do NOT:
                     
                     if (goodbyePhrases.some(phrase => lowerTranscript.includes(phrase))) {
                       console.log('[GOODBYE DETECTED] Caller said:', userTranscript);
-                      console.log('[CALL END TRIGGERED] Triggering hangup due to goodbye phrase');
+                      console.log('[CALL HANGUP] Triggering hangup due to goodbye phrase');
                       
                       // Clear silence timer
                       if (silenceAfterFinalMessageTimer) {
@@ -2504,25 +2508,9 @@ Do NOT:
                         silenceAfterFinalMessageTimer = null;
                       }
                       
-                      // Send very short closing response then hangup
-                      const shortClosingMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: 'Say exactly: "You\'re welcome. Goodbye."'
-                        }
-                      };
-                      
-                      if (openAiWs) {
-                        openAiWs.send(JSON.stringify(shortClosingMessage));
-                        console.log('[SHORT CLOSING SENT] Short closing message sent');
-                        
-                        // Schedule hangup after short closing (500ms buffer)
-                        setTimeout(() => {
-                          console.log('[TWILIO CALL HANGUP SENT] Hanging up after short closing');
-                          shouldHangupAfterAudioDone = true;
-                          // Hangup will be triggered by the audio completion logic
-                        }, 500);
-                      }
+                      // Hangup directly without additional response
+                      console.log('[CALL HANGUP] Hanging up immediately due to goodbye');
+                      shouldHangupAfterAudioDone = true;
                       
                       return; // Skip normal intake processing
                     }
@@ -2584,31 +2572,14 @@ Do NOT:
                         return; // Skip normal intake processing
                       }
                       
-                      console.log('[FINAL GOODBYE SENT] Sending final goodbye message');
+                      console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
+                      console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
                       
-                      // Send final goodbye message
-                      const goodbyeMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: 'Say exactly: "Perfect. I\'ll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."'
-                        }
-                      };
-                      
-                      if (openAiWs) {
-                        openAiWs.send(JSON.stringify(goodbyeMessage));
-                        console.log('[FINAL GOODBYE SENT] Goodbye message sent to OpenAI');
-                        console.log('[FINAL GOODBYE SENT] finalGoodbyeSent: true');
-                        console.log('[FINAL MESSAGE STARTED] Final goodbye response created');
-                        
-                        // Set call state for clean call ending
-                        intakeComplete = true;
-                        finalMessageStarted = true;
-                        console.log('[INTAKE COMPLETE] Intake marked as complete');
-                      }
-                      
-                      // Set flag to track that final goodbye was sent
-                      // Hangup will be scheduled when response.done or response.output_item.done is received
-                      console.log('[FINAL GOODBYE PENDING] Waiting for final goodbye response completion before scheduling hangup');
+                      // Set state to indicate ready to close, but don't create response yet
+                      confirmationAccepted = true;
+                      readyToClose = true;
+                      console.log('[CONFIRMATION ACCEPTED] Set confirmationAccepted=true, readyToClose=true');
+                      console.log('[CONFIRMATION ACCEPTED] Will wait for current response to complete before sending final closing');
                       
                       // Mark as complete to prevent further processing
                       intakeData!.stage = 'complete';
@@ -2875,7 +2846,6 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
-                console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
                 
                 // Finalize any remaining active assistant transcripts
                 activeAssistantTranscripts.forEach((buffer, itemId) => {
@@ -2892,11 +2862,37 @@ Do NOT:
                 });
                 activeAssistantTranscripts.clear();
                 
-                // Check if this is the final goodbye response and schedule hangup
+                // Check if ready to close and send final closing
+                if (readyToClose && !finalMessageStarted) {
+                  console.log('[READY TO CLOSE] Current response completed, sending final closing');
+                  
+                  // Send final closing message
+                  const finalClosingMessage = {
+                    type: 'response.create',
+                    response: {
+                      instructions: 'Say exactly: "Perfect. I\'ll pass this information along and someone will follow up with you soon. Thanks for calling and have a great day."'
+                    }
+                  };
+                  
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(finalClosingMessage));
+                    console.log('[FINAL CLOSING SENT] Final closing message sent to OpenAI');
+                    console.log('[FINAL CLOSING SENT] finalMessageStarted: true');
+                    
+                    // Set call state for clean call ending
+                    intakeComplete = true;
+                    finalMessageStarted = true;
+                    console.log('[INTAKE COMPLETE] Intake marked as complete');
+                  }
+                }
+                
+                // Check if this is the final closing response and enter closing mode
                 if (intakeComplete && finalMessageStarted && !finalMessageFinished) {
-                  console.log('[FINAL AUDIO DONE] Final message audio completed');
+                  console.log('[FINAL AUDIO COMPLETE] Final closing audio completed');
                   finalMessageFinished = true;
-                  awaitingGoodbyeOrSilence = true;
+                  finalAudioComplete = true;
+                  closingMode = true;
+                  console.log('[CLOSING MODE ENTERED] Entered closing mode');
                   console.log('[AWAITING GOODBYE OR SILENCE] Waiting for caller response or silence');
                   
                   // Start silence detection timer (3 seconds)
@@ -2904,10 +2900,9 @@ Do NOT:
                     clearTimeout(silenceAfterFinalMessageTimer);
                   }
                   silenceAfterFinalMessageTimer = setTimeout(() => {
-                    console.log('[SILENCE AFTER FINAL MESSAGE] No caller response detected');
-                    console.log('[CALL END TRIGGERED] Triggering hangup due to silence');
+                    console.log('[SILENCE AFTER CLOSE] No caller response detected');
+                    console.log('[CALL HANGUP] Triggering hangup due to silence');
                     shouldHangupAfterAudioDone = true;
-                    // Hangup will be triggered by the audio completion logic
                   }, 3000);
                 }
               }
