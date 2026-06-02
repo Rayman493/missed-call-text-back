@@ -1202,6 +1202,15 @@ wss.on('connection', (ws, req) => {
     // Transcript capture with structured data
     let transcript: Array<{role: 'user' | 'assistant'; text: string; timestamp: string}> = [];
     const activeAssistantTranscripts = new Map<string, string>(); // Buffer keyed by item_id
+    
+    // Call state for clean call ending
+    let intakeComplete = false;
+    let finalMessageStarted = false;
+    let finalMessageFinished = false;
+    let awaitingGoodbyeOrSilence = false;
+    let shouldHangupAfterAudioDone = false;
+    let silenceAfterFinalMessageTimer: NodeJS.Timeout | null = null;
+    
     let callerPhone: string = '';
     let sessionId: string = '';
     let businessId: string = '';
@@ -2205,6 +2214,12 @@ Once you have enough useful information, you MUST get confirmation before ending
 
 IMPORTANT: You MUST get confirmation before the final goodbye. Do not skip the confirmation step.
 
+CLEAN CALL ENDING:
+Once intake is complete and you've said the final closing message:
+- If the caller says thanks, goodbye, okay, sounds good, or similar: do not continue the conversation. Do not restart confirmation. End the call cleanly.
+- If the caller stays silent: end the call after a short silence window.
+- Do not ask another intake question once intake is complete.
+
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
 - "Anything else?"
@@ -2424,6 +2439,48 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                  
+                  // Check for goodbye phrases after final message
+                  if (awaitingGoodbyeOrSilence) {
+                    const goodbyePhrases = [
+                      'thanks', 'thank you', 'okay thanks', 'sounds good', 
+                      'bye', 'goodbye', 'have a good one', 'you too', 'appreciate it'
+                    ];
+                    const lowerTranscript = userTranscript.toLowerCase().trim();
+                    
+                    if (goodbyePhrases.some(phrase => lowerTranscript.includes(phrase))) {
+                      console.log('[GOODBYE DETECTED] Caller said:', userTranscript);
+                      console.log('[CALL END TRIGGERED] Triggering hangup due to goodbye phrase');
+                      
+                      // Clear silence timer
+                      if (silenceAfterFinalMessageTimer) {
+                        clearTimeout(silenceAfterFinalMessageTimer);
+                        silenceAfterFinalMessageTimer = null;
+                      }
+                      
+                      // Send very short closing response then hangup
+                      const shortClosingMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: 'Say exactly: "You\'re welcome. Goodbye."'
+                        }
+                      };
+                      
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(shortClosingMessage));
+                        console.log('[SHORT CLOSING SENT] Short closing message sent');
+                        
+                        // Schedule hangup after short closing (500ms buffer)
+                        setTimeout(() => {
+                          console.log('[TWILIO CALL HANGUP SENT] Hanging up after short closing');
+                          shouldHangupAfterAudioDone = true;
+                          // Hangup will be triggered by the audio completion logic
+                        }, 500);
+                      }
+                      
+                      return; // Skip normal intake processing
+                    }
+                  }
                 } else {
                   console.log('[USER TRANSCRIPT MISSING]', {
                     reason: 'transcript is null or empty',
@@ -2433,7 +2490,7 @@ Do NOT:
                 }
                 
                 // Process intake stage advancement after FINAL transcript
-                if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady) {
+                if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
                   console.log('[INTAKE COMPLETION CHECK] Processing intake stage:', intakeData.stage);
                   console.log('[INTAKE COMPLETION CHECK] User transcript:', userTranscript);
                   console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
@@ -2459,7 +2516,12 @@ Do NOT:
                         openAiWs.send(JSON.stringify(goodbyeMessage));
                         console.log('[FINAL GOODBYE SENT] Goodbye message sent to OpenAI');
                         console.log('[FINAL GOODBYE SENT] finalGoodbyeSent: true');
-                        console.log('[FINAL GOODBYE_STARTED] Final goodbye response created');
+                        console.log('[FINAL MESSAGE STARTED] Final goodbye response created');
+                        
+                        // Set call state for clean call ending
+                        intakeComplete = true;
+                        finalMessageStarted = true;
+                        console.log('[INTAKE COMPLETE] Intake marked as complete');
                       }
                       
                       // Set flag to track that final goodbye was sent
@@ -2728,6 +2790,8 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+                console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
+                
                 // Finalize any remaining active assistant transcripts
                 activeAssistantTranscripts.forEach((buffer, itemId) => {
                   if (buffer.trim()) {
@@ -2742,6 +2806,25 @@ Do NOT:
                   }
                 });
                 activeAssistantTranscripts.clear();
+                
+                // Check if this is the final goodbye response and schedule hangup
+                if (intakeComplete && finalMessageStarted && !finalMessageFinished) {
+                  console.log('[FINAL AUDIO DONE] Final message audio completed');
+                  finalMessageFinished = true;
+                  awaitingGoodbyeOrSilence = true;
+                  console.log('[AWAITING GOODBYE OR SILENCE] Waiting for caller response or silence');
+                  
+                  // Start silence detection timer (3 seconds)
+                  if (silenceAfterFinalMessageTimer) {
+                    clearTimeout(silenceAfterFinalMessageTimer);
+                  }
+                  silenceAfterFinalMessageTimer = setTimeout(() => {
+                    console.log('[SILENCE AFTER FINAL MESSAGE] No caller response detected');
+                    console.log('[CALL END TRIGGERED] Triggering hangup due to silence');
+                    shouldHangupAfterAudioDone = true;
+                    // Hangup will be triggered by the audio completion logic
+                  }, 3000);
+                }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta:', message.delta || 'null');
