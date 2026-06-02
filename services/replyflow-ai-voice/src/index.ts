@@ -519,6 +519,13 @@ async function createFallbackLead(
 
   try {
     // Create lead
+    const leadInsertPayload = {
+      business_id: businessId,
+      caller_phone: callerPhone,
+      status: 'new',
+    };
+    console.log('[LEAD INSERT PAYLOAD]', leadInsertPayload);
+    
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .upsert({
@@ -537,6 +544,13 @@ async function createFallbackLead(
     }
 
     // Create conversation
+    const conversationInsertPayload = {
+      lead_id: lead.id,
+      business_id: businessId,
+      status: 'active',
+    };
+    console.log('[CONVERSATION INSERT PAYLOAD]', conversationInsertPayload);
+    
     const { data: conversation, error: conversationError } = await supabase
       .from('conversations')
       .upsert({
@@ -674,6 +688,14 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
     console.log('[AI SUMMARY GENERATED]', JSON.stringify(leadSummary, null, 2));
     
     // Save to conversations table
+    const conversationInsertPayload = {
+      business_id: leadSummary.businessId,
+      status: 'new',
+      created_at: leadSummary.timestamp,
+      updated_at: leadSummary.timestamp,
+    };
+    console.log('[CONVERSATION INSERT PAYLOAD]', conversationInsertPayload);
+    
     const { error } = await supabase
       .from('conversations')
       .insert({
@@ -3844,6 +3866,9 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
 // Start server
 server.listen(PORT, () => {
+  console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
+  console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
+  console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
   console.log('[AI VOICE SERVICE VERSION] commit=473dfc1 language-lock-enabled=true');
   log(LogLevel.INFO, `AI Voice Service POC listening on port ${PORT}`);
   log(LogLevel.INFO, `Health check: http://localhost:${PORT}/health`);

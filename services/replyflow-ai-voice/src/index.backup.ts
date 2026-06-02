@@ -418,7 +418,6 @@ async function createFallbackLead(
       .upsert({
         business_id: businessId,
         caller_phone: callerPhone,
-        source: 'ai_voice_fallback',
         status: 'new',
       }, {
         onConflict: 'business_id,caller_phone',
@@ -437,10 +436,9 @@ async function createFallbackLead(
       .upsert({
         lead_id: lead.id,
         business_id: businessId,
-        call_sid: callSid,
         status: 'active',
       }, {
-        onConflict: 'lead_id,call_sid',
+        onConflict: 'lead_id,business_id',
       })
       .select()
       .single();
@@ -556,7 +554,6 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
         status: 'new',
         created_at: leadSummary.timestamp,
         updated_at: leadSummary.timestamp,
-        call_sid: leadSummary.callSid,
       });
       
     if (error) {
@@ -1122,7 +1119,6 @@ Return only JSON, no other text.`;
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone || 'unknown', // Handle missing callerPhone
             name: extractedFields.callerName || null,
-            source: 'ai_voice',
             status: 'new',
           }, {
             onConflict: 'business_id,caller_phone',
@@ -2253,7 +2249,6 @@ Return only JSON, no other text.`;
                     business_id: sessionBusinessId,
                     caller_phone: sessionCallerPhone,
                     name: extractedFields.callerName || null,
-                    source: 'ai_voice',
                     status: 'new',
                   }, {
                     onConflict: 'business_id,caller_phone',
@@ -2274,10 +2269,9 @@ Return only JSON, no other text.`;
                   .upsert({
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    call_sid: sessionCallSid,
                     status: 'active',
                   }, {
-                    onConflict: 'lead_id,call_sid',
+                    onConflict: 'lead_id,business_id',
                   })
                   .select()
                   .single();
@@ -2476,7 +2470,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .upsert({
                       business_id: sessionBusinessId,
                       caller_phone: sessionCallerPhone,
-                      source: 'ai_voice',
                       status: 'new',
                     }, {
                       onConflict: 'business_id,caller_phone',
@@ -2494,10 +2487,9 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .upsert({
                       lead_id: fallbackLead.id,
                       business_id: sessionBusinessId,
-                      call_sid: sessionCallSid,
                       status: 'active',
                     }, {
-                      onConflict: 'lead_id,call_sid',
+                      onConflict: 'lead_id,business_id',
                     })
                     .select()
                     .single();
