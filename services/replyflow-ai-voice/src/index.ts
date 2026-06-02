@@ -1201,6 +1201,7 @@ wss.on('connection', (ws, req) => {
 
     // Transcript capture with structured data
     let transcript: Array<{role: 'user' | 'assistant'; text: string; timestamp: string}> = [];
+    const activeAssistantTranscripts = new Map<string, string>(); // Buffer keyed by item_id
     let callerPhone: string = '';
     let sessionId: string = '';
     let businessId: string = '';
@@ -2727,12 +2728,34 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+                // Finalize any remaining active assistant transcripts
+                activeAssistantTranscripts.forEach((buffer, itemId) => {
+                  if (buffer.trim()) {
+                    const cleanBuffer = buffer.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                    if (cleanBuffer) {
+                      transcript.push({ role: 'assistant', text: cleanBuffer, timestamp: new Date().toISOString() });
+                      console.log('[TRANSCRIPT FINALIZED]', { 
+                        item_id: itemId, 
+                        final_text: cleanBuffer 
+                      });
+                    }
+                  }
+                });
+                activeAssistantTranscripts.clear();
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta:', message.delta || 'null');
-                // Accumulate assistant transcript deltas
+                // Accumulate assistant transcript deltas in buffer
                 if (message.delta) {
-                  console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.delta });
+                  const itemId = message.item_id || 'current';
+                  const currentBuffer = activeAssistantTranscripts.get(itemId) || '';
+                  const updatedBuffer = currentBuffer + message.delta;
+                  activeAssistantTranscripts.set(itemId, updatedBuffer);
+                  
+                  console.log('[TRANSCRIPT DELTA]', { 
+                    item_id: itemId, 
+                    current_buffer_length: updatedBuffer.length 
+                  });
                   
                   // Check for natural closing phrases
                   const closingPhrases = [
@@ -2754,20 +2777,25 @@ Do NOT:
                     });
                     (ws as any).callComplete = true;
                   }
-                  
-                  if (cleanDelta) {
-                    transcript.push({ role: 'assistant', text: cleanDelta, timestamp: new Date().toISOString() });
-                  }
-                  
-                  // Log transcript state after accumulation
-                  console.log('[AI TRANSCRIPT STATE]', {
-                    transcriptLength: transcript.length,
-                    transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
-                  });
                 }
               }
               if (message.type === 'response.output_audio_transcript.done') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.done:', message.transcript || 'null');
+                // Finalize all active assistant transcripts
+                activeAssistantTranscripts.forEach((buffer, itemId) => {
+                  if (buffer.trim()) {
+                    const cleanBuffer = buffer.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                    if (cleanBuffer) {
+                      transcript.push({ role: 'assistant', text: cleanBuffer, timestamp: new Date().toISOString() });
+                      console.log('[TRANSCRIPT FINALIZED]', { 
+                        item_id: itemId, 
+                        final_text: cleanBuffer 
+                      });
+                    }
+                  }
+                });
+                activeAssistantTranscripts.clear();
+                
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
                   console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
