@@ -192,7 +192,7 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 }
 
 function generateConfirmationMessage(intake: IntakeData): string {
-  console.log('[CONFIRMATION GENERATED] Creating confirmation message with collected data:', {
+  console.log('[CONFIRMATION DATA] Creating confirmation message with collected data:', {
     callerName: intake.callerName,
     callerReason: intake.callerReason,
     addressOrLocation: intake.addressOrLocation,
@@ -206,6 +206,10 @@ function generateConfirmationMessage(intake: IntakeData): string {
   const location = intake.addressOrLocation || 'not specified';
   const callbackTime = intake.preferredCallbackTime || 'anytime';
   const urgency = intake.urgency === 'urgent' ? 'urgent' : (intake.urgency === 'normal' ? 'not urgent' : 'not specified');
+
+  console.log('[CONFIRMATION INCLUDES_ADDRESS]', { hasAddress: !!intake.addressOrLocation, value: intake.addressOrLocation || 'not specified' });
+  console.log('[CONFIRMATION INCLUDES_CALLBACK_TIME]', { hasCallbackTime: !!intake.preferredCallbackTime, value: intake.preferredCallbackTime || 'anytime' });
+  console.log('[CONFIRMATION INCLUDES_URGENCY]', { hasUrgency: !!intake.urgency, value: intake.urgency || 'not specified' });
 
   const confirmation = `Let me confirm I have everything correct.
 
@@ -221,6 +225,7 @@ The urgency is ${urgency}.
 
 Is that correct?`;
 
+  console.log('[CONFIRMATION MESSAGE]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
   console.log('[CONFIRMATION GENERATED] confirmationState: pending');
   return confirmation;
@@ -2248,7 +2253,7 @@ CORE INFO IS ENOUGH when the business can realistically follow up confidently. D
 CALL ENDING SEQUENCE:
 Once you have enough useful information, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're looking for help with [reason]. The project is [urgency]. Is that correct?"
+1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're looking for help with [reason]. The work location is [location]. Your preferred callback time is [callback_time]. The urgency is [urgency]. Is that correct?"
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
