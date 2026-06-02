@@ -1231,9 +1231,6 @@ wss.on('connection', (ws, req) => {
           createdAt: existingRecord.created_at 
         });
         // Update existing record instead of creating duplicate
-        // Convert structured transcript to string format
-        const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
-        console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
         
         // Guard: Skip extraction if transcript is empty
         if (!transcript || transcript.length === 0) {
@@ -1253,6 +1250,10 @@ wss.on('connection', (ws, req) => {
           }
           return;
         }
+        
+        // Convert structured transcript to string format
+        const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
+        console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
         
         try {
           // Extract structured fields from transcript
@@ -3486,65 +3487,14 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               } catch (error) {
                 console.log('[AI INGEST FAILED] extraction failed, saving raw transcript as fallback', error);
                 
-                // Fallback: Create AI call record with transcript only
+                // Fallback: Create lead and conversation BEFORE inserting ai_call_records
                 if (!supabase) {
                   console.log('[AI INGEST] supabase client not available for fallback');
                   return;
                 }
                 
                 try {
-                  console.log('[AI INGEST] creating fallback AI call record...');
-                  const fallbackInsertPayload = {
-                      business_id: sessionBusinessId,
-                      lead_id: sessionLeadId,
-                      conversation_id: sessionConversationId,
-                      caller_phone: sessionCallerPhone || 'unknown',
-                      call_sid: sessionCallSid || 'unknown',
-                      ai_session_id: sessionSessionId,
-                      transcript: Array.isArray(transcript) ? transcript : [],
-                      outcome: 'ai_failed',
-                      extracted_info: null,
-                      summary: `AI call transcript: ${fullTranscript}`,
-                      extraction_failed: true
-                    };
-                  console.log('[AI CALL RECORD OUTCOME]', {
-                    outcome: fallbackInsertPayload.outcome,
-                    callSid: fallbackInsertPayload.call_sid,
-                    businessId: fallbackInsertPayload.business_id,
-                    leadId: fallbackInsertPayload.lead_id,
-                    conversationId: fallbackInsertPayload.conversation_id
-                  });
-                  console.log('[AI TRANSCRIPT STATE]', {
-                      transcriptLength: transcript.length,
-                      transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
-                      transcriptType: typeof transcript,
-                      isArray: Array.isArray(transcript)
-                    });
-                  console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
-
-                  console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
-                    file: 'services/replyflow-ai-voice/src/index.ts',
-                    function: 'fallback transcript insert',
-                    sessionId: 'unknown',
-                    callSid: sessionCallSid,
-                    businessId: sessionBusinessId,
-                    callerPhone: sessionCallerPhone
-                  });
-
-                  const { data: fallbackRecord, error: fallbackRecordError } = await supabase
-                    .from('ai_call_records')
-                    .insert(fallbackInsertPayload)
-                    .select()
-                    .single();
-
-                  if (fallbackRecordError) {
-                    console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
-                    throw fallbackRecordError;
-                  }
-                  
-                  console.log('[AI CALL RECORD SAVED]', { recordId: fallbackRecord.id });
-                  
-                  // Create lead and conversation for fallback case
+                  console.log('[AI INGEST] creating lead and conversation for fallback case...');
                   const { data: fallbackLead, error: fallbackLeadError } = await supabase
                     .from('leads')
                     .upsert({
@@ -3579,21 +3529,59 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     throw fallbackConversationError;
                   }
 
-                  // Update fallback record with IDs
-                  const { error: fallbackUpdateError } = await supabase
-                    .from('ai_call_records')
-                    .update({
+                  console.log('[AI INGEST] creating fallback AI call record with populated IDs...');
+                  const fallbackInsertPayload = {
+                      business_id: sessionBusinessId,
                       lead_id: fallbackLead.id,
                       conversation_id: fallbackConversation.id,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', fallbackRecord.id);
+                      caller_phone: sessionCallerPhone || 'unknown',
+                      call_sid: sessionCallSid || 'unknown',
+                      ai_session_id: sessionSessionId,
+                      transcript: Array.isArray(transcript) ? transcript : [],
+                      outcome: 'ai_failed',
+                      extracted_info: null,
+                      summary: `AI call transcript: ${fullTranscript}`,
+                      extraction_failed: true
+                    };
+                  console.log('[AI CALL RECORD OUTCOME]', {
+                    outcome: fallbackInsertPayload.outcome,
+                    callSid: fallbackInsertPayload.call_sid,
+                    businessId: fallbackInsertPayload.business_id,
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id
+                  });
+                  console.log('[AI TRANSCRIPT STATE]', {
+                      transcriptLength: transcript.length,
+                      transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | '),
+                      transcriptType: typeof transcript,
+                      isArray: Array.isArray(transcript)
+                    });
+                  console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
 
-                  if (fallbackUpdateError) {
-                    console.log('[AI INGEST] fallback record update error', fallbackUpdateError);
-                  } else {
-                    console.log('[AI INGEST] fallback record updated successfully');
+                  console.log('[ACTIVE AI RECORD INSERT PATH]', {
+                    file: 'services/replyflow-ai-voice/src/index.ts',
+                    function: 'fallback transcript insert',
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id,
+                    sessionId: sessionSessionId || 'unknown',
+                    callSid: sessionCallSid || 'unknown',
+                    businessId: sessionBusinessId,
+                    callerPhone: sessionCallerPhone || 'unknown'
+                  });
+
+                  const { data: fallbackRecord, error: fallbackRecordError } = await supabase
+                    .from('ai_call_records')
+                    .insert(fallbackInsertPayload)
+                    .select()
+                    .single();
+
+                  if (fallbackRecordError) {
+                    console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
+                    throw fallbackRecordError;
                   }
+                  
+                  console.log('[AI CALL RECORD SAVED]', { recordId: fallbackRecord.id });
+                  console.log('[AI LINK SUCCESS]', { aiCallRecordId: fallbackRecord.id, leadId: fallbackLead.id, conversationId: fallbackConversation.id });
 
                   // Save transcript as message
                   const { error: fallbackMessageError } = await supabase
