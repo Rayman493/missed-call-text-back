@@ -164,6 +164,12 @@ export async function GET(request: NextRequest) {
       normalizedCallerPhone: normalizedLeadPhone
     })
 
+    console.log("[AI LINK START]", {
+      leadId: lead.id,
+      businessId: lead.business_id,
+      callerPhone: lead.caller_phone
+    })
+
     let aiCallRecords: any[] | null = null
     let aiCallError: any = null
 
@@ -180,6 +186,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!aiCallErrorByLead && aiCallRecordsByLead && aiCallRecordsByLead.length > 0) {
+      console.log("[AI LINK LEAD FOUND]", {
+        leadId: leadId,
+        recordCount: aiCallRecordsByLead.length
+      })
       aiCallRecords = aiCallRecordsByLead
     } else {
       // Fallback to business_id lookup + normalized phone comparison
@@ -216,26 +226,35 @@ export async function GET(request: NextRequest) {
         })
 
         if (matchingRecords.length > 0) {
+          console.log("[AI LINK CONVERSATION FOUND]", {
+            recordCount: matchingRecords.length
+          })
           aiCallRecords = matchingRecords
           aiCallError = null
         } else {
+          console.log("[AI LINK NO MATCHING RECORDS]")
           aiCallError = { message: 'No matching records found by normalized phone' }
         }
       } else {
+        console.log("[AI LINK BUSINESS LOOKUP ERROR]", {
+          error: aiCallErrorByBusiness?.message
+        })
         aiCallError = aiCallErrorByBusiness
       }
     }
 
     if (aiCallRecords && aiCallRecords.length > 0) {
-      console.log("[AI DETAILS SELECTED]", {
+      console.log("[AI CALL RECORD LINKED]", {
         recordId: aiCallRecords[0].id,
+        leadId: aiCallRecords[0].lead_id,
+        conversationId: aiCallRecords[0].conversation_id,
         summaryExists: !!aiCallRecords[0].summary,
         extractedInfoExists: !!aiCallRecords[0].extracted_info,
         outcome: aiCallRecords[0].outcome,
         createdAt: aiCallRecords[0].created_at
       })
     } else {
-      console.log("[AI DETAILS SELECTED]", {
+      console.log("[AI CALL RECORD NOT LINKED]", {
         recordId: null,
         error: aiCallError?.message || 'No records found'
       })

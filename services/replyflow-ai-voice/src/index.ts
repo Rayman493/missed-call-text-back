@@ -509,11 +509,11 @@ async function createFallbackLead(
       .from('leads')
       .upsert({
         business_id: businessId,
-        phone: callerPhone,
+        caller_phone: callerPhone,
         source: 'ai_voice_fallback',
         status: 'new',
       }, {
-        onConflict: 'business_id,phone',
+        onConflict: 'business_id,caller_phone',
       })
       .select()
       .single();
@@ -1373,10 +1373,10 @@ Return only JSON, no other text.`;
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
-            phone: sessionCallerPhone,
+            caller_phone: sessionCallerPhone,
             status: 'new',
           }, {
-            onConflict: 'business_id,phone',
+            onConflict: 'business_id,caller_phone',
           })
           .select()
           .single();
@@ -2940,10 +2940,10 @@ Return only JSON, no other text.`;
                   .from('leads')
                   .upsert({
                     business_id: sessionBusinessId,
-                    phone: sessionCallerPhone,
+                    caller_phone: sessionCallerPhone,
                     status: 'new',
                   }, {
-                    onConflict: 'business_id,phone',
+                    onConflict: 'business_id,caller_phone',
                   })
                   .select()
                   .single();
@@ -3186,10 +3186,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     .from('leads')
                     .upsert({
                       business_id: sessionBusinessId,
-                      phone: sessionCallerPhone,
+                      caller_phone: sessionCallerPhone,
                       status: 'new',
                     }, {
-                      onConflict: 'business_id,phone',
+                      onConflict: 'business_id,caller_phone',
                     })
                     .select()
                     .single();
