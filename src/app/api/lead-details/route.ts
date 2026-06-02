@@ -4,6 +4,12 @@ import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic';
 
+// Normalize phone for comparison
+function normalizePhone(phone: string): string {
+  if (!phone) return ''
+  return phone.replace(/\D/g, '').slice(-10)
+}
+
 export async function GET(request: NextRequest) {
   console.log("[lead-details API] route hit")
   
@@ -150,10 +156,12 @@ export async function GET(request: NextRequest) {
     console.log("[lead-details API] Voicemail recordings fetched:", voicemailRecordings?.length || 0)
 
     // Fetch AI call records for this lead with RLS protection
-    console.log("[AI DETAILS FETCH START]", {
-      leadId: leadId,
+    const normalizedLeadPhone = normalizePhone(lead.caller_phone)
+    console.log("[AI DETAILS FETCH]", {
+      leadId: lead.id,
       businessId: lead.business_id,
-      callerPhone: lead.caller_phone
+      callerPhone: lead.caller_phone,
+      normalizedCallerPhone: normalizedLeadPhone
     })
 
     let aiCallRecords: any[] | null = null
@@ -166,40 +174,70 @@ export async function GET(request: NextRequest) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
 
-    console.log("[AI DETAILS FETCH BY LEAD RESULT]", {
-      count: aiCallRecordsByLead?.length || 0
+    console.log("[AI DETAILS BY LEAD]", {
+      count: aiCallRecordsByLead?.length || 0,
+      error: aiCallErrorByLead?.message || 'none'
     })
 
     if (!aiCallErrorByLead && aiCallRecordsByLead && aiCallRecordsByLead.length > 0) {
       aiCallRecords = aiCallRecordsByLead
     } else {
-      // Fallback to business_id + caller_phone lookup
-      console.log("[AI DETAILS FETCH BY PHONE FALLBACK START]")
-      const { data: aiCallRecordsByPhone, error: aiCallErrorByPhone } = await supabase
+      // Fallback to business_id lookup + normalized phone comparison
+      console.log("[AI DETAILS FALLBACK START]")
+      const { data: aiCallRecordsByBusiness, error: aiCallErrorByBusiness } = await supabase
         .from("ai_call_records")
         .select("*")
         .eq("business_id", lead.business_id)
-        .eq("caller_phone", lead.caller_phone)
         .order("created_at", { ascending: false })
 
-      console.log("[AI DETAILS FETCH BY PHONE FALLBACK RESULT]", {
-        count: aiCallRecordsByPhone?.length || 0,
-        error: aiCallErrorByPhone?.message || 'none'
+      console.log("[AI DETAILS BY BUSINESS]", {
+        count: aiCallRecordsByBusiness?.length || 0,
+        error: aiCallErrorByBusiness?.message || 'none'
       })
 
-      if (!aiCallErrorByPhone) {
-        aiCallRecords = aiCallRecordsByPhone
-        aiCallError = null
+      if (!aiCallErrorByBusiness && aiCallRecordsByBusiness) {
+        // Filter by normalized phone comparison
+        const matchingRecords = aiCallRecordsByBusiness.filter(record => {
+          const normalizedRecordPhone = normalizePhone(record.caller_phone)
+          const matches = normalizedRecordPhone === normalizedLeadPhone
+          console.log("[AI DETAILS PHONE COMPARISON]", {
+            recordPhone: record.caller_phone,
+            normalizedRecordPhone,
+            leadPhone: lead.caller_phone,
+            normalizedLeadPhone,
+            matches
+          })
+          return matches
+        })
+
+        console.log("[AI DETAILS BY PHONE]", {
+          totalBusinessRecords: aiCallRecordsByBusiness.length,
+          matchingRecords: matchingRecords.length
+        })
+
+        if (matchingRecords.length > 0) {
+          aiCallRecords = matchingRecords
+          aiCallError = null
+        } else {
+          aiCallError = { message: 'No matching records found by normalized phone' }
+        }
       } else {
-        aiCallError = aiCallErrorByPhone
+        aiCallError = aiCallErrorByBusiness
       }
     }
 
     if (aiCallRecords && aiCallRecords.length > 0) {
-      console.log("[AI DETAILS SELECTED RECORD]", {
+      console.log("[AI DETAILS SELECTED]", {
         recordId: aiCallRecords[0].id,
         summaryExists: !!aiCallRecords[0].summary,
-        extractedInfoExists: !!aiCallRecords[0].extracted_info
+        extractedInfoExists: !!aiCallRecords[0].extracted_info,
+        outcome: aiCallRecords[0].outcome,
+        createdAt: aiCallRecords[0].created_at
+      })
+    } else {
+      console.log("[AI DETAILS SELECTED]", {
+        recordId: null,
+        error: aiCallError?.message || 'No records found'
       })
     }
 
