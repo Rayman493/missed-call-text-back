@@ -1804,27 +1804,12 @@ Return only JSON, no other text.`;
           summarySaved: !!newRecord.summary
         });
 
-        console.log('[AI RECORD INSERT SUCCESS - ACTIVE PATH]', {
+        console.log('[ACTIVE PATH AFTER SAVE RESULT REACHED]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
           conversationId: conversation.id,
-          callSid: sessionCallSid
-        });
-
-        console.log('[AI LINK SUCCESS]', {
-          aiCallRecordId: newRecord.id,
-          leadId: lead.id,
-          conversationId: conversation.id
-        });
-
-        console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
-        console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
-
-        console.log('[ACTIVE PATH POST INSERT REACHED]', {
-          businessId: sessionBusinessId,
-          leadId: lead.id,
-          conversationId: conversation.id,
-          callSid: sessionCallSid
+          callSid: sessionCallSid,
+          recordId: newRecord.id
         });
 
         // Create follow-up jobs directly using Supabase
@@ -1892,6 +1877,22 @@ Return only JSON, no other text.`;
         } catch (notificationError) {
           console.log('[ACTIVE PATH NOTIFICATION ERROR]', notificationError);
         }
+
+        console.log('[AI RECORD INSERT SUCCESS - ACTIVE PATH]', {
+          businessId: sessionBusinessId,
+          leadId: lead.id,
+          conversationId: conversation.id,
+          callSid: sessionCallSid
+        });
+
+        console.log('[AI LINK SUCCESS]', {
+          aiCallRecordId: newRecord.id,
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
+
+        console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
+        console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
         return;
 
