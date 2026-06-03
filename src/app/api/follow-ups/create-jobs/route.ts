@@ -15,10 +15,15 @@ import { createFollowUpJobs } from '@/lib/follow-ups'
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[FOLLOWUP API ENTER] Request received');
+    
     const body = await request.json()
     const { businessId, leadId, conversationId, businessName } = body
 
+    console.log('[FOLLOWUP API REQUEST BODY]', { businessId, leadId, conversationId, businessName });
+
     if (!businessId || !leadId) {
+      console.error('[FOLLOWUP API ERROR] Missing required fields:', { businessId, leadId });
       return NextResponse.json({ error: 'Missing required fields: businessId, leadId' }, { status: 400 })
     }
 

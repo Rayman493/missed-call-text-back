@@ -40,30 +40,41 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
   message: string;
 }>> {
   try {
+    console.log('[GET FOLLOWUP SCHEDULE ENTER]', { businessId });
+    
     const business = await db.getBusiness(businessId)
     if (!business) {
-      console.error('[FollowUps] Business not found:', businessId)
+      console.error('[GET FOLLOWUP SCHEDULE] Business not found:', businessId)
       return []
     }
 
+    console.log('[GET FOLLOWUP SCHEDULE] Business found:', { businessId, businessName: business.name });
+
     const automationSettings = business.automation_settings || {}
+    console.log('[GET FOLLOWUP SCHEDULE] Automation settings:', automationSettings);
+    
     const followUpSettings = automationSettings.followUps
+    console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
 
     // If no custom settings, use defaults
     if (!followUpSettings || !followUpSettings.enabled) {
+      console.log('[GET FOLLOWUP SCHEDULE] No follow-up settings or disabled, returning empty');
       return []
     }
 
     // Convert saved settings to schedule format
-    return (followUpSettings.followUps || [])
+    const schedule = (followUpSettings.followUps || [])
       .filter((fu: any) => fu.enabled)
       .map((fu: any) => ({
         step: fu.step,
         delayMinutes: fu.delayDays * 24 * 60, // Convert days to minutes
         message: fu.message.replace('{{businessName}}', business.name || 'My Business')
       }))
+    
+    console.log('[GET FOLLOWUP SCHEDULE] Converted schedule:', { length: schedule.length, schedule });
+    return schedule
   } catch (error) {
-    console.error('[FollowUps] Error getting follow-up schedule:', error)
+    console.error('[GET FOLLOWUP SCHEDULE] Error getting follow-up schedule:', error)
     return []
   }
 }
@@ -90,15 +101,17 @@ export async function createFollowUpJobs(params: {
 }) {
   const { businessId, leadId, conversationId, businessName } = params
   
-  console.log('[FollowUps] Creating follow-up jobs for lead:', leadId)
+  console.log('[CREATE FOLLOWUPS ENTER]', { businessId, leadId, conversationId, businessName });
   
   // Fetch business settings for timezone and business hours
   const business = await db.getBusiness(businessId)
   if (!business) {
-    console.error('[FollowUps] Business not found, cannot create follow-ups:', businessId)
+    console.error('[CREATE FOLLOWUPS] Business not found, cannot create follow-ups:', businessId)
     return []
   }
-  
+
+  console.log('[CREATE FOLLOWUPS BUSINESS]', { businessId, businessName: business.name });
+
   const businessTimezone = business.business_hours_timezone || 'America/New_York'
   const businessHoursEnabled = business.business_hours_enabled || false
   
@@ -106,11 +119,18 @@ export async function createFollowUpJobs(params: {
   const now = new Date()
   
   // Get follow-up schedule from business settings
+  console.log('[CREATE FOLLOWUPS] Fetching follow-up schedule');
   const followUpSchedule = await getFollowUpSchedule(businessId)
+  
+  console.log('[CREATE FOLLOWUPS SETTINGS]', { 
+    businessId, 
+    scheduleLength: followUpSchedule.length,
+    schedule: followUpSchedule 
+  });
   
   // If no follow-ups are configured, don't create jobs
   if (followUpSchedule.length === 0) {
-    console.log('[FollowUps] No follow-up schedule configured for business:', businessId)
+    console.log('[CREATE FOLLOWUPS] No follow-up schedule configured for business:', businessId)
     return []
   }
 

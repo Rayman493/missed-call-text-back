@@ -691,6 +691,7 @@ async function createFallbackLead(
       console.log('[LEAD CREATED FROM FALLBACK] AI call record created successfully');
       
       // Create follow-up jobs for the new lead
+      console.log('[FOLLOWUP DEBUG REACHED] About to call follow-up API');
       try {
         console.log('[FOLLOWUP JOB CREATE ATTEMPT - AI INTAKE]', { 
           businessId: fallbackCallRecordPayload.business_id, 
@@ -698,7 +699,9 @@ async function createFallbackLead(
           conversationId: fallbackCallRecordPayload.conversation_id
         });
         
+        console.log('[FOLLOWUP DEBUG API START] Fetching from follow-up API');
         const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+        console.log('[FOLLOWUP DEBUG API URL]', followUpApiUrl);
         const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
           method: 'POST',
           headers: {
@@ -711,6 +714,8 @@ async function createFallbackLead(
             businessName: businessName
           })
         });
+        
+        console.log('[FOLLOWUP DEBUG API RESPONSE]', response.status);
         
         if (response.ok) {
           const result = await response.json();
@@ -735,6 +740,7 @@ async function createFallbackLead(
         });
         // Don't let follow-up job creation fail the fallback lead creation
       }
+      console.log('[FOLLOWUP DEBUG COMPLETE] Follow-up API call finished');
     }
 
     console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
