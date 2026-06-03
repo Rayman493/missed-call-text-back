@@ -45,9 +45,13 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpda
       
       if (response.ok) {
         onUpdate?.()
+      } else {
+        const error = await response.json()
+        alert(`Failed to send follow-up: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error sending follow-up:', error)
+      alert('Failed to send follow-up. Please try again.')
     } finally {
       setLoading(false)
     }
