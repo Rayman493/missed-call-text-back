@@ -319,25 +319,22 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
   return (
     <DashboardErrorBoundary>
-      {/* Latest Lead */}
-      <div className="bg-white dark:bg-card border border-slate-300 dark:border-slate-700/60 rounded-xl shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-3">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-600/20 rounded-xl flex items-center justify-center border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Latest Lead - CRM-style Summary Card */}
+      <div className="bg-white dark:bg-card border border-slate-300 dark:border-slate-700/60 rounded-xl shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-foreground">Latest Lead</h2>
-              <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
-            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-foreground">Latest Lead</h2>
           </div>
+          <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
         </div>
 
         {leads.length === 0 ? (
           <div className="text-center py-4 px-4">
-            {/* Hide empty-state messaging when onboarding is expanded to avoid duplicate messaging */}
             {!isOnboardingExpanded && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-foreground">
@@ -356,65 +353,82 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             )}
           </div>
         ) : (
-          <div className="space-y-2">
-            {leads.slice(0, 5).map((lead) => {
-              const nextFollowUp = getNextFollowUp(lead)
-              const status = getLeadStatus(lead)
-              const stage = getLeadStage(lead)
-              const lastActivity = lead.last_message_at || lead.created_at
-              const messagesSent = lead.messages?.filter((m: any) => m.direction === 'outbound').length || 0
-              
-              return (
-                <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <div className="flex items-center justify-between">
+          <>
+            {/* CRM-style Summary Card for First Lead */}
+            {leads.length > 0 && (
+              <Link href={`/dashboard/leads/${leads[0].id}`} className="block">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="text-base font-semibold text-slate-900 dark:text-white mb-1">
+                        {getLeadDisplayName(leads[0])}
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                        {formatPhoneNumber(leads[0].phone_number)}
+                      </p>
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-foreground text-sm">{formatPhoneNumber(lead.phone_number)}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              status === 'Awaiting Response' 
-                                ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
-                                : status === 'New'
-                                ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
-                                : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
-                            }`}>
-                              {status}
-                            </div>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {formatRelativeTime(lastActivity)}
-                            </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          getLeadStatus(leads[0]) === 'Awaiting Response' 
+                            ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
+                            : getLeadStatus(leads[0]) === 'New'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
+                            : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
+                        }`}>
+                          🟢 {getLeadStatus(leads[0])}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatRelativeTime(leads[0].created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    {leads[0].voicemail_recordings && leads[0].voicemail_recordings.length > 0 && (
+                      <span className="text-blue-600 dark:text-blue-400 text-lg">📞</span>
+                    )}
+                  </div>
+                  
+                  {/* Conversation Preview */}
+                  {leads[0].messages && leads[0].messages.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Latest message:</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
+                        "{leads[0].messages[0].body}"
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                    View Conversation →
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Remaining leads as compact list */}
+            {leads.length > 1 && (
+              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Other leads</p>
+                <div className="space-y-2">
+                  {leads.slice(1, 4).map((lead) => (
+                    <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
+                      <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                            <svg className="w-3 h-3 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-900 dark:text-foreground">{formatPhoneNumber(lead.phone_number)}</p>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{formatRelativeTime(lead.created_at)}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
-                          <span className="text-blue-600 dark:text-blue-400">📞</span>
-                        )}
-                        <button className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                          View
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Last message preview */}
-                    {lead.messages && lead.messages.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-                          {lead.messages[lead.messages.length - 1].body}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </DashboardErrorBoundary>

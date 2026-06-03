@@ -203,6 +203,11 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
     )
   }
 
+  // If all items are healthy, don't render since OperationalStatusCard already shows system status
+  if (attentionItems.length === 1 && attentionItems[0].type === 'healthy') {
+    return null
+  }
+
   const topItem = attentionItems[0]
 
   return (

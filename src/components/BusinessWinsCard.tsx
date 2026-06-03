@@ -315,32 +315,40 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
     )
   }
 
-  if (achievements.length === 0) {
-    return null // Don't show the card if no achievements earned yet
+  if (achievements.length < 2) {
+    return null // Hide section entirely if fewer than 2 achievements
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 mb-3 transition-opacity duration-300">
+    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 sm:p-4 shadow-sm dark:shadow-md">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">Business Wins</h3>
-        <div className="text-xs text-muted-foreground">
-          {achievements.length} achievement{achievements.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🏆</span>
+          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">Achievements</h3>
+        </div>
+        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+          {achievements.length} earned
         </div>
       </div>
 
-      <div className="space-y-2">
-        {achievements.slice(0, 2).map((achievement, index) => (
-          <div key={achievement.id} className="flex items-center gap-2">
-            <div className="flex-shrink-0 w-6 h-6 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
-              <span className="text-amber-600 dark:text-amber-400 text-xs">
-                🏆
-              </span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {achievements.slice(0, 4).map((achievement) => (
+          <div key={achievement.id} className="flex items-start gap-2 bg-white dark:bg-slate-900/50 border border-amber-100 dark:border-amber-900/30 rounded-lg p-2.5">
+            <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground">{achievement.title}</p>
+              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {achievement.title}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                {achievement.description}
+              </p>
               {achievement.earnedAt && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {formatRelativeTime(achievement.earnedAt)}
+                <p className="text-[9px] text-green-600 dark:text-green-400 mt-0.5 font-medium">
+                  ✓ Completed {formatRelativeTime(achievement.earnedAt)}
                 </p>
               )}
             </div>
@@ -348,10 +356,10 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         ))}
       </div>
 
-      {achievements.length > 2 && (
+      {achievements.length > 4 && (
         <div className="mt-2 text-center">
-          <p className="text-xs text-muted-foreground">
-            +{achievements.length - 2} more
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+            +{achievements.length - 4} more achievements
           </p>
         </div>
       )}

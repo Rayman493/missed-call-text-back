@@ -14,6 +14,7 @@ interface MetricsData {
   leadsGenerated: number
   messagesSent: number
   activeConversations: number
+  recoveryRate: number
   period: string
 }
 
@@ -23,6 +24,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     leadsGenerated: 0,
     messagesSent: 0,
     activeConversations: 0,
+    recoveryRate: 0,
     period: '30 days'
   })
   const [loading, setLoading] = useState(true)
@@ -64,12 +66,14 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         const leadsGenerated = missedCallsCaptured // Each missed call captured = lead generated
         const messagesSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const activeConversationsCount = activeConversations?.length || 0
+        const recoveryRate = leadsGenerated > 0 ? Math.round((messagesSent / leadsGenerated) * 100) : 0
 
         setMetrics({
           missedCallsCaptured,
           leadsGenerated,
           messagesSent,
           activeConversations: activeConversationsCount,
+          recoveryRate,
           period: '30 days'
         })
       } catch (error) {
@@ -92,6 +96,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         return <MessageSquare className="w-6 h-6" />
       case 'conversations':
         return <Activity className="w-6 h-6" />
+      case 'recovery':
+        return <TrendingUp className="w-6 h-6" />
       default:
         return <TrendingUp className="w-6 h-6" />
     }
@@ -107,6 +113,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         return 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
       case 'conversations':
         return 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+      case 'recovery':
+        return 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'
       default:
         return 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
     }
@@ -122,6 +130,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         return 'bg-purple-500'
       case 'conversations':
         return 'bg-orange-500'
+      case 'recovery':
+        return 'bg-rose-500'
       default:
         return 'bg-slate-500'
     }
@@ -137,6 +147,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         return 'Messages Sent'
       case 'conversations':
         return 'Active Conversations'
+      case 'recovery':
+        return 'Recovery Rate'
       default:
         return 'Metric'
     }
@@ -174,8 +186,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
             <div className="animate-pulse">
               <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
@@ -191,32 +203,38 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   return (
     <div className="space-y-4">
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {[
           { type: 'missedCalls', value: metrics.missedCallsCaptured },
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'messages', value: metrics.messagesSent },
-          { type: 'conversations', value: metrics.activeConversations }
+          { type: 'conversations', value: metrics.activeConversations },
+          { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
-            <div className={`h-1 ${getMetricAccentColor(metric.type)}`}></div>
-            <div className="p-3 sm:p-4 flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+          <div key={metric.type} className="bg-gradient-to-br from-card to-muted/30 dark:from-card dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 overflow-hidden flex flex-col">
+            <div className={`h-1.5 bg-gradient-to-r ${getMetricAccentColor(metric.type)} to-transparent opacity-80`}></div>
+            <div className="p-3.5 sm:p-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-9 h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                   {getMetricIcon(metric.type)}
                 </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">
                   {metrics.period}
                 </div>
               </div>
 
-              <div className="space-y-1 flex-1 flex flex-col justify-center">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground leading-none">
-                  {metric.value.toLocaleString()}
+              <div className="space-y-0.5 flex-1 flex flex-col justify-center">
+                <div className="text-2.5xl sm:text-3xl md:text-3.5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+                  {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mt-1">
+                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   {getMetricLabel(metric.type)}
                 </div>
+                {metric.value === 0 && metric.type !== 'recovery' && (
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    {getEmptyStateText(metric.type)}
+                  </div>
+                )}
               </div>
             </div>
           </div>

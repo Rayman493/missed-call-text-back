@@ -66,11 +66,12 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
         // Add lead captures
         leads?.forEach((lead: any, index: number) => {
+          const displayName = lead.name || lead.phone_number || 'Unknown Caller'
           events.push({
             id: `lead-${lead.id}`,
             type: 'call_captured',
             title: 'Missed call captured',
-            description: `New lead from ${lead.phone_number}`,
+            description: `New lead from ${displayName}`,
             timestamp: lead.created_at,
             icon: <Phone className="w-3 h-3" />,
             color: 'text-blue-600 dark:text-blue-400'
@@ -79,12 +80,13 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
         // Add messages
         messages?.forEach((message: any, index: number) => {
+          const displayName = message.phone_number || 'Unknown'
           if (message.direction === 'outbound') {
             events.push({
               id: `message-out-${message.id}`,
               type: 'text_sent',
               title: 'Text sent',
-              description: `Message to ${message.phone_number}`,
+              description: `Message to ${displayName}`,
               timestamp: message.created_at,
               icon: <MessageSquare className="w-3 h-3" />,
               color: 'text-green-600 dark:text-green-400'
@@ -94,7 +96,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               id: `message-in-${message.id}`,
               type: 'customer_replied',
               title: 'Customer replied',
-              description: `Response from ${message.phone_number}`,
+              description: `Response from ${displayName}`,
               timestamp: message.created_at,
               icon: <Reply className="w-3 h-3" />,
               color: 'text-amber-600 dark:text-amber-400'
@@ -104,11 +106,12 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
         // Add voicemails
         voicemails?.forEach((voicemail: any, index: number) => {
+          const displayName = voicemail.phone || 'Unknown'
           events.push({
             id: `voicemail-${voicemail.id}`,
             type: 'voicemail_received',
             title: 'Voicemail received',
-            description: `Voicemail from ${voicemail.phone}`,
+            description: `Voicemail from ${displayName}`,
             timestamp: voicemail.created_at,
             icon: <Mic className="w-3 h-3" />,
             color: 'text-purple-600 dark:text-purple-400'
