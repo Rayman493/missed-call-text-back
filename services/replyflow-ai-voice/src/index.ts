@@ -8,7 +8,7 @@
  * - Caller hears greeting
  * - Safe fallback
  * 
- * Version: ingest-followups-notifications-v1
+ * Version: ai-record-post-insert-hooks-v2
  * Updated: 2026-06-03
  */
 
@@ -24,7 +24,7 @@ import { createClient } from '@supabase/supabase-js';
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
 // Version log - guaranteed to appear on startup
-console.log('[AI VOICE BUILD VERSION] ingest-followups-notifications-v1');
+console.log('[AI VOICE BUILD VERSION] ai-record-post-insert-hooks-v2');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
@@ -3793,6 +3793,105 @@ Return only JSON, no other text.`;
                 }
                 
                 console.log('[AI CALL RECORD SAVED]', { recordId: newRecord.id });
+                console.log('[AI RECORD INSERT PATH IDENTIFIED]', {
+                  pathName: 'path-C-main-insert-with-extraction',
+                  aiRecordId: newRecord.id,
+                  leadId: insertPayload.lead_id,
+                  conversationId: insertPayload.conversation_id,
+                  businessId: sessionBusinessId
+                });
+                
+                // Create follow-up jobs for the new lead
+                console.log('[FOLLOWUP DEBUG REACHED - PATH-C] About to call follow-up API');
+                try {
+                  console.log('[FOLLOWUP DEBUG API START - PATH-C] Fetching from follow-up API');
+                  const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                  console.log('[FOLLOWUP DEBUG API URL - PATH-C]', followUpApiUrl);
+                  
+                  const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      businessId: sessionBusinessId,
+                      leadId: insertPayload.lead_id,
+                      conversationId: insertPayload.conversation_id,
+                      businessName: null
+                    })
+                  });
+                  
+                  console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-C]', response.status);
+                  
+                  if (response.ok) {
+                    const result = await response.json() as { success: boolean; jobCount: number };
+                    console.log('[FOLLOWUP DEBUG SUCCESS - PATH-C]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: insertPayload.lead_id,
+                      jobCount: result.jobCount 
+                    });
+                  } else {
+                    console.error('[FOLLOWUP DEBUG ERROR - PATH-C]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: insertPayload.lead_id,
+                      status: response.status,
+                      statusText: response.statusText
+                    });
+                  }
+                } catch (followUpError) {
+                  console.error('[FOLLOWUP DEBUG ERROR - PATH-C]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: insertPayload.lead_id,
+                    error: followUpError
+                  });
+                }
+                console.log('[FOLLOWUP DEBUG COMPLETE - PATH-C] Follow-up API call finished');
+                
+                // Create notification for the new AI intake lead
+                console.log('[NOTIFICATION DEBUG REACHED - PATH-C] About to call notification API');
+                try {
+                  console.log('[NOTIFICATION DEBUG API START - PATH-C] Fetching from notification API');
+                  const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                  console.log('[NOTIFICATION DEBUG API URL - PATH-C]', notificationApiUrl);
+                  
+                  const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      businessId: sessionBusinessId,
+                      leadId: insertPayload.lead_id,
+                      type: 'ai_intake_completed',
+                      customerName: null,
+                      customerPhone: sessionCallerPhone,
+                      serviceRequested: null
+                    })
+                  });
+                  
+                  console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-C]', response.status);
+                  
+                  if (response.ok) {
+                    console.log('[NOTIFICATION DEBUG SUCCESS - PATH-C]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: insertPayload.lead_id
+                    });
+                  } else {
+                    console.error('[NOTIFICATION DEBUG ERROR - PATH-C]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: insertPayload.lead_id,
+                      status: response.status,
+                      statusText: response.statusText
+                    });
+                  }
+                } catch (notificationError) {
+                  console.error('[NOTIFICATION DEBUG ERROR - PATH-C]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: insertPayload.lead_id,
+                    error: notificationError
+                  });
+                }
+                console.log('[NOTIFICATION DEBUG COMPLETE - PATH-C] Notification API call finished');
 
                 // Upsert lead
                 if (!supabase) {
@@ -4046,6 +4145,105 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   // Don't throw here - the main ingestion succeeded
                 } else {
                   console.log('[AI CALL RECORD SAVE SUCCESS]');
+                  console.log('[AI RECORD INSERT PATH IDENTIFIED]', {
+                    pathName: 'path-D-transcript-only-insert',
+                    aiRecordId: 'unknown',
+                    leadId: transcriptInsertPayload.lead_id,
+                    conversationId: transcriptInsertPayload.conversation_id,
+                    businessId: sessionBusinessId
+                  });
+                  
+                  // Create follow-up jobs for the new lead
+                  console.log('[FOLLOWUP DEBUG REACHED - PATH-D] About to call follow-up API');
+                  try {
+                    console.log('[FOLLOWUP DEBUG API START - PATH-D] Fetching from follow-up API');
+                    const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    console.log('[FOLLOWUP DEBUG API URL - PATH-D]', followUpApiUrl);
+                    
+                    const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        businessId: sessionBusinessId,
+                        leadId: transcriptInsertPayload.lead_id,
+                        conversationId: transcriptInsertPayload.conversation_id,
+                        businessName: null
+                      })
+                    });
+                    
+                    console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-D]', response.status);
+                    
+                    if (response.ok) {
+                      const result = await response.json() as { success: boolean; jobCount: number };
+                      console.log('[FOLLOWUP DEBUG SUCCESS - PATH-D]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: transcriptInsertPayload.lead_id,
+                        jobCount: result.jobCount 
+                      });
+                    } else {
+                      console.error('[FOLLOWUP DEBUG ERROR - PATH-D]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: transcriptInsertPayload.lead_id,
+                        status: response.status,
+                        statusText: response.statusText
+                      });
+                    }
+                  } catch (followUpError) {
+                    console.error('[FOLLOWUP DEBUG ERROR - PATH-D]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: transcriptInsertPayload.lead_id,
+                      error: followUpError
+                    });
+                  }
+                  console.log('[FOLLOWUP DEBUG COMPLETE - PATH-D] Follow-up API call finished');
+                  
+                  // Create notification for the new AI intake lead
+                  console.log('[NOTIFICATION DEBUG REACHED - PATH-D] About to call notification API');
+                  try {
+                    console.log('[NOTIFICATION DEBUG API START - PATH-D] Fetching from notification API');
+                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    console.log('[NOTIFICATION DEBUG API URL - PATH-D]', notificationApiUrl);
+                    
+                    const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        businessId: sessionBusinessId,
+                        leadId: transcriptInsertPayload.lead_id,
+                        type: 'ai_intake_completed',
+                        customerName: null,
+                        customerPhone: sessionCallerPhone,
+                        serviceRequested: null
+                      })
+                    });
+                    
+                    console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-D]', response.status);
+                    
+                    if (response.ok) {
+                      console.log('[NOTIFICATION DEBUG SUCCESS - PATH-D]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: transcriptInsertPayload.lead_id
+                      });
+                    } else {
+                      console.error('[NOTIFICATION DEBUG ERROR - PATH-D]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: transcriptInsertPayload.lead_id,
+                        status: response.status,
+                        statusText: response.statusText
+                      });
+                    }
+                  } catch (notificationError) {
+                    console.error('[NOTIFICATION DEBUG ERROR - PATH-D]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: transcriptInsertPayload.lead_id,
+                      error: notificationError
+                    });
+                  }
+                  console.log('[NOTIFICATION DEBUG COMPLETE - PATH-D] Notification API call finished');
 
                   // LINK AI CALL RECORD TO LEAD AND CONVERSATION
                   console.log('[AI CALL RECORD LEAD LOOKUP]', {
@@ -4244,6 +4442,106 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   }
                   
                   console.log('[AI CALL RECORD SAVED]', { recordId: fallbackRecord.id });
+                  console.log('[AI RECORD INSERT PATH IDENTIFIED]', {
+                    pathName: 'path-E-fallback-transcript-insert',
+                    aiRecordId: fallbackRecord.id,
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id,
+                    businessId: sessionBusinessId
+                  });
+                  
+                  // Create follow-up jobs for the new lead
+                  console.log('[FOLLOWUP DEBUG REACHED - PATH-E] About to call follow-up API');
+                  try {
+                    console.log('[FOLLOWUP DEBUG API START - PATH-E] Fetching from follow-up API');
+                    const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    console.log('[FOLLOWUP DEBUG API URL - PATH-E]', followUpApiUrl);
+                    
+                    const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        businessId: sessionBusinessId,
+                        leadId: fallbackInsertPayload.lead_id,
+                        conversationId: fallbackInsertPayload.conversation_id,
+                        businessName: null
+                      })
+                    });
+                    
+                    console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-E]', response.status);
+                    
+                    if (response.ok) {
+                      const result = await response.json() as { success: boolean; jobCount: number };
+                      console.log('[FOLLOWUP DEBUG SUCCESS - PATH-E]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: fallbackInsertPayload.lead_id,
+                        jobCount: result.jobCount 
+                      });
+                    } else {
+                      console.error('[FOLLOWUP DEBUG ERROR - PATH-E]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: fallbackInsertPayload.lead_id,
+                        status: response.status,
+                        statusText: response.statusText
+                      });
+                    }
+                  } catch (followUpError) {
+                    console.error('[FOLLOWUP DEBUG ERROR - PATH-E]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: fallbackInsertPayload.lead_id,
+                      error: followUpError
+                    });
+                  }
+                  console.log('[FOLLOWUP DEBUG COMPLETE - PATH-E] Follow-up API call finished');
+                  
+                  // Create notification for the new AI intake lead
+                  console.log('[NOTIFICATION DEBUG REACHED - PATH-E] About to call notification API');
+                  try {
+                    console.log('[NOTIFICATION DEBUG API START - PATH-E] Fetching from notification API');
+                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    console.log('[NOTIFICATION DEBUG API URL - PATH-E]', notificationApiUrl);
+                    
+                    const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        businessId: sessionBusinessId,
+                        leadId: fallbackInsertPayload.lead_id,
+                        type: 'ai_intake_completed',
+                        customerName: null,
+                        customerPhone: sessionCallerPhone,
+                        serviceRequested: null
+                      })
+                    });
+                    
+                    console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-E]', response.status);
+                    
+                    if (response.ok) {
+                      console.log('[NOTIFICATION DEBUG SUCCESS - PATH-E]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: fallbackInsertPayload.lead_id
+                      });
+                    } else {
+                      console.error('[NOTIFICATION DEBUG ERROR - PATH-E]', { 
+                        businessId: sessionBusinessId, 
+                        leadId: fallbackInsertPayload.lead_id,
+                        status: response.status,
+                        statusText: response.statusText
+                      });
+                    }
+                  } catch (notificationError) {
+                    console.error('[NOTIFICATION DEBUG ERROR - PATH-E]', { 
+                      businessId: sessionBusinessId, 
+                      leadId: fallbackInsertPayload.lead_id,
+                      error: notificationError
+                    });
+                  }
+                  console.log('[NOTIFICATION DEBUG COMPLETE - PATH-E] Notification API call finished');
+
                   console.log('[AI LINK SUCCESS]', { aiCallRecordId: fallbackRecord.id, leadId: fallbackLead.id, conversationId: fallbackConversation.id });
 
                   // Save transcript as message
@@ -4282,7 +4580,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               // Log call metrics before ingestion
               logCallMetrics(aiSessionTracker);
               
-              ingestCallData();
+              console.log('[INGEST CALL DATA CALLSITE REACHED] OpenAI WebSocket close path');
+              ingestCallData().then(() => {
+                console.log('[INGEST CALL DATA CALLSITE COMPLETE] OpenAI WebSocket close path');
+              }).catch(error => {
+                console.log('[INGEST CALL DATA CALLSITE ERROR] OpenAI WebSocket close path', error);
+              });
             });
             console.log('[OPENAI AUDIT] error listener attached');
 
@@ -4354,9 +4657,11 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       });
       
       // Call ingestion when main WebSocket closes
-      console.log('[AI INGEST WEBSOCKET CLOSE] Starting ingestion due to WebSocket close');
-      ingestCallData().catch(error => {
-        console.log('[AI INGEST WEBSOCKET CLOSE FAILED]', error);
+      console.log('[INGEST CALL DATA CALLSITE REACHED] Main WebSocket close path');
+      ingestCallData().then(() => {
+        console.log('[INGEST CALL DATA CALLSITE COMPLETE] Main WebSocket close path');
+      }).catch(error => {
+        console.log('[INGEST CALL DATA CALLSITE ERROR] Main WebSocket close path', error);
       });
     });
 
