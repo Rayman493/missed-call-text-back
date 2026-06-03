@@ -155,7 +155,16 @@ export class NotificationServiceServer {
       notificationData = template(data || {})
     }
 
-    console.log('[NOTIFICATIONS] Creating notification:', { businessId, type, message })
+    console.log('[NOTIFICATIONS INSERT PAYLOAD]', { 
+      businessId, 
+      type, 
+      title: notificationData.title,
+      message: message || notificationData.message,
+      data,
+      actionUrl: actionUrl || notificationData.action_url,
+      actionText: actionText || notificationData.action_text
+    })
+
     const { error } = await supabaseAdmin
       .from('notifications')
       .insert({
@@ -165,15 +174,18 @@ export class NotificationServiceServer {
         message: message || notificationData.message,
         data,
         read: false,
-        action_url: actionUrl || notificationData.action_url,
-        action_text: actionText || notificationData.action_text,
         created_at: new Date().toISOString()
       })
 
     if (error) {
-      console.error('[NOTIFICATIONS] Error creating notification:', error)
+      console.error('[NOTIFICATIONS INSERT ERROR]', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
     } else {
-      console.log('[NOTIFICATIONS] Notification created successfully')
+      console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type })
     }
   }
 
