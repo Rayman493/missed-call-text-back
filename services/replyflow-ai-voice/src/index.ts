@@ -1820,19 +1820,38 @@ Return only JSON, no other text.`;
         });
         
         try {
+          const idempotencyKey = `${lead.id}-ai-intake-1`;
+          const messageBody = `Hi, this is from your business. Just checking in — would you still like help?`;
+          
+          const followUpPayload = {
+            lead_id: lead.id,
+            business_id: sessionBusinessId,
+            conversation_id: conversation.id,
+            message_body: messageBody,
+            status: 'pending',
+            scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+            idempotency_key: idempotencyKey,
+            step: 1,
+            created_at: new Date().toISOString()
+          };
+          
+          console.log('[ACTIVE PATH FOLLOWUP PAYLOAD]', { 
+            keys: Object.keys(followUpPayload),
+            businessId: sessionBusinessId, 
+            leadId: lead.id
+          });
+          
           const { error: followUpError } = await supabase
             .from('follow_up_jobs')
-            .insert({
-              business_id: sessionBusinessId,
-              lead_id: lead.id,
-              conversation_id: conversation.id,
-              status: 'pending',
-              scheduled_for: new Date().toISOString(),
-              created_at: new Date().toISOString()
-            });
+            .insert(followUpPayload);
           
           if (followUpError) {
-            console.log('[ACTIVE PATH FOLLOWUP ERROR]', followUpError);
+            console.log('[ACTIVE PATH FOLLOWUP ERROR]', { 
+              error: followUpError,
+              code: followUpError.code,
+              message: followUpError.message,
+              details: followUpError.details
+            });
           } else {
             console.log('[ACTIVE PATH FOLLOWUP SUCCESS]', { 
               businessId: sessionBusinessId, 
@@ -1853,21 +1872,39 @@ Return only JSON, no other text.`;
           const callerName = extractedFields.callerName || null;
           const serviceRequested = extractedFields.reasonForCalling || null;
           
+          const notificationPayload = {
+            business_id: sessionBusinessId,
+            type: 'new_lead', // Valid type from schema
+            title: 'New AI Intake Lead',
+            message: `New AI intake call completed from ${sessionCallerPhone}`,
+            data: {
+              leadId: lead.id,
+              conversationId: conversation.id,
+              aiCallRecordId: newRecord.id,
+              callerPhone: sessionCallerPhone,
+              callerName: callerName,
+              serviceRequested: serviceRequested
+            },
+            read: false
+          };
+          
+          console.log('[ACTIVE PATH NOTIFICATION PAYLOAD]', { 
+            keys: Object.keys(notificationPayload),
+            businessId: sessionBusinessId, 
+            leadId: lead.id
+          });
+          
           const { error: notificationError } = await supabase
             .from('notifications')
-            .insert({
-              business_id: sessionBusinessId,
-              lead_id: lead.id,
-              type: 'ai_intake_completed',
-              customer_name: callerName,
-              customer_phone: sessionCallerPhone,
-              service_requested: serviceRequested,
-              read: false,
-              created_at: new Date().toISOString()
-            });
+            .insert(notificationPayload);
           
           if (notificationError) {
-            console.log('[ACTIVE PATH NOTIFICATION ERROR]', notificationError);
+            console.log('[ACTIVE PATH NOTIFICATION ERROR]', { 
+              error: notificationError,
+              code: notificationError.code,
+              message: notificationError.message,
+              details: notificationError.details
+            });
           } else {
             console.log('[ACTIVE PATH NOTIFICATION SUCCESS]', { 
               businessId: sessionBusinessId, 
