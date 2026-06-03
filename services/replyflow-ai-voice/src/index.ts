@@ -1746,6 +1746,56 @@ Return only JSON, no other text.`;
         }
         console.log('[FOLLOWUP DEBUG COMPLETE - INGEST] Follow-up API call finished');
 
+        // Create notification for the new AI intake lead
+        console.log('[NOTIFICATION DEBUG REACHED - INGEST] About to call notification API');
+        try {
+          console.log('[NOTIFICATION DEBUG API START - INGEST] Fetching from notification API');
+          const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+          console.log('[NOTIFICATION DEBUG API URL - INGEST]', notificationApiUrl);
+          
+          const callerName = extractedFields.callerName || null;
+          const serviceRequested = extractedFields.reasonForCalling || null;
+          
+          const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessId: sessionBusinessId,
+              leadId: lead.id,
+              type: 'ai_intake_completed',
+              customerName: callerName,
+              customerPhone: sessionCallerPhone,
+              serviceRequested: serviceRequested
+            })
+          });
+          
+          console.log('[NOTIFICATION DEBUG API RESPONSE - INGEST]', response.status);
+          
+          if (response.ok) {
+            console.log('[NOTIFICATION DEBUG SUCCESS - INGEST]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id
+            });
+          } else {
+            console.error('[NOTIFICATION DEBUG ERROR - INGEST]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id,
+              status: response.status,
+              statusText: response.statusText
+            });
+          }
+        } catch (notificationError) {
+          console.error('[NOTIFICATION DEBUG ERROR - INGEST]', { 
+            businessId: sessionBusinessId, 
+            leadId: lead.id,
+            error: notificationError
+          });
+          // Don't let notification creation fail the AI ingestion
+        }
+        console.log('[NOTIFICATION DEBUG COMPLETE - INGEST] Notification API call finished');
+
         return;
 
       } catch (error) {
