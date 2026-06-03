@@ -402,10 +402,39 @@ export default function LeadsPage() {
       <AuthGuard>
         <BusinessGuard>
           <div className="min-h-screen bg-background">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading your leads...</p>
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="space-y-4">
+                {/* Skeleton KPI Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                      <div className="animate-pulse">
+                        <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
+                        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Skeleton Lead Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                      <div className="animate-pulse">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2 w-3/4"></div>
+                            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -936,125 +965,116 @@ export default function LeadsPage() {
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
                         onClick={() => handleConversationClick(lead.id)}
-                        className={`block p-3.5 sm:p-5 hover:bg-slate-50 dark:hover:bg-muted/80 transition-all duration-300 hover:scale-[1.01] relative border-l-4 border-transparent hover:border-l-slate-300 dark:hover:border-l-border/50 cursor-pointer ${
-                          isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10 border-l-blue-500' : ''
-                        } ${isNewLead ? 'bg-orange-50/50 dark:bg-orange-900/10 border-l-orange-500' : ''}`}
+                        className={`block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-muted/80 transition-all duration-200 relative border-l-2 border-transparent hover:border-l-slate-300 dark:hover:border-l-border/50 cursor-pointer ${
+                          isUnread ? 'bg-blue-50/30 dark:bg-blue-900/5 border-l-blue-500' : ''
+                        } ${isNewLead ? 'bg-orange-50/30 dark:bg-orange-900/5 border-l-orange-500' : ''}`}
                       >
                         {/* Unread indicator dot */}
                         {isUnread && (
-                          <div className="absolute top-4 left-3.5 sm:top-5 sm:left-4 w-2 h-2 bg-blue-600 rounded-full shadow-sm"></div>
+                          <div className="absolute top-3 left-3 w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-2.5 sm:gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-3 sm:gap-4">
-                              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center flex-shrink-0 border shadow-sm ${
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                              {/* Status Indicator */}
+                              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${
                                 messageStatus.color === 'green' ? 'bg-green-50 border-green-200' :
                                 messageStatus.color === 'red' ? 'bg-red-50 border-red-200' :
                                 messageStatus.color === 'orange' ? 'bg-orange-50 border-orange-200' :
                                 'bg-blue-50 border-blue-200'
                               }`}>
-                                <span className="text-lg sm:text-xl">{messageStatus.icon}</span>
+                                <span className="text-sm sm:text-base">{messageStatus.icon}</span>
                               </div>
+
+                              {/* Name and Phone */}
                               <div className="flex-1 min-w-0">
-                                {/* Contact Name and Phone Number */}
-                                <div className="flex flex-col gap-1 mb-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   {lead.contact_name && (
-                                    <p className={`font-bold text-lg sm:text-xl text-slate-900 dark:text-foreground truncate ${
-                                      isUnread ? 'font-extrabold' : ''
+                                    <p className={`font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground truncate ${
+                                      isUnread ? 'font-bold' : ''
                                     }`}>
                                       {lead.contact_name}
                                     </p>
                                   )}
-                                  <div className="flex items-center gap-2">
-                                    <p className={`font-medium text-base sm:text-lg text-slate-700 dark:text-muted-foreground truncate ${
-                                      isUnread ? 'font-semibold' : ''
-                                    }`}>
-                                      {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
-                                    </p>
-                                    {isNewLead && (
-                                      <span className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">New</span>
-                                    )}
-                                    {needsResponse && (
-                                      <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[10px] sm:text-xs font-bold rounded-full flex-shrink-0">Needs Response</span>
-                                    )}
-                                  </div>
-                                  {lead.company_name && (
-                                    <p className="text-sm text-muted-foreground truncate">
-                                      {lead.company_name}
-                                    </p>
-                                  )}
-                                </div>
-                                
-                                {/* Last Contact/Last Response Times */}
-                                <div className="flex flex-wrap gap-3 mb-2 text-xs sm:text-sm">
-                                  {leadTiming.lastContacted && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-slate-500 dark:text-muted-foreground/70">Last Contact:</span>
-                                      <span className="text-slate-700 dark:text-foreground font-medium">{leadTiming.lastContacted}</span>
-                                    </div>
-                                  )}
-                                  {leadTiming.lastResponse && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-slate-500 dark:text-muted-foreground/70">Last Response:</span>
-                                      <span className="text-slate-700 dark:text-foreground font-medium">{leadTiming.lastResponse}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Message Preview */}
-                                {latestMessage && (
-                                  <p className={`text-sm sm:text-base truncate ${
-                                    latestMessage.direction === 'inbound'
-                                      ? 'text-slate-600 dark:text-muted-foreground/80'
-                                      : 'text-blue-600 dark:text-blue-400/90'
-                                  } ${isUnread && latestMessage.direction === 'inbound' ? 'font-semibold' : ''}`}>
-                                    {latestMessage.direction === 'inbound' && 'Customer: '}
-                                    {latestMessage.body}
+                                  <p className={`text-sm sm:text-base text-slate-600 dark:text-muted-foreground truncate ${
+                                    isUnread ? 'font-semibold' : ''
+                                  }`}>
+                                    {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
+                                </div>
+                              </div>
+
+                              {/* Status Badge */}
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0 ${statusClasses}`}>
+                                {statusBadge}
+                              </span>
+                            </div>
+
+                            {/* Conversation Preview and Metadata */}
+                            <div className="pl-0 sm:pl-11 mt-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  {/* Message Preview */}
+                                  {latestMessage && (
+                                    <p className={`text-xs sm:text-sm truncate ${
+                                      latestMessage.direction === 'inbound'
+                                        ? 'text-slate-600 dark:text-muted-foreground/80'
+                                        : 'text-blue-600 dark:text-blue-400/90'
+                                    } ${isUnread && latestMessage.direction === 'inbound' ? 'font-medium' : ''}`}>
+                                      {latestMessage.direction === 'inbound' && 'Customer: '}
+                                      {latestMessage.body}
+                                    </p>
+                                  )}
+                                </div>
+                                {/* Created Time */}
+                                <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
+                                  {formatRelativeTime(lead.created_at)}
+                                </div>
+                              </div>
+
+                              {/* Badges */}
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                {isNewLead && (
+                                  <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[9px] sm:text-[10px] font-semibold rounded">New</span>
+                                )}
+                                {needsResponse && (
+                                  <span className="px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-300 text-[9px] sm:text-[10px] font-semibold rounded">Needs Response</span>
                                 )}
                               </div>
                             </div>
                           </div>
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusClasses}`}>
-                                {statusBadge}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {/* Call Customer Button */}
-                              {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+
+                          {/* Secondary Actions */}
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+                            {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+                              <>
                                 <a
                                   href={`tel:${lead.caller_phone}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                                  title="Call"
                                 >
-                                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                   </svg>
-                                  <span className="hidden sm:inline">Call</span>
                                 </a>
-                              )}
-                              
-                              {/* Copy Phone Button */}
-                              {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     copyToClipboard(lead.caller_phone, 'Phone number copied');
                                   }}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                                  title="Copy"
                                 >
-                                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                   </svg>
-                                  <span className="hidden sm:inline">Copy</span>
                                 </button>
-                              )}
-                            </div>
-                            <div className="text-blue-400 hover:text-blue-300 text-sm sm:text-base font-medium whitespace-nowrap">
-                              View →
+                              </>
+                            )}
+                            <div className="text-blue-500 hover:text-blue-400 text-xs font-medium">
+                              →
                             </div>
                           </div>
                         </div>

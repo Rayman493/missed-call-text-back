@@ -241,10 +241,10 @@ export default function NavbarNotifications() {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-3">
-                <Bell className="w-6 h-6 text-muted-foreground/50 mx-auto mb-1.5" />
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">No new notifications</p>
-                <p className="text-[10px] text-muted-foreground/70">New leads and replies will appear here</p>
+              <div className="text-center py-6 px-4">
+                <div className="text-2xl mb-2">🎉</div>
+                <p className="text-sm font-semibold text-foreground mb-1">You're all caught up</p>
+                <p className="text-xs text-muted-foreground">New leads and customer replies will appear here</p>
               </div>
             ) : (
               <div className="divide-y divide-border">

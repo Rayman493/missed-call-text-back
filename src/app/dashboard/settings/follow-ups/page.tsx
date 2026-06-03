@@ -135,7 +135,10 @@ export default function FollowUpsSettingsPage() {
     if (enabledFollowUps.length === 0) {
       return (
         <div className="text-center py-4">
-          <p className="text-sm text-blue-800 dark:text-blue-200">No follow-ups scheduled</p>
+          <p className="text-sm font-medium text-foreground mb-1">No Follow-Ups Yet</p>
+          <p className="text-xs text-muted-foreground">
+            Create automated follow-ups to continue engaging customers after missed calls.
+          </p>
         </div>
       )
     }

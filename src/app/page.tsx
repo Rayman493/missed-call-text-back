@@ -225,19 +225,19 @@ export default async function Home() {
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       {(() => { console.log('[ROOT PAGE] before safe Hero Section'); return null; })()}
       <HomepageErrorBoundary>
-        <section className="relative flex flex-col items-center justify-center py-12 md:py-28 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
+        <section className="relative flex flex-col items-center justify-center py-8 md:py-20 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
-          <div className="max-w-6xl mx-auto px-6 lg:px-8 space-y-4 relative z-10">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8 space-y-3 relative z-10">
             {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
-              <h1 className="text-3xl sm:text-4xl md:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
                 Never Miss a Lead Again
               </h1>
-              <p className="text-base sm:text-lg md:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-3 sm:mt-5">
+              <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-2 sm:mt-3">
                 Turn missed calls into conversations.
               </p>
-              
-              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+
+              <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 {/* Primary CTA */}
                 <Link
                   href="/signup"
@@ -249,14 +249,14 @@ export default async function Home() {
               </div>
 
               {/* Pricing Information - Desktop and Mobile */}
-              <div className="mt-4 sm:mt-3 flex flex-col items-center gap-0.5">
+              <div className="mt-3 sm:mt-2 flex flex-col items-center gap-0.5">
                 <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">14-Day Free Trial</span>
                 <span className="text-sm text-slate-600 dark:text-slate-400">$49/month after trial</span>
               </div>
 
               {/* Trust Indicators - Desktop Only */}
-              <div className="mt-4 hidden sm:block">
-                <div className="inline-flex flex-col items-start gap-2 mx-auto">
+              <div className="mt-3 hidden sm:block">
+                <div className="inline-flex flex-col items-start gap-1.5 mx-auto">
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -279,8 +279,8 @@ export default async function Home() {
               </div>
 
               {/* Trust Indicators - Mobile Only */}
-              <div className="mt-6 sm:hidden">
-                <div className="inline-flex flex-col items-start gap-2 mx-auto">
+              <div className="mt-4 sm:hidden">
+                <div className="inline-flex flex-col items-start gap-1.5 mx-auto">
                   <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -313,9 +313,9 @@ export default async function Home() {
       
       {/* How It Works */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-12 border-t border-slate-200 dark:border-border">
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-8 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-10">
+            <div className="text-center mb-6">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 How ReplyFlow Works
               </h2>
@@ -511,13 +511,13 @@ export default async function Home() {
 
       {/* Lead Capture Callout */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-background py-8 border-t border-slate-200 dark:border-slate-800">
+        <section className="bg-white dark:bg-background py-6 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 text-center">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-3">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 text-center">
+              <h3 className="text-base font-bold text-slate-900 dark:text-foreground mb-2">
                 Two Ways ReplyFlow Captures Leads
               </h3>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -536,13 +536,14 @@ export default async function Home() {
         </section>
       </HomepageErrorBoundary>
 
-      
-      
+
+
+
       {/* Dashboard Showcase Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-32 border-t border-slate-200 dark:border-border">
+        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-20 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-20">
+            <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
                 Everything In One Dashboard
               </h2>
@@ -618,44 +619,44 @@ export default async function Home() {
               
               {/* Features Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center mb-3 shadow-sm">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
-                  <h3 className="font-bold text-slate-900 dark:text-foreground mb-2">Lead Management</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Track every lead with status updates and priority levels</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Lead Management</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Track every lead with status updates and priority levels</p>
                 </div>
-                
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
-                  <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-11 h-11 bg-emerald-600 rounded-xl flex items-center justify-center mb-3 shadow-sm">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                   </div>
-                  <h3 className="font-bold text-slate-900 dark:text-foreground mb-2">Conversation Inbox</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">All customer messages in one unified inbox</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Conversation Inbox</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">All customer messages in one unified inbox</p>
                 </div>
-                
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
-                  <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-11 h-11 bg-purple-600 rounded-xl flex items-center justify-center mb-3 shadow-sm">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="font-bold text-slate-900 dark:text-foreground mb-2">Calendar Integration</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Sync appointments and schedule follow-ups automatically</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Calendar Integration</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Sync appointments and schedule follow-ups automatically</p>
                 </div>
                 
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-6 border border-orange-200 dark:border-orange-800">
-                  <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-5 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-11 h-11 bg-orange-600 rounded-xl flex items-center justify-center mb-3 shadow-sm">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
-                  <h3 className="font-bold text-slate-900 dark:text-foreground mb-2">AI Call History</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Review transcripts and summaries of all AI calls</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">AI Call History</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Review transcripts and summaries of all AI calls</p>
                 </div>
               </div>
             </div>

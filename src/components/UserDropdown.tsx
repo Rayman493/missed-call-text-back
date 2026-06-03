@@ -4,15 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User } from 'lucide-react'
+import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User, Layout, CreditCard as BillingIcon } from 'lucide-react'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
   const { user, signOut } = useAuth()
+  const { business } = useBusiness()
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const supabase = createBrowserClient()
@@ -130,29 +132,65 @@ export default function UserDropdown() {
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 z-20 mt-2 w-64 min-w-64 bg-card rounded-lg shadow-lg border border-border py-2">
-                <div className="px-4 py-2 border-b border-border">
-                  <p className="text-sm text-muted-foreground truncate">
+            <div className="absolute right-0 z-20 mt-2 w-72 min-w-72 bg-card rounded-xl shadow-xl border border-border py-2">
+                {/* Business Info Section */}
+                <div className="px-4 py-3 border-b border-border bg-muted/30">
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {business?.name || 'Business'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {user?.email || 'No email'}
                   </p>
                 </div>
-                
-                {/* View Homepage */}
-                <Link
-                  href="/home"
-                  onClick={() => {
-                    console.log('[VIEW PUBLIC SITE LINK CLICKED] User clicked View public site link')
-                    setIsOpen(false)
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                >
-                  <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                  View public site
-                </Link>
-                
+
+                {/* Navigation Items */}
+                <div className="py-1">
+                  {/* Dashboard */}
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <Layout className="w-4 h-4 text-muted-foreground" />
+                    Dashboard
+                  </Link>
+
+                  {/* Settings */}
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    Settings
+                  </Link>
+
+                  {/* Billing */}
+                  <button
+                    onClick={handleManageBilling}
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <BillingIcon className="w-4 h-4 text-muted-foreground" />
+                    Billing
+                  </button>
+
+                  {/* View Public Site */}
+                  <Link
+                    href="/home"
+                    onClick={() => {
+                      console.log('[VIEW PUBLIC SITE LINK CLICKED] User clicked View public site link')
+                      setIsOpen(false)
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    View public site
+                  </Link>
+                </div>
+
                 {/* Divider before Logout */}
                 <div className="border-t border-border my-1"></div>
-                
+
                 {/* Logout */}
                 <button
                   onClick={handleSignOut}

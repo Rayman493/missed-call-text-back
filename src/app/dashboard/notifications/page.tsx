@@ -162,10 +162,10 @@ export default function NotificationsPage() {
             ))
           ) : (
             <div className="text-center py-8">
-              <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <h3 className="text-base font-medium text-foreground mb-1">No notifications</h3>
+              <div className="text-2xl mb-2">🎉</div>
+              <h3 className="text-base font-semibold text-foreground mb-1">You're all caught up</h3>
               <p className="text-sm text-muted-foreground">
-                We'll notify you when something important happens.
+                New leads and customer replies will appear here.
               </p>
             </div>
           )}

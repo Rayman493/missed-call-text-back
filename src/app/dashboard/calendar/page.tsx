@@ -345,13 +345,37 @@ export default function CalendarPage() {
 
           {/* Main Content */}
           <div className="flex-1 pt-1 sm:pt-2 lg:pt-4 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
-            <div className="max-w-[1600px] mx-auto">
+            <div className="max-w-[1400px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600 dark:text-muted-foreground">Loading calendar...</p>
+                <div className="py-8">
+                  {/* Skeleton Calendar Header */}
+                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 mb-4">
+                    <div className="animate-pulse">
+                      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mb-3 w-1/3"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-10"></div>
+                        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-10"></div>
+                        <div className="flex-1"></div>
+                        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skeleton Calendar Grid */}
+                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+                    <div className="animate-pulse">
+                      <div className="grid grid-cols-7 gap-2 mb-4">
+                        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                          <div key={i} className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-2">
+                        {[...Array(35)].map((_, i) => (
+                          <div key={i} className="h-24 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -382,38 +406,38 @@ export default function CalendarPage() {
                   {calendarConnected && (
                     <div>
                       {/* Calendar Summary Row */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-4 sm:gap-6 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="mb-6">
+                        <div className="flex items-center gap-6 sm:gap-8 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/30"></div>
                             <div>
-                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Upcoming Events</p>
-                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{events.length}</p>
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Upcoming Events</p>
+                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{events.length}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
                             <div>
-                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">This Week</p>
-                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
+                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
                             <div>
-                              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">This Month</p>
-                              <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
+                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* View Mode Toggle - Mobile */}
-                      <div className="mb-4">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                      {/* View Mode Toggle */}
+                      <div className="mb-6">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5 shadow-sm">
                           <button
                             onClick={() => setViewMode('month')}
-                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
                               viewMode === 'month'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -423,7 +447,7 @@ export default function CalendarPage() {
                           </button>
                           <button
                             onClick={() => setViewMode('agenda')}
-                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
                               viewMode === 'agenda'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -436,7 +460,7 @@ export default function CalendarPage() {
 
                       {/* Conditionally render Month or Agenda view */}
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                           {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
                           <div className="lg:col-span-3 order-1 lg:order-1">
                             <CalendarGrid

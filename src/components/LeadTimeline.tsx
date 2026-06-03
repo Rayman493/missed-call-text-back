@@ -95,11 +95,20 @@ export default function LeadTimeline({ leadId, events: propEvents, compact = fal
     const now = new Date()
     const eventTime = new Date(timestamp)
     const diffInMinutes = Math.floor((now.getTime() - eventTime.getTime()) / (1000 * 60))
-    
+
     if (diffInMinutes < 1) return 'just now'
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
     return `${Math.floor(diffInMinutes / 1440)}d ago`
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const eventTime = new Date(timestamp)
+    return eventTime.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
   }
 
   if (compact) {
@@ -107,14 +116,14 @@ export default function LeadTimeline({ leadId, events: propEvents, compact = fal
       <div className="space-y-2">
         {events.map((event, index) => (
           <div key={event.id} className="flex items-center gap-2">
+            <div className="flex-shrink-0 w-10 text-xs text-muted-foreground font-medium">
+              {formatTimestamp(event.timestamp)}
+            </div>
             <div className="flex-shrink-0">
               {getEventIcon(event.type, event.status)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-foreground truncate">{event.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatRelativeTime(event.timestamp)}
-              </p>
             </div>
             <div className="flex-shrink-0">
               {getStatusIcon(event.status)}
@@ -129,17 +138,20 @@ export default function LeadTimeline({ leadId, events: propEvents, compact = fal
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-3">
         <Clock className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">Lead Activity</h4>
+        <h4 className="text-sm font-medium text-foreground">Activity Timeline</h4>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {events.map((event, index) => (
           <div key={event.id} className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-16 text-xs text-muted-foreground font-medium pt-0.5">
+              {formatTimestamp(event.timestamp)}
+            </div>
             <div className="flex-shrink-0 mt-0.5">
               {getEventIcon(event.type, event.status)}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-0.5">
                 <p className="text-sm font-medium text-foreground">{event.title}</p>
                 {getStatusIcon(event.status)}
               </div>

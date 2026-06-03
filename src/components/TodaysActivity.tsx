@@ -130,10 +130,10 @@ export default function TodaysActivity({ business }: TodaysActivityProps) {
       {metrics.missedCallsToday === 0 && metrics.textsSentToday === 0 && metrics.repliesToday === 0 && (
         <div className="text-center mt-2 pt-2 border-t border-border">
           <p className="text-xs font-medium text-foreground mb-0.5">
-            No activity today
+            No activity yet
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Monitoring for missed calls
+            ReplyFlow activity will appear here once calls and messages are processed.
           </p>
         </div>
       )}

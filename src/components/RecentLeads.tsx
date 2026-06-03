@@ -199,9 +199,9 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
       {leads.length === 0 ? (
         <div className="text-center py-8">
           <Phone className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No leads yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Leads will appear here when customers call your business
+          <p className="text-sm font-medium text-foreground mb-1">No leads yet</p>
+          <p className="text-xs text-muted-foreground">
+            Your first missed-call lead will appear here automatically.
           </p>
         </div>
       ) : (

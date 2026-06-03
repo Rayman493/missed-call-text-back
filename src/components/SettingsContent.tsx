@@ -748,16 +748,16 @@ export default function SettingsContent() {
 
             {/* Main Content */}
             <div className="flex-1 pt-4 px-3 sm:px-4 lg:px-6 pb-20">
-              <div className="max-w-[1000px] mx-auto">
+              <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Header Block - Sticky */}
-            <div className="sticky top-[52px] z-40 bg-background dark:bg-background border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
+            <div className="sticky top-[52px] z-40 bg-background dark:bg-background border-b border-slate-200 dark:border-slate-800 pb-6 mb-8">
               {/* Page Header */}
-              <div className="mb-4">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground mb-2">
+              <div className="mb-6">
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground mb-2">
                   Settings
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-base text-slate-600 dark:text-slate-400">
                   Manage your business settings and automation preferences.
                 </p>
               </div>
@@ -820,11 +820,11 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-6 pb-40">
+            <div className="space-y-6 sm:space-y-8 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 scroll-mt-[180px]">
-                <div className="mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[180px]">
+                <div className="mb-8">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
                 </div>
                 <div className="space-y-4 sm:space-y-6">
@@ -912,7 +912,7 @@ export default function SettingsContent() {
                 
                 <div className="space-y-1.5 sm:space-y-2">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                       <div className="flex-1 pr-3 sm:pr-4">
                         <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
@@ -945,7 +945,7 @@ export default function SettingsContent() {
                     {spamFilteringEnabled && (
                       <div className="space-y-2 sm:space-y-3 border-t border-border pt-2 sm:pt-3">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
@@ -975,7 +975,7 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip blocked or hidden callers</h4>
@@ -1005,7 +1005,7 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Spam Detection */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip suspected spam callers</h4>
