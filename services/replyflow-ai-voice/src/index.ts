@@ -718,7 +718,7 @@ async function createFallbackLead(
         console.log('[FOLLOWUP DEBUG API RESPONSE]', response.status);
         
         if (response.ok) {
-          const result = await response.json();
+          const result = await response.json() as { success: boolean; jobCount: number };
           console.log('[FOLLOWUP JOB CREATE SUCCESS - AI INTAKE]', { 
             businessId: fallbackCallRecordPayload.business_id, 
             leadId: fallbackCallRecordPayload.lead_id,
@@ -1698,6 +1698,54 @@ Return only JSON, no other text.`;
 
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
+
+        // Create follow-up jobs for the new lead
+        console.log('[FOLLOWUP DEBUG REACHED - INGEST] About to call follow-up API');
+        try {
+          console.log('[FOLLOWUP DEBUG API START - INGEST] Fetching from follow-up API');
+          const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+          console.log('[FOLLOWUP DEBUG API URL - INGEST]', followUpApiUrl);
+          
+          const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessId: sessionBusinessId,
+              leadId: lead.id,
+              conversationId: conversation.id,
+              businessName: null // Will be fetched by API endpoint
+            })
+          });
+          
+          console.log('[FOLLOWUP DEBUG API RESPONSE - INGEST]', response.status);
+          
+          if (response.ok) {
+            const result = await response.json() as { success: boolean; jobCount: number };
+            console.log('[FOLLOWUP DEBUG SUCCESS - INGEST]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id,
+              jobCount: result.jobCount 
+            });
+          } else {
+            console.error('[FOLLOWUP DEBUG ERROR - INGEST]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id,
+              status: response.status,
+              statusText: response.statusText
+            });
+          }
+        } catch (followUpError) {
+          console.error('[FOLLOWUP DEBUG ERROR - INGEST]', { 
+            businessId: sessionBusinessId, 
+            leadId: lead.id,
+            error: followUpError
+          });
+          // Don't let follow-up job creation fail the AI ingestion
+        }
+        console.log('[FOLLOWUP DEBUG COMPLETE - INGEST] Follow-up API call finished');
+
         return;
 
       } catch (error) {
