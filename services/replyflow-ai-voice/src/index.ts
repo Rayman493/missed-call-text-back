@@ -680,7 +680,7 @@ async function createFallbackLead(
         caller_phone: callerPhone || 'unknown',
         call_sid: callSid || 'unknown',
         transcript: [],
-        outcome: 'completed',
+        outcome: 'ai_failed_voicemail',
         extraction_failed: false
       };
     console.log('[AI CALL RECORD OUTCOME]', {
@@ -3932,7 +3932,7 @@ Return only JSON, no other text.`;
                     caller_phone: sessionCallerPhone || 'unknown',
                     call_sid: sessionCallSid || 'unknown',
                     transcript: [],
-                    outcome: 'completed',
+                    outcome: 'ai_failed_voicemail',
                     extracted_info: null,
                     summary: 'AI call completed (no transcript)',
                     extraction_failed: true
@@ -4008,7 +4008,7 @@ Return only JSON, no other text.`;
                     call_sid: sessionCallSid || 'unknown',
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
-                    outcome: 'completed',
+                    outcome: 'ai_completed',
                     extracted_info: extractedFields,
                     summary: extractedFields.summary,
                     extraction_failed: false
@@ -4349,7 +4349,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     call_sid: sessionCallSid || 'unknown',
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
-                    outcome: 'completed',
+                    outcome: 'ai_partial',
                     extraction_failed: false
                   };
                 console.log('[AI CALL RECORD OUTCOME]', {
@@ -4623,7 +4623,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       call_sid: sessionCallSid || 'unknown',
                       ai_session_id: sessionSessionId,
                       transcript: Array.isArray(transcript) ? transcript : [],
-                      outcome: 'ai_failed',
+                      outcome: 'ai_failed_voicemail',
                       extracted_info: null,
                       summary: `AI call transcript: ${fullTranscript}`,
                       extraction_failed: true
