@@ -1821,7 +1821,36 @@ Return only JSON, no other text.`;
         
         try {
           const idempotencyKey = `${lead.id}-ai-intake-1`;
-          const messageBody = `Hi, this is from your business. Just checking in — would you still like help?`;
+          
+          // Fetch business to get name and automation settings
+          const { data: business, error: businessError } = await supabase
+            .from('businesses')
+            .select('name, automation_settings')
+            .eq('id', sessionBusinessId)
+            .single();
+          
+          let messageBody: string;
+          
+          if (!businessError && business) {
+            const businessName = business.name || 'your business';
+            const automationSettings = business.automation_settings || {};
+            const followUpSettings = automationSettings.followUps;
+            
+            // Check if there's a configured follow-up template
+            if (followUpSettings && followUpSettings.followUps && followUpSettings.followUps.length > 0) {
+              const firstFollowUp = followUpSettings.followUps[0];
+              if (firstFollowUp.enabled && firstFollowUp.message) {
+                messageBody = firstFollowUp.message.replace('{{businessName}}', businessName);
+              } else {
+                messageBody = `Hi, this is ${businessName}. Just checking in — would you still like help?`;
+              }
+            } else {
+              messageBody = `Hi, this is ${businessName}. Just checking in — would you still like help?`;
+            }
+          } else {
+            // Fallback if business fetch fails
+            messageBody = `Hi, this is from your business. Just checking in — would you still like help?`;
+          }
           
           const followUpPayload = {
             lead_id: lead.id,
@@ -1838,7 +1867,8 @@ Return only JSON, no other text.`;
           console.log('[ACTIVE PATH FOLLOWUP PAYLOAD]', { 
             keys: Object.keys(followUpPayload),
             businessId: sessionBusinessId, 
-            leadId: lead.id
+            leadId: lead.id,
+            messageBody: messageBody
           });
           
           const { error: followUpError } = await supabase
