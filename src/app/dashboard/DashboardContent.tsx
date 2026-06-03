@@ -63,6 +63,7 @@ import BusinessWinsCard from '@/components/BusinessWinsCard'
 import EmptyStateGuidance from '@/components/EmptyStateGuidance'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
+import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
@@ -962,35 +963,10 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} setupHealth={setupHealth} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-2.5 sm:pt-3 lg:pt-3.5 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
-              <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2.5">
+            <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
+              <div className="max-w-[1400px] mx-auto space-y-1 sm:space-y-1.5">
                         
-                {/* Determine if onboarding is fully complete */}
-                {/* Only show setup progress and test banner when subscription is active/trialing AND state is fully resolved */}
-                {isSubscriptionActive && onboardingState.state !== 'PRE_TRIAL' && onboardingState.state !== 'ACTIVATING' && (onboardingState.state as string) !== 'unknown' && !shouldShowLoadingState && (
-                  <SectionErrorBoundary sectionName="SetupProgress">
-                    {(() => {
-                      console.log('[Render Guard] GettingStarted rendered', {
-                        subscription_status: business?.subscription_status,
-                        isSubscriptionActive,
-                        allowed: true
-                      })
-                      console.log('[Dashboard Routing] Rendering GettingStarted section', {
-                        section: 'SetupProgress',
-                        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
-                        hasBusiness: !!business,
-                        subscriptionStatus: business?.subscription_status,
-                        onboardingStatus: business?.onboarding_status,
-                        derivedOnboardingState: onboardingState.state,
-                        shouldShowLoadingState,
-                      })
-                      console.log('[Render Child] SetupProgress')
-                      return null
-                    })()}
-                    <SetupProgress missedCallCount={missedCallCount} setupHealth={setupHealth} />
-                  </SectionErrorBoundary>
-                )}
-
+                
                 {/* HARD RENDER GUARD: ProvisioningSuccessBanner if subscription is active */}
                 {isSubscriptionActive && (
                   <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
@@ -1182,7 +1158,18 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    
+
+                    {/* System Status Banner */}
+                    <SectionErrorBoundary sectionName="OperationalStatusCard">
+                      <div className="mb-2 sm:mb-3">
+                        <OperationalStatusCard
+                          business={business}
+                          missedCallCount={missedCallCount}
+                          setupHealth={setupHealth}
+                        />
+                      </div>
+                    </SectionErrorBoundary>
+
                     {/* Dashboard Metrics - Priority 1 */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
                       <div className="mb-2 sm:mb-4 transition-opacity duration-300">
@@ -1190,14 +1177,14 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Latest Lead Section - Priority 2 */}
+                    {/* Latest Lead Section - Priority 2 - SECONDARY */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-1.5 sm:mb-2">
+                        <div className="transition-opacity duration-300 mb-4 sm:mb-6">
                           {business?.id && (
-                            <RecentLeadsSection 
-                              businessId={business.id} 
+                            <RecentLeadsSection
+                              businessId={business.id}
                               isOnboardingComplete={isOnboardingComplete}
                               provisioningStatus={business?.provisioning_status || 'pending'}
                               forwardingVerified={business?.forwarding_verified || false}
@@ -1208,31 +1195,33 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
-                    {/* Needs Attention Card - Priority 3 */}
+                    {/* Needs Attention Card - Priority 3 - SECONDARY */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-1.5 sm:mb-2 transition-opacity duration-300">
+                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
                         <NeedsAttentionCard business={business} setupHealth={setupHealth} />
                       </div>
                     </SectionErrorBoundary>
 
-                    
-                    {/* Recent Activity Card - Priority 5 */}
+
+                    {/* Recent Activity Card - Priority 5 - SECONDARY */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className="mb-1.5 sm:mb-2 transition-opacity duration-300">
+                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
-                    
-                    {/* Follow-Up Activity Card - Priority 6 */}
+
+                    {/* Follow-Up Activity Card - Priority 6 - TERTIARY */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-1.5 sm:mb-2 transition-opacity duration-300">
+                      <div className="mb-2 sm:mb-3 transition-opacity duration-300 opacity-80 hover:opacity-100">
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Business Wins Card - Priority 7 */}
+                    {/* Business Wins Card - Priority 7 - TERTIARY */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <BusinessWinsCard business={business} />
+                      <div className="opacity-80 hover:opacity-100 transition-opacity duration-300">
+                        <BusinessWinsCard business={business} />
+                      </div>
                     </SectionErrorBoundary>
 
                                       </>

@@ -88,61 +88,30 @@ export default function OperationalStatusCard({
   if (monitoringStatus === 'active') {
     return (
       <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-5 hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-3.5">
           {/* Compact Header */}
-          <div className="flex items-center justify-center mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
-              <h3 className="text-base sm:text-lg font-bold text-white">ReplyFlow Active</h3>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🟢</span>
+              <h3 className="text-base font-bold text-white">ReplyFlow Active</h3>
             </div>
+            <p className="text-xs text-slate-400">All systems operational</p>
           </div>
 
-          {/* Primary Status */}
-          <div className="text-center mb-3">
-            <p className="text-xs sm:text-sm text-slate-400 font-medium mb-2 tracking-wide">SYSTEM STATUS</p>
-            <p className="text-4xl sm:text-5xl font-bold text-white mb-1">
-              {isForwardingActive ? 'Active' : 'Setup'}
-            </p>
-          </div>
-
-          {/* Health Status Pills */}
-          <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-            <div className="inline-flex items-center px-2.5 py-1 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-xs text-green-300 font-medium">Calls Active</span>
+          {/* Status Pills */}
+          <div className="flex flex-wrap gap-1.5">
+            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
+              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
+              <span className="text-[10px] text-green-300 font-medium">SMS Enabled</span>
             </div>
-            <div className="inline-flex items-center px-2.5 py-1 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-xs text-green-300 font-medium">Text Replies Active</span>
+            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
+              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
+              <span className="text-[10px] text-green-300 font-medium">Forwarding Verified</span>
             </div>
-            <div className="inline-flex items-center px-2.5 py-1 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-xs text-green-300 font-medium">Follow-Ups Active</span>
+            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
+              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
+              <span className="text-[10px] text-green-300 font-medium">Monitoring Calls</span>
             </div>
-          </div>
-
-          {/* Improved Copy */}
-          <p className="text-xs sm:text-sm text-slate-300 text-center mb-3 leading-relaxed">
-            {isForwardingActive 
-              ? 'ReplyFlow is actively monitoring and responding to missed calls.'
-              : 'Setup required to begin monitoring missed calls.'
-            }
-          </p>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 sm:gap-3">
-            <button
-              onClick={() => setShowTestModal(true)}
-              className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
-            >
-              Test ReplyFlow
-            </button>
-            <button
-              onClick={() => setShowSystemDetails(true)}
-              className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
-            >
-              System Details
-            </button>
           </div>
         </div>
 
