@@ -787,6 +787,32 @@ export async function POST(request: NextRequest) {
           // Don't let notification failures break webhook processing
         }
         
+        // Create follow-up jobs for new lead
+        try {
+          console.log('[FOLLOWUP JOB CREATE ATTEMPT]', { 
+            businessId: business.id, 
+            leadId: lead.id 
+          });
+          const followUpJobs = await createFollowUpJobs({
+            businessId: business.id,
+            leadId: lead.id,
+            conversationId: undefined, // Conversation created later
+            businessName: business.name
+          });
+          console.log('[FOLLOWUP JOB CREATE SUCCESS]', { 
+            businessId: business.id, 
+            leadId: lead.id,
+            jobCount: followUpJobs.length 
+          });
+        } catch (followUpError) {
+          console.error('[FOLLOWUP JOB CREATE ERROR]', { 
+            businessId: business.id, 
+            leadId: lead.id,
+            error: followUpError 
+          });
+          // Don't let follow-up job creation fail the webhook
+        }
+        
         shouldSendSms = true; // Send SMS for new leads
       } else {
         console.error('[Voice] Persistence failed: Lead creation returned null');
