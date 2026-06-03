@@ -1820,102 +1820,78 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
-        // Create follow-up jobs for the new lead
-        console.log('[FOLLOWUP DEBUG REACHED - INGEST] About to call follow-up API');
-        try {
-          console.log('[FOLLOWUP DEBUG API START - INGEST] Fetching from follow-up API');
-          const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-          console.log('[FOLLOWUP DEBUG API URL - INGEST]', followUpApiUrl);
-          
-          const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              businessId: sessionBusinessId,
-              leadId: lead.id,
-              conversationId: conversation.id,
-              businessName: null // Will be fetched by API endpoint
-            })
-          });
-          
-          console.log('[FOLLOWUP DEBUG API RESPONSE - INGEST]', response.status);
-          
-          if (response.ok) {
-            const result = await response.json() as { success: boolean; jobCount: number };
-            console.log('[FOLLOWUP DEBUG SUCCESS - INGEST]', { 
-              businessId: sessionBusinessId, 
-              leadId: lead.id,
-              jobCount: result.jobCount 
-            });
-          } else {
-            console.error('[FOLLOWUP DEBUG ERROR - INGEST]', { 
-              businessId: sessionBusinessId, 
-              leadId: lead.id,
-              status: response.status,
-              statusText: response.statusText
-            });
-          }
-        } catch (followUpError) {
-          console.error('[FOLLOWUP DEBUG ERROR - INGEST]', { 
-            businessId: sessionBusinessId, 
-            leadId: lead.id,
-            error: followUpError
-          });
-          // Don't let follow-up job creation fail the AI ingestion
-        }
-        console.log('[FOLLOWUP DEBUG COMPLETE - INGEST] Follow-up API call finished');
+        console.log('[ACTIVE PATH POST INSERT REACHED]', {
+          businessId: sessionBusinessId,
+          leadId: lead.id,
+          conversationId: conversation.id,
+          callSid: sessionCallSid
+        });
 
-        // Create notification for the new AI intake lead
-        console.log('[NOTIFICATION DEBUG REACHED - INGEST] About to call notification API');
+        // Create follow-up jobs directly using Supabase
+        console.log('[ACTIVE PATH FOLLOWUP START]', { 
+          businessId: sessionBusinessId, 
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
+        
         try {
-          console.log('[NOTIFICATION DEBUG API START - INGEST] Fetching from notification API');
-          const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-          console.log('[NOTIFICATION DEBUG API URL - INGEST]', notificationApiUrl);
+          const { error: followUpError } = await supabase
+            .from('follow_up_jobs')
+            .insert({
+              business_id: sessionBusinessId,
+              lead_id: lead.id,
+              conversation_id: conversation.id,
+              status: 'pending',
+              scheduled_for: new Date().toISOString(),
+              created_at: new Date().toISOString()
+            });
           
-          const callerName = extractedFields.callerName || null;
-          const serviceRequested = extractedFields.reasonForCalling || null;
-          
-          const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              businessId: sessionBusinessId,
-              leadId: lead.id,
-              type: 'ai_intake_completed',
-              customerName: callerName,
-              customerPhone: sessionCallerPhone,
-              serviceRequested: serviceRequested
-            })
-          });
-          
-          console.log('[NOTIFICATION DEBUG API RESPONSE - INGEST]', response.status);
-          
-          if (response.ok) {
-            console.log('[NOTIFICATION DEBUG SUCCESS - INGEST]', { 
+          if (followUpError) {
+            console.log('[ACTIVE PATH FOLLOWUP ERROR]', followUpError);
+          } else {
+            console.log('[ACTIVE PATH FOLLOWUP SUCCESS]', { 
               businessId: sessionBusinessId, 
               leadId: lead.id
             });
+          }
+        } catch (followUpError) {
+          console.log('[ACTIVE PATH FOLLOWUP ERROR]', followUpError);
+        }
+        
+        // Create notification directly using Supabase
+        console.log('[ACTIVE PATH NOTIFICATION START]', { 
+          businessId: sessionBusinessId, 
+          leadId: lead.id
+        });
+        
+        try {
+          const callerName = extractedFields.callerName || null;
+          const serviceRequested = extractedFields.reasonForCalling || null;
+          
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert({
+              business_id: sessionBusinessId,
+              lead_id: lead.id,
+              type: 'ai_intake_completed',
+              customer_name: callerName,
+              customer_phone: sessionCallerPhone,
+              service_requested: serviceRequested,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+          
+          if (notificationError) {
+            console.log('[ACTIVE PATH NOTIFICATION ERROR]', notificationError);
           } else {
-            console.error('[NOTIFICATION DEBUG ERROR - INGEST]', { 
+            console.log('[ACTIVE PATH NOTIFICATION SUCCESS]', { 
               businessId: sessionBusinessId, 
-              leadId: lead.id,
-              status: response.status,
-              statusText: response.statusText
+              leadId: lead.id
             });
           }
         } catch (notificationError) {
-          console.error('[NOTIFICATION DEBUG ERROR - INGEST]', { 
-            businessId: sessionBusinessId, 
-            leadId: lead.id,
-            error: notificationError
-          });
-          // Don't let notification creation fail the AI ingestion
+          console.log('[ACTIVE PATH NOTIFICATION ERROR]', notificationError);
         }
-        console.log('[NOTIFICATION DEBUG COMPLETE - INGEST] Notification API call finished');
 
         return;
 
