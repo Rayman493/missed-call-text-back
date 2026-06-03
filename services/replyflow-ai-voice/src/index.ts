@@ -498,6 +498,21 @@ async function triggerVoicemailFallback(
     openAiWs.close();
   }
   
+  console.log('[AI FALLBACK CHECK]', { 
+    callSid, 
+    businessId, 
+    failureReason,
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log('[AI FALLBACK TRIGGERED]', { 
+    callSid, 
+    businessId, 
+    failureReason 
+  });
+  
+  console.log('[AI FALLBACK REASON]', failureReason);
+  
   // Store fallback metadata for later processing
   (ws as any).voicemailFallback = {
     triggered: true,
@@ -511,6 +526,8 @@ async function triggerVoicemailFallback(
   };
 
   try {
+    console.log('[AI FALLBACK TO VOICEMAIL]', { callSid, businessId });
+    
     // Use Twilio REST API to redirect the call to voicemail
     const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
@@ -527,7 +544,7 @@ async function triggerVoicemailFallback(
     // Redirect the call to the voicemail endpoint
     const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'}/api/twilio/voicemail`;
     
-    console.log('[VOICEMAIL RECORDING STARTED] Redirecting call to voicemail');
+    console.log('[VOICEMAIL FALLBACK START]', { callSid, voicemailUrl });
     
     await twilioClient.calls(callSid).update({
       method: 'POST',
@@ -535,7 +552,8 @@ async function triggerVoicemailFallback(
       status: 'in-progress'
     });
     
-    console.log('[VOICEMAIL REDIRECT SUCCESS] Call redirected to voicemail');
+    console.log('[VOICEMAIL FALLBACK RECORDING]', { callSid, voicemailUrl });
+    console.log('[VOICEMAIL FALLBACK COMPLETE]', { callSid });
     
     // Close the WebSocket connection
     if (ws.readyState === WebSocket.OPEN) {
@@ -1353,6 +1371,38 @@ wss.on('connection', (ws, req) => {
     let callOutcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' = 'completed';
     let hangupScheduled = false;
     let hangupExecuted = false;
+    let businessName: string = 'ReplyFlow';
+
+    // AI timeout detection - trigger voicemail fallback if AI doesn't start within 10 seconds
+    let aiTimeoutTimer: NodeJS.Timeout | null = null;
+    let aiGreetingGenerated = false;
+    const AI_TIMEOUT_MS = 10000; // 10 seconds
+
+    // Start AI timeout timer - will trigger voicemail fallback if AI doesn't start within 10 seconds
+    aiTimeoutTimer = setTimeout(async () => {
+      if (!aiGreetingGenerated && openaiInitAttempted && !openaiInitSucceeded) {
+        console.log('[AI FALLBACK TRIGGERED]', { 
+          reason: 'AI timeout before greeting generated',
+          callSid: callSid || 'unknown',
+          businessId: businessId || 'unknown'
+        });
+        console.log('[AI FALLBACK REASON]', 'AI timeout before greeting generated');
+        
+        // Trigger voicemail fallback
+        const aiSessionTracker = createAISessionTracker(callSid || '', businessId || '');
+        await triggerVoicemailFallback(
+          ws, 
+          twilioHandler, 
+          aiSessionTracker, 
+          'AI timeout before greeting generated', 
+          callSid || '', 
+          businessId || '', 
+          callerPhone || '', 
+          businessName || '', 
+          forwardedFrom || ''
+        );
+      }
+    }, AI_TIMEOUT_MS);
 
     // Ingestion function to save call data - moved to correct scope
     const ingestCallData = async () => {
@@ -2209,7 +2259,6 @@ Return only JSON, no other text.`;
 
     // Intake state machine
     let intakeData: IntakeData | null = null;
-    let businessName: string = 'ReplyFlow';
 
     log(LogLevel.INFO, '[AI POC] attaching message listener');
 
@@ -4659,6 +4708,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
     // Handle WebSocket close
     ws.on('close', (code, reason) => {
+      // Clear AI timeout timer if it exists
+      if (aiTimeoutTimer) {
+        clearTimeout(aiTimeoutTimer);
+        aiTimeoutTimer = null;
+      }
+      
       log(LogLevel.INFO, '[AI POC] websocket closed');
       log(LogLevel.INFO, '[AI POC] websocket close details', { code, reason: reason?.toString() });
       log(LogLevel.INFO, '[AI POC] OpenAI initialization status', {
