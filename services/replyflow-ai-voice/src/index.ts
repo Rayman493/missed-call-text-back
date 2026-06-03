@@ -687,6 +687,54 @@ async function createFallbackLead(
 
     if (aiRecordError) {
       console.log('[LEAD CREATED FROM FALLBACK] AI call record creation error:', aiRecordError);
+    } else {
+      console.log('[LEAD CREATED FROM FALLBACK] AI call record created successfully');
+      
+      // Create follow-up jobs for the new lead
+      try {
+        console.log('[FOLLOWUP JOB CREATE ATTEMPT - AI INTAKE]', { 
+          businessId: fallbackCallRecordPayload.business_id, 
+          leadId: fallbackCallRecordPayload.lead_id,
+          conversationId: fallbackCallRecordPayload.conversation_id
+        });
+        
+        const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+        const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            businessId: fallbackCallRecordPayload.business_id,
+            leadId: fallbackCallRecordPayload.lead_id,
+            conversationId: fallbackCallRecordPayload.conversation_id,
+            businessName: businessName
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('[FOLLOWUP JOB CREATE SUCCESS - AI INTAKE]', { 
+            businessId: fallbackCallRecordPayload.business_id, 
+            leadId: fallbackCallRecordPayload.lead_id,
+            jobCount: result.jobCount 
+          });
+        } else {
+          console.error('[FOLLOWUP JOB CREATE ERROR - AI INTAKE]', { 
+            businessId: fallbackCallRecordPayload.business_id, 
+            leadId: fallbackCallRecordPayload.lead_id,
+            status: response.status,
+            statusText: response.statusText
+          });
+        }
+      } catch (followUpError) {
+        console.error('[FOLLOWUP JOB CREATE ERROR - AI INTAKE]', { 
+          businessId: fallbackCallRecordPayload.business_id, 
+          leadId: fallbackCallRecordPayload.lead_id,
+          error: followUpError
+        });
+        // Don't let follow-up job creation fail the fallback lead creation
+      }
     }
 
     console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
