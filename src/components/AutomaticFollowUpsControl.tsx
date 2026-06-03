@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { formatRelativeTime } from '@/lib/utils'
-import { Clock, Edit3, Pause, Play, Calendar, X, Check, AlertCircle, Send, Settings, MessageSquare, User, Activity } from 'lucide-react'
+import { Clock, Pause, Play, Calendar, X, Check, AlertCircle, Send, Settings, MessageSquare, User, Activity, ExternalLink } from 'lucide-react'
 
 interface FollowUpJob {
   id: string
@@ -21,8 +22,6 @@ interface AutomaticFollowUpsControlProps {
 
 export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpdate }: AutomaticFollowUpsControlProps) {
   const [loading, setLoading] = useState(false)
-  const [showEditSequence, setShowEditSequence] = useState(false)
-  const [editingSequence, setEditingSequence] = useState(followUpJobs.map(job => ({ ...job, enabled: job.status !== 'cancelled' })))
 
   const allCancelledAfterReply = followUpJobs.every(
     (job) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied'
@@ -252,108 +251,15 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpda
               </button>
             )}
             
-            <button
-              onClick={() => setShowEditSequence(true)}
+            <Link
+              href="/dashboard/settings/follow-ups"
               className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
             >
-              <Edit3 className="w-4 h-4" />
-              Edit Sequence
-            </button>
+              <ExternalLink className="w-4 h-4" />
+              Configure Follow-Ups
+            </Link>
           </div>
         </div>
-
-        {/* Edit Sequence Modal */}
-        {showEditSequence && (
-          <div className="fixed inset-0 z-50 overflow-hidden">
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditSequence(false)} />
-            
-            {/* Modal */}
-            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 max-w-2xl max-h-[80vh] overflow-hidden bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-foreground">Edit Follow-Up Sequence</h3>
-                <button
-                  onClick={() => setShowEditSequence(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              {/* Content */}
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
-                <div className="space-y-4">
-                  {followUpJobs.map((job, index) => (
-                    <div key={job.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-semibold text-foreground">
-                          {job.step === 1 ? 'Initial Text' : `Follow-Up #${job.step - 1}`}
-                        </h4>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={editingSequence[index]?.enabled !== false}
-                            onChange={(e) => {
-                              const newSequence = [...editingSequence]
-                              newSequence[index] = { ...newSequence[index], enabled: e.target.checked }
-                              setEditingSequence(newSequence)
-                            }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span>Enable</span>
-                        </label>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Delay (hours)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="24"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-foreground"
-                            defaultValue={job.step === 1 ? 0 : (job.step - 1) * 24}
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Message</label>
-                          <textarea
-                            rows={3}
-                            placeholder="Enter follow-up message..."
-                            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-foreground resize-none"
-                            defaultValue={job.message}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Footer */}
-              <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setShowEditSequence(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    // Save sequence changes for this lead only
-                    setShowEditSequence(false)
-                    onUpdate?.()
-                  }}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
