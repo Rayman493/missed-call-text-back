@@ -360,15 +360,31 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     // Create notification for customer reply
     try {
+      console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+        businessId: business.id, 
+        type: 'customer_reply', 
+        leadId: lead.id,
+        messageId: message.id
+      });
       await notificationServiceServer.notifyCustomerReply(
         business.id,
         'Customer',
         sanitizedBody,
         lead.id
       );
-      console.log('[SMS Processing] Notification created for customer reply');
+      console.log('[NOTIFICATION CREATE SUCCESS]', { 
+        businessId: business.id, 
+        type: 'customer_reply', 
+        leadId: lead.id 
+      });
     } catch (error) {
-      console.error('[SMS Processing] Failed to create notification:', error);
+      console.error('[NOTIFICATION CREATE ERROR]', { 
+        businessId: business.id, 
+        type: 'customer_reply', 
+        leadId: lead.id,
+        error 
+      });
+      // Don't let notification failures break webhook processing
     }
   }
   

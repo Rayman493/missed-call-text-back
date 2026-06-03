@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { processInboundSms } from '@/lib/sms-processing'
 import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
-import { notificationService } from '@/lib/notifications'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function POST(req: NextRequest) {
   // CRITICAL: Log IMMEDIATELY to verify route is being hit
@@ -162,15 +162,31 @@ export async function POST(req: NextRequest) {
       // Create notification for customer reply
       if (result.lead && result.lead.business_id) {
         try {
-          await notificationService.notifyCustomerReply(
+          console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+            businessId: result.lead.business_id, 
+            type: 'customer_reply', 
+            leadId: result.lead.id,
+            messageId: result.message.id
+          });
+          await notificationServiceServer.notifyCustomerReply(
             result.lead.business_id,
             result.lead.caller_phone || 'Unknown',
             Body || 'Media message',
             result.lead.id
           );
-          console.log('[INBOUND SMS] Notification created for customer reply');
+          console.log('[NOTIFICATION CREATE SUCCESS]', { 
+            businessId: result.lead.business_id, 
+            type: 'customer_reply', 
+            leadId: result.lead.id 
+          });
         } catch (error) {
-          console.error('[INBOUND SMS] Error creating notification:', error);
+          console.error('[NOTIFICATION CREATE ERROR]', { 
+            businessId: result.lead.business_id, 
+            type: 'customer_reply', 
+            leadId: result.lead.id,
+            error 
+          });
+          // Don't let notification failures break webhook processing
         }
       }
     }

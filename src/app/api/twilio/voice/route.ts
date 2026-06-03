@@ -13,7 +13,7 @@ import { getSpokenBusinessName } from '@/lib/speech';
 import { checkAllGuards } from '@/lib/ai-call-assistant/config';
 import { createAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
-import { notificationService } from '@/lib/notifications';
+import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 
 // Constants for repeat caller behavior
@@ -760,15 +760,31 @@ export async function POST(request: NextRequest) {
         
         // Create notification for new lead
         try {
-          await notificationService.notifyNewLead(
+          console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+            businessId: business.id, 
+            type: 'new_lead', 
+            leadId: lead.id,
+            leadPhone: normalizedCallerPhone 
+          });
+          await notificationServiceServer.notifyNewLead(
             business.id,
             'Unknown', // lead name (can be updated later from conversation)
             normalizedCallerPhone,
             lead.id
           );
-          console.log('[Voice] Notification created for new lead');
+          console.log('[NOTIFICATION CREATE SUCCESS]', { 
+            businessId: business.id, 
+            type: 'new_lead', 
+            leadId: lead.id 
+          });
         } catch (error) {
-          console.error('[Voice] Error creating notification:', error);
+          console.error('[NOTIFICATION CREATE ERROR]', { 
+            businessId: business.id, 
+            type: 'new_lead', 
+            leadId: lead.id,
+            error 
+          });
+          // Don't let notification failures break webhook processing
         }
         
         shouldSendSms = true; // Send SMS for new leads

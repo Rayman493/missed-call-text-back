@@ -143,15 +143,31 @@ export async function POST(request: NextRequest) {
       
       // Create notification for new lead
       try {
+        console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+          businessId: business.id, 
+          type: 'new_lead', 
+          leadId: lead.id,
+          leadPhone: normalizedCallerPhone 
+        });
         await notificationServiceServer.notifyNewLead(
           business.id,
           'New Customer',
           normalizedCallerPhone,
           lead.id
         );
-        console.log('[VOICEMAIL] Notification created for new lead');
+        console.log('[NOTIFICATION CREATE SUCCESS]', { 
+          businessId: business.id, 
+          type: 'new_lead', 
+          leadId: lead.id 
+        });
       } catch (error) {
-        console.error('[VOICEMAIL] Failed to create notification:', error);
+        console.error('[NOTIFICATION CREATE ERROR]', { 
+          businessId: business.id, 
+          type: 'new_lead', 
+          leadId: lead.id,
+          error 
+        });
+        // Don't let notification failures break webhook processing
       }
     } else {
       console.log('[VOICEMAIL] Using existing lead:', lead.id);
