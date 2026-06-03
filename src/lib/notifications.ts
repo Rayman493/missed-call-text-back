@@ -89,7 +89,7 @@ export class NotificationService {
   private supabase = createBrowserClient()
 
   async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
-    console.log('[NOTIFICATIONS] Fetching notifications for business:', businessId, 'limit:', limit)
+    console.log('[NOTIFICATIONS UI FETCH START]', { businessId, limit })
     const { data, error } = await this.supabase
       .from('notifications')
       .select('*')
@@ -98,23 +98,23 @@ export class NotificationService {
       .limit(limit)
 
     if (error) {
-      console.error('[NOTIFICATIONS] Error fetching notifications:', error)
+      console.log('[NOTIFICATIONS UI FETCH ERROR]', { error, businessId })
       return []
     }
 
-    console.log('[NOTIFICATIONS] Fetched count:', data?.length || 0, 'payload:', data)
+    console.log('[NOTIFICATIONS UI FETCH RESULT]', { count: data?.length || 0, businessId, payload: data })
     return data || []
   }
 
   async getNotificationCount(businessId: string): Promise<NotificationCount> {
-    console.log('[NOTIFICATIONS] Fetching notification count for business:', businessId)
+    console.log('[NOTIFICATIONS UI FETCH START]', { businessId, operation: 'count' })
     const { data, error } = await this.supabase
       .from('notifications')
       .select('read')
       .eq('business_id', businessId)
 
     if (error) {
-      console.error('[NOTIFICATIONS] Error fetching notification count:', error)
+      console.log('[NOTIFICATIONS UI FETCH ERROR]', { error, businessId, operation: 'count' })
       return { unread: 0, total: 0 }
     }
 
@@ -123,7 +123,7 @@ export class NotificationService {
       unread: notifications.filter((n: any) => !n.read).length,
       total: notifications.length
     }
-    console.log('[NOTIFICATIONS] Count result:', count)
+    console.log('[NOTIFICATIONS UI FETCH RESULT]', { count, businessId })
     return count
   }
 

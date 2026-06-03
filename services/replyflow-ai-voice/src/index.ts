@@ -1893,7 +1893,7 @@ Return only JSON, no other text.`;
         }
         
         // Create notification directly using Supabase
-        console.log('[ACTIVE PATH NOTIFICATION START]', { 
+        console.log('[NOTIFICATION DIRECT INSERT START]', { 
           businessId: sessionBusinessId, 
           leadId: lead.id
         });
@@ -1915,7 +1915,9 @@ Return only JSON, no other text.`;
               callerName: callerName,
               serviceRequested: serviceRequested
             },
-            read: false
+            read: false,
+            action_url: `/dashboard/leads/${lead.id}`,
+            action_text: 'View Lead'
           };
           
           console.log('[ACTIVE PATH NOTIFICATION PAYLOAD]', { 
@@ -1929,14 +1931,14 @@ Return only JSON, no other text.`;
             .insert(notificationPayload);
           
           if (notificationError) {
-            console.log('[ACTIVE PATH NOTIFICATION ERROR]', { 
+            console.log('[NOTIFICATION DIRECT INSERT ERROR]', { 
               error: notificationError,
               code: notificationError.code,
               message: notificationError.message,
               details: notificationError.details
             });
           } else {
-            console.log('[ACTIVE PATH NOTIFICATION SUCCESS]', { 
+            console.log('[NOTIFICATION DIRECT INSERT SUCCESS]', { 
               businessId: sessionBusinessId, 
               leadId: lead.id
             });
