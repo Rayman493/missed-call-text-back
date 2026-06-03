@@ -765,21 +765,31 @@ async function createFallbackLead(
       });
       
       try {
+        const notificationPayload = {
+          business_id: fallbackCallRecordPayload.business_id,
+          type: 'new_lead',
+          title: 'New AI Intake Lead',
+          message: `A new lead was created from an AI intake call (voicemail fallback)`,
+          data: {
+            lead_id: fallbackCallRecordPayload.lead_id,
+            customer_phone: fallbackCallRecordPayload.caller_phone
+          },
+          read: false,
+          created_at: new Date().toISOString()
+        };
+        console.log('[NOTIFICATION DIRECT INSERT PAYLOAD - PATH-A]', notificationPayload);
+        
         const { error: notificationError } = await supabase
           .from('notifications')
-          .insert({
-            business_id: fallbackCallRecordPayload.business_id,
-            lead_id: fallbackCallRecordPayload.lead_id,
-            type: 'ai_intake_completed',
-            customer_name: null,
-            customer_phone: fallbackCallRecordPayload.caller_phone,
-            service_requested: null,
-            read: false,
-            created_at: new Date().toISOString()
-          });
+          .insert(notificationPayload);
         
         if (notificationError) {
-          console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-A]', notificationError);
+          console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-A]', {
+            code: notificationError.code,
+            message: notificationError.message,
+            details: notificationError.details,
+            hint: notificationError.hint
+          });
         } else {
           console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-A]', { 
             businessId: fallbackCallRecordPayload.business_id, 
@@ -4113,21 +4123,31 @@ Return only JSON, no other text.`;
                 });
                 
                 try {
+                  const notificationPayload = {
+                    business_id: sessionBusinessId,
+                    type: 'new_lead',
+                    title: 'New AI Intake Lead',
+                    message: `A new lead was created from an AI intake call`,
+                    data: {
+                      lead_id: insertPayload.lead_id,
+                      customer_phone: sessionCallerPhone
+                    },
+                    read: false,
+                    created_at: new Date().toISOString()
+                  };
+                  console.log('[NOTIFICATION DIRECT INSERT PAYLOAD - PATH-C]', notificationPayload);
+                  
                   const { error: notificationError } = await supabase
                     .from('notifications')
-                    .insert({
-                      business_id: sessionBusinessId,
-                      lead_id: insertPayload.lead_id,
-                      type: 'ai_intake_completed',
-                      customer_name: null,
-                      customer_phone: sessionCallerPhone,
-                      service_requested: null,
-                      read: false,
-                      created_at: new Date().toISOString()
-                    });
+                    .insert(notificationPayload);
                   
                   if (notificationError) {
-                    console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-C]', notificationError);
+                    console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-C]', {
+                      code: notificationError.code,
+                      message: notificationError.message,
+                      details: notificationError.details,
+                      hint: notificationError.hint
+                    });
                   } else {
                     console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-C]', { 
                       businessId: sessionBusinessId, 
@@ -4449,21 +4469,31 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   });
                   
                   try {
+                    const notificationPayload = {
+                      business_id: sessionBusinessId,
+                      type: 'new_lead',
+                      title: 'New AI Intake Lead',
+                      message: `A new lead was created from an AI intake call (transcript-only)`,
+                      data: {
+                        lead_id: transcriptInsertPayload.lead_id,
+                        customer_phone: sessionCallerPhone
+                      },
+                      read: false,
+                      created_at: new Date().toISOString()
+                    };
+                    console.log('[NOTIFICATION DIRECT INSERT PAYLOAD - PATH-D]', notificationPayload);
+                    
                     const { error: notificationError } = await supabase
                       .from('notifications')
-                      .insert({
-                        business_id: sessionBusinessId,
-                        lead_id: transcriptInsertPayload.lead_id,
-                        type: 'ai_intake_completed',
-                        customer_name: null,
-                        customer_phone: sessionCallerPhone,
-                        service_requested: null,
-                        read: false,
-                        created_at: new Date().toISOString()
-                      });
+                      .insert(notificationPayload);
                     
                     if (notificationError) {
-                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-D]', notificationError);
+                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-D]', {
+                        code: notificationError.code,
+                        message: notificationError.message,
+                        details: notificationError.details,
+                        hint: notificationError.hint
+                      });
                     } else {
                       console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-D]', { 
                         businessId: sessionBusinessId, 
@@ -4730,21 +4760,31 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   });
                   
                   try {
+                    const notificationPayload = {
+                      business_id: sessionBusinessId,
+                      type: 'new_lead',
+                      title: 'New AI Intake Lead',
+                      message: `A new lead was created from an AI intake call (fallback transcript)`,
+                      data: {
+                        lead_id: fallbackInsertPayload.lead_id,
+                        customer_phone: sessionCallerPhone
+                      },
+                      read: false,
+                      created_at: new Date().toISOString()
+                    };
+                    console.log('[NOTIFICATION DIRECT INSERT PAYLOAD - PATH-E]', notificationPayload);
+                    
                     const { error: notificationError } = await supabase
                       .from('notifications')
-                      .insert({
-                        business_id: sessionBusinessId,
-                        lead_id: fallbackInsertPayload.lead_id,
-                        type: 'ai_intake_completed',
-                        customer_name: null,
-                        customer_phone: sessionCallerPhone,
-                        service_requested: null,
-                        read: false,
-                        created_at: new Date().toISOString()
-                      });
+                      .insert(notificationPayload);
                     
                     if (notificationError) {
-                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-E]', notificationError);
+                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-E]', {
+                        code: notificationError.code,
+                        message: notificationError.message,
+                        details: notificationError.details,
+                        hint: notificationError.hint
+                      });
                     } else {
                       console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-E]', { 
                         businessId: sessionBusinessId, 
