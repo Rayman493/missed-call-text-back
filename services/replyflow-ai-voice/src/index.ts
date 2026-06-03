@@ -4784,6 +4784,115 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                 }
               }
             };
+            
+            // Single outcome guarantee - verify at least one lead exists
+            // This runs after all ingestion paths to ensure no caller is lost
+            const ensureSingleOutcome = async (callSid: string, businessId: string, callerPhone: string) => {
+              if (!supabase) {
+                console.log('[SINGLE OUTCOME GUARANTEE] No Supabase client available');
+                return;
+              }
+              
+              try {
+                console.log('[SINGLE OUTCOME GUARANTEE] Checking if lead exists for call', {
+                  callSid,
+                  businessId,
+                  callerPhone
+                });
+                
+                // Check if any lead exists for this caller
+                const normalizedPhone = normalizePhoneNumberForStorage(callerPhone);
+                const { data: existingLead, error: leadCheckError } = await supabase
+                  .from('leads')
+                  .select('id')
+                  .eq('business_id', businessId)
+                  .eq('caller_phone', normalizedPhone)
+                  .maybeSingle();
+                
+                if (existingLead) {
+                  console.log('[SINGLE OUTCOME GUARANTEE] Lead exists, no action needed', {
+                    leadId: existingLead.id,
+                    callerPhone
+                  });
+                  return;
+                }
+                
+                if (leadCheckError && leadCheckError.code !== 'PGRST116') {
+                  console.log('[SINGLE OUTCOME GUARANTEE] Lead check error', leadCheckError);
+                  return;
+                }
+                
+                // No lead exists - create emergency lead
+                console.log('[EMERGENCY LEAD RECOVERY] No lead found, creating emergency missed-call lead', {
+                  callSid,
+                  businessId,
+                  callerPhone
+                });
+                
+                const { data: emergencyLead, error: emergencyLeadError } = await supabase
+                  .from('leads')
+                  .upsert({
+                    business_id: businessId,
+                    caller_phone: callerPhone,
+                    status: 'new',
+                  }, {
+                    onConflict: 'business_id,caller_phone',
+                  })
+                  .select()
+                  .single();
+                
+                if (emergencyLeadError) {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency lead creation failed', emergencyLeadError);
+                  return;
+                }
+                
+                console.log('[EMERGENCY LEAD RECOVERY] Emergency lead created successfully', {
+                  leadId: emergencyLead.id,
+                  businessId,
+                  callerPhone
+                });
+                
+                // Create conversation
+                const { data: emergencyConversation, error: emergencyConversationError } = await supabase
+                  .from('conversations')
+                  .insert({
+                    lead_id: emergencyLead.id,
+                    business_id: businessId,
+                    status: 'active',
+                  })
+                  .select()
+                  .single();
+                
+                if (emergencyConversationError) {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency conversation creation failed', emergencyConversationError);
+                  return;
+                }
+                
+                // Create AI call record for emergency recovery
+                const { error: emergencyRecordError } = await supabase
+                  .from('ai_call_records')
+                  .insert({
+                    business_id: businessId,
+                    lead_id: emergencyLead.id,
+                    conversation_id: emergencyConversation.id,
+                    caller_phone: callerPhone || 'unknown',
+                    call_sid: callSid || 'unknown',
+                    transcript: [],
+                    outcome: 'emergency_recovery',
+                    extraction_failed: true,
+                    summary: 'Emergency recovery - no lead, voicemail, or SMS was created for this call'
+                  });
+                
+                if (emergencyRecordError) {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency AI call record creation failed', emergencyRecordError);
+                } else {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency AI call record created');
+                }
+                
+              } catch (error) {
+                console.log('[EMERGENCY LEAD RECOVERY] Emergency recovery failed', error);
+              }
+            };
 
             // Call ingestion when WebSocket closes
             openAiWs.on('close', () => {
@@ -4797,6 +4906,12 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               console.log('[INGEST CALL DATA CALLSITE REACHED] OpenAI WebSocket close path');
               ingestCallData().then(() => {
                 console.log('[INGEST CALL DATA CALLSITE COMPLETE] OpenAI WebSocket close path');
+                // After ingestion, ensure single outcome guarantee
+                ensureSingleOutcome(callSid || '', businessId || '', callerPhone || '').then(() => {
+                  console.log('[SINGLE OUTCOME GUARANTEE COMPLETE]');
+                }).catch(error => {
+                  console.log('[SINGLE OUTCOME GUARANTEE ERROR]', error);
+                });
               }).catch(error => {
                 console.log('[INGEST CALL DATA CALLSITE ERROR] OpenAI WebSocket close path', error);
               });
