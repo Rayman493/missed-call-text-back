@@ -689,66 +689,89 @@ async function createFallbackLead(
       callerPhone: callerPhone || 'unknown'
     });
 
+    console.log('[BEFORE AI_CALL_RECORD INSERT - PATH-A-createFallbackLead]', {
+      businessId: fallbackCallRecordPayload.business_id,
+      leadId: fallbackCallRecordPayload.lead_id,
+      conversationId: fallbackCallRecordPayload.conversation_id
+    });
+
     const { error: aiRecordError } = await supabase
       .from('ai_call_records')
       .insert(fallbackCallRecordPayload);
+
+    console.log('[AFTER AI_CALL_RECORD INSERT - PATH-A-createFallbackBack]', {
+      error: aiRecordError
+    });
 
     if (aiRecordError) {
       console.log('[LEAD CREATED FROM FALLBACK] AI call record creation error:', aiRecordError);
     } else {
       console.log('[LEAD CREATED FROM FALLBACK] AI call record created successfully');
       
-      // Create follow-up jobs for the new lead
-      console.log('[FOLLOWUP DEBUG REACHED] About to call follow-up API');
+      // Create follow-up jobs directly using Supabase
+      console.log('[FOLLOWUP DIRECT INSERT START - PATH-A]', { 
+        businessId: fallbackCallRecordPayload.business_id, 
+        leadId: fallbackCallRecordPayload.lead_id,
+        conversationId: fallbackCallRecordPayload.conversation_id
+      });
+      
       try {
-        console.log('[FOLLOWUP JOB CREATE ATTEMPT - AI INTAKE]', { 
-          businessId: fallbackCallRecordPayload.business_id, 
-          leadId: fallbackCallRecordPayload.lead_id,
-          conversationId: fallbackCallRecordPayload.conversation_id
-        });
-        
-        console.log('[FOLLOWUP DEBUG API START] Fetching from follow-up API');
-        const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-        console.log('[FOLLOWUP DEBUG API URL]', followUpApiUrl);
-        const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            businessId: fallbackCallRecordPayload.business_id,
-            leadId: fallbackCallRecordPayload.lead_id,
-            conversationId: fallbackCallRecordPayload.conversation_id,
-            businessName: businessName
-          })
-        });
-        
-        console.log('[FOLLOWUP DEBUG API RESPONSE]', response.status);
-        
-        if (response.ok) {
-          const result = await response.json() as { success: boolean; jobCount: number };
-          console.log('[FOLLOWUP JOB CREATE SUCCESS - AI INTAKE]', { 
-            businessId: fallbackCallRecordPayload.business_id, 
-            leadId: fallbackCallRecordPayload.lead_id,
-            jobCount: result.jobCount 
+        const { error: followUpError } = await supabase
+          .from('follow_up_jobs')
+          .insert({
+            business_id: fallbackCallRecordPayload.business_id,
+            lead_id: fallbackCallRecordPayload.lead_id,
+            conversation_id: fallbackCallRecordPayload.conversation_id,
+            status: 'pending',
+            scheduled_for: new Date().toISOString(),
+            created_at: new Date().toISOString()
           });
+        
+        if (followUpError) {
+          console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-A]', followUpError);
         } else {
-          console.error('[FOLLOWUP JOB CREATE ERROR - AI INTAKE]', { 
+          console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-A]', { 
             businessId: fallbackCallRecordPayload.business_id, 
-            leadId: fallbackCallRecordPayload.lead_id,
-            status: response.status,
-            statusText: response.statusText
+            leadId: fallbackCallRecordPayload.lead_id
           });
         }
       } catch (followUpError) {
-        console.error('[FOLLOWUP JOB CREATE ERROR - AI INTAKE]', { 
-          businessId: fallbackCallRecordPayload.business_id, 
-          leadId: fallbackCallRecordPayload.lead_id,
-          error: followUpError
-        });
-        // Don't let follow-up job creation fail the fallback lead creation
+        console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-A]', followUpError);
       }
-      console.log('[FOLLOWUP DEBUG COMPLETE] Follow-up API call finished');
+      console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-A]');
+      
+      // Create notification directly using Supabase
+      console.log('[NOTIFICATION DIRECT INSERT START - PATH-A]', { 
+        businessId: fallbackCallRecordPayload.business_id, 
+        leadId: fallbackCallRecordPayload.lead_id
+      });
+      
+      try {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            business_id: fallbackCallRecordPayload.business_id,
+            lead_id: fallbackCallRecordPayload.lead_id,
+            type: 'ai_intake_completed',
+            customer_name: null,
+            customer_phone: fallbackCallRecordPayload.caller_phone,
+            service_requested: null,
+            read: false,
+            created_at: new Date().toISOString()
+          });
+        
+        if (notificationError) {
+          console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-A]', notificationError);
+        } else {
+          console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-A]', { 
+            businessId: fallbackCallRecordPayload.business_id, 
+            leadId: fallbackCallRecordPayload.lead_id
+          });
+        }
+      } catch (notificationError) {
+        console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-A]', notificationError);
+      }
+      console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-A]');
     }
 
     console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
@@ -1478,6 +1501,13 @@ Return only JSON, no other text.`;
       if (!transcript || transcript.length === 0) {
         console.log('[AI INGEST] transcript is empty, skipping extraction');
         // Create AI call record with empty transcript
+        console.log('[BEFORE AI_CALL_RECORD INSERT - PATH-B-empty-transcript]', {
+          businessId: sessionBusinessId,
+          leadId: null,
+          conversationId: null,
+          callSid: sessionCallSid
+        });
+
         const { data: emptyRecord, error: emptyRecordError } = await supabase
           .from('ai_call_records')
           .insert({
@@ -1493,6 +1523,10 @@ Return only JSON, no other text.`;
           .select()
           .single();
 
+        console.log('[AFTER AI_CALL_RECORD INSERT - PATH-B-empty-transcript]', {
+          error: emptyRecordError
+        });
+
         if (emptyRecordError) {
           console.log('[AI INGEST FAILED] empty record creation failed', emptyRecordError);
         } else {
@@ -1505,89 +1539,68 @@ Return only JSON, no other text.`;
             callSid: sessionCallSid
           });
           
-          // Create follow-up jobs for the new lead (empty transcript path)
-          console.log('[FOLLOWUP DEBUG REACHED - EMPTY] About to call follow-up API');
+          // Create follow-up jobs directly using Supabase (empty transcript path)
+          console.log('[FOLLOWUP DIRECT INSERT START - PATH-B]', { 
+            businessId: sessionBusinessId, 
+            leadId: null,
+            conversationId: null
+          });
+          
           try {
-            console.log('[FOLLOWUP DEBUG API START - EMPTY] Fetching from follow-up API');
-            const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-            console.log('[FOLLOWUP DEBUG API URL - EMPTY]', followUpApiUrl);
-            
-            const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                businessId: sessionBusinessId,
-                leadId: null,
-                conversationId: null,
-                businessName: null
-              })
-            });
-            
-            console.log('[FOLLOWUP DEBUG API RESPONSE - EMPTY]', response.status);
-            
-            if (response.ok) {
-              const result = await response.json() as { success: boolean; jobCount: number };
-              console.log('[FOLLOWUP DEBUG SUCCESS - EMPTY]', { 
-                businessId: sessionBusinessId, 
-                jobCount: result.jobCount 
+            const { error: followUpError } = await supabase
+              .from('follow_up_jobs')
+              .insert({
+                business_id: sessionBusinessId,
+                lead_id: null,
+                conversation_id: null,
+                status: 'pending',
+                scheduled_for: new Date().toISOString(),
+                created_at: new Date().toISOString()
               });
+            
+            if (followUpError) {
+              console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-B]', followUpError);
             } else {
-              console.error('[FOLLOWUP DEBUG ERROR - EMPTY]', { 
-                businessId: sessionBusinessId,
-                status: response.status,
-                statusText: response.statusText
+              console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-B]', { 
+                businessId: sessionBusinessId
               });
             }
           } catch (followUpError) {
-            console.error('[FOLLOWUP DEBUG ERROR - EMPTY]', { 
-              businessId: sessionBusinessId,
-              error: followUpError
-            });
+            console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-B]', followUpError);
           }
-          console.log('[FOLLOWUP DEBUG COMPLETE - EMPTY] Follow-up API call finished');
+          console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-B]');
           
-          // Create notification for the new AI intake lead (empty transcript path)
-          console.log('[NOTIFICATION DEBUG REACHED - EMPTY] About to call notification API');
+          // Create notification directly using Supabase (empty transcript path)
+          console.log('[NOTIFICATION DIRECT INSERT START - PATH-B]', { 
+            businessId: sessionBusinessId, 
+            leadId: null
+          });
+          
           try {
-            console.log('[NOTIFICATION DEBUG API START - EMPTY] Fetching from notification API');
-            const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-            console.log('[NOTIFICATION DEBUG API URL - EMPTY]', notificationApiUrl);
-            
-            const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                businessId: sessionBusinessId,
-                leadId: null,
+            const { error: notificationError } = await supabase
+              .from('notifications')
+              .insert({
+                business_id: sessionBusinessId,
+                lead_id: null,
                 type: 'ai_intake_completed',
-                customerName: null,
-                customerPhone: sessionCallerPhone,
-                serviceRequested: null
-              })
-            });
+                customer_name: null,
+                customer_phone: sessionCallerPhone,
+                service_requested: null,
+                read: false,
+                created_at: new Date().toISOString()
+              });
             
-            console.log('[NOTIFICATION DEBUG API RESPONSE - EMPTY]', response.status);
-            
-            if (response.ok) {
-              console.log('[NOTIFICATION DEBUG SUCCESS - EMPTY]', { businessId: sessionBusinessId });
+            if (notificationError) {
+              console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
             } else {
-              console.error('[NOTIFICATION DEBUG ERROR - EMPTY]', { 
-                businessId: sessionBusinessId,
-                status: response.status,
-                statusText: response.statusText
+              console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-B]', { 
+                businessId: sessionBusinessId
               });
             }
           } catch (notificationError) {
-            console.error('[NOTIFICATION DEBUG ERROR - EMPTY]', { 
-              businessId: sessionBusinessId,
-              error: notificationError
-            });
+            console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
           }
-          console.log('[NOTIFICATION DEBUG COMPLETE - EMPTY] Notification API call finished');
+          console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-B]');
         }
         return;
       }
@@ -3781,11 +3794,22 @@ Return only JSON, no other text.`;
                   callerPhone: sessionCallerPhone
                 });
 
+                console.log('[BEFORE AI_CALL_RECORD INSERT - PATH-C-main-extraction]', {
+                  businessId: sessionBusinessId,
+                  leadId: insertPayload.lead_id,
+                  conversationId: insertPayload.conversation_id,
+                  callSid: sessionCallSid
+                });
+
                 const { data: newRecord, error: newRecordError } = await supabase
                   .from('ai_call_records')
                   .insert(insertPayload)
                   .select()
                   .single();
+
+                console.log('[AFTER AI_CALL_RECORD INSERT - PATH-C-main-extraction]', {
+                  error: newRecordError
+                });
 
                 if (newRecordError) {
                   console.log('[AI CALL RECORD SAVE FAILED]', newRecordError);
@@ -3801,97 +3825,70 @@ Return only JSON, no other text.`;
                   businessId: sessionBusinessId
                 });
                 
-                // Create follow-up jobs for the new lead
-                console.log('[FOLLOWUP DEBUG REACHED - PATH-C] About to call follow-up API');
-                try {
-                  console.log('[FOLLOWUP DEBUG API START - PATH-C] Fetching from follow-up API');
-                  const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                  console.log('[FOLLOWUP DEBUG API URL - PATH-C]', followUpApiUrl);
-                  
-                  const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      businessId: sessionBusinessId,
-                      leadId: insertPayload.lead_id,
-                      conversationId: insertPayload.conversation_id,
-                      businessName: null
-                    })
-                  });
-                  
-                  console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-C]', response.status);
-                  
-                  if (response.ok) {
-                    const result = await response.json() as { success: boolean; jobCount: number };
-                    console.log('[FOLLOWUP DEBUG SUCCESS - PATH-C]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: insertPayload.lead_id,
-                      jobCount: result.jobCount 
-                    });
-                  } else {
-                    console.error('[FOLLOWUP DEBUG ERROR - PATH-C]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: insertPayload.lead_id,
-                      status: response.status,
-                      statusText: response.statusText
-                    });
-                  }
-                } catch (followUpError) {
-                  console.error('[FOLLOWUP DEBUG ERROR - PATH-C]', { 
-                    businessId: sessionBusinessId, 
-                    leadId: insertPayload.lead_id,
-                    error: followUpError
-                  });
-                }
-                console.log('[FOLLOWUP DEBUG COMPLETE - PATH-C] Follow-up API call finished');
+                // Create follow-up jobs directly using Supabase
+                console.log('[FOLLOWUP DIRECT INSERT START - PATH-C]', { 
+                  businessId: sessionBusinessId, 
+                  leadId: insertPayload.lead_id,
+                  conversationId: insertPayload.conversation_id
+                });
                 
-                // Create notification for the new AI intake lead
-                console.log('[NOTIFICATION DEBUG REACHED - PATH-C] About to call notification API');
                 try {
-                  console.log('[NOTIFICATION DEBUG API START - PATH-C] Fetching from notification API');
-                  const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                  console.log('[NOTIFICATION DEBUG API URL - PATH-C]', notificationApiUrl);
+                  const { error: followUpError } = await supabase
+                    .from('follow_up_jobs')
+                    .insert({
+                      business_id: sessionBusinessId,
+                      lead_id: insertPayload.lead_id,
+                      conversation_id: insertPayload.conversation_id,
+                      status: 'pending',
+                      scheduled_for: new Date().toISOString(),
+                      created_at: new Date().toISOString()
+                    });
                   
-                  const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      businessId: sessionBusinessId,
-                      leadId: insertPayload.lead_id,
-                      type: 'ai_intake_completed',
-                      customerName: null,
-                      customerPhone: sessionCallerPhone,
-                      serviceRequested: null
-                    })
-                  });
-                  
-                  console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-C]', response.status);
-                  
-                  if (response.ok) {
-                    console.log('[NOTIFICATION DEBUG SUCCESS - PATH-C]', { 
+                  if (followUpError) {
+                    console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-C]', followUpError);
+                  } else {
+                    console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-C]', { 
                       businessId: sessionBusinessId, 
                       leadId: insertPayload.lead_id
                     });
+                  }
+                } catch (followUpError) {
+                  console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-C]', followUpError);
+                }
+                console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-C]');
+                
+                // Create notification directly using Supabase
+                console.log('[NOTIFICATION DIRECT INSERT START - PATH-C]', { 
+                  businessId: sessionBusinessId, 
+                  leadId: insertPayload.lead_id
+                });
+                
+                try {
+                  const { error: notificationError } = await supabase
+                    .from('notifications')
+                    .insert({
+                      business_id: sessionBusinessId,
+                      lead_id: insertPayload.lead_id,
+                      type: 'ai_intake_completed',
+                      customer_name: null,
+                      customer_phone: sessionCallerPhone,
+                      service_requested: null,
+                      read: false,
+                      created_at: new Date().toISOString()
+                    });
+                  
+                  if (notificationError) {
+                    console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-C]', notificationError);
                   } else {
-                    console.error('[NOTIFICATION DEBUG ERROR - PATH-C]', { 
+                    console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-C]', { 
                       businessId: sessionBusinessId, 
-                      leadId: insertPayload.lead_id,
-                      status: response.status,
-                      statusText: response.statusText
+                      leadId: insertPayload.lead_id
                     });
                   }
                 } catch (notificationError) {
-                  console.error('[NOTIFICATION DEBUG ERROR - PATH-C]', { 
-                    businessId: sessionBusinessId, 
-                    leadId: insertPayload.lead_id,
-                    error: notificationError
-                  });
+                  console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-C]', notificationError);
                 }
-                console.log('[NOTIFICATION DEBUG COMPLETE - PATH-C] Notification API call finished');
+                console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-C]');
 
                 // Upsert lead
                 if (!supabase) {
@@ -4136,9 +4133,20 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   callerPhone: sessionCallerPhone
                 });
 
+                console.log('[BEFORE AI_CALL_RECORD INSERT - PATH-Dtranscript-only]', {
+                  businessId: sessionBusinessId,
+                  leadId: transcriptInsertPayload.lead_id,
+                  conversationId: transcriptInsertPayload.conversation_id,
+                  callSid: sessionCallSid
+                });
+
                 const { error: aiRecordError } = await supabase
                   .from('ai_call_records')
                   .insert(transcriptInsertPayload);
+
+                console.log('[AFTER AI_CALL_RECORD INSERT - PATH-D-transcript-only]', {
+                  error: aiRecordError
+                });
 
                 if (aiRecordError) {
                   console.log('[AI CALL RECORD SAVE FAILED]', aiRecordError);
@@ -4153,97 +4161,70 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     businessId: sessionBusinessId
                   });
                   
-                  // Create follow-up jobs for the new lead
-                  console.log('[FOLLOWUP DEBUG REACHED - PATH-D] About to call follow-up API');
-                  try {
-                    console.log('[FOLLOWUP DEBUG API START - PATH-D] Fetching from follow-up API');
-                    const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                    console.log('[FOLLOWUP DEBUG API URL - PATH-D]', followUpApiUrl);
-                    
-                    const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        businessId: sessionBusinessId,
-                        leadId: transcriptInsertPayload.lead_id,
-                        conversationId: transcriptInsertPayload.conversation_id,
-                        businessName: null
-                      })
-                    });
-                    
-                    console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-D]', response.status);
-                    
-                    if (response.ok) {
-                      const result = await response.json() as { success: boolean; jobCount: number };
-                      console.log('[FOLLOWUP DEBUG SUCCESS - PATH-D]', { 
-                        businessId: sessionBusinessId, 
-                        leadId: transcriptInsertPayload.lead_id,
-                        jobCount: result.jobCount 
-                      });
-                    } else {
-                      console.error('[FOLLOWUP DEBUG ERROR - PATH-D]', { 
-                        businessId: sessionBusinessId, 
-                        leadId: transcriptInsertPayload.lead_id,
-                        status: response.status,
-                        statusText: response.statusText
-                      });
-                    }
-                  } catch (followUpError) {
-                    console.error('[FOLLOWUP DEBUG ERROR - PATH-D]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: transcriptInsertPayload.lead_id,
-                      error: followUpError
-                    });
-                  }
-                  console.log('[FOLLOWUP DEBUG COMPLETE - PATH-D] Follow-up API call finished');
+                  // Create follow-up jobs directly using Supabase
+                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-D]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: transcriptInsertPayload.lead_id,
+                    conversationId: transcriptInsertPayload.conversation_id
+                  });
                   
-                  // Create notification for the new AI intake lead
-                  console.log('[NOTIFICATION DEBUG REACHED - PATH-D] About to call notification API');
                   try {
-                    console.log('[NOTIFICATION DEBUG API START - PATH-D] Fetching from notification API');
-                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                    console.log('[NOTIFICATION DEBUG API URL - PATH-D]', notificationApiUrl);
+                    const { error: followUpError } = await supabase
+                      .from('follow_up_jobs')
+                      .insert({
+                        business_id: sessionBusinessId,
+                        lead_id: transcriptInsertPayload.lead_id,
+                        conversation_id: transcriptInsertPayload.conversation_id,
+                        status: 'pending',
+                        scheduled_for: new Date().toISOString(),
+                        created_at: new Date().toISOString()
+                      });
                     
-                    const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        businessId: sessionBusinessId,
-                        leadId: transcriptInsertPayload.lead_id,
-                        type: 'ai_intake_completed',
-                        customerName: null,
-                        customerPhone: sessionCallerPhone,
-                        serviceRequested: null
-                      })
-                    });
-                    
-                    console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-D]', response.status);
-                    
-                    if (response.ok) {
-                      console.log('[NOTIFICATION DEBUG SUCCESS - PATH-D]', { 
+                    if (followUpError) {
+                      console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-D]', followUpError);
+                    } else {
+                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-D]', { 
                         businessId: sessionBusinessId, 
                         leadId: transcriptInsertPayload.lead_id
                       });
+                    }
+                  } catch (followUpError) {
+                    console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-D]', followUpError);
+                  }
+                  console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-D]');
+                  
+                  // Create notification directly using Supabase
+                  console.log('[NOTIFICATION DIRECT INSERT START - PATH-D]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: transcriptInsertPayload.lead_id
+                  });
+                  
+                  try {
+                    const { error: notificationError } = await supabase
+                      .from('notifications')
+                      .insert({
+                        business_id: sessionBusinessId,
+                        lead_id: transcriptInsertPayload.lead_id,
+                        type: 'ai_intake_completed',
+                        customer_name: null,
+                        customer_phone: sessionCallerPhone,
+                        service_requested: null,
+                        read: false,
+                        created_at: new Date().toISOString()
+                      });
+                    
+                    if (notificationError) {
+                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-D]', notificationError);
                     } else {
-                      console.error('[NOTIFICATION DEBUG ERROR - PATH-D]', { 
+                      console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-D]', { 
                         businessId: sessionBusinessId, 
-                        leadId: transcriptInsertPayload.lead_id,
-                        status: response.status,
-                        statusText: response.statusText
+                        leadId: transcriptInsertPayload.lead_id
                       });
                     }
                   } catch (notificationError) {
-                    console.error('[NOTIFICATION DEBUG ERROR - PATH-D]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: transcriptInsertPayload.lead_id,
-                      error: notificationError
-                    });
+                    console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-D]', notificationError);
                   }
-                  console.log('[NOTIFICATION DEBUG COMPLETE - PATH-D] Notification API call finished');
+                  console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-D]');
 
                   // LINK AI CALL RECORD TO LEAD AND CONVERSATION
                   console.log('[AI CALL RECORD LEAD LOOKUP]', {
@@ -4430,11 +4411,22 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     callerPhone: sessionCallerPhone || 'unknown'
                   });
 
+                  console.log('[BEFORE AI_CALL_RECORD INSERT - PATH-E-fallback-transcript]', {
+                    businessId: sessionBusinessId,
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id,
+                    callSid: sessionCallSid
+                  });
+
                   const { data: fallbackRecord, error: fallbackRecordError } = await supabase
                     .from('ai_call_records')
                     .insert(fallbackInsertPayload)
                     .select()
                     .single();
+
+                  console.log('[AFTER AI_CALL_RECORD INSERT - PATH-E-fallback-transcript]', {
+                    error: fallbackRecordError
+                  });
 
                   if (fallbackRecordError) {
                     console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
@@ -4450,97 +4442,70 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     businessId: sessionBusinessId
                   });
                   
-                  // Create follow-up jobs for the new lead
-                  console.log('[FOLLOWUP DEBUG REACHED - PATH-E] About to call follow-up API');
-                  try {
-                    console.log('[FOLLOWUP DEBUG API START - PATH-E] Fetching from follow-up API');
-                    const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                    console.log('[FOLLOWUP DEBUG API URL - PATH-E]', followUpApiUrl);
-                    
-                    const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        businessId: sessionBusinessId,
-                        leadId: fallbackInsertPayload.lead_id,
-                        conversationId: fallbackInsertPayload.conversation_id,
-                        businessName: null
-                      })
-                    });
-                    
-                    console.log('[FOLLOWUP DEBUG API RESPONSE - PATH-E]', response.status);
-                    
-                    if (response.ok) {
-                      const result = await response.json() as { success: boolean; jobCount: number };
-                      console.log('[FOLLOWUP DEBUG SUCCESS - PATH-E]', { 
-                        businessId: sessionBusinessId, 
-                        leadId: fallbackInsertPayload.lead_id,
-                        jobCount: result.jobCount 
-                      });
-                    } else {
-                      console.error('[FOLLOWUP DEBUG ERROR - PATH-E]', { 
-                        businessId: sessionBusinessId, 
-                        leadId: fallbackInsertPayload.lead_id,
-                        status: response.status,
-                        statusText: response.statusText
-                      });
-                    }
-                  } catch (followUpError) {
-                    console.error('[FOLLOWUP DEBUG ERROR - PATH-E]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: fallbackInsertPayload.lead_id,
-                      error: followUpError
-                    });
-                  }
-                  console.log('[FOLLOWUP DEBUG COMPLETE - PATH-E] Follow-up API call finished');
+                  // Create follow-up jobs directly using Supabase
+                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-E]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: fallbackInsertPayload.lead_id,
+                    conversationId: fallbackInsertPayload.conversation_id
+                  });
                   
-                  // Create notification for the new AI intake lead
-                  console.log('[NOTIFICATION DEBUG REACHED - PATH-E] About to call notification API');
                   try {
-                    console.log('[NOTIFICATION DEBUG API START - PATH-E] Fetching from notification API');
-                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-                    console.log('[NOTIFICATION DEBUG API URL - PATH-E]', notificationApiUrl);
+                    const { error: followUpError } = await supabase
+                      .from('follow_up_jobs')
+                      .insert({
+                        business_id: sessionBusinessId,
+                        lead_id: fallbackInsertPayload.lead_id,
+                        conversation_id: fallbackInsertPayload.conversation_id,
+                        status: 'pending',
+                        scheduled_for: new Date().toISOString(),
+                        created_at: new Date().toISOString()
+                      });
                     
-                    const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        businessId: sessionBusinessId,
-                        leadId: fallbackInsertPayload.lead_id,
-                        type: 'ai_intake_completed',
-                        customerName: null,
-                        customerPhone: sessionCallerPhone,
-                        serviceRequested: null
-                      })
-                    });
-                    
-                    console.log('[NOTIFICATION DEBUG API RESPONSE - PATH-E]', response.status);
-                    
-                    if (response.ok) {
-                      console.log('[NOTIFICATION DEBUG SUCCESS - PATH-E]', { 
+                    if (followUpError) {
+                      console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-E]', followUpError);
+                    } else {
+                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-E]', { 
                         businessId: sessionBusinessId, 
                         leadId: fallbackInsertPayload.lead_id
                       });
+                    }
+                  } catch (followUpError) {
+                    console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-E]', followUpError);
+                  }
+                  console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-E]');
+                  
+                  // Create notification directly using Supabase
+                  console.log('[NOTIFICATION DIRECT INSERT START - PATH-E]', { 
+                    businessId: sessionBusinessId, 
+                    leadId: fallbackInsertPayload.lead_id
+                  });
+                  
+                  try {
+                    const { error: notificationError } = await supabase
+                      .from('notifications')
+                      .insert({
+                        business_id: sessionBusinessId,
+                        lead_id: fallbackInsertPayload.lead_id,
+                        type: 'ai_intake_completed',
+                        customer_name: null,
+                        customer_phone: sessionCallerPhone,
+                        service_requested: null,
+                        read: false,
+                        created_at: new Date().toISOString()
+                      });
+                    
+                    if (notificationError) {
+                      console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-E]', notificationError);
                     } else {
-                      console.error('[NOTIFICATION DEBUG ERROR - PATH-E]', { 
+                      console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-E]', { 
                         businessId: sessionBusinessId, 
-                        leadId: fallbackInsertPayload.lead_id,
-                        status: response.status,
-                        statusText: response.statusText
+                        leadId: fallbackInsertPayload.lead_id
                       });
                     }
                   } catch (notificationError) {
-                    console.error('[NOTIFICATION DEBUG ERROR - PATH-E]', { 
-                      businessId: sessionBusinessId, 
-                      leadId: fallbackInsertPayload.lead_id,
-                      error: notificationError
-                    });
+                    console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-E]', notificationError);
                   }
-                  console.log('[NOTIFICATION DEBUG COMPLETE - PATH-E] Notification API call finished');
+                  console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-E]');
 
                   console.log('[AI LINK SUCCESS]', { aiCallRecordId: fallbackRecord.id, leadId: fallbackLead.id, conversationId: fallbackConversation.id });
 
