@@ -1303,22 +1303,121 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
         
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 h-[calc(100vh-140px)]">
           {/* Desktop Conversation Section */}
-          <section className="flex flex-col min-h-[400px] max-h-[calc(100vh-320px)]">
-            <div className="bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-border/50 overflow-hidden flex flex-col flex-1">
-              {/* Desktop Quick Actions Bar */}
-              <div className="border-b border-border/50 px-4 sm:px-5 lg:px-6 py-3 bg-background/50">
-                <div className="flex items-center gap-2">
+          <section className="flex flex-col bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+            {/* Desktop Message Thread */}
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6" style={{ minHeight: '200px' }}>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : messagesArray.length === 0 ? (
+                <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No messages yet</h3>
+                  <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                  {messagesArray.map((message: any, index: number) => {
+                    const isLatest = index === messagesArray.length - 1
+                    return (
+                      <div
+                        key={message.id}
+                        ref={isLatest ? latestMessageRef : null}
+                        className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
+                      >
+                        <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-xl px-4 py-2.5 shadow-sm`}>
+                          <p className={`text-sm ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
+                          <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
+                            {formatRelativeTime(message.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Message Composer */}
+            <div className="border-t border-border px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
+              <div className="flex gap-3">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a message..."
+                  className="flex-1 min-h-[80px] max-h-[150px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  rows={3}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || sending}
+                  className="px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-2 self-end shadow-sm hover:shadow-md"
+                >
+                  {sending ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      <span className="hidden sm:inline">Send</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </section>
+          
+          {/* Desktop Sidebar */}
+          <aside className="overflow-y-auto h-[calc(100vh-140px)]" data-sidebar>
+            <div className="space-y-4">
+              {/* Customer Profile Card */}
+              <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-semibold text-lg">
+                    {formatPhoneNumber(leadData?.phone_number || lead?.phone).charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-foreground truncate">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</h3>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
+                      {leadData?.status || lead?.status || 'New'}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Created</span>
+                    <span className="text-xs font-medium text-foreground">{formatRelativeTime(lead?.created_at)}</span>
+                  </div>
+                  {lead?.last_message_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Last Activity</span>
+                      <span className="text-xs font-medium text-foreground">{formatRelativeTime(lead.last_message_at)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions Card */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</h3>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                    title="Call customer"
+                    className="flex flex-col items-center gap-1.5 px-3 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    <span className="hidden sm:inline">Call</span>
+                    <span>Call</span>
                   </button>
                   <button
                     onClick={() => {
@@ -1327,167 +1426,61 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         copyToClipboard(phone)
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors"
-                    title="Copy phone number"
+                    className="flex flex-col items-center gap-1.5 px-3 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span className="hidden sm:inline">Copy</span>
+                    <span>Copy</span>
                   </button>
-                </div>
-              </div>
-              
-              {/* Desktop Message Thread */}
-              <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth flex-1" style={{ minHeight: '200px' }}>
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  </div>
-                ) : messagesArray.length === 0 ? (
-                  <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  {getLeadLifecycleStatus(leadData) !== 'completed' && (
+                    <button
+                      onClick={() => handleStatusUpdate('completed')}
+                      disabled={isCompleting}
+                      className="flex flex-col items-center gap-1.5 px-3 py-3 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                    </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No messages yet</h3>
-                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4 sm:space-y-6">
-                    {messagesArray.map((message: any, index: number) => {
-                      const isLatest = index === messagesArray.length - 1
-                      return (
-                        <div
-                          key={message.id}
-                          ref={isLatest ? latestMessageRef : null}
-                          className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
-                        >
-                          <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-2xl px-4 py-3 shadow-sm`}>
-                            <p className={`text-sm sm:text-base ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
-                            <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
-                              {formatRelativeTime(message.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              
-              {/* Desktop Message Composer */}
-              <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
-                <div className="flex gap-3">
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    className="flex-1 min-h-[60px] max-h-[120px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    rows={2}
-                  />
+                      <span>{isCompleting ? 'Marking...' : 'Mark Complete'}</span>
+                    </button>
+                  )}
                   <button
-                    onClick={handleSendMessage}
-                    disabled={!message.trim() || sending}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
+                    onClick={() => setShowIgnoreModal(true)}
+                    disabled={isIgnoring}
+                    className="flex flex-col items-center gap-1.5 px-3 py-3 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
                   >
-                    {sending ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        <span className="hidden sm:inline">Send</span>
-                      </>
-                    )}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>{isIgnoring ? 'Ignoring...' : 'Ignore Lead'}</span>
                   </button>
                 </div>
               </div>
-            </div>
-          </section>
-          
-          {/* Desktop Sidebar */}
-          <aside className="space-y-4 overflow-y-auto max-h-[calc(100vh-320px)]" data-sidebar>
-            {/* Customer Details Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Phone</span>
-                  <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <span className={`text-sm font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
-                    {leadData?.status || lead?.status || 'New'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Internal Notes Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Internal Notes</h3>
-              <textarea
-                placeholder="Add internal notes..."
-                className="w-full min-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            {/* Lead Health Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-                <span className="text-sm font-medium text-foreground">75%</span>
-              </div>
-            </div>
 
-            {/* AI Intake Summary Card */}
-            {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">AI Intake Summary</h3>
-                <AICallDetails
+              {/* AI Intake Summary Card */}
+              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+                <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
+                  <AICallDetails
+                    leadId={params.id}
+                    businessId={business.id}
+                    conversationId={leadData?.conversation?.id}
+                    callerPhone={leadData?.phone_number || lead?.phone}
+                  />
+                </div>
+              )}
+
+              {/* Automatic Follow-ups */}
+              <div>
+                <AutomaticFollowUpsControl
+                  followUpJobs={followUpJobs}
                   leadId={params.id}
-                  businessId={business.id}
-                  conversationId={leadData?.conversation?.id}
-                  callerPhone={leadData?.phone_number || lead?.phone}
+                  onUpdate={() => {
+                    getLeadDetails(params.id).then(setLeadData)
+                  }}
                 />
               </div>
-            )}
-
-            {/* Actions Card */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Call Lead
-                </button>
-                <button
-                  className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Mark Closed
-                </button>
-              </div>
-            </div>
-            
-            {/* Automatic Follow-ups */}
-            <div className="mt-6">
-              <AutomaticFollowUpsControl 
-                followUpJobs={followUpJobs} 
-                leadId={params.id}
-                onUpdate={() => {
-                  getLeadDetails(params.id).then(setLeadData)
-                }}
-              />
             </div>
           </aside>
         </div>

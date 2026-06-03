@@ -143,9 +143,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-          <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg mt-4"></div>
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg mt-4"></div>
+          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+          <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4"></div>
+          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4"></div>
         </div>
       </div>
     )
@@ -153,7 +153,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   if (!aiCallRecord) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <div className="text-center py-8">
           <MessageCircle className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No AI call records yet</h3>
@@ -168,215 +168,80 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const extractedInfo = aiCallRecord.extracted_info
 
   return (
-    <div className="space-y-6">
-      {/* AI Summary Card - Redesigned */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="space-y-4">
+      {/* AI Summary Card - Business Software Feel */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         {/* AI Status Badge */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-              {aiCallRecord.outcome === 'completed' ? 'AI Intake Complete' : 'AI Summary Available'}
-            </span>
             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
+            <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+              ✓ Intake Complete
+            </span>
           </div>
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
             {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
           </span>
         </div>
 
-        {/* Structured Information Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-          {/* Customer Section */}
+        {/* Structured Information */}
+        <div className="space-y-3">
+          {/* Customer Information */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Customer</h4>
-            <p className="text-base font-medium text-gray-900 dark:text-white">
+            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Customer</h4>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
               {extractedInfo?.callerName || 'Not Provided'}
             </p>
           </div>
 
-          {/* Service Requested Section */}
+          {/* Service Requested */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Service Requested</h4>
-            <p className="text-base font-medium text-gray-900 dark:text-white">
+            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Service Requested</h4>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
               {extractedInfo?.reasonForCalling || 'Not Provided'}
             </p>
           </div>
 
-          {/* Urgency Section */}
-          <div>
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Urgency</h4>
-            <div className="flex items-center">
-              {extractedInfo?.urgencyLevel ? (
-                <>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-2 ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                    {extractedInfo.urgencyLevel}
-                  </span>
-                  <span className="text-base font-medium text-gray-900 dark:text-white">
-                    {extractedInfo.urgencyLevel === 'urgent' ? 'Urgent' : extractedInfo.urgencyLevel === 'normal' ? 'Not Urgent' : extractedInfo.urgencyLevel}
-                  </span>
-                </>
-              ) : (
-                <span className="text-base font-medium text-gray-500 dark:text-gray-400">Unknown</span>
-              )}
+          {/* Location */}
+          {extractedInfo?.addressOrLocation && (
+            <div>
+              <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Location</h4>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {extractedInfo.addressOrLocation}
+              </p>
             </div>
-          </div>
+          )}
 
-          {/* Call Time Section */}
-          <div>
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Call Time</h4>
-            <p className="text-base font-medium text-gray-900 dark:text-white">
-              {formatRelativeTime(aiCallRecord.created_at)}
-            </p>
-          </div>
-        </div>
-
-        {/* Summary Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Summary</h4>
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            {extractedInfo?.summary || aiCallRecord.summary || 'No summary available'}
-          </p>
-        </div>
-      </div>
-
-      {/* Caller Information Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Caller Information</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-            <p className="text-gray-900 dark:text-white">
-              {extractedInfo?.callerName || 'Not provided'}
-            </p>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-            <p className="text-gray-900 dark:text-white">
-              {formatPhoneNumber(aiCallRecord.caller_phone)}
-            </p>
-          </div>
-
-          {/* Reason for Calling */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason for Calling</label>
-            <p className="text-gray-900 dark:text-white">
-              {extractedInfo?.reasonForCalling || 'Not provided'}
-            </p>
-          </div>
+          {/* Callback Time */}
+          {extractedInfo?.preferredCallbackTime && (
+            <div>
+              <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Callback Time</h4>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {extractedInfo.preferredCallbackTime}
+              </p>
+            </div>
+          )}
 
           {/* Urgency */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urgency</label>
-            <div className="flex items-center space-x-2">
-              {extractedInfo?.urgencyLevel && (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                  {extractedInfo.urgencyLevel}
-                </span>
-              )}
-              {!extractedInfo?.urgencyLevel && (
-                <span className="text-gray-500 dark:text-gray-400">Not specified</span>
-              )}
-            </div>
-          </div>
-
-          {/* Service Requested */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service Requested</label>
-            <p className="text-gray-900 dark:text-white">
-              {extractedInfo?.importantDetails || 'Not provided'}
-            </p>
-          </div>
-
-          {/* Preferred Callback Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Callback Time</label>
-            <p className="text-gray-900 dark:text-white">
-              {extractedInfo?.preferredCallbackTime || 'Not specified'}
-            </p>
-          </div>
-
-          {/* Address/Location */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address/Location</label>
-            <div className="flex items-start space-x-2">
-              <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-gray-900 dark:text-white">
-                {extractedInfo?.addressOrLocation || 'Not provided'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Full Transcript */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Full Transcript</h3>
-            <button
-              onClick={() => setTranscriptExpanded(!transcriptExpanded)}
-              className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            >
-              <span>{transcriptExpanded ? 'Show Less' : 'Show All'}</span>
-              {transcriptExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className={`max-h-96 overflow-y-auto ${transcriptExpanded ? '' : 'max-h-64'}`}>
-          <div className="p-6 space-y-4">
-            {aiCallRecord.transcript.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-start' : 'justify-end'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                      : 'bg-blue-500 text-white'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2 mb-1">
-                    {message.role === 'user' ? (
-                      <User className="h-3 w-3" />
-                    ) : (
-                      <MessageCircle className="h-3 w-3" />
-                    )}
-                    <span className="text-xs opacity-75">
-                      {message.role === 'user' ? 'Caller' : 'AI'}
-                    </span>
-                    <span className="text-xs opacity-50">
-                      {new Date(message.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  <p className="text-sm">{message.text}</p>
-                </div>
-              </div>
-            ))}
-            
-            {aiCallRecord.transcript.length === 0 && (
-              <div className="text-center py-8">
-                <MessageCircle className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  No transcript available
-                </p>
-              </div>
+            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Urgency</h4>
+            {extractedInfo?.urgencyLevel ? (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                {extractedInfo.urgencyLevel}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-500 dark:text-gray-400">Unknown</span>
             )}
+          </div>
+
+          {/* Summary */}
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Summary</h4>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              {extractedInfo?.summary || aiCallRecord.summary || 'No summary available'}
+            </p>
           </div>
         </div>
       </div>
