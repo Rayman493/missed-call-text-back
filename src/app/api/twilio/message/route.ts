@@ -3,9 +3,14 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { processInboundSms } from '@/lib/sms-processing'
 
 export async function POST(req: NextRequest) {
+  console.log('[INBOUND SMS WEBHOOK HIT]')
+  console.log('[INBOUND SMS REQUEST]', {
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  })
+  
   try {
-    console.log('[INBOUND SMS] Webhook hit')
-    
     // Read raw body exactly once for validation
     const rawBody = await req.text();
     const contentType = req.headers.get('content-type') || '';
@@ -16,10 +21,14 @@ export async function POST(req: NextRequest) {
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
     if (!isValid) {
+      console.error('[INBOUND SMS SIGNATURE INVALID]', {
+        url: req.url,
+        contentType
+      })
       return new Response('Unauthorized', { status: 401 });
     }
     
-    console.log('[INBOUND SMS] Signature validation passed')
+    console.log('[INBOUND SMS SIGNATURE VALID]')
     
     const From = params.From
     const To = params.To
@@ -27,7 +36,13 @@ export async function POST(req: NextRequest) {
     const MessageSid = params.MessageSid
     
     if (!From || !To || !Body || !MessageSid) {
-      console.error('[INBOUND SMS] Missing required fields:', { From, To, Body, MessageSid })
+      console.error('[INBOUND SMS ERROR]', {
+        error: 'Missing required fields',
+        From,
+        To,
+        BodyLength: Body?.length || 0,
+        MessageSid
+      })
       
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -35,12 +50,15 @@ export async function POST(req: NextRequest) {
 </Response>`
       
       return new Response(errorTwiml, {
-        status: 500,
+        status: 200,
         headers: {
           'Content-Type': 'text/xml'
         }
       })
     }
+    
+    console.log('[INBOUND SMS BUSINESS LOOKUP START]', { to: To })
+    console.log('[INBOUND SMS LEAD LOOKUP START]', { from: From })
     
     console.log('[INBOUND SMS] Processing message:', {
       MessageSid,
@@ -59,16 +77,38 @@ export async function POST(req: NextRequest) {
     })
     
     if (!result.success) {
-      console.error('[INBOUND SMS] Processing failed:', result.error)
+      console.error('[INBOUND SMS ERROR]', {
+        error: result.error,
+        from: From,
+        to: To
+      })
       return new Response(result.twiml, {
-        status: 500,
+        status: 200,
         headers: {
           'Content-Type': 'text/xml'
         }
       })
     }
     
-    console.log('[INBOUND SMS] Processing successful')
+    console.log('[INBOUND SMS SUCCESS]', {
+      leadId: result.lead?.id,
+      conversationId: result.conversation?.id,
+      messageId: result.message?.id,
+      from: From,
+      to: To
+    })
+    
+    if (result.lead) {
+      console.log('[INBOUND SMS LEAD LOOKUP RESULT]', { leadId: result.lead.id })
+    }
+    
+    if (result.conversation) {
+      console.log('[INBOUND SMS CONVERSATION LOOKUP RESULT]', { conversationId: result.conversation.id })
+    }
+    
+    if (result.message) {
+      console.log('[INBOUND SMS MESSAGE INSERT SUCCESS]', { messageId: result.message.id })
+    }
     
     return new Response(result.twiml, {
       status: 200,
@@ -78,18 +118,12 @@ export async function POST(req: NextRequest) {
     })
     
   } catch (error) {
-    console.error('[INBOUND SMS] Unexpected error:', error)
-    
-    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Service unavailable</Message>
-</Response>`
-    
-    return new Response(errorTwiml, {
-      status: 500,
-      headers: {
-        'Content-Type': 'text/xml'
-      }
+    console.error('[INBOUND SMS ERROR]', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     })
+    
+    // Defensive fallback: always respond with 200 to prevent Twilio retries
+    return new Response('ok', { status: 200 })
   }
 }
