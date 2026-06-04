@@ -511,7 +511,13 @@ export async function POST(request: NextRequest) {
       useAiVoice: usePOC,
       businessId: business.id,
       twilioNumber: business.twilio_phone_number,
-      reason: guardResult.reason
+      forwardingVerified: business.forwarding_verified,
+      onboardingStatus: business.onboarding_status,
+      provisioningStatus: business.provisioning_status,
+      callType,
+      isDirectCall,
+      isForwardedCall,
+      guardReason: guardResult.reason
     });
     
     if (guardResult.passed) {

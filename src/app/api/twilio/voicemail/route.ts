@@ -10,8 +10,8 @@ import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 
 export async function POST(request: NextRequest) {
-  console.log('[VOICEMAIL ROUTE HIT]')
-  
+  console.log('[VOICEMAIL CALLBACK RECEIVED]');
+
   try {
     console.log('[VOICEMAIL] Recording callback received');
     
@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[VOICEMAIL] Lead created:', lead.id);
+      console.log('[VOICEMAIL LEAD CREATED]', { leadId: lead.id, businessId: business.id, phone: normalizedCallerPhone });
       
       // Mark forwarding as verified when real lead is created from voicemail
       await markForwardingVerified(business.id, 'real_voicemail_lead_created');
@@ -193,6 +194,7 @@ export async function POST(request: NextRequest) {
         return new NextResponse('Failed to create conversation', { status: 500 });
       }
 
+      console.log('[VOICEMAIL CONVERSATION CREATED]', { conversationId: conversation.id, leadId: lead.id, businessId: business.id });
       console.log('[VOICEMAIL] Conversation created:', conversation.id);
     } else {
       console.log('[VOICEMAIL] Using existing conversation:', conversation.id);
@@ -225,6 +227,8 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Failed to save voicemail', { status: 500 });
     }
 
+    console.log('[VOICEMAIL NOTIFICATION CREATED]', { voicemailId: voicemail.id, leadId: lead.id, businessId: business.id });
+    console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });
     console.log('[VOICEMAIL] Recording saved:', voicemail.id);
 
     // Create notification for voicemail
