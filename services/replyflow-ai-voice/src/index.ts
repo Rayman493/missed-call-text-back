@@ -2458,17 +2458,25 @@ Return only JSON, no other text.`;
         // Log parsed frame (non-media only, or first media, or every 100th media)
         if (message.event === 'media') {
           mediaPacketCount++;
+          const payloadSize = message.media?.payload?.length || 0;
+          
           if (!audioReceived) {
             audioReceived = true;
             log(LogLevel.INFO, '[TWILIO AUDIO RECEIVED]', { 
               packetCount: mediaPacketCount, 
+              payloadSize: payloadSize,
               timestamp: new Date().toISOString() 
             });
           }
+          
           if (!firstMediaPacketLogged) {
+            log(LogLevel.INFO, '[TWILIO MEDIA PACKET COUNT]', { count: mediaPacketCount });
+            log(LogLevel.INFO, '[TWILIO PAYLOAD SIZE]', { size: payloadSize });
             log(LogLevel.INFO, '[PARSED WS] FIRST MEDIA PACKET', JSON.stringify(message, null, 2));
             firstMediaPacketLogged = true;
           } else if (mediaPacketCount % 100 === 0) {
+            log(LogLevel.INFO, '[TWILIO MEDIA PACKET COUNT]', { count: mediaPacketCount });
+            log(LogLevel.INFO, '[TWILIO PAYLOAD SIZE]', { size: payloadSize });
             log(LogLevel.INFO, `[MEDIA] packet ${mediaPacketCount} (every 100th)`);
           }
         } else {
@@ -2699,6 +2707,9 @@ Return only JSON, no other text.`;
             
             const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
             console.log('[STREAM CLONED] creating websocket to:', wsUrl);
+            console.log('[OPENAI WEBSOCKET CLEANUP] Creating FRESH OpenAI session for this call');
+            console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
+            console.log('[OPENAI WEBSOCKET CLEANUP] businessId:', businessId);
             
             // Phase 4: OpenAI Connection Retry Logic
             let retryAttempt = 0;
@@ -2984,6 +2995,17 @@ Do NOT:
                 outputFormat: sessionUpdatePayload.session.audio.output.format?.type || 'not_set',
                 voice: sessionUpdatePayload.session.audio.output.voice || 'not_set'
               });
+              
+              // Verify audio format matches Twilio (PCMU/mulaw 8khz)
+              const inputFormat = sessionUpdatePayload.session.audio.input.format?.type;
+              const outputFormat = sessionUpdatePayload.session.audio.output.format?.type;
+              console.log('[OPENAI AUDIO FORMAT VERIFICATION]', {
+                inputFormat: inputFormat,
+                outputFormat: outputFormat,
+                matchesTwilio: inputFormat === 'audio/pcmu' && outputFormat === 'audio/pcmu',
+                twilioFormat: 'PCMU/mulaw 8khz',
+                status: inputFormat === 'audio/pcmu' ? 'MATCHED' : 'MISMATCH'
+              });
 
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
@@ -3060,15 +3082,18 @@ Do NOT:
 
               // Log input audio events
               if (message.type === 'input_audio_buffer.speech_started') {
+                console.log('[OPENAI USER SPEECH STARTED]');
                 console.log('[USER AUDIO] speech started');
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
+                console.log('[OPENAI USER SPEECH STOPPED]');
                 console.log('[USER AUDIO] speech stopped');
               }
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[USER AUDIO] committed:', message.transcript || 'null');
               }
               if (message.type === 'conversation.item.created') {
+                console.log('[OPENAI USER MESSAGE CREATED]');
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
                   console.log('[USER TRANSCRIPT FOUND]', {
@@ -3108,6 +3133,7 @@ Do NOT:
               // Listen for FINAL transcript events
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 const userTranscript = message.transcript || '';
+                console.log('[OPENAI USER TRANSCRIPT RECEIVED]', userTranscript);
                 console.log('[USER TRANSCRIPTION COMPLETED]', {
                   transcript: userTranscript,
                   itemId: message.item_id,
@@ -4935,7 +4961,11 @@ Details: ${extractedFields.importantDetails || 'None'}`;
             };
 
             // Call ingestion when WebSocket closes
-            openAiWs.on('close', () => {
+            openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI WEBSOCKET CLOSE] OpenAI WebSocket closed');
+              console.log('[OPENAI WEBSOCKET CLOSE] code:', code, 'reason:', reason?.toString());
+              console.log('[OPENAI WEBSOCKET CLOSE] callSid:', callSid);
+              console.log('[OPENAI WEBSOCKET CLOSE] businessId:', businessId);
               console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
@@ -5017,10 +5047,24 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
     // Handle WebSocket close
     ws.on('close', (code, reason) => {
+      console.log('[TWILIO WEBSOCKET CLOSE] Twilio WebSocket closing');
+      console.log('[TWILIO WEBSOCKET CLOSE] code:', code, 'reason:', reason?.toString());
+      console.log('[TWILIO WEBSOCKET CLOSE] callSid:', callSid);
+      
       // Clear AI timeout timer if it exists
       if (aiTimeoutTimer) {
         clearTimeout(aiTimeoutTimer);
         aiTimeoutTimer = null;
+      }
+      
+      // Close OpenAI WebSocket if it's still open
+      if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+        console.log('[OPENAI WEBSOCKET CLEANUP] Closing OpenAI WebSocket due to Twilio call end');
+        console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
+        openAiWs.close(1000, 'Twilio call ended');
+      } else if (openAiWs) {
+        console.log('[OPENAI WEBSOCKET CLEANUP] OpenAI WebSocket already closed or closing');
+        console.log('[OPENAI WEBSOCKET CLEANUP] readyState:', openAiWs.readyState);
       }
       
       log(LogLevel.INFO, '[AI POC] websocket closed');

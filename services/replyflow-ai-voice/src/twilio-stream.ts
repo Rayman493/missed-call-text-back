@@ -148,11 +148,17 @@ export class TwilioStreamHandler {
               const openAiWs = (this as any).openAiWs;
               const greetingSent = (this as any).greetingSent || false;
               if (openAiWs) {
+                console.log('[OPENAI INPUT AUDIO APPEND START]');
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
                 };
-                openAiWs.send(JSON.stringify(audioMessage));
+                try {
+                  openAiWs.send(JSON.stringify(audioMessage));
+                  console.log('[OPENAI INPUT AUDIO APPEND SENT]', { audioLength: audioBuffer.length });
+                } catch (error) {
+                  console.log('[OPENAI INPUT AUDIO APPEND ERROR]', error);
+                }
                 
                 // DISABLED FOR AUDIO FORMAT DEBUGGING
                 // Manual turn detection fallback after greeting
