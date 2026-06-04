@@ -5156,10 +5156,13 @@ async function sendAIConfirmationSMS(
     const businessName = business.name;
 
     // Call the confirmation SMS API endpoint
-    const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/supabase', '') || 'http://localhost:3000';
-    const confirmationUrl = `${apiUrl}/api/ai-confirmation-sms`;
+    if (!MAIN_APP_URL) {
+      console.error('[AI CONFIRMATION SMS ERROR] MAIN_APP_URL not configured');
+      return;
+    }
 
-    console.log('[AI CONFIRMATION SMS CALLING API]', { confirmationUrl });
+    const confirmationUrl = `${MAIN_APP_URL}/api/ai-confirmation-sms`;
+    console.log('[AI CONFIRMATION SMS URL]', { host: new URL(confirmationUrl).host, path: '/api/ai-confirmation-sms' });
 
     const response = await fetch(confirmationUrl, {
       method: 'POST',
