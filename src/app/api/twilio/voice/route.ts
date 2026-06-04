@@ -784,11 +784,14 @@ export async function POST(request: NextRequest) {
         business_id: business.id,
         phone: normalizedCallerPhone,
         status: 'new',
+        name: null,
+        email: null,
+        raw_metadata: { source: 'voice', is_demo: false },
         first_contact_at: new Date().toISOString(),
         last_message_at: null,
         last_reply_at: null,
         opted_out: false,
-        is_demo: false, // Real leads from voice webhook
+        is_demo: false,
       });
       
       if (lead) {

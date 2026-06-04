@@ -127,11 +127,14 @@ export async function POST(request: Request) {
         business_id: business.id,
         phone: normalizedDemoPhone,
         status: 'new',
+        name: 'Demo User',
+        email: null,
+        raw_metadata: { source: 'demo', is_demo: true },
         first_contact_at: new Date().toISOString(),
         last_message_at: null,
         last_reply_at: null,
         opted_out: false,
-        is_demo: true, // Mark as demo lead
+        is_demo: true,
       })
 
       if (!demoLead) {

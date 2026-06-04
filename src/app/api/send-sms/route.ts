@@ -131,7 +131,7 @@ export async function POST(request: Request) {
     }
 
     // Check if lead has opted out
-    if (lead.opted_out) {
+    if (lead.raw_metadata?.opted_out) {
       console.log('[Manual SMS] Lead has opted out, blocking send:', { leadId })
       return NextResponse.json({ error: 'Lead has opted out of messages' }, { status: 403 })
     }

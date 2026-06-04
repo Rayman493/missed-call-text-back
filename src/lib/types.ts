@@ -84,12 +84,17 @@ export interface Lead {
   business_id: string;
   phone: string;
   status: string;
-  first_contact_at: string | null;
-  last_message_at: string | null;
-  last_reply_at: string | null;
-  opted_out: boolean;
-  is_demo: boolean; // Classify demo vs real leads
+  name: string | null;
+  email: string | null;
+  raw_metadata: any;
   created_at: string;
+  updated_at: string;
+  // Legacy fields - may not exist in actual DB schema, kept for compatibility
+  first_contact_at?: string | null;
+  last_message_at?: string | null;
+  last_reply_at?: string | null;
+  opted_out?: boolean;
+  is_demo?: boolean;
 }
 
 export interface Message {

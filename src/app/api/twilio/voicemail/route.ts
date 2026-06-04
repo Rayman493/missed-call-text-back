@@ -120,28 +120,19 @@ export async function POST(request: NextRequest) {
     
     if (!lead) {
       console.log('[VOICEMAIL] No existing lead found, creating new lead')
-      console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', {
+      // Use only columns that exist in the actual database schema
+      const leadPayload = {
         business_id: business.id,
         phone: normalizedCallerPhone,
         status: 'new',
-        first_contact_at: new Date().toISOString(),
-        last_message_at: null,
-        last_reply_at: null,
-        opted_out: false,
-        is_demo: false,
-      });
+        name: null,
+        email: null,
+        raw_metadata: { source: 'voicemail' },
+      };
+      console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', leadPayload);
 
       try {
-        lead = await db.createLead({
-          business_id: business.id,
-          phone: normalizedCallerPhone,
-          status: 'new',
-          first_contact_at: new Date().toISOString(),
-          last_message_at: null,
-          last_reply_at: null,
-          opted_out: false,
-          is_demo: false,
-        });
+        lead = await db.createLead(leadPayload);
       } catch (leadError) {
         console.error('[VOICEMAIL LEAD CREATE EXCEPTION]', {
           error: leadError,
@@ -150,7 +141,19 @@ export async function POST(request: NextRequest) {
           business_id: business.id,
           phone: normalizedCallerPhone
         });
-        return new NextResponse('Failed to create lead: database error', { status: 500 });
+        // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+        console.log('[VOICEMAIL] Returning 200 despite lead creation error');
+        return new NextResponse(errorTwiml, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/xml",
+          },
+        });
       }
 
       if (!lead) {
@@ -159,7 +162,19 @@ export async function POST(request: NextRequest) {
           phone: normalizedCallerPhone,
           result: lead
         });
-        return new NextResponse('Failed to create lead: null returned', { status: 500 });
+        // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+        console.log('[VOICEMAIL] Returning 200 despite lead creation failure');
+        return new NextResponse(errorTwiml, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/xml",
+          },
+        });
       }
 
       console.log('[VOICEMAIL] Lead created:', lead.id);
@@ -217,7 +232,19 @@ export async function POST(request: NextRequest) {
 
       if (!conversation) {
         console.error('[VOICEMAIL] Failed to create conversation');
-        return new NextResponse('Failed to create conversation', { status: 500 });
+        // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+        console.log('[VOICEMAIL] Returning 200 despite conversation creation failure');
+        return new NextResponse(errorTwiml, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/xml",
+          },
+        });
       }
 
       console.log('[VOICEMAIL CONVERSATION CREATED]', { conversationId: conversation.id, leadId: lead.id, businessId: business.id });
@@ -250,7 +277,19 @@ export async function POST(request: NextRequest) {
 
     if (voicemailError) {
       console.error('[VOICEMAIL] Failed to save voicemail recording:', voicemailError);
-      return new NextResponse('Failed to save voicemail', { status: 500 });
+      // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+      console.log('[VOICEMAIL] Returning 200 despite voicemail save failure');
+      return new NextResponse(errorTwiml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      });
     }
 
     console.log('[VOICEMAIL NOTIFICATION CREATED]', { voicemailId: voicemail.id, leadId: lead.id, businessId: business.id });
@@ -391,6 +430,8 @@ export async function POST(request: NextRequest) {
 </Response>`;
 
     console.log('[MISSED CALL TIMING] voicemail processing completed successfully');
+    console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });
+    console.log('[VOICEMAIL TWIML RESPONSE SENT]');
     return new NextResponse(thankYouTwiml, {
       status: 200,
       headers: {
@@ -400,6 +441,23 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[VOICEMAIL] Unexpected error:', error);
-    return new NextResponse('Internal server error', { status: 500 });
+    console.error('[VOICEMAIL] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
+    // FAIL-SAFE: Always return 200 with TwiML, never 500 to prevent "server unreachable"
+    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+    console.log('[VOICEMAIL] Returning 200 despite unexpected error to prevent "server unreachable"');
+    return new NextResponse(errorTwiml, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/xml",
+      },
+    });
   }
 }

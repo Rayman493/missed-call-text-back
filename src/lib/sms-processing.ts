@@ -97,6 +97,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       business_id: business.id,
       phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
+      name: null,
+      email: null,
+      raw_metadata: { source: 'sms', is_demo: source === 'dev_simulation' },
       first_contact_at: new Date().toISOString(),
       last_message_at: new Date().toISOString(),
       last_reply_at: new Date().toISOString(),
