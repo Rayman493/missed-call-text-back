@@ -2187,6 +2187,16 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
+        // Send confirmation SMS after successful AI intake
+        await sendAIConfirmationSMS(
+          sessionBusinessId,
+          lead.id,
+          conversation.id,
+          sessionCallSid || 'unknown',
+          sessionCallerPhone || 'unknown',
+          extractedFields
+        );
+
         return;
 
       } catch (error) {
@@ -2379,6 +2389,18 @@ Return only JSON, no other text.`;
               });
             }
             console.log('[FOLLOWUP DEBUG COMPLETE - FALLBACK] Follow-up API call finished');
+
+            // Send confirmation SMS after successful AI intake (fallback path)
+            if (fallbackLead?.id && fallbackConversationId) {
+              await sendAIConfirmationSMS(
+                sessionBusinessId,
+                fallbackLead.id,
+                fallbackConversationId,
+                sessionCallSid || 'unknown',
+                sessionCallerPhone || 'unknown',
+                null // No extracted info in fallback path
+              );
+            }
 
             // Notification is now created in PATH-E via API endpoint (uses notificationServiceServer)
           }
@@ -5100,6 +5122,78 @@ Details: ${extractedFields.importantDetails || 'None'}`;
     ws.close(1011, 'Internal server error');
   }
 });
+
+// Function to send AI confirmation SMS
+async function sendAIConfirmationSMS(
+  businessId: string,
+  leadId: string,
+  conversationId: string,
+  callSid: string,
+  callerPhone: string,
+  extractedInfo?: any
+): Promise<void> {
+  try {
+    console.log('[AI CONFIRMATION SMS START]', {
+      businessId,
+      leadId,
+      conversationId,
+      callSid,
+      callerPhone
+    });
+
+    // Fetch business name
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('name')
+      .eq('id', businessId)
+      .single();
+
+    if (businessError || !business) {
+      console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch business:', businessError);
+      return;
+    }
+
+    const businessName = business.name;
+
+    // Call the confirmation SMS API endpoint
+    const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/supabase', '') || 'http://localhost:3000';
+    const confirmationUrl = `${apiUrl}/api/ai-confirmation-sms`;
+
+    console.log('[AI CONFIRMATION SMS CALLING API]', { confirmationUrl });
+
+    const response = await fetch(confirmationUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        businessId,
+        leadId,
+        conversationId,
+        callSid,
+        callerPhone,
+        businessName,
+        extractedInfo
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[AI CONFIRMATION SMS ERROR] API call failed:', {
+        status: response.status,
+        error: errorText
+      });
+      return;
+    }
+
+    const result = await response.json();
+    console.log('[AI CONFIRMATION SMS SUCCESS]', result);
+
+  } catch (error) {
+    console.error('[AI CONFIRMATION SMS ERROR]', error);
+    // Don't fail the AI ingestion if SMS fails
+  }
+}
 
 // Start server
 server.listen(PORT, () => {
