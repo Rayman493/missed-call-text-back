@@ -188,8 +188,7 @@ export async function POST(request: NextRequest) {
       callSid: CallSid,
       from: From,
       to: To,
-      forwardedFrom: ForwardedFrom,
-      businessId: business?.id || 'unknown'
+      forwardedFrom: ForwardedFrom
     });
     
     // Log raw Twilio params for debugging
@@ -258,6 +257,10 @@ export async function POST(request: NextRequest) {
         business = result.business;
         lookupSource = result.source;
         console.log('[Voice] Business found:', business.id, business.name, 'via', lookupSource, 'using', candidate);
+        console.log('[MAIN BUSINESS LOADED]', {
+          businessId: business.id,
+          businessName: business.name
+        });
         break;
       }
     }
