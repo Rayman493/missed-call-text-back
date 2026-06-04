@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  console.log('[GOOGLE CALENDAR REQUEST]', {
+    timestamp: new Date().toISOString()
+  });
   console.log('[Google Calendar Events] Request received')
   
   try {
@@ -18,6 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!session) {
+      console.error('[GOOGLE CALENDAR AUTH FAILED]');
       console.log('[Google Calendar Events] No session found')
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -25,6 +29,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('[GOOGLE CALENDAR AUTH]', {
+      authenticated: !!session,
+      userId: session.user.id
+    });
     console.log('[Google Calendar Events] Authenticated user:', session.user.id)
 
     // Get the user's business
@@ -69,6 +77,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (!integration) {
+      console.log('[GOOGLE CALENDAR ACCOUNT]', {
+        found: false,
+        provider: 'google',
+        connected: false
+      });
       console.log('[Google Calendar Events] No integration found')
       return NextResponse.json(
         { error: 'Calendar not connected' },
@@ -76,15 +89,30 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('[GOOGLE CALENDAR ACCOUNT]', {
+      found: true,
+      provider: integration.provider,
+      connected: true
+    });
     console.log('[Google Calendar Events] Integration found:', integration.id)
 
     // Check if token is expired and refresh if needed
     let accessToken = integration.access_token
+    console.log('[GOOGLE CALENDAR TOKENS]', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!integration.refresh_token,
+      accessTokenLength: accessToken?.length || 0,
+      refreshTokenLength: integration.refresh_token?.length || 0,
+      expiresAt: integration.expires_at,
+      isExpired: integration.expires_at && new Date(integration.expires_at) < new Date()
+    });
+
     if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
       console.log('[Google Calendar Events] Token expired, attempting refresh')
-      
+
       // Token expired, refresh it
       if (!integration.refresh_token) {
+        console.error('[GOOGLE CALENDAR TOKEN ERROR] No refresh token available');
         console.error('[Google Calendar Events] No refresh token available')
         return NextResponse.json(
           { error: 'Cannot refresh token: no refresh token available' },
@@ -108,6 +136,13 @@ export async function GET(request: NextRequest) {
 
       if (!refreshResponse.ok) {
         const errorText = await refreshResponse.text()
+        console.error('[GOOGLE CALENDAR API ERROR]', {
+          type: 'token_refresh',
+          status: refreshResponse.status,
+          statusText: refreshResponse.statusText,
+          body: errorText,
+          timestamp: new Date().toISOString()
+        });
         console.error('[Google Calendar Events] Token refresh failed:', refreshResponse.status, errorText)
         return NextResponse.json(
           { error: 'Failed to refresh token' },
@@ -170,6 +205,20 @@ export async function GET(request: NextRequest) {
 
     if (!eventsResponse.ok) {
       const errorText = await eventsResponse.text()
+      let errorBody;
+      try {
+        errorBody = JSON.parse(errorText);
+      } catch {
+        errorBody = errorText;
+      }
+      console.error('[GOOGLE CALENDAR API ERROR]', {
+        type: 'events_fetch',
+        status: eventsResponse.status,
+        statusText: eventsResponse.statusText,
+        body: errorBody,
+        url: apiUrl,
+        timestamp: new Date().toISOString()
+      });
       console.error('[Google Calendar Events] Google Calendar API error:', eventsResponse.status, errorText)
       return NextResponse.json(
         { error: 'Failed to fetch calendar events' },
@@ -261,6 +310,11 @@ export async function GET(request: NextRequest) {
       calendarEmail: integration.calendar_email || null
     })
   } catch (error) {
+    console.error('[GOOGLE CALENDAR API ERROR]', {
+      type: 'unexpected',
+      error: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+      timestamp: new Date().toISOString()
+    });
     console.error('[Google Calendar Events] Unexpected error:', error)
     return NextResponse.json(
       { error: 'An unexpected error occurred' },

@@ -239,7 +239,8 @@ export default function CalendarPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[Calendar Page] Events error:', errorData)
+        console.error('[Calendar Page] Events error', errorData)
+        console.error('[Calendar Page] Events response', { status: response.status, statusText: response.statusText, ok: response.ok })
         throw new Error('We couldn\'t load your calendar events. Please try again.')
       }
 
@@ -254,7 +255,7 @@ export default function CalendarPage() {
       console.log('[Calendar Page] After deduplication:', { uniqueEventCount: uniqueEvents.length })
       setEvents(uniqueEvents)
     } catch (error) {
-      console.error('[Calendar Page] Error fetching events:', error)
+      console.error('[Calendar Page] Events error', error)
       showToast('We couldn\'t load your calendar events. Please try again.', 'error')
     } finally {
       setIsLoadingEvents(false)
