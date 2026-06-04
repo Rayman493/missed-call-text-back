@@ -1470,6 +1470,8 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
 const wss = new WebSocketServer({ server, path: '/stream' });
 
 wss.on('connection', (ws, req) => {
+  console.log('[STREAM ENDPOINT HIT]');
+  console.log('[VOICE WEBHOOK HIT]');
   log(LogLevel.INFO, '[WS ENTRY] raw request received');
   log(LogLevel.INFO, '[WS ENTRY] request url:', req.url);
   log(LogLevel.INFO, '[WS ENTRY] headers:', JSON.stringify(req.headers));
@@ -2488,6 +2490,7 @@ Return only JSON, no other text.`;
 
         // Handle start event
         if (message.event === 'start') {
+          console.log('[TWILIO START EVENT RECEIVED]');
           log(LogLevel.INFO, '[AI POC] entered start handler');
 
           if (startEventProcessed) {
@@ -2710,6 +2713,8 @@ Return only JSON, no other text.`;
             console.log('[OPENAI WEBSOCKET CLEANUP] Creating FRESH OpenAI session for this call');
             console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
             console.log('[OPENAI WEBSOCKET CLEANUP] businessId:', businessId);
+            console.log('[OPENAI CONNECT START]');
+            console.log('[OPENAI KEY CHECK]', OPENAI_API_KEY?.slice(-6));
             
             // Phase 4: OpenAI Connection Retry Logic
             let retryAttempt = 0;
@@ -2736,6 +2741,7 @@ Return only JSON, no other text.`;
                 
                 ws.on('open', () => {
                   clearTimeout(connectTimeout);
+                  console.log('[OPENAI CONNECT SUCCESS]');
                   console.log(`[OPENAI CONNECT SUCCESS] Attempt ${retryAttempt}`);
                   updateAISessionState(aiSessionTracker, 'AI_CONNECTED', `Connected on attempt ${retryAttempt}`);
                   resolve(ws);
@@ -2743,6 +2749,7 @@ Return only JSON, no other text.`;
                 
                 ws.on('error', (error) => {
                   clearTimeout(connectTimeout);
+                  console.log('[OPENAI CONNECT ERROR]', error);
                   console.log(`[OPENAI CONNECT FAILED] Attempt ${retryAttempt}:`, error);
                   updateAISessionState(aiSessionTracker, 'FAILED', `Connection failed on attempt ${retryAttempt}: ${error}`);
                   reject(error);
@@ -3060,6 +3067,11 @@ Do NOT:
               // Log every message type with full details
               console.log('[OPENAI WS] message type', { type: message.type });
               console.log('[OPENAI WS] message payload', JSON.stringify(message, null, 2));
+              
+              // Log full error payloads without truncation
+              if (message.type === 'error' || message.error) {
+                console.error('[OPENAI FULL ERROR]', JSON.stringify(message, null, 2));
+              }
 
               // Log ALL events containing input_audio, transcript, or transcription
               if (message.type && (
@@ -4962,6 +4974,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
             // Call ingestion when WebSocket closes
             openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI CONNECT CLOSED]', code, reason);
               console.log('[OPENAI WEBSOCKET CLOSE] OpenAI WebSocket closed');
               console.log('[OPENAI WEBSOCKET CLOSE] code:', code, 'reason:', reason?.toString());
               console.log('[OPENAI WEBSOCKET CLOSE] callSid:', callSid);
@@ -4990,6 +5003,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
             console.log('[OPENAI AUDIT] attaching close listener');
             openAiWs.on('close', (code, reason) => {
+              console.log('[OPENAI CONNECT CLOSED]', code, reason);
               console.log('[STREAM CLONED] CLOSE event, code:', code, 'reason:', reason);
               console.log('[OPENAI AUDIT] close listener attached');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
@@ -4998,6 +5012,7 @@ Details: ${extractedFields.importantDetails || 'None'}`;
 
             console.log('[OPENAI AUDIT] attaching unexpected-response listener');
             openAiWs.on('unexpected-response', (request, response) => {
+              console.log('[OPENAI CONNECT ERROR]', 'Unexpected response from OpenAI');
               console.log('[OPENAI AUDIT] unexpected-response listener attached');
               console.log('[OPENAI RAW] unexpected-response', { statusCode: response.statusCode });
               console.log('[OPENAI AUDIT] unexpected-response details', { 
