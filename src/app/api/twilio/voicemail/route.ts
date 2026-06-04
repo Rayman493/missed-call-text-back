@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     
     if (!lead) {
       console.log('[VOICEMAIL] No existing lead found, creating new lead')
-      lead = await db.createLead({
+      console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', {
         business_id: business.id,
         phone: normalizedCallerPhone,
         status: 'new',
@@ -131,9 +131,35 @@ export async function POST(request: NextRequest) {
         is_demo: false,
       });
 
+      try {
+        lead = await db.createLead({
+          business_id: business.id,
+          phone: normalizedCallerPhone,
+          status: 'new',
+          first_contact_at: new Date().toISOString(),
+          last_message_at: null,
+          last_reply_at: null,
+          opted_out: false,
+          is_demo: false,
+        });
+      } catch (leadError) {
+        console.error('[VOICEMAIL LEAD CREATE EXCEPTION]', {
+          error: leadError,
+          message: leadError instanceof Error ? leadError.message : 'Unknown error',
+          stack: leadError instanceof Error ? leadError.stack : undefined,
+          business_id: business.id,
+          phone: normalizedCallerPhone
+        });
+        return new NextResponse('Failed to create lead: database error', { status: 500 });
+      }
+
       if (!lead) {
-        console.error('[VOICEMAIL] Failed to create lead');
-        return new NextResponse('Failed to create lead', { status: 500 });
+        console.error('[VOICEMAIL LEAD CREATE FAILED]', {
+          business_id: business.id,
+          phone: normalizedCallerPhone,
+          result: lead
+        });
+        return new NextResponse('Failed to create lead: null returned', { status: 500 });
       }
 
       console.log('[VOICEMAIL] Lead created:', lead.id);

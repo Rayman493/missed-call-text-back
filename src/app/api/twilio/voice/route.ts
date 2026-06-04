@@ -683,9 +683,14 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('[AI CALL ASSISTANT] Guards failed - continuing with existing voicemail flow', {
         businessId: business.id,
-        reason: guardResult.reason
+        reason: guardResult.reason,
+        aiVoiceEnabled: guardResult.passed,
+        useAiVoice: usePOC,
+        callType,
+        isDirectCall,
+        isForwardedCall
       });
-      console.log('[VOICE PATH] VOICEMAIL');
+      console.log('[VOICE PATH] VOICEMAIL (GUARDS FAILED)');
     }
     // END AI CALL ASSISTANT CHECK
 
