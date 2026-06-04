@@ -1071,6 +1071,14 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Create HTTP server for health checks
 const server = createServer((req, res) => {
+  // Log ALL incoming HTTP requests
+  console.log('[HTTP REQUEST]', {
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString(),
+    headers: JSON.stringify(req.headers)
+  });
+  
   // Health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
