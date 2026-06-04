@@ -124,7 +124,10 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
 
 
 export async function POST(request: NextRequest) {
-  console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice')
+  console.log('[MAIN VOICE WEBHOOK HIT]', {
+    timestamp: new Date().toISOString()
+  });
+  console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice');
   
   try {
     console.log('VOICE WEBHOOK HIT - PRODUCTION');
@@ -181,6 +184,14 @@ export async function POST(request: NextRequest) {
     const Caller = params.Caller;
     const Direction = params.Direction;
     
+    console.log('[MAIN VOICE REQUEST]', {
+      callSid: CallSid,
+      from: From,
+      to: To,
+      forwardedFrom: ForwardedFrom,
+      businessId: business?.id || 'unknown'
+    });
+    
     // Log raw Twilio params for debugging
     console.log('[Voice] Raw Twilio params:', {
       To,
@@ -210,6 +221,7 @@ export async function POST(request: NextRequest) {
       const twiml = generateTwiMLResponse();
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=normal-voicemail');
       console.log('[AI POC FINAL TWIML]', twiml);
+      console.log('[VOICE PATH] VOICEMAIL');
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -258,6 +270,7 @@ export async function POST(request: NextRequest) {
       console.log('[Voice] Returning fallback TwiML for no business found');
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=no-business-found');
       console.log('[AI POC FINAL TWIML]', twiml);
+      console.log('[VOICE PATH] EMERGENCY');
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -287,6 +300,7 @@ export async function POST(request: NextRequest) {
       const twiml = `<Response><Hangup/></Response>`
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
       console.log('[AI POC FINAL TWIML]', twiml)
+      console.log('[VOICE PATH] EMERGENCY')
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -485,8 +499,17 @@ export async function POST(request: NextRequest) {
     // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
     // This is a minimal, safe check that does NOT affect production customers
-    console.log('[AI CALL ASSISTANT] Checking if AI should handle this call')
-    const guardResult = checkAllGuards(business.id, business)
+    console.log('[AI CALL ASSISTANT] Checking if AI should handle this call');
+    const guardResult = checkAllGuards(business.id, business);
+    const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true';
+    
+    console.log('[MAIN VOICE MODE DECISION]', {
+      aiVoiceEnabled: guardResult.passed,
+      useAiVoice: usePOC,
+      businessId: business.id,
+      twilioNumber: business.twilio_phone_number,
+      reason: guardResult.reason
+    });
     
     if (guardResult.passed) {
       console.log('[AI CALL ASSISTANT] All guards passed', {
@@ -498,8 +521,6 @@ export async function POST(request: NextRequest) {
         isForwardedCall
       })
       
-      // Choose route based on environment variable
-      const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true'
       
       // CORRECTED CALL ROUTING BEHAVIOR:
       // Forwarded calls have already gone through the carrier/business ring window, so it is correct for AI to answer immediately once Twilio receives them.
@@ -570,9 +591,9 @@ export async function POST(request: NextRequest) {
             console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
 
             // Get Fly.io WebSocket URL from environment
-            const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream'
+            const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream';
             
-            console.log('[AI POC] stream url:', flyWsUrl)
+            console.log('[MAIN TWIML STREAM URL]', flyWsUrl);
 
             // Add comprehensive outbound parameter logging
             console.log('[STREAM PARAMS OUTBOUND]', {
@@ -606,9 +627,11 @@ export async function POST(request: NextRequest) {
   </Connect>
 </Response>`
 
-            console.log('[AI POC] final TwiML:', twiml)
-            console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`)
-            console.log('[AI POC FINAL TWIML]', twiml)
+            console.log('[AI POC] final TwiML:', twiml);
+            console.log('[MAIN TWIML GENERATED]', twiml);
+            console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`);
+            console.log('[AI POC FINAL TWIML]', twiml);
+            console.log('[VOICE PATH] AI');
 
             // Final timing report
             const secondsBetweenArrivalAndAIStart = timeFromWebhookToAI / 1000;
@@ -634,23 +657,26 @@ export async function POST(request: NextRequest) {
             })
           }
         } catch (error) {
-          console.error('[AI FAILED - VOICEMAIL FALLBACK] Error generating POC TwiML:', error)
-          console.log('[AI FAILED - VOICEMAIL FALLBACK] Falling back to voicemail due to AI setup failure')
+          console.error('[AI FAILED - VOICEMAIL FALLBACK] Error generating POC TwiML:', error);
+          console.log('[AI FAILED - VOICEMAIL FALLBACK] Falling back to voicemail due to AI setup failure');
+          console.log('[VOICE PATH] VOICEMAIL');
           // Fall through to voicemail flow
         }
       } else if (usePOC && !isDirectCall && !isForwardedCall) {
         console.log('[AI CALL ASSISTANT] POC enabled but unknown call type - using voicemail fallback')
       } else {
         // Phase 0: Redirect to start route
-        console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant')
-        const aiStartUrl = new URL('/api/twilio/ai-assistant/start', request.url)
-        return NextResponse.redirect(aiStartUrl)
+        console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant');
+        console.log('[VOICE PATH] AI (Phase 0 redirect)');
+        const aiStartUrl = new URL('/api/twilio/ai-assistant/start', request.url);
+        return NextResponse.redirect(aiStartUrl);
       }
     } else {
       console.log('[AI CALL ASSISTANT] Guards failed - continuing with existing voicemail flow', {
         businessId: business.id,
         reason: guardResult.reason
-      })
+      });
+      console.log('[VOICE PATH] VOICEMAIL');
     }
     // END AI CALL ASSISTANT CHECK
 
@@ -821,6 +847,7 @@ export async function POST(request: NextRequest) {
         const twiml = generateTwiMLResponse(business.name);
         console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=persistence-failed');
         console.log('[AI POC FINAL TWIML]', twiml);
+        console.log('[VOICE PATH] EMERGENCY');
         return new NextResponse(twiml, {
           status: 200,
           headers: {
@@ -990,6 +1017,7 @@ export async function POST(request: NextRequest) {
     
     console.log('[Twilio Voice] Voice webhook processed successfully');
     console.log('[VOICE] Returning voicemail TwiML for call:', callSid);
+    console.log('[VOICE PATH] MISSED_CALL');
     
     // DEBUG LOGS
     console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
@@ -1015,13 +1043,14 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Twilio Voice] Failed:', error);
+    console.error('[VOICE ROUTE ERROR]', error);
     
     const twiml = generateTwiMLResponse();
 
     console.log('[Twilio Voice] Returning fallback TwiML due to error');
     console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=error-catch-all');
     console.log('[AI POC FINAL TWIML]', twiml);
+    console.log('[VOICE PATH] EMERGENCY');
     return new NextResponse(twiml, {
       status: 200,
       headers: {
