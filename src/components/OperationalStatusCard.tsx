@@ -11,12 +11,14 @@ interface OperationalStatusCardProps {
   business: Business | null
   missedCallCount?: number
   lastActivity?: string
+  onReviewSetup?: () => void
   setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
 export default function OperationalStatusCard({ 
   business, 
   missedCallCount = 0, 
+  onReviewSetup,
   lastActivity,
   setupHealth
 }: OperationalStatusCardProps) {
@@ -413,6 +415,16 @@ export default function OperationalStatusCard({
             Set Up Call Forwarding
           </Link>
         )}
+        
+        <Link
+          href="/setup/forwarding"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors text-sm font-medium"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          Review Setup
+        </Link>
       </div>
 
       {/* Test ReplyFlow Modal */}

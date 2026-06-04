@@ -463,6 +463,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
             <OperationalStatusCard
               business={currentBusiness}
               missedCallCount={missedCallCount}
+              onReviewSetup={() => setShowSetupReviewPanel(true)}
               setupHealth={setupHealth}
             />
             
