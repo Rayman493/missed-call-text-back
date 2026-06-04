@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed'
   title: string
   message: string
   data?: any
@@ -74,6 +74,13 @@ export const NOTIFICATION_TEMPLATES = {
     message: `${data.leadName} (${data.leadPhone}) left a voicemail`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'Listen'
+  }),
+
+  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
+    title: 'New AI Intake Lead',
+    message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${data.serviceRequested}` : ''}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
   })
 }
 
@@ -241,6 +248,15 @@ export class NotificationServiceServer {
       'subscription_issue',
       '',
       { issue }
+    )
+  }
+
+  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string): Promise<void> {
+    await this.createNotification(
+      businessId,
+      'ai_intake_completed',
+      '',
+      { leadName, leadPhone, leadId, serviceRequested }
     )
   }
 }
