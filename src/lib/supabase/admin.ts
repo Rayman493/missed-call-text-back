@@ -1367,7 +1367,8 @@ export const db = {
       a2p_status: 'approved', // Using approved ReplyFlowHQ Messaging Service
       provisioning_status: 'pending', // Start with pending status
       provisioning_error: null,
-      provisioned_at: null
+      provisioned_at: null,
+      ai_assistant_enabled: true, // Enable AI assistant by default for all new businesses (beta users)
     }
     
     // Log critical subscription state for verification

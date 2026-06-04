@@ -128,21 +128,30 @@ export function isOpenAIConfigured(): boolean {
 /**
  * Check if AI assistant is enabled for a specific business
  */
-export function isBusinessAIEnabled(business: { ai_assistant_enabled?: boolean | null }): boolean {
+export function isBusinessAIEnabled(business: { ai_assistant_enabled?: boolean | null; id?: string; onboarding_status?: string | null; provisioning_status?: string | null; forwarding_verified?: boolean | null }): boolean {
   const enabled = business.ai_assistant_enabled === true
-  
+
+  console.log('[AI FLAG CHECK]', {
+    businessId: business.id || 'unknown',
+    ai_assistant_enabled: business.ai_assistant_enabled,
+    onboarding_status: business.onboarding_status || 'unknown',
+    provisioning_status: business.provisioning_status || 'unknown',
+    forwarding_verified: business.forwarding_verified || false,
+    enabled
+  })
+
   if (!enabled) {
     console.log('[AI CALL ASSISTANT] Guard failed: Business AI assistant not enabled', {
-      businessId: 'unknown',
+      businessId: business.id || 'unknown',
       ai_assistant_enabled: business.ai_assistant_enabled
     })
   } else {
     console.log('[AI CALL ASSISTANT] Guard passed: Business AI assistant enabled', {
-      businessId: 'unknown',
+      businessId: business.id || 'unknown',
       ai_assistant_enabled: business.ai_assistant_enabled
     })
   }
-  
+
   return enabled
 }
 
@@ -150,40 +159,54 @@ export function isBusinessAIEnabled(business: { ai_assistant_enabled?: boolean |
  * Check all guards for AI assistant
  * Returns true if all guards pass
  */
-export function checkAllGuards(businessId: string, business?: { ai_assistant_enabled?: boolean | null }): { passed: boolean; reason: string } {
+export function checkAllGuards(businessId: string, business?: { ai_assistant_enabled?: boolean | null; onboarding_status?: string | null; provisioning_status?: string | null; forwarding_verified?: boolean | null }): { passed: boolean; reason: string } {
+  console.log('[AI ROUTING DECISION]', {
+    businessId,
+    ai_assistant_enabled: business?.ai_assistant_enabled,
+    onboarding_status: business?.onboarding_status,
+    provisioning_status: business?.provisioning_status,
+    forwarding_verified: business?.forwarding_verified,
+  })
+
   console.log('[AI CALL ASSISTANT] Checking all guards...', { businessId })
-  
+
   // Check 1: Global enable flag
   if (!isGloballyEnabled()) {
+    console.log('[AI ROUTING DECISION] FAILED: not_globally_enabled')
     return { passed: false, reason: 'not_globally_enabled' }
   }
-  
+
   // Check 2: Business allowlist
   if (!isBusinessAllowed(businessId)) {
+    console.log('[AI ROUTING DECISION] FAILED: business_not_allowed')
     return { passed: false, reason: 'business_not_allowed' }
   }
-  
+
   // Check 3: Business-level AI enabled flag
   if (business && !isBusinessAIEnabled(business)) {
+    console.log('[AI ROUTING DECISION] FAILED: business_ai_not_enabled')
     return { passed: false, reason: 'business_ai_not_enabled' }
   }
-  
+
   // Check 4: OpenAI configuration
   if (!isOpenAIConfigured()) {
+    console.log('[AI ROUTING DECISION] FAILED: openai_not_configured')
     return { passed: false, reason: 'openai_not_configured' }
   }
-  
+
   // Check 5: AI Voice WebSocket URL
   const aiVoiceWsUrl = process.env.AI_VOICE_FLY_WS_URL
   if (!aiVoiceWsUrl) {
     console.log('[AI CALL ASSISTANT] Guard failed: AI_VOICE_FLY_WS_URL not configured')
+    console.log('[AI ROUTING DECISION] FAILED: ai_voice_ws_url_not_configured')
     return { passed: false, reason: 'ai_voice_ws_url_not_configured' }
   } else {
     console.log('[AI CALL ASSISTANT] Guard passed: AI_VOICE_FLY_WS_URL configured', { 
       wsUrl: aiVoiceWsUrl 
     })
   }
-  
+
+  console.log('[AI ROUTING DECISION] SUCCESS: All guards passed - routing to AI assistant')
   console.log('[AI ROUTING ACTIVE] All guards passed - routing to AI assistant')
   return { passed: true, reason: 'all_guards_passed' }
 }
