@@ -24,7 +24,7 @@ import { createClient } from '@supabase/supabase-js';
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
 // Version log - guaranteed to appear on startup
-console.log('[AI VOICE BUILD VERSION] ai-record-post-insert-hooks-v2');
+console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
