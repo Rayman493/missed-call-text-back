@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[Google Calendar Events] Business found:', business.id)
+    console.log('[GOOGLE CALENDAR BUSINESS]', {
+      found: !!business,
+      businessId: business?.id
+    });
 
     // Get the calendar integration
     const { data: integration, error: integrationError } = await supabase
