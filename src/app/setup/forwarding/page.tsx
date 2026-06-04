@@ -299,8 +299,8 @@ export default function ForwardingSetupPage() {
           onClick={handleForwardingEnabled}
           disabled={isSaving}
           className={`w-full px-6 py-4 text-base font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            isSaving 
-              ? 'bg-blue-600 text-white cursor-not-allowed' 
+            isSaving
+              ? 'bg-blue-600 text-white cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg active:scale-[0.98] text-white cursor-pointer'
           }`}
         >
@@ -311,7 +311,7 @@ export default function ForwardingSetupPage() {
             </>
           ) : (
             <>
-              Continue to Test Setup
+              I've Forwarded My Calls
               <ArrowRight className="w-5 h-5" />
             </>
           )}

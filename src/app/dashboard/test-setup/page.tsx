@@ -88,6 +88,14 @@ export default function TestSetupPage() {
     }
   }, [setupState.step3Complete])
 
+  // Guard: Redirect to forwarding setup if not configured
+  useEffect(() => {
+    if (business && !business.call_forwarding_enabled) {
+      console.log('[TestSetup] Forwarding not configured, redirecting to setup/forwarding')
+      router.replace('/setup/forwarding')
+    }
+  }, [business, router])
+
   // Poll for test completion using shared state
   useEffect(() => {
     // Only poll if setup is not complete and forwarding is enabled

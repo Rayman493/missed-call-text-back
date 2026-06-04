@@ -234,28 +234,28 @@ export default function BillingSuccessPage() {
             </div>
           )}
 
-          {/* Animated Button - Direct to Dashboard */}
+          {/* Animated Button - Direct to Forwarding Setup */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
-            <Link 
-              href="/dashboard"
+            <Link
+              href="/setup/forwarding"
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
               onClick={() => {
                 const clickData = {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: '/dashboard',
+                  destination: '/setup/forwarding',
                   timestamp: new Date().toISOString()
                 }
-                console.log('[Billing Success Continue Dashboard]', clickData)
+                console.log('[Billing Success Continue Forwarding]', clickData)
               }}
             >
-              Open Dashboard
+              Continue to Call Forwarding
             </Link>
           </div>
 
           {/* Improved Subtext */}
           <p className="text-muted-foreground text-sm mt-4">
-            Continue to your dashboard to finish setup.
+            Set up call forwarding to start capturing missed calls.
           </p>
         </div>
       </div>

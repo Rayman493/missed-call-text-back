@@ -460,10 +460,9 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
         {/* Expanded Details */}
         {isExpanded && (
           <div className="space-y-4">
-            <OperationalStatusCard 
+            <OperationalStatusCard
               business={currentBusiness}
               missedCallCount={missedCallCount}
-              onReviewSetup={() => setShowSetupReviewPanel(true)}
               setupHealth={setupHealth}
             />
             
