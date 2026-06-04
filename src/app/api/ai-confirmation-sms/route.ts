@@ -59,19 +59,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Idempotency check - check if confirmation SMS already sent for this call
+    // Idempotency check - check if confirmation SMS already sent for this conversation
+    // Use metadata-free logic: check for outbound message starting with "Hi, this is" within last 5 minutes
     console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', {
       conversationId,
       direction: 'outbound',
-      message_type: 'ai_confirmation'
+      body_pattern: 'Hi, this is'
     })
 
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
     const { data: existingMessage, error: checkError } = await supabaseAdmin
       .from('messages')
-      .select('id')
+      .select('id, created_at')
       .eq('conversation_id', conversationId)
       .eq('direction', 'outbound')
-      .eq('message_type', 'ai_confirmation')
+      .like('body', 'Hi, this is%')
+      .gte('created_at', fiveMinutesAgo)
       .maybeSingle()
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -87,25 +90,28 @@ export async function POST(request: NextRequest) {
     if (existingMessage) {
       console.log('[AI CONFIRMATION SMS SKIPPED DUPLICATE] Confirmation SMS already sent for this conversation', {
         messageId: existingMessage.id,
-        conversationId
+        conversationId,
+        created_at: existingMessage.created_at
       })
       return NextResponse.json({ success: true, skipped: true, reason: 'duplicate' })
     }
 
-    // Check opt-out/ignored contacts
-    const isOptedOut = await checkOptOut(businessId, callerPhone)
-    if (isOptedOut) {
-      console.log('[AI CONFIRMATION SMS SKIPPED OPT-OUT] Caller has opted out', {
+    // Check ignored contacts (no raw_metadata check as it doesn't exist in schema)
+    console.log('[AI CONFIRMATION SMS IGNORED CONTACT CHECK]', { businessId, callerPhone })
+    const isIgnored = await isIgnoredContact(businessId, callerPhone)
+    if (isIgnored) {
+      console.log('[AI CONFIRMATION SMS SKIPPED IGNORED] Caller is in ignored contacts', {
         callerPhone,
         businessId
       })
-      return NextResponse.json({ success: true, skipped: true, reason: 'opt_out' })
+      return NextResponse.json({ success: true, skipped: true, reason: 'ignored' })
     }
 
-    // Get business to find Twilio phone number
+    // Get business with all required fields for sendSms
+    console.log('[AI CONFIRMATION SMS BUSINESS LOOKUP]', { businessId })
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('twilio_phone_number, twilio_messaging_service_sid, auto_reply_message')
+      .select('id, name, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status')
       .eq('id', businessId)
       .single()
 
@@ -125,9 +131,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    console.log('[AI CONFIRMATION SMS BUSINESS LOOKUP RESULT]', {
+    console.log('[AI CONFIRMATION SMS SENDSMS BUSINESS OBJECT]', {
+      id: business.id,
+      name: business.name,
       hasTwilioPhoneNumber: !!business.twilio_phone_number,
-      hasMessagingServiceSid: !!business.twilio_messaging_service_sid
+      hasTwilioPhoneNumberSid: !!business.twilio_phone_number_sid,
+      hasMessagingServiceSid: !!business.twilio_messaging_service_sid,
+      provisioningStatus: business.provisioning_status
     })
 
     // Build confirmation message
@@ -143,18 +153,15 @@ export async function POST(request: NextRequest) {
       messageBodyLength: messageBody.length
     })
 
-    // Send SMS
+    // Send SMS using sendSms (which handles message insertion and idempotency)
     console.log('[AI CONFIRMATION SMS TWILIO SEND START]', {
       to: callerPhone,
       from: business.twilio_phone_number,
       messagingServiceSid: business.twilio_messaging_service_sid
     })
 
-    let twilioMessageSid: string | null = null
-    let smsError: Error | null = null
-
     try {
-      twilioMessageSid = await sendSms(
+      const twilioMessageSid = await sendSms(
         business,
         callerPhone,
         messageBody,
@@ -168,111 +175,39 @@ export async function POST(request: NextRequest) {
         success: !!twilioMessageSid,
         twilioMessageSid
       })
+
+      if (twilioMessageSid) {
+        console.log('[AI CONFIRMATION SMS SUCCESS]', {
+          twilioMessageSid,
+          conversationId
+        })
+        return NextResponse.json({
+          success: true,
+          twilioMessageSid,
+          skipped: false
+        })
+      } else {
+        console.log('[AI CONFIRMATION SMS SEND FAILED]', {
+          reason: 'sendSms returned null',
+          conversationId
+        })
+        return NextResponse.json({
+          error: 'Failed to send SMS',
+          reason: 'sendSms returned null'
+        }, { status: 500 })
+      }
     } catch (error) {
-      smsError = error as Error
-      console.error('[AI CONFIRMATION SMS TWILIO SEND ERROR]', {
-        message: smsError.message,
-        stack: smsError.stack
-      })
-    }
-
-    // Insert message into messages table regardless of SMS send success
-    const insertPayload = {
-      lead_id: leadId,
-      conversation_id: conversationId,
-      direction: 'outbound' as const,
-      body: messageBody,
-      from_phone: business.twilio_phone_number,
-      to_phone: callerPhone,
-      twilio_message_sid: twilioMessageSid,
-      status: smsError ? 'failed' : 'sent',
-      error_message: smsError ? smsError.message : null,
-      created_at: new Date().toISOString()
-    }
-
-    console.log('[AI CONFIRMATION SMS MESSAGE INSERT START]', {
-      lead_id: insertPayload.lead_id,
-      conversation_id: insertPayload.conversation_id,
-      direction: insertPayload.direction,
-      status: insertPayload.status,
-      body_length: insertPayload.body.length,
-      from_phone: insertPayload.from_phone,
-      to_phone: insertPayload.to_phone,
-      has_twilio_message_sid: !!insertPayload.twilio_message_sid
-    })
-
-    const { data: message, error: messageError } = await supabaseAdmin
-      .from('messages')
-      .insert(insertPayload)
-      .select()
-      .single()
-
-    if (messageError) {
-      console.error('[AI CONFIRMATION SMS DB ERROR]', {
-        operation: 'message insert',
-        code: messageError.code,
-        message: messageError.message,
-        details: messageError.details,
-        hint: messageError.hint,
-        payload: {
-          lead_id: insertPayload.lead_id,
-          conversation_id: insertPayload.conversation_id,
-          direction: insertPayload.direction,
-          status: insertPayload.status,
-          from_phone: insertPayload.from_phone,
-          to_phone: insertPayload.to_phone
-        }
+      const smsError = error as Error
+      console.log('[AI CONFIRMATION SMS SEND FAILED]', {
+        reason: smsError.message,
+        stack: smsError.stack,
+        conversationId
       })
       return NextResponse.json({
-        error: 'Failed to save message',
-        dbError: {
-          code: messageError.code,
-          message: messageError.message,
-          details: messageError.details
-        }
+        error: 'Failed to send SMS',
+        reason: smsError.message
       }, { status: 500 })
     }
-
-    console.log('[AI CONFIRMATION SMS MESSAGE INSERT RESULT]', {
-      messageId: message.id,
-      conversationId,
-      status: message.status
-    })
-
-    // Update conversation last_activity_at
-    console.log('[AI CONFIRMATION SMS CONVERSATION UPDATE START]', { conversationId })
-    const { error: updateError } = await supabaseAdmin
-      .from('conversations')
-      .update({ last_activity_at: new Date().toISOString() })
-      .eq('id', conversationId)
-
-    if (updateError) {
-      console.error('[AI CONFIRMATION SMS DB ERROR]', {
-        operation: 'conversation update',
-        code: updateError.code,
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint
-      })
-      // Don't fail the request if conversation update fails
-    } else {
-      console.log('[AI CONFIRMATION SMS CONVERSATION UPDATE SUCCESS]')
-    }
-
-    console.log('[AI CONFIRMATION SMS SUCCESS]', {
-      messageId: message.id,
-      conversationId,
-      status: message.status,
-      twilioMessageSid
-    })
-
-    return NextResponse.json({
-      success: true,
-      messageId: message.id,
-      twilioMessageSid,
-      status: message.status,
-      skipped: false
-    })
 
   } catch (error) {
     console.error('[AI CONFIRMATION SMS ERROR]', {
@@ -286,42 +221,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function checkOptOut(businessId: string, phoneNumber: string): Promise<boolean> {
-  try {
-    console.log('[AI CONFIRMATION SMS LEAD LOOKUP]', { businessId, phoneNumber })
-
-    // Check if lead is opted out
-    const { data: lead, error: leadError } = await supabaseAdmin
-      .from('leads')
-      .select('raw_metadata')
-      .eq('business_id', businessId)
-      .eq('phone', phoneNumber)
-      .single()
-
-    if (leadError && leadError.code !== 'PGRST116') {
-      console.error('[AI CONFIRMATION SMS DB ERROR]', {
-        operation: 'lead lookup select',
-        code: leadError.code,
-        message: leadError.message,
-        details: leadError.details,
-        hint: leadError.hint
-      })
-    }
-
-    if (lead?.raw_metadata?.opted_out) {
-      console.log('[AI CONFIRMATION SMS LEAD OPTED OUT]', { phoneNumber })
-      return true
-    }
-
-    // Check if number is ignored
-    console.log('[AI CONFIRMATION SMS IGNORED CONTACT CHECK]', { businessId, phoneNumber })
-    const ignored = await isIgnoredContact(businessId, phoneNumber)
-    return ignored
-  } catch (error) {
-    console.error('[AI CONFIRMATION SMS OPT-OUT CHECK ERROR]', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-    return false
-  }
-}
