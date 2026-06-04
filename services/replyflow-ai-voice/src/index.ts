@@ -5156,12 +5156,12 @@ async function sendAIConfirmationSMS(
     const businessName = business.name;
 
     // Call the confirmation SMS API endpoint
-    if (!MAIN_APP_URL) {
+    if (!process.env.MAIN_APP_URL) {
       console.error('[AI CONFIRMATION SMS ERROR] MAIN_APP_URL not configured');
       return;
     }
 
-    const confirmationUrl = `${MAIN_APP_URL}/api/ai-confirmation-sms`;
+    const confirmationUrl = `${process.env.MAIN_APP_URL}/api/ai-confirmation-sms`;
     console.log('[AI CONFIRMATION SMS URL]', { host: new URL(confirmationUrl).host, path: '/api/ai-confirmation-sms' });
 
     const response = await fetch(confirmationUrl, {
