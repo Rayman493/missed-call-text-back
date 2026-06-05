@@ -363,6 +363,36 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   }
 }
 
+// Helper function to validate issue description
+function isValidIssueDescription(issueDescription: string, serviceRequested?: string): boolean {
+  if (!issueDescription || issueDescription.trim().length === 0) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Empty');
+    return false;
+  }
+
+  // Check if it's the same as service requested
+  if (serviceRequested && issueDescription.toLowerCase().trim() === serviceRequested.toLowerCase().trim()) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Same as service requested');
+    return false;
+  }
+
+  // Check if it's just a generic service category
+  const genericServices = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal'];
+  if (genericServices.some(service => issueDescription.toLowerCase().trim() === service)) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Generic service category only');
+    return false;
+  }
+
+  // Check if it has at least 4 meaningful words
+  const words = issueDescription.trim().split(/\s+/).filter(w => w.length > 2);
+  if (words.length < 4) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Fewer than 4 meaningful words', { wordCount: words.length });
+    return false;
+  }
+
+  return true;
+}
+
 // Helper function to get response for missing field
 function getResponseForMissingField(missingField: string, intake: IntakeData): { response: string; nextStage: IntakeStage } {
   switch (missingField) {
@@ -1617,6 +1647,7 @@ wss.on('connection', (ws, req) => {
     let hangupScheduled = false;
     let postCallSmsSent = false;
     let assistantSpeaking = false;
+    let terminalClosingResponseStarted = false;
 
     let intakeComplete = false;
     let confirmationAccepted = false;
@@ -3267,8 +3298,10 @@ Do NOT:
 
                     // Check if issue description is required before allowing confirmation
                     const missingFields = getMissingRequiredFields(intakeData!);
-                    if (missingFields.includes('issue description')) {
-                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Cannot enter confirmation without issue description');
+                    if (missingFields.includes('issue description') || !isValidIssueDescription(intakeData!.issueDescription || '', intakeData!.serviceRequested)) {
+                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Cannot enter confirmation without valid issue description');
+                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Current issue description:', intakeData!.issueDescription);
+                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Service requested:', intakeData!.serviceRequested);
                       console.log('[AI ISSUE DESCRIPTION REQUIRED] Asking for issue description instead');
 
                       // Ask for issue description
@@ -3456,7 +3489,28 @@ Do NOT:
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
 
-                // Old hangup logic removed - now handled by deterministic state machine above
+                // Terminal closing detection - end call after final audio done
+                if (terminalClosingResponseStarted && !hangupScheduled) {
+                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Terminal closing audio completed');
+                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Scheduling hangup after 1500ms buffer');
+
+                  // Schedule hangup after 1500ms buffer
+                  setTimeout(async () => {
+                    if (!hangupScheduled) {
+                      console.log('[AI TERMINAL HANGUP SCHEDULED] Buffer complete, executing hangup');
+                      hangupScheduled = true;
+
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        console.log('[AI TERMINAL CALL ENDED] Call terminated successfully');
+                        callState = 'closed';
+                        (twilioHandler as any).callState = callState;
+                      } catch (error) {
+                        console.log('[AI TERMINAL HANGUP FAILED] Error during hangup:', error);
+                      }
+                    }
+                  }, 1500); // 1.5 second buffer
+                }
               }
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
@@ -3598,55 +3652,31 @@ Do NOT:
                 
                 // Check if ready to close and send final closing
                 if (intakeComplete && !finalClosingStarted && callState === 'active') {
-                  console.log('[AI CLOSING START] Starting deterministic closing flow');
-                  console.log('[AI CLOSING START] callState: active -> closing');
+                  console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
+                  console.log('[AI TERMINAL CLOSING START] callState: active -> closing_audio_playing');
 
-                  callState = 'closing';
+                  callState = 'closing_audio_playing';
                   (twilioHandler as any).callState = callState;
+                  terminalClosingResponseStarted = true;
+                  (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
+                  assistantSpeaking = true;
+                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
                   finalClosingStarted = true;
 
                   // Send final closing message
                   const finalClosingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: `Say exactly: "Perfect, I have everything I need. Someone from ${businessName || 'the business'} will follow up with you shortly. Thanks for calling."`
+                      instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
                     }
                   };
 
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify(finalClosingMessage));
-                    console.log('[AI CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
-                    console.log('[AI CLOSING RESPONSE CREATE SENT] callState: closing');
+                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
+                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] callState: closing_audio_playing');
+                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] terminalClosingResponseStarted: true');
                   }
-                }
-
-                // Check if this is the final closing response and enter closing audio playing state
-                if (callState === 'closing' && finalClosingStarted && !finalClosingAudioDone) {
-                  console.log('[AI CLOSING OUTPUT AUDIO DONE] Final closing audio completed');
-                  console.log('[AI CLOSING OUTPUT AUDIO DONE] callState: closing -> closing_audio_playing');
-
-                  finalClosingAudioDone = true;
-                  callState = 'closing_audio_playing';
-                  (twilioHandler as any).callState = callState;
-
-                  // Schedule hangup after buffer (1500ms)
-                  setTimeout(async () => {
-                    if (callState === 'closing_audio_playing' && !hangupScheduled) {
-                      console.log('[AI CLOSING HANGUP SCHEDULED] Buffer complete, scheduling hangup');
-                      hangupScheduled = true;
-
-                      // End the call
-                      try {
-                        await endCallCleanly(ws, twilioHandler);
-                        console.log('[AI CLOSING TWILIO CALL END] Call terminated successfully');
-                        console.log('[AI CLOSING COMPLETE] Closing flow complete');
-                        callState = 'closed';
-                        (twilioHandler as any).callState = callState;
-                      } catch (error) {
-                        console.log('[AI CLOSING FAILED] Error during hangup:', error);
-                      }
-                    }
-                  }, 1500); // 1.5 second buffer
                 }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
