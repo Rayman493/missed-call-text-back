@@ -1619,6 +1619,35 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// Schedule hangup only (for when final goodbye was already sent)
+async function scheduleHangupOnly(ws: any, twilioHandler: any) {
+  console.log('[AI FINAL PHRASE DETECTED - HANGUP SCHEDULED] Final phrase detected, scheduling hangup');
+  
+  // Set closing state
+  (ws as any).callState = 'closing';
+  (twilioHandler as any).callState = 'closing';
+  (ws as any).intakeComplete = true;
+  (twilioHandler as any).intakeComplete = true;
+  
+  // Wait 1500ms for audio to play, then hangup
+  const hangupScheduled = (ws as any).hangupScheduled;
+  if (!hangupScheduled) {
+    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 1500ms for audio playback');
+    (ws as any).hangupScheduled = true;
+    (twilioHandler as any).hangupScheduled = true;
+    
+    setTimeout(async () => {
+      console.log('[TWILIO HANGUP ATTEMPT] Audio buffer complete, executing hangup');
+      try {
+        await endCallCleanly(ws, twilioHandler);
+        console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully');
+      } catch (error) {
+        console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
+      }
+    }, 1500); // 1500ms buffer
+  }
+}
+
 // Send final goodbye and hangup deterministically
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
   console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
@@ -3917,6 +3946,7 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+                console.log('[AI RESPONSE DONE] Response completed');
                 
                 // Finalize any remaining active assistant transcripts
                 activeAssistantTranscripts.forEach((buffer, itemId) => {
@@ -3928,6 +3958,20 @@ Do NOT:
                         item_id: itemId, 
                         final_text: cleanBuffer 
                       });
+                      
+                      // Check for final closing phrases in finalized transcript
+                      const finalClosingPhrases = [
+                        "Perfect. I'll pass this along",
+                        "Thank you for calling. Have a great day."
+                      ];
+                      
+                      if (finalClosingPhrases.some(phrase => cleanBuffer.includes(phrase))) {
+                        console.log('[AI FINAL PHRASE DETECTED DONE]', { 
+                          transcript: cleanBuffer,
+                          timestamp: new Date().toISOString()
+                        });
+                        scheduleHangupOnly(ws, twilioHandler);
+                      }
                     }
                   }
                 });
@@ -4012,7 +4056,24 @@ Do NOT:
                 if (message.transcript) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
                   
-                  // Check for natural closing phrases
+                  // Check for final closing phrases
+                  const finalClosingPhrases = [
+                    "Perfect. I'll pass this along",
+                    "Thank you for calling. Have a great day."
+                  ];
+                  
+                  const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                  
+                  // Check for final closing phrases - schedule hangup immediately
+                  if (finalClosingPhrases.some(phrase => cleanTranscript.includes(phrase))) {
+                    console.log('[AI FINAL PHRASE DETECTED]', { 
+                      transcript: cleanTranscript,
+                      timestamp: new Date().toISOString()
+                    });
+                    scheduleHangupOnly(ws, twilioHandler);
+                  }
+                  
+                  // Check for natural closing phrases (legacy)
                   const closingPhrases = [
                     "I'll pass this along",
                     "someone will follow up",
@@ -4021,8 +4082,6 @@ Do NOT:
                     "Thank you for calling",
                     "have a great day"
                   ];
-                  
-                  const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                   
                   // Check for natural closing in the cleaned text
                   if (closingPhrases.some(phrase => cleanTranscript.toLowerCase().includes(phrase.toLowerCase()))) {
@@ -4091,6 +4150,47 @@ Do NOT:
               // Handle audio delta - now PCMU directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
                 console.log('[OPENAI RECV] response.output_audio.delta');
+                console.log('[AI AUDIO DELTA] Assistant audio delta received');
+              }
+              if (message.type === 'response.output_audio_transcript.delta') {
+                console.log('[OPENAI RECV] response.output_audio_transcript.delta');
+                console.log('[AI TRANSCRIPT DELTA]', message.delta || 'null');
+                
+                // Check for final closing phrases in delta
+                if (message.delta) {
+                  const finalClosingPhrases = [
+                    "Perfect. I'll pass this along",
+                    "Thank you for calling. Have a great day."
+                  ];
+                  
+                  if (finalClosingPhrases.some(phrase => message.delta.includes(phrase))) {
+                    console.log('[AI FINAL PHRASE DETECTED DELTA]', { 
+                      delta: message.delta,
+                      timestamp: new Date().toISOString()
+                    });
+                    scheduleHangupOnly(ws, twilioHandler);
+                  }
+                }
+              }
+              if (message.type === 'response.output_audio_transcript.done') {
+                console.log('[OPENAI RECV] response.output_audio_transcript.done');
+                console.log('[AI TRANSCRIPT DONE]', message.transcript || 'null');
+                
+                // Check for final closing phrases in done
+                if (message.transcript) {
+                  const finalClosingPhrases = [
+                    "Perfect. I'll pass this along",
+                    "Thank you for calling. Have a great day."
+                  ];
+                  
+                  if (finalClosingPhrases.some(phrase => message.transcript.includes(phrase))) {
+                    console.log('[AI FINAL PHRASE DETECTED DONE]', { 
+                      transcript: message.transcript,
+                      timestamp: new Date().toISOString()
+                    });
+                    scheduleHangupOnly(ws, twilioHandler);
+                  }
+                }
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
