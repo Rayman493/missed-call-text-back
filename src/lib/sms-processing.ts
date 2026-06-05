@@ -16,6 +16,38 @@ export interface ProcessInboundSmsParams {
   }>
 }
 
+// Generate summary from extracted_info fields
+function generateSummaryFromExtractedInfo(extractedInfo: any): string {
+  const parts: string[] = []
+  
+  if (extractedInfo.callerName) {
+    parts.push(`Caller: ${extractedInfo.callerName}`)
+  }
+  
+  if (extractedInfo.reasonForCalling) {
+    parts.push(`Service: ${extractedInfo.reasonForCalling}`)
+  }
+  
+  if (extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress) {
+    const address = extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress
+    parts.push(`Location: ${address}`)
+  }
+  
+  if (extractedInfo.urgencyLevel) {
+    parts.push(`Urgency: ${extractedInfo.urgencyLevel}`)
+  }
+  
+  if (extractedInfo.preferredCallbackTime) {
+    parts.push(`Preferred callback time: ${extractedInfo.preferredCallbackTime}`)
+  }
+  
+  if (extractedInfo.importantDetails) {
+    parts.push(`Details: ${extractedInfo.importantDetails}`)
+  }
+  
+  return parts.length > 0 ? parts.join('. ') : 'No information provided'
+}
+
 export async function processInboundSms(params: ProcessInboundSmsParams) {
   const { messageSid, from, to, body, source, media } = params
   
@@ -302,10 +334,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             serviceAddress: correctedAddress
           }
 
+          // Regenerate summary from updated extracted_info
+          const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)
+
           const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
             .from('ai_call_records')
             .update({
               extracted_info: updatedExtractedInfo,
+              summary: regeneratedSummary,
               updated_at: now
             })
             .eq('id', aiCallRecord.id)
@@ -315,7 +351,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           if (!aiUpdateError && updatedAiRecord) {
             console.log('[INBOUND SMS AI INTAKE UPDATED]', {
               callRecordId: updatedAiRecord.id,
-              address: updatedExtractedInfo.address
+              address: updatedExtractedInfo.address,
+              summary: regeneratedSummary
             })
           } else {
             console.error('[INBOUND SMS AI INTAKE UPDATE ERROR]', {
