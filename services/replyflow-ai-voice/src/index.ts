@@ -3961,8 +3961,10 @@ Do NOT:
                       
                       // Check for final closing phrases in finalized transcript
                       const finalClosingPhrases = [
-                        "Perfect. I'll pass this along",
-                        "Thank you for calling. Have a great day."
+                        "Have a great day.",
+                        "Thank you for calling. Have a great day.",
+                        "someone will follow up with you shortly.",
+                        "someone will follow up with you soon."
                       ];
                       
                       if (finalClosingPhrases.some(phrase => cleanBuffer.includes(phrase))) {
@@ -4058,8 +4060,10 @@ Do NOT:
                   
                   // Check for final closing phrases
                   const finalClosingPhrases = [
-                    "Perfect. I'll pass this along",
-                    "Thank you for calling. Have a great day."
+                    "Have a great day.",
+                    "Thank you for calling. Have a great day.",
+                    "someone will follow up with you shortly.",
+                    "someone will follow up with you soon."
                   ];
                   
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
@@ -4155,22 +4159,7 @@ Do NOT:
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta');
                 console.log('[AI TRANSCRIPT DELTA]', message.delta || 'null');
-                
-                // Check for final closing phrases in delta
-                if (message.delta) {
-                  const finalClosingPhrases = [
-                    "Perfect. I'll pass this along",
-                    "Thank you for calling. Have a great day."
-                  ];
-                  
-                  if (finalClosingPhrases.some(phrase => message.delta.includes(phrase))) {
-                    console.log('[AI FINAL PHRASE DETECTED DELTA]', { 
-                      delta: message.delta,
-                      timestamp: new Date().toISOString()
-                    });
-                    scheduleHangupOnly(ws, twilioHandler);
-                  }
-                }
+                // Do NOT trigger hangup on delta - wait for completed transcript events
               }
               if (message.type === 'response.output_audio_transcript.done') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.done');
@@ -4179,8 +4168,10 @@ Do NOT:
                 // Check for final closing phrases in done
                 if (message.transcript) {
                   const finalClosingPhrases = [
-                    "Perfect. I'll pass this along",
-                    "Thank you for calling. Have a great day."
+                    "Have a great day.",
+                    "Thank you for calling. Have a great day.",
+                    "someone will follow up with you shortly.",
+                    "someone will follow up with you soon."
                   ];
                   
                   if (finalClosingPhrases.some(phrase => message.transcript.includes(phrase))) {
