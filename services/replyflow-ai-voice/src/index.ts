@@ -267,39 +267,87 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
 
   switch (intake.stage) {
     case 'ask_name':
+      // Check if name was captured
+      if (intake.customerName && intake.customerName.length > 1) {
+        return {
+          response: 'What can we help you with today?',
+          nextStage: 'ask_service'
+        };
+      }
+      // Ask for name again if not captured
       return {
         response: 'May I have your name?',
-        nextStage: 'ask_service'
+        nextStage: 'ask_name'
       };
 
     case 'ask_service':
+      // Check if service was captured
+      if (intake.serviceRequested) {
+        return {
+          response: 'Could you tell me a little more about the issue?',
+          nextStage: 'ask_issue'
+        };
+      }
+      // Ask for service again if not captured
       return {
         response: 'What can we help you with today?',
-        nextStage: 'ask_issue'
+        nextStage: 'ask_service'
       };
 
     case 'ask_issue':
+      // Check if issue description was captured and is valid
+      if (intake.issueDescription && isValidIssueDescription(intake.issueDescription, intake.serviceRequested)) {
+        return {
+          response: 'What is the service address or location?',
+          nextStage: 'ask_address'
+        };
+      }
+      // Ask for issue detail again if not captured or invalid
       return {
         response: 'Could you tell me a little more about the issue?',
-        nextStage: 'ask_address'
+        nextStage: 'ask_issue'
       };
 
     case 'ask_address':
+      // Check if address was captured
+      if (intake.serviceAddress) {
+        return {
+          response: 'What is the best time for someone to follow up with you?',
+          nextStage: 'ask_callback_time'
+        };
+      }
+      // Ask for address again if not captured
       return {
         response: 'What is the service address or location?',
-        nextStage: 'ask_callback_time'
+        nextStage: 'ask_address'
       };
 
     case 'ask_callback_time':
+      // Check if callback time was captured
+      if (intake.callbackTime) {
+        return {
+          response: 'Is this urgent, or can it wait until later?',
+          nextStage: 'ask_urgency'
+        };
+      }
+      // Ask for callback time again if not captured
       return {
         response: 'What is the best time for someone to follow up with you?',
-        nextStage: 'ask_urgency'
+        nextStage: 'ask_callback_time'
       };
 
     case 'ask_urgency':
+      // Check if urgency was captured
+      if (intake.urgency && intake.urgency !== 'not_specified') {
+        return {
+          response: generateConfirmationMessage(intake),
+          nextStage: 'confirmation'
+        };
+      }
+      // Ask for urgency again if not captured
       return {
         response: 'Is this urgent, or can it wait until later?',
-        nextStage: 'confirmation'
+        nextStage: 'ask_urgency'
       };
 
     case 'confirmation':
