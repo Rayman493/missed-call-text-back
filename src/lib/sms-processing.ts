@@ -252,6 +252,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         // Update lead raw_metadata with corrected address
         const currentMetadata = updatedLead?.raw_metadata || {}
+        
+        // Store previous value before correction
+        const previousValues = currentMetadata.previous_values || {}
+        const previousAddress = currentMetadata.location || currentMetadata.address || currentMetadata.service_address
+        
+        if (previousAddress && previousAddress !== correctedAddress) {
+          previousValues.address = previousAddress
+        }
+
         const correctedMetadata = {
           ...currentMetadata,
           location: correctedAddress,
@@ -261,7 +270,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           corrected_fields: {
             ...(currentMetadata.corrected_fields || {}),
             address: correctedAddress
-          }
+          },
+          previous_values: previousValues
         }
 
         const leadWithCorrection = await db.updateLead(lead.id, {

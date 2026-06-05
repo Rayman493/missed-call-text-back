@@ -1118,7 +1118,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-start gap-4 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-4 mb-2">
                   <div className="flex flex-col gap-1">
                     {leadData?.contact_name && (
                       <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight truncate">
@@ -1169,11 +1169,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 
-                {/* Company Name */}
+                {/* Service/Company Name */}
                 {leadData?.company_name && (
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <p className="text-base text-slate-600 dark:text-slate-400 truncate">
                       {leadData.company_name}
+                    </p>
+                  </div>
+                )}
+                
+                {/* AI Intake Status */}
+                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                      • AI Intake Complete
                     </p>
                   </div>
                 )}
@@ -1379,6 +1388,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Sidebar */}
           <aside className="overflow-y-auto h-[calc(100vh-140px)]" data-sidebar>
             <div className="space-y-4">
+              {/* AI Intake Summary Card - Sticky on Desktop */}
+              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+                <div className="sticky top-0 bg-background z-10 pb-4">
+                  <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
+                    <AICallDetails
+                      leadId={params.id}
+                      businessId={business.id}
+                      conversationId={leadData?.conversation?.id}
+                      callerPhone={leadData?.phone_number || lead?.phone}
+                      leadData={leadData}
+                    />
+                  </div>
+                </div>
+              )}
               {/* Customer Profile Card */}
               <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
@@ -1457,19 +1481,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                 </div>
               </div>
-
-              {/* AI Intake Summary Card */}
-              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
-                  <AICallDetails
-                    leadId={params.id}
-                    businessId={business.id}
-                    conversationId={leadData?.conversation?.id}
-                    callerPhone={leadData?.phone_number || lead?.phone}
-                  />
-                </div>
-              )}
 
               {/* Automatic Follow-ups */}
               <div>

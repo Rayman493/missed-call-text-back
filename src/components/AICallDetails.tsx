@@ -36,9 +36,10 @@ interface AICallDetailsProps {
   businessId: string
   conversationId?: string
   callerPhone: string
+  leadData?: any
 }
 
-export default function AICallDetails({ leadId, businessId, conversationId, callerPhone }: AICallDetailsProps) {
+export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData }: AICallDetailsProps) {
   const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
@@ -166,9 +167,45 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   }
 
   const extractedInfo = aiCallRecord.extracted_info
+  const hasCustomerCorrections = leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields
+  const correctedFields = leadData?.raw_metadata?.corrected_fields
+  const previousValues = leadData?.raw_metadata?.previous_values
 
   return (
     <div className="space-y-4">
+      {/* Customer Correction Badge */}
+      {hasCustomerCorrections && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+              Customer Updated Information
+            </span>
+          </div>
+          
+          {/* Display corrected fields */}
+          {correctedFields && Object.keys(correctedFields).length > 0 && (
+            <div className="space-y-2">
+              {correctedFields.address && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Location
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.address}
+                  </div>
+                  {previousValues?.address && previousValues.address !== correctedFields.address && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.address}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Summary Card - Business Software Feel */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         {/* AI Status Badge */}
@@ -205,11 +242,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
 
           {/* Location */}
-          {extractedInfo?.addressOrLocation && (
+          {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
             <div>
               <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Location</h4>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {extractedInfo.addressOrLocation}
+                {correctedFields?.address || extractedInfo?.addressOrLocation}
               </p>
             </div>
           )}
