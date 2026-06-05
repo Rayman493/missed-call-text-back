@@ -180,7 +180,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       lead = updatedLead
     }
 
-    // Look for AI call record for this lead
+    // Look for AI call record for this lead (needed for correction updates)
     console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
       businessId: business.id,
       callerPhone: normalizedCustomerPhone
@@ -194,7 +194,136 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         leadId: aiCallRecord.lead_id,
         callSid: aiCallRecord.call_sid
       })
+    } else {
+      console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
+        businessId: business.id,
+        callerPhone: normalizedCustomerPhone
+      })
+    }
 
+    // Detect and process corrections in inbound SMS
+    const correctionPhrases = [
+      'address is actually',
+      'actually',
+      'correction',
+      'it is',
+      'should be',
+      'my address is'
+    ]
+    
+    const lowerBody = body.toLowerCase()
+    const isCorrection = correctionPhrases.some(phrase => lowerBody.includes(phrase))
+    
+    if (isCorrection) {
+      console.log('[INBOUND SMS CORRECTION DETECTED]', {
+        leadId: lead.id,
+        body: body
+      })
+
+      // Try to extract address from the message
+      // Look for patterns like "address is actually [address]" or "my address is [address]"
+      let correctedAddress: string | null = null
+      
+      // Pattern 1: "address is actually [address]"
+      const addressActuallyMatch = body.match(/address is actually\s+(.+?)(?:\.|$)/i)
+      if (addressActuallyMatch) {
+        correctedAddress = addressActuallyMatch[1].trim()
+      }
+      
+      // Pattern 2: "my address is [address]"
+      const myAddressMatch = body.match(/my address is\s+(.+?)(?:\.|$)/i)
+      if (myAddressMatch && !correctedAddress) {
+        correctedAddress = myAddressMatch[1].trim()
+      }
+      
+      // Pattern 3: "actually [address]" (fallback, less specific)
+      if (!correctedAddress && lowerBody.includes('actually')) {
+        const actuallyMatch = body.match(/actually\s+(.+?)(?:\.|$)/i)
+        if (actuallyMatch && actuallyMatch[1].trim().length > 5) {
+          correctedAddress = actuallyMatch[1].trim()
+        }
+      }
+      
+      if (correctedAddress) {
+        console.log('[INBOUND SMS ADDRESS CORRECTION EXTRACTED]', {
+          leadId: lead.id,
+          correctedAddress: correctedAddress
+        })
+
+        // Update lead raw_metadata with corrected address
+        const currentMetadata = updatedLead?.raw_metadata || {}
+        const correctedMetadata = {
+          ...currentMetadata,
+          location: correctedAddress,
+          address: correctedAddress,
+          service_address: correctedAddress,
+          customer_corrected_info: true,
+          corrected_fields: {
+            ...(currentMetadata.corrected_fields || {}),
+            address: correctedAddress
+          }
+        }
+
+        const leadWithCorrection = await db.updateLead(lead.id, {
+          raw_metadata: correctedMetadata,
+          updated_at: now
+        })
+
+        if (leadWithCorrection) {
+          console.log('[INBOUND SMS LEAD ADDRESS UPDATED]', {
+            leadId: leadWithCorrection.id,
+            address: correctedMetadata.address
+          })
+        } else {
+          console.error('[INBOUND SMS LEAD ADDRESS UPDATE ERROR]', {
+            leadId: lead.id,
+            error: 'Failed to update lead with corrected address'
+          })
+        }
+
+        // Update AI call record with corrected address if found
+        if (aiCallRecord) {
+          const currentExtractedInfo = aiCallRecord.extracted_info || {}
+          const updatedExtractedInfo = {
+            ...currentExtractedInfo,
+            addressOrLocation: correctedAddress,
+            address: correctedAddress,
+            location: correctedAddress,
+            serviceAddress: correctedAddress
+          }
+
+          const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
+            .from('ai_call_records')
+            .update({
+              extracted_info: updatedExtractedInfo,
+              updated_at: now
+            })
+            .eq('id', aiCallRecord.id)
+            .select()
+            .single()
+
+          if (!aiUpdateError && updatedAiRecord) {
+            console.log('[INBOUND SMS AI INTAKE UPDATED]', {
+              callRecordId: updatedAiRecord.id,
+              address: updatedExtractedInfo.address
+            })
+          } else {
+            console.error('[INBOUND SMS AI INTAKE UPDATE ERROR]', {
+              callRecordId: aiCallRecord.id,
+              error: aiUpdateError
+            })
+          }
+        }
+      } else {
+        console.log('[INBOUND SMS CORRECTION DETECTED BUT NO ADDRESS EXTRACTED]', {
+          leadId: lead.id,
+          body: body
+        })
+      }
+    }
+
+    // Update AI call record with customer reply info (separate from correction updates)
+    if (aiCallRecord) {
       // Update AI call record with customer reply info
       const updatedAiCallRecord = await db.updateAiCallRecordCustomerReply(aiCallRecord.id, body)
 
@@ -211,11 +340,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           error: 'Failed to update AI call record'
         })
       }
-    } else {
-      console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
-        businessId: business.id,
-        callerPhone: normalizedCustomerPhone
-      })
     }
   }
   
