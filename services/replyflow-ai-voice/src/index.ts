@@ -1525,17 +1525,16 @@ wss.on('connection', (ws, req) => {
     let transcript: Array<{role: 'user' | 'assistant'; text: string; timestamp: string}> = [];
     const activeAssistantTranscripts = new Map<string, string>(); // Buffer keyed by item_id
     
-    // Call state for clean call ending
+    // Call state for clean call ending - deterministic state machine
+    type CallState = 'active' | 'closing' | 'closing_audio_playing' | 'closed';
+    let callState: CallState = 'active';
+    let finalClosingStarted = false;
+    let finalClosingAudioDone = false;
+    let hangupScheduled = false;
+    let postCallSmsSent = false;
+    
     let intakeComplete = false;
-    let finalMessageStarted = false;
-    let finalMessageFinished = false;
-    let awaitingGoodbyeOrSilence = false;
-    let shouldHangupAfterAudioDone = false;
-    let silenceAfterFinalMessageTimer: NodeJS.Timeout | null = null;
     let confirmationAccepted = false;
-    let readyToClose = false;
-    let closingMode = false;
-    let finalAudioComplete = false;
     
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -1543,8 +1542,6 @@ wss.on('connection', (ws, req) => {
     let callSid: string = '';
     let forwardedFrom: string = '';
     let callOutcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' = 'completed';
-    let hangupScheduled = false;
-    let hangupExecuted = false;
     let businessName: string = 'ReplyFlow';
 
     // AI timeout detection - trigger voicemail fallback if AI doesn't start within 10 seconds
@@ -3146,29 +3143,10 @@ Do NOT:
                   transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   
                   // Check for goodbye phrases after final message
-                  if (closingMode) {
-                    const goodbyePhrases = [
-                      'thanks', 'thank you', 'okay thanks', 'sounds good', 
-                      'bye', 'goodbye', 'have a good one', 'you too', 'appreciate it'
-                    ];
-                    const lowerTranscript = userTranscript.toLowerCase().trim();
-                    
-                    if (goodbyePhrases.some(phrase => lowerTranscript.includes(phrase))) {
-                      console.log('[GOODBYE DETECTED] Caller said:', userTranscript);
-                      console.log('[CALL HANGUP] Triggering hangup due to goodbye phrase');
-                      
-                      // Clear silence timer
-                      if (silenceAfterFinalMessageTimer) {
-                        clearTimeout(silenceAfterFinalMessageTimer);
-                        silenceAfterFinalMessageTimer = null;
-                      }
-                      
-                      // Hangup directly without additional response
-                      console.log('[CALL HANGUP] Hanging up immediately due to goodbye');
-                      shouldHangupAfterAudioDone = true;
-                      
-                      return; // Skip normal intake processing
-                    }
+                  if (callState === 'closing' || callState === 'closing_audio_playing') {
+                    console.log('[AI CLOSING IGNORE USER AUDIO] Ignoring caller audio during closing state');
+                    console.log('[AI CLOSING IGNORE USER AUDIO] callState:', callState);
+                    return; // Skip processing user audio during closing
                   }
                 } else {
                   console.log('[USER TRANSCRIPT MISSING]', {
@@ -3232,8 +3210,8 @@ Do NOT:
                       
                       // Set state to indicate ready to close, but don't create response yet
                       confirmationAccepted = true;
-                      readyToClose = true;
-                      console.log('[CONFIRMATION ACCEPTED] Set confirmationAccepted=true, readyToClose=true');
+                      intakeComplete = true;
+                      console.log('[CONFIRMATION ACCEPTED] Set confirmationAccepted=true, intakeComplete=true');
                       console.log('[CONFIRMATION ACCEPTED] Will wait for current response to complete before sending final closing');
                       
                       // Mark as complete to prevent further processing
@@ -3350,34 +3328,7 @@ Do NOT:
                 console.log('[OPENAI RECV] response.done');
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
                 
-                // Check if this is the final goodbye response and schedule hangup
-                if (intakeData && intakeData.stage === 'complete' && !hangupScheduled) {
-                  console.log('[FINAL GOODBYE AUDIO DONE] All audio for final goodbye completed');
-                  console.log('[AUTO HANGUP TIMER_STARTED] Starting 3-second countdown before hangup');
-                  console.log('[AUTO HANGUP TIMER_STARTED] callSid:', (ws as any).callSid);
-                  console.log('[AUTO HANGUP TIMER_STARTED] sessionId:', (ws as any).sessionId);
-                  console.log('[AUTO HANGUP TIMER_STARTED] businessId:', (ws as any).businessId);
-                  
-                  hangupScheduled = true;
-                  
-                  setTimeout(async () => {
-                    console.log('[AUTO HANGUP EXECUTING] 3 seconds elapsed after final goodbye, executing hangup');
-                    console.log('[AUTO HANGUP EXECUTING] callSid:', (ws as any).callSid);
-                    console.log('[AUTO HANGUP EXECUTING] sessionId:', (ws as any).sessionId);
-                    console.log('[AUTO HANGUP EXECUTING] businessId:', (ws as any).businessId);
-                    if (!hangupExecuted) {
-                      hangupExecuted = true;
-                      try {
-                        await endCallCleanly(ws, twilioHandler);
-                        console.log('[AUTO HANGUP SUCCESS] Call termination completed after final goodbye');
-                      } catch (error) {
-                        console.log('[AUTO HANGUP FAILED] Error during hangup after final goodbye:', error);
-                      }
-                    } else {
-                      console.log('[AUTO HANGUP SKIPPED] Hangup already executed');
-                    }
-                  }, 3000); // 3 second delay after final goodbye completion
-                }
+                // Old hangup logic removed - now handled by deterministic state machine above
               }
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
@@ -3518,47 +3469,53 @@ Do NOT:
                 activeAssistantTranscripts.clear();
                 
                 // Check if ready to close and send final closing
-                if (readyToClose && !finalMessageStarted) {
-                  console.log('[READY TO CLOSE] Current response completed, sending final closing');
+                if (intakeComplete && !finalClosingStarted && callState === 'active') {
+                  console.log('[AI CLOSING START] Starting deterministic closing flow');
+                  console.log('[AI CLOSING START] callState: active -> closing');
+                  
+                  callState = 'closing';
+                  finalClosingStarted = true;
                   
                   // Send final closing message
                   const finalClosingMessage = {
                     type: 'response.create',
                     response: {
-                      instructions: 'Say exactly: "Perfect. I\'ll pass this information along and someone will follow up with you soon. Thanks for calling and have a great day."'
+                      instructions: `Say exactly: "Perfect, I have everything I need. Someone from ${businessName || 'the business'} will follow up with you shortly. Thanks for calling."`
                     }
                   };
                   
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify(finalClosingMessage));
-                    console.log('[FINAL CLOSING SENT] Final closing message sent to OpenAI');
-                    console.log('[FINAL CLOSING SENT] finalMessageStarted: true');
-                    
-                    // Set call state for clean call ending
-                    intakeComplete = true;
-                    finalMessageStarted = true;
-                    console.log('[INTAKE COMPLETE] Intake marked as complete');
+                    console.log('[AI CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
+                    console.log('[AI CLOSING RESPONSE CREATE SENT] callState: closing');
                   }
                 }
                 
-                // Check if this is the final closing response and enter closing mode
-                if (intakeComplete && finalMessageStarted && !finalMessageFinished) {
-                  console.log('[FINAL AUDIO COMPLETE] Final closing audio completed');
-                  finalMessageFinished = true;
-                  finalAudioComplete = true;
-                  closingMode = true;
-                  console.log('[CLOSING MODE ENTERED] Entered closing mode');
-                  console.log('[AWAITING GOODBYE OR SILENCE] Waiting for caller response or silence');
+                // Check if this is the final closing response and enter closing audio playing state
+                if (callState === 'closing' && finalClosingStarted && !finalClosingAudioDone) {
+                  console.log('[AI CLOSING OUTPUT AUDIO DONE] Final closing audio completed');
+                  console.log('[AI CLOSING OUTPUT AUDIO DONE] callState: closing -> closing_audio_playing');
                   
-                  // Start silence detection timer (3 seconds)
-                  if (silenceAfterFinalMessageTimer) {
-                    clearTimeout(silenceAfterFinalMessageTimer);
-                  }
-                  silenceAfterFinalMessageTimer = setTimeout(() => {
-                    console.log('[SILENCE AFTER CLOSE] No caller response detected');
-                    console.log('[CALL HANGUP] Triggering hangup due to silence');
-                    shouldHangupAfterAudioDone = true;
-                  }, 3000);
+                  finalClosingAudioDone = true;
+                  callState = 'closing_audio_playing';
+                  
+                  // Schedule hangup after buffer (750ms-1500ms)
+                  setTimeout(async () => {
+                    if (callState === 'closing_audio_playing' && !hangupScheduled) {
+                      console.log('[AI CLOSING HANGUP SCHEDULED] Buffer complete, scheduling hangup');
+                      hangupScheduled = true;
+                      
+                      // End the call
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        console.log('[AI CLOSING TWILIO CALL END] Call terminated successfully');
+                        console.log('[AI CLOSING COMPLETE] Closing flow complete');
+                        callState = 'closed';
+                      } catch (error) {
+                        console.log('[AI CLOSING FAILED] Error during hangup:', error);
+                      }
+                    }
+                  }, 1000); // 1 second buffer
                 }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
@@ -5140,6 +5097,29 @@ async function sendAIConfirmationSMS(
       callSid,
       callerPhone
     });
+
+    // Check for duplicate SMS to prevent multiple sends
+    const { data: existingSms, error: smsCheckError } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('message_type', 'sms')
+      .eq('sender', 'business')
+      .eq('direction', 'outbound')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingSms) {
+      console.log('[AI POST CALL SMS ALREADY SENT SKIP] SMS already sent for this conversation', {
+        conversationId,
+        existingSmsId: existingSms.id
+      });
+      return;
+    }
+
+    if (smsCheckError && smsCheckError.code !== 'PGRST116') {
+      console.error('[AI CONFIRMATION SMS ERROR] Error checking for duplicate SMS:', smsCheckError);
+    }
 
     // Fetch business name
     const { data: business, error: businessError } = await supabase
