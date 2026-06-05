@@ -3578,6 +3578,14 @@ Do NOT:
                         }
                       };
 
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'ISSUE_DESCRIPTION_FOLLOWUP',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'not_applicable',
+                        intakeComplete: intakeComplete,
+                        instructions: 'Say exactly: "Could you tell me a little more about the issue or project?"'.substring(0, 200)
+                      });
+
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(followUpPayload));
                         console.log('[AI NEXT QUESTION SELECTED] Could you tell me a little more about the issue or project?');
@@ -3612,6 +3620,14 @@ Do NOT:
                           }
                         };
 
+                        console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                          label: 'MISSING_FIELD_FOLLOWUP',
+                          currentStage: intakeData?.stage || 'unknown',
+                          nextStage: 'not_applicable',
+                          intakeComplete: intakeComplete,
+                          instructions: `Say exactly: "${followUpResponse.response}"`.substring(0, 200)
+                        });
+
                         if (openAiWs) {
                           openAiWs.send(JSON.stringify(followUpPayload));
                           console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpResponse.response });
@@ -3644,6 +3660,14 @@ Do NOT:
                         }
                       };
 
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'FINAL_CLOSING',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'complete',
+                        intakeComplete: intakeComplete,
+                        instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`.substring(0, 200)
+                      });
+
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(finalClosingMessage));
                         console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
@@ -3671,7 +3695,15 @@ Do NOT:
                           instructions: 'Say exactly: "I apologize. Let me try again. Could you please confirm if the information I provided is correct?"'
                         }
                       };
-                      
+
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'CONFIRMATION_REJECTED_CLARIFICATION',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'not_applicable',
+                        intakeComplete: intakeComplete,
+                        instructions: 'Say exactly: "I apologize. Let me try again. Could you please confirm if the information I provided is correct?"'.substring(0, 200)
+                      });
+
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(clarificationMessage));
                         console.log('[CONFIRMATION REJECTED] Clarification message sent');
@@ -3687,7 +3719,15 @@ Do NOT:
                           instructions: 'Say exactly: "I apologize. Could you please confirm if the information I provided is correct? Please say yes or no."'
                         }
                       };
-                      
+
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'CONFIRMATION_UNCLEAR_CLARIFICATION',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'not_applicable',
+                        intakeComplete: intakeComplete,
+                        instructions: 'Say exactly: "I apologize. Could you please confirm if the information I provided is correct? Please say yes or no."'.substring(0, 200)
+                      });
+
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(clarificationMessage));
                         console.log('[CONFIRMATION UNCLEAR] Clarification message sent');
@@ -3740,7 +3780,15 @@ Do NOT:
                         instructions: `Say exactly: "${responseToSend}"`
                       }
                     };
-                    
+
+                    console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                      label: 'CONFIRMATION_SUMMARY',
+                      currentStage: intakeData?.stage || 'unknown',
+                      nextStage: intakeResponse.nextStage,
+                      intakeComplete: intakeComplete,
+                      instructions: `Say exactly: "${responseToSend}"`.substring(0, 200)
+                    });
+
                     if (openAiWs) {
                       openAiWs.send(JSON.stringify(confirmationPayload));
                       console.log('[CONFIRMATION SUMMARY SENT VIA RESPONSE.CREATE]', { text: responseToSend });
@@ -3832,6 +3880,14 @@ Do NOT:
                     }
                   };
 
+                  console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                    label: 'CONFIRMATION_QUESTION',
+                    currentStage: intakeData?.stage || 'unknown',
+                    nextStage: 'not_applicable',
+                    intakeComplete: intakeComplete,
+                    instructions: 'Say exactly: "Is this correct?"'.substring(0, 200)
+                  });
+
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify(confirmationQuestionPayload));
                     console.log('[AI CONFIRMATION QUESTION SENT] Confirmation question sent via response.create');
@@ -3914,6 +3970,13 @@ Do NOT:
                       instructions: exactInstruction,
                     },
                   };
+                  console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                    label: 'GREETING',
+                    currentStage: intakeData?.stage || 'not_started',
+                    nextStage: 'not_applicable',
+                    intakeComplete: intakeComplete,
+                    instructions: exactInstruction.substring(0, 200)
+                  });
                   console.log('[FINAL GREETING TEXT]', greetingText);
                   console.log('[FINAL BUSINESS NAME]', businessName || 'we');
                   console.log('[GREETING EXACT MODE]', exactInstruction);
