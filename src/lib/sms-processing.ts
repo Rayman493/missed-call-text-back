@@ -419,7 +419,47 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     }
   }
   
-  // Return success response
+  // Send auto-acknowledgment via sendSms for database persistence
+  if (source === 'twilio') {
+    console.log('[AUTO ACK EXACT PATH HIT]', {
+      leadId: lead.id,
+      conversationId: conversation.id,
+      businessId: business.id
+    });
+
+    console.log('[AUTO ACK CONVERSATION ID BEFORE SEND]', conversation.id);
+    console.log('[AUTO ACK LEAD ID BEFORE SEND]', lead.id);
+    console.log('[AUTO ACK SEND START]', {
+      toPhone: lead.caller_phone,
+      messageBody: 'Thanks - we received your message.'
+    });
+
+    const ackMessageSid = await sendSms(business, lead.caller_phone, 'Thanks - we received your message.', {
+      lead_id: lead.id,
+      conversation_id: conversation.id,
+    });
+
+    if (ackMessageSid) {
+      console.log('[AUTO ACK TWILIO SENT]', {
+        messageSid: ackMessageSid,
+        leadId: lead.id,
+        conversationId: conversation.id
+      });
+      console.log('[AUTO ACK DB INSERT SUCCESS]', {
+        messageId: ackMessageSid,
+        leadId: lead.id,
+        conversationId: conversation.id
+      });
+    } else {
+      console.error('[AUTO ACK DB INSERT ERROR]', {
+        leadId: lead.id,
+        conversationId: conversation.id,
+        error: 'No message SID returned from sendSms'
+      });
+    }
+  }
+
+  // Return success response without TwiML message (since we already sent via sendSms)
   return {
     success: true,
     lead,
@@ -427,7 +467,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     message,
     twiml: `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Thanks - we received your message.</Message>
 </Response>`
   }
 }
