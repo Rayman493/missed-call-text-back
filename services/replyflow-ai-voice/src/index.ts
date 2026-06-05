@@ -120,6 +120,17 @@ async function testSupabaseConnection() {
   }
 }
 
+// Normalized call context interface
+interface CallContext {
+  businessId: string;
+  callSid: string;
+  sessionId: string;
+  callerPhone: string;
+  businessPhone: string;
+  forwardedFrom: string;
+  callType?: string;
+}
+
 // Intake state machine types
 type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'confirmation' | 'complete';
 
@@ -1524,10 +1535,13 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
   console.log('[AUTO HANGUP START] Starting call termination process');
   
   try {
-    const callSid = (ws as any).callSid;
-    const businessId = (ws as any).businessId;
-    const sessionId = (ws as any).sessionId;
+    const callContext = (ws as any).callContext;
+    const callSid = callContext?.callSid || (ws as any).callSid;
+    const businessId = callContext?.businessId || (ws as any).businessId;
+    const sessionId = callContext?.sessionId || (ws as any).sessionId;
     const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+    
+    console.log('[CALL CONTEXT USED FOR HANGUP]', { callSid, businessId, sessionId, callContext });
     
     console.log('[AUTO HANGUP CONDITIONS MET] Checking required parameters', {
       hasCallSid: !!callSid,
@@ -1546,7 +1560,8 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
         wsProperties: Object.getOwnPropertyNames(ws),
         wsCallSid: (ws as any).callSid,
         wsBusinessId: (ws as any).businessId,
-        wsSessionId: (ws as any).sessionId
+        wsSessionId: (ws as any).sessionId,
+        wsCallContext: (ws as any).callContext
       });
       return;
     }
@@ -2643,97 +2658,58 @@ Return only JSON, no other text.`;
 
           // Extract call forwarding information from Twilio start event
           const callInfo = message.start || {};
+          const customParams = callInfo.customParameters || {};
           
           // Log raw call info for debugging
           console.log('[TWILIO START DEBUG] callInfo:', JSON.stringify(callInfo, null, 2));
-          console.log('[TWILIO START DEBUG] customParameters:', JSON.stringify(callInfo.customParameters, null, 2));
+          console.log('[TWILIO START DEBUG] customParameters:', JSON.stringify(customParams, null, 2));
           
-          const forwardedFrom = callInfo.customParameters?.ForwardedFrom || req.headers['x-forwarded-from'] || '';
-          const called = callInfo.customParameters?.Called || callInfo.callSid || '';
-          const to = callInfo.customParameters?.To || '';
-          const from = callInfo.customParameters?.From || callInfo.from || '';
+          // Create normalized callContext immediately
+          const params = customParams || {};
+          const callContext: CallContext = {
+            businessId: params.businessId || '',
+            callSid: params.callSid || callInfo.callSid || '',
+            sessionId: params.sessionId || '',
+            callerPhone: params.callerPhone || callInfo.from || '',
+            businessPhone: params.called || params.to || '',
+            forwardedFrom: params.forwardedFrom || req.headers['x-forwarded-from'] || '',
+            callType: params.callType
+          };
           
-          // Store forwardedFrom for ingestion
-          (ws as any).forwardedFrom = forwardedFrom;
+          console.log('[CALL CONTEXT NORMALIZED]', callContext);
           
-          // Determine routing reason
-          let routingReason = 'unknown';
-          if (forwardedFrom) {
-            routingReason = 'forwarded_missed_call';
-            console.log('[Voice] routing_reason: forwarded_missed_call (business missed call, forwarded to ReplyFlow)');
-          } else if (to) {
-            routingReason = 'direct_to_replyflow_number';
-            console.log('[Voice] routing_reason: direct_to_replyflow_number (direct call to ReplyFlow number)');
-          } else {
-            routingReason = 'unknown_source';
-            console.log('[Voice] routing_reason: unknown_source');
+          // Hard fail if required parameters are missing
+          if (!callContext.businessId) {
+            console.error('[CALL CONTEXT REQUIRED FAILED] businessId is missing');
+            console.error('[CALL CONTEXT REQUIRED FAILED] Cannot proceed without businessId');
+            ws.close();
+            return;
+          }
+          if (!callContext.callSid) {
+            console.error('[CALL CONTEXT REQUIRED FAILED] callSid is missing');
+            console.error('[CALL CONTEXT REQUIRED FAILED] Cannot proceed without callSid');
+            ws.close();
+            return;
           }
           
-          // Log call information
-          console.log('[Voice] ForwardedFrom', { forwardedFrom: forwardedFrom || 'none' });
-          console.log('[Voice] Called', { called });
-          console.log('[Voice] To', { to: to || 'none' });
-          console.log('[Voice] routing_reason', { routingReason });
-
-          const customParams = message.start?.customParameters || {};
-          console.log('[TWILIO CUSTOM PARAMETERS]', {
-            ForwardedFrom: customParams.ForwardedFrom,
-            Called: customParams.Called,
-            To: customParams.To,
-            From: customParams.From,
-            sessionId: customParams.sessionId,
-            businessId: customParams.businessId,
-            callSid: customParams.callSid,
-            callerPhone: customParams.callerPhone
-          });
-          log(LogLevel.INFO, '[AI POC] received custom parameters', customParams);
-
-          console.log('[TWILIO START EVENT]', {
-            callSid: urlCallSid,
-            businessId: urlBusinessId,
-            sessionId: urlSessionId,
-            from: from,
-            callInfo: callInfo,
-            customParameters: customParams
-          });
-
-          // Log parameter extraction for debugging
-          console.log('[PARAM EXTRACTION DEBUG] urlSessionId:', urlSessionId);
-          console.log('[PARAM EXTRACTION DEBUG] urlBusinessId:', urlBusinessId);
-          console.log('[PARAM EXTRACTION DEBUG] urlCallSid:', urlCallSid);
-          console.log('[PARAM EXTRACTION DEBUG] customParams.sessionId:', customParams.sessionId);
-          console.log('[PARAM EXTRACTION DEBUG] customParams.businessId:', customParams.businessId);
-          console.log('[PARAM EXTRACTION DEBUG] customParams.callSid:', customParams.callSid);
-          console.log('[PARAM EXTRACTION DEBUG] customParams.callerPhone:', customParams.callerPhone);
-          console.log('[PARAM EXTRACTION DEBUG] callInfo.caller:', callInfo.caller);
-          console.log('[PARAM EXTRACTION DEBUG] from:', from);
-
-          const sessionId = customParams.sessionId || urlSessionId;
-          const callSid = customParams.callSid || urlCallSid;
-          const businessId = customParams.businessId || urlBusinessId;
-          const callerPhone = customParams.callerPhone || from || callInfo.caller || '';
-
-          // Set session variables for ingestion
-          (ws as any).sessionId = sessionId;
-          (ws as any).businessId = businessId;
-          (ws as any).callSid = callSid;
-          (ws as any).callerPhone = callerPhone;
+          console.log('[CALL CONTEXT REQUIRED OK] businessId and callSid present');
           
-          console.log('[AI SESSION CONTEXT CREATED]', {
-            sessionId: sessionId,
-            businessId: businessId,
-            callSid: callSid,
-            callerPhone: callerPhone,
-            forwardedFrom: forwardedFrom
-          });
-
-          // Log final extracted values
-          console.log('[FINAL PARAMS] sessionId:', sessionId);
-          console.log('[FINAL PARAMS] businessId:', businessId);
-          console.log('[FINAL PARAMS] callSid:', callSid);
-          console.log('[FINAL PARAMS] callerPhone:', callerPhone);
-
-          log(LogLevel.INFO, '[AI POC] parsed parameters', { sessionId, callSid, businessId, callerPhone });
+          // Store callContext on ws for use throughout the call
+          (ws as any).callContext = callContext;
+          (ws as any).businessId = callContext.businessId;
+          (ws as any).callSid = callContext.callSid;
+          (ws as any).sessionId = callContext.sessionId;
+          (ws as any).callerPhone = callContext.callerPhone;
+          (ws as any).forwardedFrom = callContext.forwardedFrom;
+          
+          // Update local variables for backward compatibility
+          sessionId = callContext.sessionId;
+          businessId = callContext.businessId;
+          callSid = callContext.callSid;
+          callerPhone = callContext.callerPhone;
+          forwardedFrom = callContext.forwardedFrom;
+          
+          console.log('[CALL CONTEXT USED FOR BUSINESS LOOKUP]', { businessId: callContext.businessId });
 
           // Fetch business data if businessId is available
           let businessName: string | null = null;
