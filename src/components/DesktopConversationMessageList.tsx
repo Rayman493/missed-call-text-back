@@ -39,6 +39,24 @@ export default function DesktopConversationMessageList({
   return (
     <div className="space-y-6 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
+        // Handle system events
+        if (item.type === 'system_event') {
+          const event = item.data
+          return (
+            <div key={item.id} className="flex items-center justify-center my-6">
+              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  {event.message}
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500">
+                  {formatRelativeTime(event.timestamp)}
+                </span>
+              </div>
+            </div>
+          )
+        }
+
         // Handle voicemail items - always render with full audio player for desktop
         if (item.type === 'voicemail') {
           const voicemail = item.data

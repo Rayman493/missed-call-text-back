@@ -263,6 +263,65 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const conversationTimeline = useMemo(() => {
     const messages = allMessages || []
     const voicemails = leadData?.voicemailRecordings || []
+    const systemEvents: any[] = []
+    
+    // Add AI Intake Completed event
+    if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
+      const latestAiCall = leadData.aiCallRecords[0]
+      systemEvents.push({
+        type: 'system_event',
+        id: `ai-intake-${latestAiCall.id}`,
+        created_at: latestAiCall.created_at,
+        data: {
+          message: 'AI Intake Completed',
+          timestamp: latestAiCall.created_at
+        }
+      })
+    }
+    
+    // Add Customer Corrected Address event
+    if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
+      const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.updated_at
+      systemEvents.push({
+        type: 'system_event',
+        id: `correction-${leadData.id}`,
+        created_at: correctionTimestamp,
+        data: {
+          message: 'Customer Updated Information',
+          timestamp: correctionTimestamp
+        }
+      })
+    }
+    
+    // Add Follow-Ups Cancelled event
+    const cancelledFollowUps = leadData?.followUpJobs?.filter((job: any) => job.status === 'cancelled')
+    if (cancelledFollowUps && cancelledFollowUps.length > 0) {
+      const latestCancelled = cancelledFollowUps[0]
+      systemEvents.push({
+        type: 'system_event',
+        id: `followups-cancelled-${latestCancelled.id}`,
+        created_at: latestCancelled.created_at,
+        data: {
+          message: latestCancelled.cancelled_reason === 'customer_replied' 
+            ? 'Follow-Ups Cancelled (Customer Replied)' 
+            : 'Follow-Ups Cancelled',
+          timestamp: latestCancelled.created_at
+        }
+      })
+    }
+    
+    // Add Lead Marked Complete event
+    if (leadData?.status === 'completed') {
+      systemEvents.push({
+        type: 'system_event',
+        id: `lead-complete-${leadData.id}`,
+        created_at: leadData.updated_at,
+        data: {
+          message: 'Lead Marked Complete',
+          timestamp: leadData.updated_at
+        }
+      })
+    }
     
     // Convert voicemails to timeline items
     const voicemailItems = voicemails.map((voicemail: any) => ({
@@ -281,12 +340,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }))
     
     // Combine and sort chronologically
-    const timeline = [...messageItems, ...voicemailItems].sort((a, b) => 
+    const timeline = [...messageItems, ...voicemailItems, ...systemEvents].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
     
     return timeline
-  }, [allMessages, leadData?.voicemailRecordings])
+  }, [allMessages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.updated_at, leadData?.id])
   
   const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
