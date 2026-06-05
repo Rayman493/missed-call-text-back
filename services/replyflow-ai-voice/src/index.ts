@@ -283,13 +283,13 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if name was captured
       if (intake.customerName && intake.customerName.length > 1) {
         return {
-          response: 'What can we help you with today?',
-          nextStage: 'ask_service'
+          response: 'What can we help you with today? Could you tell me a little more about the issue?',
+          nextStage: 'ask_issue'
         };
       }
       // Ask for name again if not captured
       return {
-        response: 'May I have your name?',
+        response: 'May I have your name and reason for calling?',
         nextStage: 'ask_name'
       };
 
@@ -339,8 +339,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if callback time was captured
       if (intake.callbackTime) {
         return {
-          response: 'Is this urgent, or can it wait until later?',
-          nextStage: 'ask_urgency'
+          response: 'Is this the best number to reach you at, or is there another number?',
+          nextStage: 'ask_callback_number'
         };
       }
       // Ask for callback time again if not captured
@@ -359,7 +359,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       // Ask for urgency again if not captured
       return {
-        response: 'Is this urgent, or can it wait until later?',
+        response: 'Is this urgent or time-sensitive?',
         nextStage: 'ask_urgency'
       };
 
