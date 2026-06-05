@@ -194,9 +194,9 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   if (!intake.customerName) missing.push('customer name');
   if (!intake.serviceRequested) missing.push('service requested');
   if (!intake.issueDescription) missing.push('issue description');
+  if (!intake.urgency) missing.push('urgency');
   if (!intake.serviceAddress) missing.push('service address');
   if (!intake.callbackTime) missing.push('callback time');
-  if (!intake.urgency) missing.push('urgency');
   if (!intake.callbackNumber) missing.push('callback number');
   return missing;
 }
@@ -258,7 +258,7 @@ This is ${urgency}.
 
 The best number to reach you is ${callbackNumber}.
 
-Is that correct?`;
+Is this correct?`;
 
   console.log('[AI FINAL CONFIRMATION READY]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
@@ -535,7 +535,7 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
       };
     case 'urgency':
       return {
-        response: 'Is this urgent, or can it wait until later?',
+        response: 'Is this urgent or time-sensitive?',
         nextStage: 'ask_address'
       };
     case 'service address':
@@ -3193,9 +3193,9 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 - Reason for calling (required)
 - Caller name (required)
 - Additional details about the issue or project (required)
+- Whether it is urgent or time-sensitive (required)
 - Address or service location (required - if caller declines, mark as "Not provided")
 - Best time to call back (required - if caller says anytime/no preference, mark as "Anytime")
-- Whether it is urgent or time-sensitive (required - if caller doesn't know, mark as "Not specified")
 - Best callback number (required - even if caller ID exists, ask: "Is this the best number to reach you at, or is there another number?")
 
 YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
@@ -3203,7 +3203,7 @@ YOU MUST collect all 7 required fields before finalizing. Do not end the call ea
 CALL ENDING SEQUENCE:
 Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're calling about [reason]. Additional details: [additional_details]. The work location is [location]. The best time to call you back is [callback_time]. This is [urgency]. The best number to reach you is [callback_number]. Is that correct?"
+1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're calling about [reason]. Additional details: [additional_details]. The work location is [location]. The best time to call you back is [callback_time]. This is [urgency]. The best number to reach you is [callback_number]. Is this correct?"
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
