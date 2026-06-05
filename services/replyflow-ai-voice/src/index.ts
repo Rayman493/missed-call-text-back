@@ -1619,12 +1619,11 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-// Close call after confirmation function
-async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs: any) {
-  console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Starting deterministic closing sequence');
+// Send final goodbye and hangup deterministically
+async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
+  console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
   
   // Set closing state immediately
-  const callState = (ws as any).callState;
   (ws as any).callState = 'closing';
   (twilioHandler as any).callState = 'closing';
   (ws as any).terminalClosingResponseStarted = true;
@@ -1644,20 +1643,32 @@ async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs:
 
   if (openAiWs) {
     openAiWs.send(JSON.stringify(finalClosingMessage));
-    console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
+    console.log('[AI FINAL GOODBYE SENT] Final closing message sent to OpenAI');
   }
 
-  // Immediately schedule hangup timer
+  // Wait 1500ms for audio to play, then hangup
   const hangupScheduled = (ws as any).hangupScheduled;
   if (!hangupScheduled) {
-    console.log('[AI HANGUP TIMER SCHEDULED] Scheduling hangup after 1500ms');
+    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 1500ms for audio playback');
     (ws as any).hangupScheduled = true;
     (twilioHandler as any).hangupScheduled = true;
     
     setTimeout(async () => {
-      await endCallCleanly(ws, twilioHandler);
+      console.log('[TWILIO HANGUP ATTEMPT] Audio buffer complete, executing hangup');
+      try {
+        await endCallCleanly(ws, twilioHandler);
+        console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully');
+      } catch (error) {
+        console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
+      }
     }, 1500); // 1500ms buffer
   }
+}
+
+// Close call after confirmation function
+async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs: any) {
+  console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Calling deterministic goodbye and hangup');
+  sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
 }
 
 // Clean call ending function
@@ -3063,11 +3074,6 @@ Return only JSON, no other text.`;
             let streamReady = false;
             const audioBuffer: Buffer[] = [];
             
-            // Confirmation timeout fallback
-            let confirmationAskedAt: number | null = null;
-            let confirmationTimeoutTimer: NodeJS.Timeout | null = null;
-            let waitingForConfirmation: boolean = false;
-            
             // Phase 2: Dead Air Protection (3-second timeout)
             const deadAirTimeout = setTimeout(async () => {
               console.log('[DEAD AIR DEBUG]', { audioReceived, mediaPacketCount, openAiReady: !!openAiWs, sessionReady: streamReady });
@@ -3375,20 +3381,11 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
-                    waitingForConfirmation, 
                     transcript: userTranscript 
                   });
                   
-                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
-                  if (waitingForConfirmation) {
-                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
-                    waitingForConfirmation = false; // Prevent multiple triggers
-                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                    return; // Skip all other processing
-                  }
-                  
                   // Check for confirmation phrases and intercept immediately
-                  if (waitingForConfirmation && userTranscript) {
+                  if (currentStage === 'confirmation' && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
                     const isConfirmation = confirmationPhrases.some(phrase => 
                       userTranscript.toLowerCase().includes(phrase)
@@ -3396,8 +3393,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.created');
-                      waitingForConfirmation = false; // Prevent multiple triggers
-                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
                   }
@@ -3420,20 +3416,11 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
-                    waitingForConfirmation, 
                     transcript: userTranscript 
                   });
                   
-                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
-                  if (waitingForConfirmation) {
-                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
-                    waitingForConfirmation = false; // Prevent multiple triggers
-                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                    return; // Skip all other processing
-                  }
-                  
                   // Check for confirmation phrases and intercept immediately
-                  if (waitingForConfirmation && userTranscript) {
+                  if (currentStage === 'confirmation' && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
                     const isConfirmation = confirmationPhrases.some(phrase => 
                       userTranscript.toLowerCase().includes(phrase)
@@ -3441,8 +3428,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.done');
-                      waitingForConfirmation = false; // Prevent multiple triggers
-                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
                   }
@@ -3465,20 +3451,11 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
-                    waitingForConfirmation, 
                     transcript: userTranscript 
                   });
                   
-                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
-                  if (waitingForConfirmation) {
-                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
-                    waitingForConfirmation = false; // Prevent multiple triggers
-                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                    return; // Skip all other processing
-                  }
-                  
                   // Check for confirmation phrases and intercept immediately
-                  if (waitingForConfirmation && userTranscript) {
+                  if (currentStage === 'confirmation' && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
                     const isConfirmation = confirmationPhrases.some(phrase => 
                       userTranscript.toLowerCase().includes(phrase)
@@ -3486,8 +3463,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.completed');
-                      waitingForConfirmation = false; // Prevent multiple triggers
-                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
                   }
@@ -3516,20 +3492,11 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
-                    waitingForConfirmation, 
                     transcript: userTranscript 
                   });
                   
-                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
-                  if (waitingForConfirmation) {
-                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
-                    waitingForConfirmation = false; // Prevent multiple triggers
-                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                    return; // Skip all other processing
-                  }
-                  
                   // Check for confirmation phrases and intercept immediately
-                  if (waitingForConfirmation) {
+                  if (currentStage === 'confirmation' && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
                     const isConfirmation = confirmationPhrases.some(phrase => 
                       userTranscript.toLowerCase().includes(phrase)
@@ -3537,8 +3504,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at transcript handler');
-                      waitingForConfirmation = false; // Prevent multiple triggers
-                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
                   }
@@ -3742,26 +3708,6 @@ Do NOT:
 
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
-                  
-                  // When confirmation message is sent, start the timer
-                  if (intakeResponse.nextStage === 'confirmation' || intakeResponse.nextStage === 'complete') {
-                    // Set stage to 'confirmation' so the timer can check it
-                    intakeData!.stage = 'confirmation';
-                    waitingForConfirmation = true;
-                    console.log('[AI FINAL CONFIRMATION SENT] Final confirmation summary sent to caller');
-                    console.log('[AI CONFIRMATION TIMER STARTED] Scheduling 20 second fallback timer');
-                    confirmationAskedAt = Date.now();
-                    if (confirmationTimeoutTimer) {
-                      clearTimeout(confirmationTimeoutTimer);
-                    }
-                    confirmationTimeoutTimer = setTimeout(() => {
-                      if (waitingForConfirmation && callState !== 'closing') {
-                        console.log('[AI CONFIRMATION TIMEOUT FALLBACK CLOSING] 20 second timeout reached, closing call');
-                        waitingForConfirmation = false; // Prevent multiple triggers
-                        closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                      }
-                    }, 20000); // 20 second timeout
-                  }
                   
                   // Runtime guard: DO NOT allow final goodbye without confirmation
                   if (intakeData!.stage === 'complete' && !hangupScheduled) {
@@ -3991,43 +3937,10 @@ Do NOT:
                 if (intakeComplete && !finalClosingStarted && callState === 'active') {
                   console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
                   console.log('[AI TERMINAL CLOSING START] callState: active -> closing');
-
-                  callState = 'closing';
-                  (twilioHandler as any).callState = callState;
-                  terminalClosingResponseStarted = true;
-                  (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
-                  assistantSpeaking = true;
-                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-                  finalClosingStarted = true;
-
-                  // Send final closing message
-                  const finalClosingMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
-                    }
-                  };
-
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(finalClosingMessage));
-                    console.log('[AI FINAL GOODBYE SENT] Final closing message sent to OpenAI');
-                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
-                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] callState: closing');
-                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] terminalClosingResponseStarted: true');
-                    
-                    // Immediately schedule hangup after sending final goodbye (deterministic)
-                    // No need to wait for next response.done
-                    if (!hangupScheduled) {
-                      console.log('[AI TERMINAL CLOSING AUDIO DONE] Final goodbye sent, scheduling hangup after 1500ms buffer');
-                      console.log('[AI FINAL AUDIO DONE] Final goodbye audio completed, initiating hangup');
-                      hangupScheduled = true;
-                      (twilioHandler as any).hangupScheduled = hangupScheduled;
-                      
-                      setTimeout(async () => {
-                        await endCallCleanly(ws, twilioHandler);
-                      }, 1500); // 1500ms buffer
-                    }
-                  }
+                  
+                  // Use the deterministic goodbye and hangup function
+                  sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
+                  return;
                 }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
