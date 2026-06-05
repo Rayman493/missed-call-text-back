@@ -121,7 +121,7 @@ async function testSupabaseConnection() {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_reason' | 'ask_name' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'confirmation' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -149,12 +149,12 @@ interface AISessionStateTracker {
 
 interface IntakeData {
   stage: IntakeStage;
-  callerName?: string;
-  callerReason?: string;
-  callbackNumber?: string;
+  customerName?: string;
+  serviceRequested?: string;
+  issueDescription?: string;
+  serviceAddress?: string;
+  callbackTime?: string;
   urgency?: 'urgent' | 'normal' | 'not_specified';
-  addressOrLocation?: string;
-  preferredCallbackTime?: string;
   businessName: string;
   callSid: string;
   businessId: string;
@@ -179,18 +179,18 @@ interface LeadSummary {
 // Intake state machine functions
 function getMissingRequiredFields(intake: IntakeData): string[] {
   const missing: string[] = [];
-  if (!intake.callerName) missing.push('name');
-  // Phone is usually from caller ID, so we don't require it to be explicitly asked
-  if (!intake.callerReason) missing.push('reason for calling');
-  if (!intake.addressOrLocation) missing.push('address or location');
-  if (!intake.preferredCallbackTime) missing.push('preferred callback time');
+  if (!intake.customerName) missing.push('customer name');
+  if (!intake.serviceRequested) missing.push('service requested');
+  if (!intake.issueDescription) missing.push('issue description');
+  if (!intake.serviceAddress) missing.push('service address');
+  if (!intake.callbackTime) missing.push('callback time');
   if (!intake.urgency) missing.push('urgency');
   return missing;
 }
 
 function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
   return {
-    stage: 'ask_reason',
+    stage: 'ask_name',
     businessName,
     callSid,
     businessId,
@@ -201,29 +201,32 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 
 function generateConfirmationMessage(intake: IntakeData): string {
   console.log('[CONFIRMATION DATA] Creating confirmation message with collected data:', {
-    callerName: intake.callerName,
-    callerReason: intake.callerReason,
-    addressOrLocation: intake.addressOrLocation,
-    preferredCallbackTime: intake.preferredCallbackTime,
-    urgency: intake.urgency,
-    callbackNumber: intake.callbackNumber
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    callbackTime: intake.callbackTime,
+    urgency: intake.urgency
   });
 
-  const name = intake.callerName || 'there';
-  const reason = intake.callerReason || 'your inquiry';
-  const location = intake.addressOrLocation || 'not specified';
-  const callbackTime = intake.preferredCallbackTime || 'anytime';
+  const name = intake.customerName || 'there';
+  const service = intake.serviceRequested || 'your inquiry';
+  const issue = intake.issueDescription || 'not specified';
+  const location = intake.serviceAddress || 'not specified';
+  const callbackTime = intake.callbackTime || 'anytime';
   const urgency = intake.urgency === 'urgent' ? 'urgent' : (intake.urgency === 'normal' ? 'not urgent' : 'not specified');
 
-  console.log('[CONFIRMATION INCLUDES_ADDRESS]', { hasAddress: !!intake.addressOrLocation, value: intake.addressOrLocation || 'not specified' });
-  console.log('[CONFIRMATION INCLUDES_CALLBACK_TIME]', { hasCallbackTime: !!intake.preferredCallbackTime, value: intake.preferredCallbackTime || 'anytime' });
+  console.log('[CONFIRMATION INCLUDES_ADDRESS]', { hasAddress: !!intake.serviceAddress, value: intake.serviceAddress || 'not specified' });
+  console.log('[CONFIRMATION INCLUDES_CALLBACK_TIME]', { hasCallbackTime: !!intake.callbackTime, value: intake.callbackTime || 'anytime' });
   console.log('[CONFIRMATION INCLUDES_URGENCY]', { hasUrgency: !!intake.urgency, value: intake.urgency || 'not specified' });
 
   const confirmation = `Let me confirm I have everything correct.
 
 Your name is ${name}.
 
-You're looking for help with ${reason}.
+You're looking for help with ${service}.
+
+The issue is: ${issue}.
 
 The work location is ${location}.
 
@@ -241,55 +244,60 @@ Is that correct?`;
 
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
   console.log('[AI INTAKE STAGE] current stage:', intake.stage);
-  
+
+  // Extract multiple answers from single response
+  if (transcript) {
+    extractMultipleAnswers(intake, transcript);
+  }
+
+  // Determine next question based on missing fields
+  const missingFields = getMissingRequiredFields(intake);
+  console.log('[AI INTAKE] Missing fields:', missingFields);
+
   switch (intake.stage) {
-    case 'ask_reason':
-      return {
-        response: `Sorry we missed your call for ${intake.businessName}. Could you briefly let me know the reason for your call?`,
-        nextStage: 'ask_name'
-      };
-      
     case 'ask_name':
-      if (transcript) {
-        intake.callerName = extractName(transcript);
-        console.log('[AI NAME CAPTURED]', intake.callerName);
-      }
       return {
-        response: 'Thanks. Can I get your name?',
+        response: 'May I have your name?',
+        nextStage: 'ask_service'
+      };
+
+    case 'ask_service':
+      return {
+        response: 'What can we help you with today?',
+        nextStage: 'ask_issue'
+      };
+
+    case 'ask_issue':
+      return {
+        response: 'Could you tell me a little more about the issue?',
         nextStage: 'ask_address'
       };
-      
+
     case 'ask_address':
-      if (transcript) {
-        intake.addressOrLocation = transcript.trim();
-        console.log('[AI ADDRESS CAPTURED]', intake.addressOrLocation);
-      }
       return {
-        response: 'Thanks. What\'s the address or area where the work is needed?',
+        response: 'What is the service address or location?',
         nextStage: 'ask_callback_time'
       };
-      
+
     case 'ask_callback_time':
-      if (transcript) {
-        intake.preferredCallbackTime = transcript.trim();
-        console.log('[AI CALLBACK TIME CAPTURED]', intake.preferredCallbackTime);
-      }
       return {
-        response: 'Got it. What\'s a good time for someone to call you back?',
+        response: 'What is the best time for someone to follow up with you?',
         nextStage: 'ask_urgency'
       };
-      
+
     case 'ask_urgency':
-      if (transcript) {
-        intake.urgency = extractUrgency(transcript);
-        console.log('[AI URGENCY CAPTURED]', intake.urgency);
-      }
       return {
-        response: 'Is this urgent or can someone follow up later today?',
+        response: 'Is this urgent, or can it wait until later?',
         nextStage: 'confirmation'
       };
-      
+
     case 'confirmation':
+      // Check if all required fields are collected
+      if (missingFields.length > 0) {
+        console.log('[INTAKE INCOMPLETE] Missing fields before confirmation:', missingFields);
+        // Ask for the first missing field
+        return getResponseForMissingField(missingFields[0], intake);
+      }
       // Generate confirmation message with collected information
       const confirmationMessage = generateConfirmationMessage(intake);
       console.log('[CONFIRMATION RESPONSE SENT] Sending confirmation message to caller');
@@ -298,16 +306,99 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         response: confirmationMessage,
         nextStage: 'complete'
       };
-      
+
     case 'complete':
       return {
         response: 'Perfect. I\'ll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day.',
         nextStage: 'complete'
       };
-      
+
     default:
       return {
         response: 'Sorry, could you repeat that?',
+        nextStage: intake.stage
+      };
+  }
+}
+
+// Helper function to extract multiple answers from single response
+function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
+  const lowerTranscript = transcript.toLowerCase().trim();
+
+  // Extract name if not already captured
+  if (!intake.customerName) {
+    const name = extractName(transcript);
+    if (name && name.length > 1) {
+      intake.customerName = name;
+      console.log('[AI NAME CAPTURED]', intake.customerName);
+    }
+  }
+
+  // Extract service requested (simple keyword matching)
+  if (!intake.serviceRequested) {
+    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal'];
+    const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
+    if (foundService) {
+      intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
+      console.log('[AI SERVICE CAPTURED]', intake.serviceRequested);
+    }
+  }
+
+  // Extract urgency if not already captured
+  if (!intake.urgency) {
+    const urgency = extractUrgency(transcript);
+    if (urgency !== 'not_specified') {
+      intake.urgency = urgency;
+      console.log('[AI URGENCY CAPTURED]', intake.urgency);
+    }
+  }
+
+  // If the transcript is substantial, use it as issue description if not already captured
+  if (!intake.issueDescription && transcript.trim().length > 10) {
+    // Use the transcript as issue description if it doesn't look like a simple answer
+    if (transcript.trim().length > 20) {
+      intake.issueDescription = transcript.trim();
+      console.log('[AI ISSUE DESCRIPTION CAPTURED]', intake.issueDescription);
+    }
+  }
+}
+
+// Helper function to get response for missing field
+function getResponseForMissingField(missingField: string, intake: IntakeData): { response: string; nextStage: IntakeStage } {
+  switch (missingField) {
+    case 'customer name':
+      return {
+        response: 'May I have your name?',
+        nextStage: 'ask_service'
+      };
+    case 'service requested':
+      return {
+        response: 'What can we help you with today?',
+        nextStage: 'ask_issue'
+      };
+    case 'issue description':
+      return {
+        response: 'Could you tell me a little more about the issue?',
+        nextStage: 'ask_address'
+      };
+    case 'service address':
+      return {
+        response: 'What is the service address or location?',
+        nextStage: 'ask_callback_time'
+      };
+    case 'callback time':
+      return {
+        response: 'What is the best time for someone to follow up with you?',
+        nextStage: 'ask_urgency'
+      };
+    case 'urgency':
+      return {
+        response: 'Is this urgent, or can it wait until later?',
+        nextStage: 'confirmation'
+      };
+    default:
+      return {
+        response: 'Could you please provide more details?',
         nextStage: intake.stage
       };
   }
@@ -996,13 +1087,15 @@ function recordAIFailure(tracker: AISessionStateTracker, failureStage: string, f
 }
 
 function generateLeadSummary(intake: IntakeData): LeadSummary {
-  const summary = `${intake.callerName || 'Caller'} called about ${intake.callerReason || 'general inquiry'}. ${intake.urgency === 'urgent' ? 'URGENT: ' : ''}Callback requested at ${intake.callbackNumber || 'number on file'}.`;
-  
+  const summary = `${intake.customerName || 'Caller'} called about ${intake.serviceRequested || 'general inquiry'}. Issue: ${intake.issueDescription || 'not specified'}. Location: ${intake.serviceAddress || 'not specified'}. ${intake.urgency === 'urgent' ? 'URGENT: ' : ''}Callback requested at ${intake.callbackTime || 'anytime'}.`;
+
   return {
-    callerName: intake.callerName,
-    callbackNumber: intake.callbackNumber,
-    reason: intake.callerReason,
+    callerName: intake.customerName,
+    callbackNumber: undefined,
+    reason: intake.serviceRequested,
     urgency: intake.urgency || 'normal',
+    addressOrLocation: intake.serviceAddress,
+    preferredCallbackTime: intake.callbackTime,
     summary,
     timestamp: new Date().toISOString(),
     callSid: intake.callSid,
@@ -3165,49 +3258,38 @@ Do NOT:
                   // Special handling for confirmation stage
                   if (intakeData!.stage === 'confirmation' && userTranscript) {
                     console.log('[CONFIRMATION REQUIRED] Processing user response for confirmation:', userTranscript);
-                    
+
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
-                      
+
                       // Check if all required fields are collected
                       const missingFields = getMissingRequiredFields(intakeData!);
                       if (missingFields.length > 0) {
                         console.log('[MISSING REQUIRED FIELDS]', { missingFields });
                         console.log('[INTAKE INCOMPLETE] Cannot finalize - missing required fields');
-                        
+
                         // Ask for the next missing field
                         const nextMissing = missingFields[0];
-                        let followUpMessage = '';
-                        if (nextMissing === 'address or location') {
-                          followUpMessage = 'Thanks. What\'s the address or area where the work is needed?';
-                        } else if (nextMissing === 'preferred callback time') {
-                          followUpMessage = 'Got it. What\'s a good time for someone to call you back?';
-                        } else if (nextMissing === 'urgency') {
-                          followUpMessage = 'Is this urgent, or is it flexible?';
-                        } else if (nextMissing === 'name') {
-                          followUpMessage = 'Could you please tell me your name?';
-                        } else if (nextMissing === 'reason for calling') {
-                          followUpMessage = 'What can I help you with today?';
-                        }
-                        
+                        const followUpResponse = getResponseForMissingField(nextMissing, intakeData!);
+
                         const followUpPayload = {
                           type: 'response.create',
                           response: {
-                            instructions: `Say exactly: "${followUpMessage}"`
+                            instructions: `Say exactly: "${followUpResponse.response}"`
                           }
                         };
-                        
+
                         if (openAiWs) {
                           openAiWs.send(JSON.stringify(followUpPayload));
-                          console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpMessage });
+                          console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpResponse.response });
                         }
                         return; // Skip normal intake processing
                       }
-                      
+
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
-                      
+
                       // Set state to indicate ready to close, but don't create response yet
                       confirmationAccepted = true;
                       intakeComplete = true;
@@ -3254,24 +3336,9 @@ Do NOT:
                   
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
-                  
-                  // Update intake data based on stage
-                  if (intakeData!.stage === 'ask_name' && userTranscript) {
-                    intakeData!.callerName = extractName(userTranscript);
-                    console.log('[AI NAME CAPTURED]', intakeData!.callerName);
-                  } else if (intakeData!.stage === 'ask_address' && userTranscript) {
-                    intakeData!.addressOrLocation = userTranscript.trim();
-                    console.log('[AI ADDRESS CAPTURED]', intakeData!.addressOrLocation);
-                  } else if (intakeData!.stage === 'ask_callback_time' && userTranscript) {
-                    intakeData!.preferredCallbackTime = userTranscript.trim();
-                    console.log('[AI CALLBACK TIME CAPTURED]', intakeData!.preferredCallbackTime);
-                  } else if (intakeData!.stage === 'ask_urgency' && userTranscript) {
-                    intakeData!.urgency = extractUrgency(userTranscript);
-                    console.log('[AI URGENCY CAPTURED]', intakeData!.urgency);
-                  } else if (intakeData!.stage === 'ask_reason' && userTranscript) {
-                    intakeData!.callerReason = userTranscript;
-                    console.log('[AI REASON CAPTURED]', intakeData!.callerReason);
-                  }
+
+                  // Field extraction is now handled by extractMultipleAnswers in getIntakeResponse
+                  // No need for manual field updates here
                   
                   // Let VAD handle responses naturally after session.updated greeting
                   console.log('[AI INTAKE] VAD will handle response naturally');
