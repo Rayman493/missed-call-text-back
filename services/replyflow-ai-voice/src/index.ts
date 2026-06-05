@@ -311,8 +311,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if issue description was captured and is valid
       if (intake.issueDescription && isValidIssueDescription(intake.issueDescription, intake.serviceRequested)) {
         return {
-          response: 'What is the service address or location?',
-          nextStage: 'ask_address'
+          response: 'Is this urgent or time-sensitive?',
+          nextStage: 'ask_urgency'
         };
       }
       // Ask for issue detail again if not captured or invalid
@@ -353,8 +353,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if urgency was captured
       if (intake.urgency && intake.urgency !== 'not_specified') {
         return {
-          response: 'Is this the best number to reach you at, or is there another number?',
-          nextStage: 'ask_callback_number'
+          response: 'What is the service address or location?',
+          nextStage: 'ask_address'
         };
       }
       // Ask for urgency again if not captured
@@ -531,6 +531,11 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'issue description':
       return {
         response: 'Could you tell me a little more about the issue?',
+        nextStage: 'ask_urgency'
+      };
+    case 'urgency':
+      return {
+        response: 'Is this urgent, or can it wait until later?',
         nextStage: 'ask_address'
       };
     case 'service address':
@@ -541,11 +546,6 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'callback time':
       return {
         response: 'What is the best time for someone to follow up with you?',
-        nextStage: 'ask_urgency'
-      };
-    case 'urgency':
-      return {
-        response: 'Is this urgent, or can it wait until later?',
         nextStage: 'ask_callback_number'
       };
     case 'callback number':
@@ -3092,9 +3092,9 @@ INFORMATION GATHERING PRIORITY ORDER:
 1. Reason for calling (most important - understand the core need)
 2. Caller name (for personalization)
 3. Additional details about the issue or project
-4. Address or service location (where the work is needed)
-5. Best time to call back
-6. Whether it is urgent or time-sensitive
+4. Whether it is urgent or time-sensitive
+5. Address or service location (where the work is needed)
+6. Best time to call back
 7. Best callback number
 
 CALL COMPLETION POLICY:
