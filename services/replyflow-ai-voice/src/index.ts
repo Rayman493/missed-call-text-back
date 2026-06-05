@@ -395,7 +395,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
 
     case 'complete':
       return {
-        response: 'Perfect. I\'ll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day.',
+        response: FINAL_GOODBYE,
         nextStage: 'complete'
       };
 
@@ -1619,9 +1619,13 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+const FINAL_GOODBYE = "Thank you for calling. I'll pass this information along to the business. Have a great day.";
+const FINAL_ENDING_PHRASE = "Have a great day.";
+
 // Schedule hangup only (for when final goodbye was already sent)
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
-  console.log('[AI FINAL PHRASE DETECTED - HANGUP SCHEDULED] Final phrase detected, scheduling hangup');
+  console.log('[AI FINAL GOODBYE COMPLETE] Final goodbye sentence detected');
+  console.log('[AI HANGUP SCHEDULED] Scheduling hangup after 5000ms to ensure audio playback finishes');
   
   // Set closing state
   (ws as any).callState = 'closing';
@@ -1629,10 +1633,10 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
   (ws as any).intakeComplete = true;
   (twilioHandler as any).intakeComplete = true;
   
-  // Wait 1500ms for audio to play, then hangup
+  // Wait 5000ms for audio to play, then hangup
   const hangupScheduled = (ws as any).hangupScheduled;
   if (!hangupScheduled) {
-    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 1500ms for audio playback');
+    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 5000ms for audio playback');
     (ws as any).hangupScheduled = true;
     (twilioHandler as any).hangupScheduled = true;
     
@@ -1644,7 +1648,7 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
       } catch (error) {
         console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
       }
-    }, 1500); // 1500ms buffer
+    }, 5000); // 5000ms buffer
   }
 }
 
@@ -1666,7 +1670,7 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   const finalClosingMessage = {
     type: 'response.create',
     response: {
-      instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
+      instructions: `Say exactly: "${FINAL_GOODBYE}"`
     }
   };
 
@@ -3958,22 +3962,6 @@ Do NOT:
                         item_id: itemId, 
                         final_text: cleanBuffer 
                       });
-                      
-                      // Check for final closing phrases in finalized transcript
-                      const finalClosingPhrases = [
-                        "Have a great day.",
-                        "Thank you for calling. Have a great day.",
-                        "someone will follow up with you shortly.",
-                        "someone will follow up with you soon."
-                      ];
-                      
-                      if (finalClosingPhrases.some(phrase => cleanBuffer.includes(phrase))) {
-                        console.log('[AI FINAL PHRASE DETECTED DONE]', { 
-                          transcript: cleanBuffer,
-                          timestamp: new Date().toISOString()
-                        });
-                        scheduleHangupOnly(ws, twilioHandler);
-                      }
                     }
                   }
                 });
@@ -4059,21 +4047,11 @@ Do NOT:
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
                   
                   // Check for final closing phrases
-                  const finalClosingPhrases = [
-                    "Have a great day.",
-                    "Thank you for calling. Have a great day.",
-                    "someone will follow up with you shortly.",
-                    "someone will follow up with you soon."
-                  ];
-                  
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                   
-                  // Check for final closing phrases - schedule hangup immediately
-                  if (finalClosingPhrases.some(phrase => cleanTranscript.includes(phrase))) {
-                    console.log('[AI FINAL PHRASE DETECTED]', { 
-                      transcript: cleanTranscript,
-                      timestamp: new Date().toISOString()
-                    });
+                  // Check for final closing phrase - schedule hangup immediately
+                  if (cleanTranscript.includes(FINAL_ENDING_PHRASE)) {
+                    console.log('[AI FINAL GOODBYE COMPLETE] Final ending phrase detected in output_audio_transcription.completed');
                     scheduleHangupOnly(ws, twilioHandler);
                   }
                   
@@ -4167,18 +4145,8 @@ Do NOT:
                 
                 // Check for final closing phrases in done
                 if (message.transcript) {
-                  const finalClosingPhrases = [
-                    "Have a great day.",
-                    "Thank you for calling. Have a great day.",
-                    "someone will follow up with you shortly.",
-                    "someone will follow up with you soon."
-                  ];
-                  
-                  if (finalClosingPhrases.some(phrase => message.transcript.includes(phrase))) {
-                    console.log('[AI FINAL PHRASE DETECTED DONE]', { 
-                      transcript: message.transcript,
-                      timestamp: new Date().toISOString()
-                    });
+                  if (message.transcript.includes(FINAL_ENDING_PHRASE)) {
+                    console.log('[AI FINAL GOODBYE COMPLETE] Final ending phrase detected in transcript.done');
                     scheduleHangupOnly(ws, twilioHandler);
                   }
                 }
