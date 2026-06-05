@@ -983,6 +983,71 @@ export const db = {
     return data?.length || 0
   },
 
+  // AI call record operations
+  async getMostRecentAiCallRecordForLead(businessId: string, callerPhone: string): Promise<any | null> {
+    const { data, error } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('caller_phone', callerPhone)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found
+        return null
+      }
+      console.error('Error fetching AI call record:', error)
+      return null
+    }
+    
+    return data
+  },
+
+  async updateAiCallRecordCustomerReply(callRecordId: string, replyBody: string): Promise<any | null> {
+    const now = new Date().toISOString()
+    
+    // First, fetch the current record to get the existing extracted_info
+    const { data: currentRecord, error: fetchError } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('extracted_info')
+      .eq('id', callRecordId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Error fetching AI call record:', fetchError)
+      return null
+    }
+    
+    // Update extracted_info with customer reply data
+    const updatedExtractedInfo = {
+      ...(currentRecord.extracted_info || {}),
+      customer_replied: true,
+      customer_reply_body: replyBody,
+      customer_reply_at: now
+    }
+    
+    // Update the record with the new extracted_info
+    const { data, error } = await supabaseAdmin
+      .from('ai_call_records')
+      .update({
+        extracted_info: updatedExtractedInfo,
+        updated_at: now
+      })
+      .eq('id', callRecordId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error updating AI call record:', error)
+      return null
+    }
+    
+    return data
+  },
+
   // Follow-up Jobs operations
   async createFollowUpJob(job: {
     lead_id: string

@@ -140,17 +140,82 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   } else if (lead) {
     // Update existing lead's status to 'replied' and track reply time
+    console.log('[INBOUND SMS LEAD UPDATE START]', {
+      leadId: lead.id,
+      businessId: business.id,
+      callerPhone: lead.caller_phone
+    })
+
+    const now = new Date().toISOString()
+    const currentRawMetadata = lead.raw_metadata || {}
+
+    // Update lead metadata with customer reply info
+    const updatedRawMetadata = {
+      ...currentRawMetadata,
+      last_customer_reply_at: now,
+      last_customer_reply_body: body,
+      replied_after_ai_call: true
+    }
+
     const updatedLead = await db.updateLead(lead.id, {
       status: 'replied', // Customer replied, so mark as replied
-      last_message_at: new Date().toISOString(),
-      last_reply_at: new Date().toISOString(), // Track when customer replied
+      last_message_at: now,
+      last_reply_at: now, // Track when customer replied
+      raw_metadata: updatedRawMetadata,
+      updated_at: now
     })
-    
+
     if (!updatedLead) {
-      console.error(`[SMS Processing] Failed to update lead`)
+      console.error('[INBOUND SMS LEAD UPDATE ERROR]', {
+        leadId: lead.id,
+        error: 'Failed to update lead'
+      })
     } else {
-      console.log(`[SMS Processing] Updated lead: ${updatedLead.id}`)
+      console.log('[INBOUND SMS LEAD UPDATED]', {
+        leadId: updatedLead.id,
+        status: updatedLead.status,
+        last_customer_reply_at: updatedRawMetadata.last_customer_reply_at,
+        replied_after_ai_call: updatedRawMetadata.replied_after_ai_call
+      })
       lead = updatedLead
+    }
+
+    // Look for AI call record for this lead
+    console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
+      businessId: business.id,
+      callerPhone: normalizedCustomerPhone
+    })
+
+    const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, normalizedCustomerPhone)
+
+    if (aiCallRecord) {
+      console.log('[INBOUND SMS AI CALL RECORD FOUND]', {
+        callRecordId: aiCallRecord.id,
+        leadId: aiCallRecord.lead_id,
+        callSid: aiCallRecord.call_sid
+      })
+
+      // Update AI call record with customer reply info
+      const updatedAiCallRecord = await db.updateAiCallRecordCustomerReply(aiCallRecord.id, body)
+
+      if (updatedAiCallRecord) {
+        console.log('[INBOUND SMS AI CALL RECORD UPDATED]', {
+          callRecordId: updatedAiCallRecord.id,
+          customer_replied: updatedAiCallRecord.extracted_info?.customer_replied,
+          customer_reply_body: updatedAiCallRecord.extracted_info?.customer_reply_body,
+          customer_reply_at: updatedAiCallRecord.extracted_info?.customer_reply_at
+        })
+      } else {
+        console.error('[INBOUND SMS AI CALL RECORD UPDATE ERROR]', {
+          callRecordId: aiCallRecord.id,
+          error: 'Failed to update AI call record'
+        })
+      }
+    } else {
+      console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
+        businessId: business.id,
+        callerPhone: normalizedCustomerPhone
+      })
     }
   }
   
