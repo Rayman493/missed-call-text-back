@@ -336,7 +336,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
 
   // Extract service requested (simple keyword matching)
   if (!intake.serviceRequested) {
-    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal'];
+    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care'];
     const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
     if (foundService) {
       intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
@@ -353,12 +353,22 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     }
   }
 
-  // If the transcript is substantial, use it as issue description if not already captured
-  if (!intake.issueDescription && transcript.trim().length > 10) {
-    // Use the transcript as issue description if it doesn't look like a simple answer
-    if (transcript.trim().length > 20) {
+  // Only set issue description if transcript has substantial detail beyond service category
+  if (!intake.issueDescription && transcript.trim().length > 20) {
+    // Check if this is just a simple service request (don't set issueDescription)
+    const simpleServicePatterns = [
+      /^i need (plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i,
+      /^help with (plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i,
+      /^(plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i
+    ];
+
+    const isSimpleServiceRequest = simpleServicePatterns.some(pattern => pattern.test(transcript.trim()));
+
+    if (!isSimpleServiceRequest) {
       intake.issueDescription = transcript.trim();
       console.log('[AI ISSUE DESCRIPTION CAPTURED]', intake.issueDescription);
+    } else {
+      console.log('[AI ISSUE DESCRIPTION SKIPPED] Simple service request detected, not setting issueDescription');
     }
   }
 }
@@ -370,23 +380,40 @@ function isValidIssueDescription(issueDescription: string, serviceRequested?: st
     return false;
   }
 
-  // Check if it's the same as service requested
-  if (serviceRequested && issueDescription.toLowerCase().trim() === serviceRequested.toLowerCase().trim()) {
-    console.log('[AI ISSUE DESCRIPTION INVALID] Same as service requested');
+  const normalizedIssue = issueDescription.toLowerCase().trim();
+  const normalizedService = serviceRequested ? serviceRequested.toLowerCase().trim() : '';
+
+  // Check if it's exactly the same as service requested
+  if (normalizedService && normalizedIssue === normalizedService) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Exactly same as service requested');
+    return false;
+  }
+
+  // Check if issue description is contained in service requested with no extra detail
+  if (normalizedService && normalizedService.includes(normalizedIssue) && normalizedIssue.split(/\s+/).length < 4) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Contained in service requested with no extra detail');
+    return false;
+  }
+
+  // Check if service requested is contained in issue description with no extra detail
+  if (normalizedService && normalizedIssue.includes(normalizedService) && normalizedIssue.split(/\s+/).length < 4) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Contains service requested with no extra detail');
     return false;
   }
 
   // Check if it's just a generic service category
-  const genericServices = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal'];
-  if (genericServices.some(service => issueDescription.toLowerCase().trim() === service)) {
+  const genericServices = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'grass', 'lawn', 'mowing', 'lawn care'];
+  if (genericServices.some(service => normalizedIssue === service)) {
     console.log('[AI ISSUE DESCRIPTION INVALID] Generic service category only');
     return false;
   }
 
-  // Check if it has at least 4 meaningful words
-  const words = issueDescription.trim().split(/\s+/).filter(w => w.length > 2);
-  if (words.length < 4) {
-    console.log('[AI ISSUE DESCRIPTION INVALID] Fewer than 4 meaningful words', { wordCount: words.length });
+  // Remove filler words and check meaningful word count
+  const fillerWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'need', 'help', 'with', 'for', 'to', 'of', 'in', 'on', 'at', 'by', 'from', 'as', 'my', 'i', 'me', 'you', 'your', 'it', 'its', 'this', 'that'];
+  const meaningfulWords = normalizedIssue.split(/\s+/).filter(w => w.length > 2 && !fillerWords.includes(w));
+
+  if (meaningfulWords.length < 4) {
+    console.log('[AI ISSUE DESCRIPTION INVALID] Fewer than 4 meaningful words after removing fillers', { wordCount: meaningfulWords.length, words: meaningfulWords });
     return false;
   }
 
@@ -3296,34 +3323,40 @@ Do NOT:
                   if (intakeData!.stage === 'confirmation' && userTranscript) {
                     console.log('[CONFIRMATION REQUIRED] Processing user response for confirmation:', userTranscript);
 
-                    // Check if issue description is required before allowing confirmation
-                    const missingFields = getMissingRequiredFields(intakeData!);
-                    if (missingFields.includes('issue description') || !isValidIssueDescription(intakeData!.issueDescription || '', intakeData!.serviceRequested)) {
-                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Cannot enter confirmation without valid issue description');
-                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Current issue description:', intakeData!.issueDescription);
-                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Service requested:', intakeData!.serviceRequested);
-                      console.log('[AI ISSUE DESCRIPTION REQUIRED] Asking for issue description instead');
+                    // Pre-confirmation gate: validate issue description
+                    console.log('[AI PRE CONFIRMATION VALIDATION] Checking issue description validity');
+                    const isIssueValid = isValidIssueDescription(intakeData!.issueDescription || '', intakeData!.serviceRequested);
+
+                    if (!isIssueValid) {
+                      console.log('[AI BLOCKING CONFIRMATION - ISSUE DETAIL REQUIRED]', {
+                        serviceRequested: intakeData!.serviceRequested,
+                        issueDescription: intakeData!.issueDescription
+                      });
+                      console.log('[AI ISSUE DESCRIPTION INVALID] Blocking confirmation until valid issue description is provided');
 
                       // Ask for issue description
                       const followUpPayload = {
                         type: 'response.create',
                         response: {
-                          instructions: 'Say exactly: "Could you tell me a little more about the issue?"'
+                          instructions: 'Say exactly: "Could you tell me a little more about the issue or project?"'
                         }
                       };
 
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(followUpPayload));
-                        console.log('[ISSUE DESCRIPTION REQUEST SENT]');
+                        console.log('[AI NEXT QUESTION SELECTED] Could you tell me a little more about the issue or project?');
                       }
                       return; // Skip normal intake processing
                     }
+
+                    console.log('[AI ISSUE DESCRIPTION ACCEPTED] Issue description is valid');
 
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
 
                       // Check if all required fields are collected
+                      const missingFields = getMissingRequiredFields(intakeData!);
                       if (missingFields.length > 0) {
                         console.log('[MISSING REQUIRED FIELDS]', { missingFields });
                         console.log('[INTAKE INCOMPLETE] Cannot finalize - missing required fields');
