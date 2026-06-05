@@ -1605,6 +1605,7 @@ const server = createServer((req, res) => {
 
 const FINAL_GOODBYE = "Thank you for calling. I'll pass this information along to the business. Have a great day.";
 const FINAL_ENDING_PHRASE = "Have a great day.";
+const CONFIRMATION_SUFFIX = " Is this correct?";
 
 // Schedule hangup only (for when final goodbye was already sent)
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
@@ -3717,6 +3718,47 @@ Do NOT:
                   // Check if issue description is required
                   if (!intakeData!.issueDescription && missingFields.includes('issue description')) {
                     console.log('[AI ISSUE DESCRIPTION REQUIRED] Issue description still missing');
+                  }
+
+                  // Check if this is a confirmation message and apply suffix enforcement
+                  let responseToSend = intakeResponse.response;
+                  const isConfirmationMessage = intakeResponse.nextStage === 'complete' || intakeResponse.nextStage === 'confirmation';
+                  
+                  if (isConfirmationMessage) {
+                    console.log('[AI CONFIRMATION BEFORE SEND]', { text: responseToSend });
+                    
+                    responseToSend = responseToSend.trim();
+                    
+                    // Remove any existing "Is this correct?" or "Is that correct?" variations
+                    responseToSend = responseToSend
+                      .replace(/\bIs that correct\??$/i, "")
+                      .replace(/\bIs this correct\??$/i, "")
+                      .trim();
+                    
+                    // Ensure it ends with a period
+                    responseToSend = responseToSend.replace(/[.?!]*$/, ".");
+                    
+                    // Append the confirmation suffix
+                    responseToSend = `${responseToSend}${CONFIRMATION_SUFFIX}`;
+                    
+                    console.log('[AI CONFIRMATION AFTER SEND TEXT]', { text: responseToSend });
+                    
+                    // Send confirmation message via direct response.create
+                    const confirmationPayload = {
+                      type: 'response.create',
+                      response: {
+                        instructions: `Say exactly: "${responseToSend}"`
+                      }
+                    };
+                    
+                    if (openAiWs) {
+                      openAiWs.send(JSON.stringify(confirmationPayload));
+                      console.log('[CONFIRMATION SENT VIA RESPONSE.CREATE]', { text: responseToSend });
+                    }
+                    
+                    // Update stage
+                    intakeData!.stage = intakeResponse.nextStage;
+                    return; // Skip VAD processing since we sent the response directly
                   }
 
                   // Let VAD handle responses naturally after session.updated greeting
