@@ -19,16 +19,26 @@ export interface ProcessInboundSmsParams {
 export async function processInboundSms(params: ProcessInboundSmsParams) {
   const { messageSid, from, to, body, source, media } = params
   
-  console.log(`[SMS Processing] Processing inbound SMS from ${source}:`, {
+  console.log('[INBOUND SMS WEBHOOK HIT]')
+  console.log('[INBOUND SMS RAW PAYLOAD]', {
     messageSid,
     from,
     to,
     body: body.substring(0, 100) + (body.length > 100 ? '...' : ''),
+    source,
     mediaCount: media?.length || 0
   })
   
   // Normalize customer phone number
   const normalizedCustomerPhone = normalizePhoneNumberForStorage(from)
+  const normalizedToPhone = normalizePhoneNumberForStorage(to)
+  
+  console.log('[INBOUND SMS FROM/TO NORMALIZED]', {
+    fromOriginal: from,
+    fromNormalized: normalizedCustomerPhone,
+    toOriginal: to,
+    toNormalized: normalizedToPhone
+  })
   
   // Check for opt-out keywords (case-insensitive)
   const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
@@ -40,7 +50,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   const isOptIn = optInKeywords.some(keyword => originalBody === keyword)
   
   // Try to find existing lead across all businesses with this phone number
-  const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, to)
+  console.log('[INBOUND SMS BUSINESS LOOKUP START]', { to: normalizedToPhone })
+  const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)
   
   let business: any
   let lead: any
@@ -297,6 +308,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   
   // At this point, conversation is guaranteed to exist
   // Save inbound message linked to conversation
+  console.log('[INBOUND SMS MESSAGE INSERT START]', {
+    leadId: lead.id,
+    conversationId: conversation.id,
+    fromPhone: normalizedCustomerPhone,
+    toPhone: to
+  })
   const sanitizedBody = sanitizeMessageContent(body)
   const message = await db.createMessageWithConversation({
     lead_id: lead.id,
@@ -311,9 +328,17 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   })
   
   if (!message) {
-    console.error(`[SMS Processing] Failed to save message`)
+    console.error('[INBOUND SMS ERROR]', {
+      error: 'Failed to save message',
+      leadId: lead.id,
+      conversationId: conversation.id
+    })
   } else {
-    console.log(`[SMS Processing] Saved inbound message: ${message.id}`)
+    console.log('[INBOUND SMS MESSAGE INSERT SUCCESS]', {
+      messageId: message.id,
+      leadId: lead.id,
+      conversationId: conversation.id
+    })
     
     // Store media attachments if present
     if (media && media.length > 0) {

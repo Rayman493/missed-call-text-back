@@ -111,37 +111,68 @@ export const db = {
 
   // New function to find lead by phone number across businesses with shared phone number
   async findLeadByPhoneAcrossBusinesses(phone: string, phoneNumber: string): Promise<{ lead: any; business: Business } | null> {
+    console.log('[INBOUND SMS LEAD LOOKUP START]', {
+      phone,
+      phoneNumber
+    })
+    
     // First get all businesses with this phone number
     const businesses = await this.getBusinessesByPhone(phoneNumber)
     
+    console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
+      phoneNumber,
+      businessCount: businesses.length,
+      businessIds: businesses.map(b => b.id)
+    })
+    
     if (businesses.length === 0) {
+      console.log('[INBOUND SMS BUSINESS LOOKUP FAILED]', { phoneNumber })
       return null
     }
     
     // Search for leads across all these businesses
     const businessIds = businesses.map(b => b.id)
     
+    // Search by caller_phone field (used by AI voice service) first, fallback to phone field
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .in('business_id', businessIds)
-      .eq('phone', phone)
+      .or(`caller_phone.eq.${phone},phone.eq.${phone}`)
       .limit(1) // Get first match if multiple exist
       .single()
     
     if (error) {
-      console.error('Error finding lead across businesses:', error)
+      console.error('[INBOUND SMS LEAD LOOKUP ERROR]', {
+        error: error.message,
+        code: error.code,
+        phone,
+        businessIds
+      })
       return null
     }
     
     if (!data) {
+      console.log('[INBOUND SMS LEAD LOOKUP FAILED]', {
+        phone,
+        businessIds,
+        reason: 'No lead found'
+      })
       return null
     }
+    
+    console.log('[INBOUND SMS LEAD LOOKUP RESULT]', {
+      leadId: data.id,
+      businessId: data.business_id,
+      phoneField: data.phone,
+      callerPhoneField: data.caller_phone,
+      matchedBy: data.caller_phone === phone ? 'caller_phone' : 'phone'
+    })
     
     // Find the business for this lead
     const business = businesses.find(b => b.id === data.business_id)
     if (!business) {
-      console.error('Business not found for lead:', data.business_id)
+      console.error('[INBOUND SMS BUSINESS LOOKUP FAILED]', { businessId: data.business_id })
       return null
     }
     

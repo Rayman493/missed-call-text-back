@@ -21,7 +21,7 @@ interface ConfirmationSMSRequest {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[AI CONFIRMATION SMS START] Request received')
+  console.log('[AI POST CALL SMS START] Request received')
 
   try {
     const body: ConfirmationSMSRequest = await request.json()
@@ -36,6 +36,12 @@ export async function POST(request: NextRequest) {
       extractedInfo
     } = body
 
+    console.log('[AI POST CALL SMS LEAD ID]', { leadId })
+    console.log('[AI POST CALL SMS CONVERSATION ID]', { conversationId })
+    console.log('[AI POST CALL SMS TO/FROM]', {
+      to: callerPhone,
+      fromBusinessId: businessId
+    })
     console.log('[AI CONFIRMATION SMS INPUT]', {
       businessId,
       leadId,
@@ -171,7 +177,13 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      console.log('[AI CONFIRMATION SMS TWILIO SEND RESULT]', {
+      console.log('[AI COPOST CALL SMS SENT]', {
+          twilioMessageSid,
+          leadId,
+          conversationId,
+          callerPhone
+        })
+        console.log('[AI NFIRMATION SMS TWILIO SEND RESULT]', {
         success: !!twilioMessageSid,
         twilioMessageSid
       })
