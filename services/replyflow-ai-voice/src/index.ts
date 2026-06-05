@@ -3066,6 +3066,7 @@ Return only JSON, no other text.`;
             // Confirmation timeout fallback
             let confirmationAskedAt: number | null = null;
             let confirmationTimeoutTimer: NodeJS.Timeout | null = null;
+            let waitingForConfirmation: boolean = false;
             
             // Phase 2: Dead Air Protection (3-second timeout)
             const deadAirTimeout = setTimeout(async () => {
@@ -3371,7 +3372,6 @@ Do NOT:
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  const waitingForConfirmation = currentStage === 'confirmation';
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
@@ -3382,6 +3382,7 @@ Do NOT:
                   // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
                   if (waitingForConfirmation) {
                     console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    waitingForConfirmation = false; // Prevent multiple triggers
                     closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                     return; // Skip all other processing
                   }
@@ -3395,6 +3396,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.created');
+                      waitingForConfirmation = false; // Prevent multiple triggers
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
@@ -3415,7 +3417,6 @@ Do NOT:
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  const waitingForConfirmation = currentStage === 'confirmation';
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
@@ -3426,6 +3427,7 @@ Do NOT:
                   // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
                   if (waitingForConfirmation) {
                     console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    waitingForConfirmation = false; // Prevent multiple triggers
                     closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                     return; // Skip all other processing
                   }
@@ -3439,6 +3441,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.done');
+                      waitingForConfirmation = false; // Prevent multiple triggers
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
@@ -3459,7 +3462,6 @@ Do NOT:
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  const waitingForConfirmation = currentStage === 'confirmation';
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
@@ -3470,6 +3472,7 @@ Do NOT:
                   // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
                   if (waitingForConfirmation) {
                     console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    waitingForConfirmation = false; // Prevent multiple triggers
                     closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                     return; // Skip all other processing
                   }
@@ -3483,6 +3486,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.completed');
+                      waitingForConfirmation = false; // Prevent multiple triggers
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
@@ -3509,7 +3513,6 @@ Do NOT:
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  const waitingForConfirmation = currentStage === 'confirmation';
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage, 
                     intakeComplete: intakeComplete, 
@@ -3520,6 +3523,7 @@ Do NOT:
                   // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
                   if (waitingForConfirmation) {
                     console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    waitingForConfirmation = false; // Prevent multiple triggers
                     closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                     return; // Skip all other processing
                   }
@@ -3533,6 +3537,7 @@ Do NOT:
                     
                     if (isConfirmation) {
                       console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at transcript handler');
+                      waitingForConfirmation = false; // Prevent multiple triggers
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                       return; // Skip all other processing
                     }
@@ -3738,17 +3743,21 @@ Do NOT:
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
                   
-                  // Schedule 20 second hard timer fallback when entering confirmation stage
-                  if (intakeResponse.nextStage === 'confirmation') {
+                  // When confirmation message is sent, start the timer
+                  if (intakeResponse.nextStage === 'confirmation' || intakeResponse.nextStage === 'complete') {
+                    // Set stage to 'confirmation' so the timer can check it
+                    intakeData!.stage = 'confirmation';
+                    waitingForConfirmation = true;
+                    console.log('[AI FINAL CONFIRMATION SENT] Final confirmation summary sent to caller');
                     console.log('[AI CONFIRMATION TIMER STARTED] Scheduling 20 second fallback timer');
                     confirmationAskedAt = Date.now();
                     if (confirmationTimeoutTimer) {
                       clearTimeout(confirmationTimeoutTimer);
                     }
                     confirmationTimeoutTimer = setTimeout(() => {
-                      const currentStage = intakeData?.stage || 'unknown';
-                      if (currentStage === 'confirmation' && callState !== 'closing') {
+                      if (waitingForConfirmation && callState !== 'closing') {
                         console.log('[AI CONFIRMATION TIMEOUT FALLBACK CLOSING] 20 second timeout reached, closing call');
+                        waitingForConfirmation = false; // Prevent multiple triggers
                         closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
                       }
                     }, 20000); // 20 second timeout
