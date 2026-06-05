@@ -228,7 +228,7 @@ function generateConfirmationMessage(intake: IntakeData): string {
   const issue = intake.issueDescription || 'not specified';
   const location = intake.serviceAddress || 'not specified';
   const callbackTime = intake.callbackTime || 'anytime';
-  const urgency = intake.urgency === 'urgent' ? 'urgent' : (intake.urgency === 'normal' ? 'not urgent' : 'not specified');
+  const urgency = intake.urgency === 'urgent' ? 'urgent/time-sensitive' : 'not urgent';
   const callbackNumber = intake.callbackNumber || 'not specified';
 
   console.log('[AI REQUIRED FIELDS STATUS]', {
@@ -242,25 +242,9 @@ function generateConfirmationMessage(intake: IntakeData): string {
     allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
   });
 
-  const confirmation = `Let me confirm I have everything correct.
+  const confirmation = `Just to confirm, I have your name as ${name}, you're calling about ${service}, the additional details are ${issue}, urgency is ${urgency}, the address is ${location}, the best callback time is ${callbackTime}, and the best callback number is ${callbackNumber}. Is this correct?`;
 
-Your name is ${name}.
-
-You're calling about ${service}.
-
-Additional details: ${issue}.
-
-The work location is ${location}.
-
-The best time to call you back is ${callbackTime}.
-
-This is ${urgency}.
-
-The best number to reach you is ${callbackNumber}.
-
-Is this correct?`;
-
-  console.log('[AI FINAL CONFIRMATION READY]', { confirmation });
+  console.log('[AI FULL CONFIRMATION GENERATED]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
   console.log('[CONFIRMATION GENERATED] confirmationState: pending');
   return confirmation;
@@ -3203,7 +3187,7 @@ YOU MUST collect all 7 required fields before finalizing. Do not end the call ea
 CALL ENDING SEQUENCE:
 Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're calling about [reason]. Additional details: [additional_details]. The work location is [location]. The best time to call you back is [callback_time]. This is [urgency]. The best number to reach you is [callback_number]. Is this correct?"
+1. Say exactly: "Just to confirm, I have your name as [caller_name], you're calling about [reason], the additional details are [additional_details], urgency is [urgent/time-sensitive or not urgent], the address is [address], the best callback time is [time], and the best callback number is [number]. Is this correct?"
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
