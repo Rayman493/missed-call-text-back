@@ -3356,37 +3356,112 @@ Do NOT:
                 console.log('[OPENAI USER MESSAGE CREATED]');
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
+                  const userTranscript = message.item.content?.[0]?.transcript || '';
                   console.log('[USER TRANSCRIPT FOUND]', {
                     eventType: 'conversation.item.created',
                     itemType: message.item.type,
                     hasContent: !!message.item.content,
                     content: message.item.content || null,
-                    transcript: message.item.content?.[0]?.transcript || null
+                    transcript: userTranscript
                   });
+                  
+                  // Add user transcript router for confirmation interception
+                  const currentStage = intakeData?.stage || 'unknown';
+                  const waitingForConfirmation = currentStage === 'confirmation';
+                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
+                    currentStage, 
+                    intakeComplete: intakeComplete, 
+                    waitingForConfirmation, 
+                    transcript: userTranscript 
+                  });
+                  
+                  // Check for confirmation phrases and intercept immediately
+                  if (waitingForConfirmation && userTranscript) {
+                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
+                    const isConfirmation = confirmationPhrases.some(phrase => 
+                      userTranscript.toLowerCase().includes(phrase)
+                    );
+                    
+                    if (isConfirmation) {
+                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.created');
+                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      return; // Skip all other processing
+                    }
+                  }
                 }
               }
               if (message.type === 'conversation.item.done') {
                 console.log('[USER ITEM] done:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
+                  const userTranscript = message.item.content?.[0]?.transcript || '';
                   console.log('[USER TRANSCRIPT FOUND]', {
                     eventType: 'conversation.item.done',
                     itemType: message.item.type,
                     hasContent: !!message.item.content,
                     content: message.item.content || null,
-                    transcript: message.item.content?.[0]?.transcript || null
+                    transcript: userTranscript
                   });
+                  
+                  // Add user transcript router for confirmation interception
+                  const currentStage = intakeData?.stage || 'unknown';
+                  const waitingForConfirmation = currentStage === 'confirmation';
+                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
+                    currentStage, 
+                    intakeComplete: intakeComplete, 
+                    waitingForConfirmation, 
+                    transcript: userTranscript 
+                  });
+                  
+                  // Check for confirmation phrases and intercept immediately
+                  if (waitingForConfirmation && userTranscript) {
+                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
+                    const isConfirmation = confirmationPhrases.some(phrase => 
+                      userTranscript.toLowerCase().includes(phrase)
+                    );
+                    
+                    if (isConfirmation) {
+                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.done');
+                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      return; // Skip all other processing
+                    }
+                  }
                 }
               }
               if (message.type === 'conversation.item.completed') {
                 console.log('[USER ITEM] completed:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
+                  const userTranscript = message.item.content?.[0]?.transcript || '';
                   console.log('[USER TRANSCRIPT FOUND]', {
                     eventType: 'conversation.item.completed',
                     itemType: message.item.type,
                     hasContent: !!message.item.content,
                     content: message.item.content || null,
-                    transcript: message.item.content?.[0]?.transcript || null
+                    transcript: userTranscript
                   });
+                  
+                  // Add user transcript router for confirmation interception
+                  const currentStage = intakeData?.stage || 'unknown';
+                  const waitingForConfirmation = currentStage === 'confirmation';
+                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
+                    currentStage, 
+                    intakeComplete: intakeComplete, 
+                    waitingForConfirmation, 
+                    transcript: userTranscript 
+                  });
+                  
+                  // Check for confirmation phrases and intercept immediately
+                  if (waitingForConfirmation && userTranscript) {
+                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
+                    const isConfirmation = confirmationPhrases.some(phrase => 
+                      userTranscript.toLowerCase().includes(phrase)
+                    );
+                    
+                    if (isConfirmation) {
+                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.completed');
+                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      return; // Skip all other processing
+                    }
+                  }
                 }
               }
 
@@ -3406,6 +3481,30 @@ Do NOT:
                   console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
+                  
+                  // Add user transcript router for confirmation interception
+                  const currentStage = intakeData?.stage || 'unknown';
+                  const waitingForConfirmation = currentStage === 'confirmation';
+                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
+                    currentStage, 
+                    intakeComplete: intakeComplete, 
+                    waitingForConfirmation, 
+                    transcript: userTranscript 
+                  });
+                  
+                  // Check for confirmation phrases and intercept immediately
+                  if (waitingForConfirmation) {
+                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
+                    const isConfirmation = confirmationPhrases.some(phrase => 
+                      userTranscript.toLowerCase().includes(phrase)
+                    );
+                    
+                    if (isConfirmation) {
+                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at transcript handler');
+                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      return; // Skip all other processing
+                    }
+                  }
                   
                   // Check for goodbye phrases after final message
                   if (callState === 'closing' || callState === 'closing_audio_playing') {
