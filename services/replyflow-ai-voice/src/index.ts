@@ -1619,6 +1619,47 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// Close call after confirmation function
+async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs: any) {
+  console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Starting deterministic closing sequence');
+  
+  // Set closing state immediately
+  const callState = (ws as any).callState;
+  (ws as any).callState = 'closing';
+  (twilioHandler as any).callState = 'closing';
+  (ws as any).terminalClosingResponseStarted = true;
+  (twilioHandler as any).terminalClosingResponseStarted = true;
+  (ws as any).intakeComplete = true;
+  (twilioHandler as any).intakeComplete = true;
+  
+  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
+  
+  // Send final goodbye message immediately
+  const finalClosingMessage = {
+    type: 'response.create',
+    response: {
+      instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
+    }
+  };
+
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify(finalClosingMessage));
+    console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
+  }
+
+  // Immediately schedule hangup timer
+  const hangupScheduled = (ws as any).hangupScheduled;
+  if (!hangupScheduled) {
+    console.log('[AI HANGUP TIMER SCHEDULED] Scheduling hangup after 1500ms');
+    (ws as any).hangupScheduled = true;
+    (twilioHandler as any).hangupScheduled = true;
+    
+    setTimeout(async () => {
+      await endCallCleanly(ws, twilioHandler);
+    }, 1500); // 1500ms buffer
+  }
+}
+
 // Clean call ending function
 async function endCallCleanly(ws: any, twilioHandler: any) {
   console.log('[AUTO HANGUP START] Starting call termination process');
@@ -3382,6 +3423,12 @@ Do NOT:
                 
                 // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
+                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
+                    currentStage: intakeData.stage, 
+                    intakeComplete: intakeComplete, 
+                    waitingForConfirmation: intakeData.stage === 'confirmation', 
+                    transcript: userTranscript 
+                  });
                   console.log('[INTAKE COMPLETION CHECK] Processing intake stage:', intakeData.stage);
                   console.log('[INTAKE COMPLETION CHECK] User transcript:', userTranscript);
                   console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
@@ -3421,6 +3468,10 @@ Do NOT:
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
+
+                      // Immediately close the call after confirmation (deterministic)
+                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      return; // Skip all other processing
 
                       // Check if all required fields are collected
                       const missingFields = getMissingRequiredFields(intakeData!);
