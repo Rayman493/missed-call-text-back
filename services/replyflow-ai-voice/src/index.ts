@@ -1332,7 +1332,7 @@ const server = createServer((req, res) => {
   // Health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'healthy', service: 'ai-voice-poc' }));
+    res.end(JSON.stringify({ status: 'healthy', service: 'ai-voice-poc', commit: '3c67556', hangupRouter: 'v3' }));
     return;
   }
 
@@ -3063,6 +3063,10 @@ Return only JSON, no other text.`;
             let streamReady = false;
             const audioBuffer: Buffer[] = [];
             
+            // Confirmation timeout fallback
+            let confirmationAskedAt: number | null = null;
+            let confirmationTimeoutTimer: NodeJS.Timeout | null = null;
+            
             // Phase 2: Dead Air Protection (3-second timeout)
             const deadAirTimeout = setTimeout(async () => {
               console.log('[DEAD AIR DEBUG]', { audioReceived, mediaPacketCount, openAiReady: !!openAiWs, sessionReady: streamReady });
@@ -3375,6 +3379,13 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
+                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
+                  if (waitingForConfirmation) {
+                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                    return; // Skip all other processing
+                  }
+                  
                   // Check for confirmation phrases and intercept immediately
                   if (waitingForConfirmation && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
@@ -3412,6 +3423,13 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
+                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
+                  if (waitingForConfirmation) {
+                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                    return; // Skip all other processing
+                  }
+                  
                   // Check for confirmation phrases and intercept immediately
                   if (waitingForConfirmation && userTranscript) {
                     const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
@@ -3448,6 +3466,13 @@ Do NOT:
                     waitingForConfirmation, 
                     transcript: userTranscript 
                   });
+                  
+                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
+                  if (waitingForConfirmation) {
+                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                    return; // Skip all other processing
+                  }
                   
                   // Check for confirmation phrases and intercept immediately
                   if (waitingForConfirmation && userTranscript) {
@@ -3491,6 +3516,13 @@ Do NOT:
                     waitingForConfirmation, 
                     transcript: userTranscript 
                   });
+                  
+                  // Emergency fallback: if waiting for confirmation and any user audio comes in, close the call
+                  if (waitingForConfirmation) {
+                    console.log('[AI CONFIRMATION FALLBACK TRIGGERED] User audio detected while waiting for confirmation, closing call');
+                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                    return; // Skip all other processing
+                  }
                   
                   // Check for confirmation phrases and intercept immediately
                   if (waitingForConfirmation) {
@@ -3705,6 +3737,22 @@ Do NOT:
 
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
+                  
+                  // Schedule 20 second hard timer fallback when entering confirmation stage
+                  if (intakeResponse.nextStage === 'confirmation') {
+                    console.log('[AI CONFIRMATION TIMER STARTED] Scheduling 20 second fallback timer');
+                    confirmationAskedAt = Date.now();
+                    if (confirmationTimeoutTimer) {
+                      clearTimeout(confirmationTimeoutTimer);
+                    }
+                    confirmationTimeoutTimer = setTimeout(() => {
+                      const currentStage = intakeData?.stage || 'unknown';
+                      if (currentStage === 'confirmation' && callState !== 'closing') {
+                        console.log('[AI CONFIRMATION TIMEOUT FALLBACK CLOSING] 20 second timeout reached, closing call');
+                        closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      }
+                    }, 20000); // 20 second timeout
+                  }
                   
                   // Runtime guard: DO NOT allow final goodbye without confirmation
                   if (intakeData!.stage === 'complete' && !hangupScheduled) {
@@ -5625,6 +5673,7 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
+  console.log('[AI VOICE SERVICE VERSION] commit=3c67556 hangup-router-v3=true');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
