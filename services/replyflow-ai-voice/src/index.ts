@@ -2704,6 +2704,12 @@ Return only JSON, no other text.`;
 
         // Log parsed frame (non-media only, or first media, or every 100th media)
         if (message.event === 'media') {
+          // Safety fallback: ignore audio during closing
+          if (callState === 'closing') {
+            console.log('[AI IGNORING AUDIO DURING CLOSING] callState is closing, dropping audio packet');
+            return;
+          }
+          
           mediaPacketCount++;
           const payloadSize = message.media?.payload?.length || 0;
           
@@ -3442,15 +3448,45 @@ Do NOT:
 
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
+                      console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Starting deterministic closing sequence');
 
-                      // Set state to indicate ready to close, but don't create response yet
+                      // Set closing state immediately
+                      callState = 'closing';
+                      (twilioHandler as any).callState = callState;
+                      terminalClosingResponseStarted = true;
+                      (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
                       confirmationAccepted = true;
                       intakeComplete = true;
-                      console.log('[CONFIRMATION ACCEPTED] Set confirmationAccepted=true, intakeComplete=true');
-                      console.log('[CONFIRMATION ACCEPTED] Will wait for current response to complete before sending final closing');
+                      
+                      console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
                       
                       // Mark as complete to prevent further processing
                       intakeData!.stage = 'complete';
+
+                      // Send final goodbye message immediately
+                      const finalClosingMessage = {
+                        type: 'response.create',
+                        response: {
+                          instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
+                        }
+                      };
+
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(finalClosingMessage));
+                        console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
+                      }
+
+                      // Immediately schedule hangup timer
+                      if (!hangupScheduled) {
+                        console.log('[AI HANGUP TIMER SCHEDULED] Scheduling hangup after 1500ms');
+                        hangupScheduled = true;
+                        (twilioHandler as any).hangupScheduled = hangupScheduled;
+                        
+                        setTimeout(async () => {
+                          await endCallCleanly(ws, twilioHandler);
+                        }, 1500); // 1500ms buffer
+                      }
+
                       return; // Skip the normal intake processing
                     } else if (isConfirmationRejected(userTranscript)) {
                       console.log('[CONFIRMATION REJECTED] User rejected the information');
