@@ -132,7 +132,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'confirmation' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'ask_callback_number' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -166,6 +166,7 @@ interface IntakeData {
   serviceAddress?: string;
   callbackTime?: string;
   urgency?: 'urgent' | 'normal' | 'not_specified';
+  callbackNumber?: string;
   businessName: string;
   callSid: string;
   businessId: string;
@@ -196,6 +197,7 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   if (!intake.serviceAddress) missing.push('service address');
   if (!intake.callbackTime) missing.push('callback time');
   if (!intake.urgency) missing.push('urgency');
+  if (!intake.callbackNumber) missing.push('callback number');
   return missing;
 }
 
@@ -217,7 +219,8 @@ function generateConfirmationMessage(intake: IntakeData): string {
     issueDescription: intake.issueDescription,
     serviceAddress: intake.serviceAddress,
     callbackTime: intake.callbackTime,
-    urgency: intake.urgency
+    urgency: intake.urgency,
+    callbackNumber: intake.callbackNumber
   });
 
   const name = intake.customerName || 'there';
@@ -226,28 +229,38 @@ function generateConfirmationMessage(intake: IntakeData): string {
   const location = intake.serviceAddress || 'not specified';
   const callbackTime = intake.callbackTime || 'anytime';
   const urgency = intake.urgency === 'urgent' ? 'urgent' : (intake.urgency === 'normal' ? 'not urgent' : 'not specified');
+  const callbackNumber = intake.callbackNumber || 'not specified';
 
-  console.log('[CONFIRMATION INCLUDES_ADDRESS]', { hasAddress: !!intake.serviceAddress, value: intake.serviceAddress || 'not specified' });
-  console.log('[CONFIRMATION INCLUDES_CALLBACK_TIME]', { hasCallbackTime: !!intake.callbackTime, value: intake.callbackTime || 'anytime' });
-  console.log('[CONFIRMATION INCLUDES_URGENCY]', { hasUrgency: !!intake.urgency, value: intake.urgency || 'not specified' });
+  console.log('[AI REQUIRED FIELDS STATUS]', {
+    hasCustomerName: !!intake.customerName,
+    hasServiceRequested: !!intake.serviceRequested,
+    hasIssueDescription: !!intake.issueDescription,
+    hasServiceAddress: !!intake.serviceAddress,
+    hasCallbackTime: !!intake.callbackTime,
+    hasUrgency: !!intake.urgency,
+    hasCallbackNumber: !!intake.callbackNumber,
+    allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
+  });
 
   const confirmation = `Let me confirm I have everything correct.
 
 Your name is ${name}.
 
-You're looking for help with ${service}.
+You're calling about ${service}.
 
-The issue is: ${issue}.
+Additional details: ${issue}.
 
 The work location is ${location}.
 
-Your preferred callback time is ${callbackTime}.
+The best time to call you back is ${callbackTime}.
 
-The urgency is ${urgency}.
+This is ${urgency}.
+
+The best number to reach you is ${callbackNumber}.
 
 Is that correct?`;
 
-  console.log('[CONFIRMATION MESSAGE]', { confirmation });
+  console.log('[AI FINAL CONFIRMATION READY]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
   console.log('[CONFIRMATION GENERATED] confirmationState: pending');
   return confirmation;
@@ -340,14 +353,28 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if urgency was captured
       if (intake.urgency && intake.urgency !== 'not_specified') {
         return {
-          response: generateConfirmationMessage(intake),
-          nextStage: 'confirmation'
+          response: 'Is this the best number to reach you at, or is there another number?',
+          nextStage: 'ask_callback_number'
         };
       }
       // Ask for urgency again if not captured
       return {
         response: 'Is this urgent, or can it wait until later?',
         nextStage: 'ask_urgency'
+      };
+
+    case 'ask_callback_number':
+      // Check if callback number was captured
+      if (intake.callbackNumber) {
+        return {
+          response: generateConfirmationMessage(intake),
+          nextStage: 'confirmation'
+        };
+      }
+      // Ask for callback number again if not captured
+      return {
+        response: 'Is this the best number to reach you at, or is there another number?',
+        nextStage: 'ask_callback_number'
       };
 
     case 'confirmation':
@@ -409,6 +436,15 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     if (urgency !== 'not_specified') {
       intake.urgency = urgency;
       console.log('[AI URGENCY CAPTURED]', intake.urgency);
+    }
+  }
+
+  // Extract callback number if not already captured
+  if (!intake.callbackNumber) {
+    const phoneNumber = extractPhoneNumber(transcript);
+    if (phoneNumber) {
+      intake.callbackNumber = phoneNumber;
+      console.log('[AI CALLBACK NUMBER CAPTURED]', intake.callbackNumber);
     }
   }
 
@@ -510,6 +546,11 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'urgency':
       return {
         response: 'Is this urgent, or can it wait until later?',
+        nextStage: 'ask_callback_number'
+      };
+    case 'callback number':
+      return {
+        response: 'Is this the best number to reach you at, or is there another number?',
         nextStage: 'confirmation'
       };
     default:
@@ -1581,6 +1622,7 @@ const server = createServer((req, res) => {
 // Clean call ending function
 async function endCallCleanly(ws: any, twilioHandler: any) {
   console.log('[AUTO HANGUP START] Starting call termination process');
+  console.log('[AI FINAL AUDIO DONE] Final goodbye audio completed, initiating hangup');
   
   try {
     const callContext = (ws as any).callContext;
@@ -1603,8 +1645,8 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
     });
     
     if (!callSid) {
-      console.log('[AUTO HANGUP FAILED] No callSid available for hangup');
-      console.log('[AUTO HANGUP FAILED] callSid became unavailable at:', {
+      console.log('[TWILIO HANGUP ERROR] No callSid available for hangup');
+      console.log('[TWILIO HANGUP ERROR] callSid became unavailable at:', {
         wsProperties: Object.getOwnPropertyNames(ws),
         wsCallSid: (ws as any).callSid,
         wsBusinessId: (ws as any).businessId,
@@ -1623,7 +1665,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
     });
     
     if (twilioClient && callSid) {
-      console.log('[AUTO HANGUP TWILIO REQUEST] Using Twilio REST API to terminate call', {
+      console.log('[TWILIO HANGUP ATTEMPT] Using Twilio REST API to terminate call', {
         callSid,
         businessId,
         sessionId,
@@ -1636,7 +1678,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       // Execute the hangup
       const updateResult = await twilioClient.calls(callSid).update({ status: 'completed' });
       
-      console.log('[AUTO HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
+      console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
         callSid,
         businessId,
         sessionId,
@@ -1651,9 +1693,9 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       
       // Verify the call status changed
       if (updateResult.status === 'completed') {
-        console.log('[AUTO HANGUP SUCCESS] Call status confirmed as completed');
+        console.log('[TWILIO HANGUP SUCCESS] Call status confirmed as completed');
       } else {
-        console.log('[AUTO HANGUP FAILED] Call status not confirmed as completed', {
+        console.log('[TWILIO HANGUP ERROR] Call status not confirmed as completed', {
           actualStatus: updateResult.status,
           callSid,
           businessId
@@ -1662,8 +1704,8 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       
     } else {
       // Fallback: close the WebSocket connection
-      console.log('[AUTO HANGUP FAILED] Twilio client not available, using WebSocket fallback');
-      console.log('[AUTO HANGUP FAILED] Twilio client details:', {
+      console.log('[TWILIO HANGUP ERROR] Twilio client not available, using WebSocket fallback');
+      console.log('[TWILIO HANGUP ERROR] Twilio client details:', {
         twilioClientExists: !!twilioClient,
         callSidExists: !!callSid,
         twilioClientType: typeof twilioClient,
@@ -1674,7 +1716,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       console.log('[AUTO HANGUP FALLBACK] WebSocket closed');
     }
   } catch (error) {
-    console.log('[AUTO HANGUP FAILED] Exception during call termination', { 
+    console.log('[TWILIO HANGUP ERROR] Exception during call termination', { 
       error: error instanceof Error ? error.message : 'Unknown error',
       errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       stack: error instanceof Error ? error.stack : undefined,
@@ -3049,28 +3091,28 @@ Note: The greeting will be handled separately via exact response.create instruct
 INFORMATION GATHERING PRIORITY ORDER:
 1. Reason for calling (most important - understand the core need)
 2. Caller name (for personalization)
-3. Address or service location (where the work is needed)
-4. Preferred callback time (when to call back)
-5. Urgency level (is this time-sensitive?)
-6. Callback number (usually from caller ID, only ask if missing)
+3. Additional details about the issue or project
+4. Address or service location (where the work is needed)
+5. Best time to call back
+6. Whether it is urgent or time-sensitive
+7. Best callback number
 
 CALL COMPLETION POLICY:
-STOP asking questions once you have ALL required fields:
+YOU MUST collect ALL required fields before finalizing. Do not end the call early:
 - Reason for calling (required)
 - Caller name (required)
+- Additional details about the issue or project (required)
 - Address or service location (required - if caller declines, mark as "Not provided")
-- Preferred callback time (required - if caller says anytime/no preference, mark as "Anytime")
-- Urgency (required - if caller doesn't know, mark as "Not specified")
-- Callback number (usually from caller ID, only ask if missing)
+- Best time to call back (required - if caller says anytime/no preference, mark as "Anytime")
+- Whether it is urgent or time-sensitive (required - if caller doesn't know, mark as "Not specified")
+- Best callback number (required - even if caller ID exists, ask: "Is this the best number to reach you at, or is there another number?")
 
-YOU MUST collect address/location, callback time, and urgency before finalizing. Do not end the call early.
-
-CORE INFO IS ENOUGH when the business can realistically follow up confidently. Do not keep asking optional questions.
+YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
 
 CALL ENDING SEQUENCE:
-Once you have enough useful information, you MUST get confirmation before ending the call:
+Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're looking for help with [reason]. The work location is [location]. Your preferred callback time is [callback_time]. The urgency is [urgency]. Is that correct?"
+1. Say exactly: "Let me confirm I have everything correct. Your name is [caller_name]. You're calling about [reason]. Additional details: [additional_details]. The work location is [location]. The best time to call you back is [callback_time]. This is [urgency]. The best number to reach you is [callback_number]. Is that correct?"
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
@@ -3106,20 +3148,15 @@ BEHAVIOR REQUIREMENTS:
 - Focus on gathering actionable business information
 - Keep responses concise and conversational
 - Avoid robotic phrasing
-- End the call naturally once core info is collected
-
-CONTEXTUAL EXAMPLES:
-- Emergency plumbing issue → prioritize urgency and location quickly, then end
-- Estimate request → prioritize project details, then end
-- Existing customer support issue → prioritize issue details and urgency, then end
-- General inquiry → keep intake shorter and lighter, then end
+- Do not finalize until every required field is collected or explicitly declined
 
 IMPORTANT GUIDELINES:
 - If the caller already provided information, do not ask for it again
-- If caller ID is available, avoid unnecessarily asking for callback number
-- Address/location should only be collected when useful for the business type or issue
-- Preferred callback timing is optional and lowest priority
-- When in doubt, err on the side of ending the call rather than asking more questions
+- Even if caller ID exists, still ask: "Is this the best number to reach you at, or is there another number?"
+- Address is always required for service businesses; if declined, store "Not provided"
+- Urgency is always required; ask "Is this urgent or time-sensitive?"
+- Best callback time is always required; "anytime" is valid
+- Additional details about the issue or project is always required
 
 Do NOT:
 - give long explanations
@@ -3730,6 +3767,7 @@ Do NOT:
 
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify(finalClosingMessage));
+                    console.log('[AI FINAL GOODBYE SENT] Final closing message sent to OpenAI');
                     console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
                     console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] callState: closing_audio_playing');
                     console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] terminalClosingResponseStarted: true');
