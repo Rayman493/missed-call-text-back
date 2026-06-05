@@ -147,8 +147,22 @@ export class TwilioStreamHandler {
               // Send caller audio to OpenAI
               const openAiWs = (this as any).openAiWs;
               const greetingSent = (this as any).greetingSent || false;
+              const callState = (this as any).callState || 'active';
+              const assistantSpeaking = (this as any).assistantSpeaking || false;
+
+              // Hard guard: Do not append caller audio during closing or when assistant is speaking
+              if (callState !== 'active') {
+                console.log('[AI AUDIO APPEND SKIPPED DUE TO STATE]', { callState });
+                return;
+              }
+
+              if (assistantSpeaking) {
+                console.log('[AI AUDIO APPEND SKIPPED ASSISTANT SPEAKING]', { assistantSpeaking });
+                return;
+              }
+
               if (openAiWs) {
-                console.log('[OPENAI INPUT AUDIO APPEND START]');
+                console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking });
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
