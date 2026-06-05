@@ -782,10 +782,9 @@ export async function POST(request: NextRequest) {
       // Create new lead
       lead = await db.createLead({
         business_id: business.id,
-        phone: normalizedCallerPhone,
+        caller_phone: normalizedCallerPhone,
         status: 'new',
         name: null,
-        email: null,
         raw_metadata: { source: 'voice', is_demo: false },
         first_contact_at: new Date().toISOString(),
         last_message_at: null,

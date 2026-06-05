@@ -60,7 +60,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     // Found existing lead, use its business
     business = leadResult.business
     lead = leadResult.lead
-    console.log(`[SMS Processing] Found existing lead: ${lead.id} for business: ${business.id}`)
+    console.log('[INBOUND SMS LEAD LOOKUP RESULT]', {
+      leadId: lead.id,
+      businessId: business.id,
+      callerPhone: lead.caller_phone
+    })
   } else {
     // No existing lead, get first business with this phone number
     business = await db.getBusinessByPhone(to)
@@ -106,10 +110,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log(`[SMS Processing] No existing lead, creating new lead`)
     lead = await db.createLead({
       business_id: business.id,
-      phone: normalizedCustomerPhone,
+      caller_phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
       name: null,
-      email: null,
       raw_metadata: { source: 'sms', is_demo: source === 'dev_simulation' },
       first_contact_at: new Date().toISOString(),
       last_message_at: new Date().toISOString(),
@@ -172,7 +175,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[CONSENT] lead after update:`, {
         id: updatedLead.id,
         opted_out: updatedLead.opted_out,
-        phone: updatedLead.phone
+        caller_phone: updatedLead.caller_phone
       })
       lead = updatedLead
     } else {

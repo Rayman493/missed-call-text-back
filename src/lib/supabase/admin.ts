@@ -133,12 +133,12 @@ export const db = {
     // Search for leads across all these businesses
     const businessIds = businesses.map(b => b.id)
     
-    // Search by caller_phone field (used by AI voice service) first, fallback to phone field
+    // Search by caller_phone field only (the actual column in the database)
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .in('business_id', businessIds)
-      .or(`caller_phone.eq.${phone},phone.eq.${phone}`)
+      .eq('caller_phone', phone)
       .limit(1) // Get first match if multiple exist
       .single()
     
@@ -161,12 +161,10 @@ export const db = {
       return null
     }
     
-    console.log('[INBOUND SMS LEAD LOOKUP RESULT]', {
+    console.log('[INBOUND SMS LEAD MATCHED BY CALLER_PHONE]', {
       leadId: data.id,
       businessId: data.business_id,
-      phoneField: data.phone,
-      callerPhoneField: data.caller_phone,
-      matchedBy: data.caller_phone === phone ? 'caller_phone' : 'phone'
+      callerPhone: data.caller_phone
     })
     
     // Find the business for this lead
@@ -692,12 +690,12 @@ export const db = {
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
     const normalizedLead = {
       ...lead,
-      phone: normalizePhoneNumberForStorage(lead.phone || '')
+      caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || '')
     }
     
     console.log('[PHONE NORMALIZED]', {
-      rawPhone: lead.phone,
-      normalizedPhone: normalizedLead.phone,
+      rawPhone: lead.caller_phone,
+      normalizedPhone: normalizedLead.caller_phone,
       source: 'createLead'
     })
     

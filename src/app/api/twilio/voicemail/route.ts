@@ -123,10 +123,9 @@ export async function POST(request: NextRequest) {
       // Use only columns that exist in the actual database schema
       const leadPayload = {
         business_id: business.id,
-        phone: normalizedCallerPhone,
+        caller_phone: normalizedCallerPhone,
         status: 'new',
         name: null,
-        email: null,
         raw_metadata: { source: 'voicemail' },
       };
       console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', leadPayload);
