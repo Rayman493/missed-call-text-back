@@ -372,18 +372,19 @@ export async function POST(req: NextRequest) {
         }
         
         // Send SMS using the same sendSms helper as manual SMS
-        console.log(`[Follow-up SMS] Preparing to send SMS:`, {
+        console.log('[AUTO RESPONSE GENERATED]', {
           followUpId: followUp.id,
-          businessId: business.id,
-          businessName: business.name,
-          businessPhone: business.twilio_phone_number,
-          businessPhoneSid: business.twilio_phone_number_sid,
-          messagingServiceSid: business.messaging_service_sid,
-          toPhone: lead.caller_phone,
+          leadId: lead.id,
           conversationId: conversation?.id,
-          messageLength: followUp.message_body.length,
+          messageBody: followUp.message_body
+        });
+
+        console.log('[AUTO RESPONSE SEND START]', {
+          leadId: lead.id,
+          conversationId: conversation?.id,
+          toPhone: lead.caller_phone,
           messagePreview: followUp.message_body.substring(0, 50) + '...'
-        })
+        });
 
         const smsOptions: any = {
           lead_id: lead.id,
@@ -397,7 +398,11 @@ export async function POST(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.error(`[Follow-up SMS] SMS send failed - no message SID returned: ${followUp.id}`)
+          console.error('[AUTO RESPONSE MESSAGE INSERT ERROR]', {
+            leadId: lead.id,
+            conversationId: conversation?.id,
+            error: 'SMS send failed - no Twilio message SID returned'
+          })
           
           // Mark job as failed
           const { error: failError } = await supabase
@@ -416,9 +421,14 @@ export async function POST(req: NextRequest) {
           continue
         }
 
-        console.log(`[Follow-up SMS] SMS sent successfully:`, {
-          followUpId: followUp.id,
+        console.log('[AUTO RESPONSE TWILIO SENT]', {
           messageSid,
+          leadId: lead.id,
+          conversationId: conversation?.id
+        })
+
+        console.log('[AUTO RESPONSE MESSAGE INSERT SUCCESS]', {
+          messageId: messageSid,
           leadId: lead.id,
           conversationId: conversation?.id
         })
@@ -784,18 +794,19 @@ export async function GET(req: NextRequest) {
         }
         
         // Send SMS using the same sendSms helper as manual SMS
-        console.log(`[Follow-up SMS] Preparing to send SMS:`, {
+        console.log('[AUTO RESPONSE GENERATED]', {
           followUpId: followUp.id,
-          businessId: business.id,
-          businessName: business.name,
-          businessPhone: business.twilio_phone_number,
-          businessPhoneSid: business.twilio_phone_number_sid,
-          messagingServiceSid: business.messaging_service_sid,
-          toPhone: lead.caller_phone,
+          leadId: lead.id,
           conversationId: conversation?.id,
-          messageLength: followUp.message_body.length,
+          messageBody: followUp.message_body
+        });
+
+        console.log('[AUTO RESPONSE SEND START]', {
+          leadId: lead.id,
+          conversationId: conversation?.id,
+          toPhone: lead.caller_phone,
           messagePreview: followUp.message_body.substring(0, 50) + '...'
-        })
+        });
 
         const smsOptions: any = {
           lead_id: lead.id,
@@ -809,7 +820,11 @@ export async function GET(req: NextRequest) {
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
         if (!messageSid) {
-          console.error(`[Follow-up SMS] SMS send failed - no message SID returned: ${followUp.id}`)
+          console.error('[AUTO RESPONSE MESSAGE INSERT ERROR]', {
+            leadId: lead.id,
+            conversationId: conversation?.id,
+            error: 'SMS send failed - no Twilio message SID returned'
+          })
           
           // Mark job as failed
           const { error: failError } = await supabase
@@ -828,9 +843,14 @@ export async function GET(req: NextRequest) {
           continue
         }
 
-        console.log(`[Follow-up SMS] SMS sent successfully:`, {
-          followUpId: followUp.id,
+        console.log('[AUTO RESPONSE TWILIO SENT]', {
           messageSid,
+          leadId: lead.id,
+          conversationId: conversation?.id
+        })
+
+        console.log('[AUTO RESPONSE MESSAGE INSERT SUCCESS]', {
+          messageId: messageSid,
           leadId: lead.id,
           conversationId: conversation?.id
         })

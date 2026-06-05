@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         // Get business information for Twilio Messaging Service SID
         const { data: business, error: businessError } = await supabase
           .from('businesses')
-          .select('twilio_messaging_service_sid, twilio_phone_number')
+          .select('*')
           .eq('id', lead.business_id)
           .single();
 
@@ -166,12 +166,57 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Send SMS using centralized sendSms function
-        console.log(`[SYSTEM] [FOLLOWUP-CRON] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
+        // Look up open conversation for this lead
+        console.log(`[AUTO RESPONSE] Looking up conversation for lead: ${job.lead_id}`);
+        const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('lead_id', job.lead_id)
+          .eq('status', 'open')
+          .maybeSingle();
 
-        const messageSid = await sendSms(business, lead.caller_phone, job.message_body, {
-          lead_id: job.lead_id,
+        if (conversationError) {
+          console.error('[AUTO RESPONSE] Error fetching conversation:', conversationError);
+        }
+
+        if (conversation) {
+          console.log(`[AUTO RESPONSE] Found conversation: ${conversation.id} for lead: ${job.lead_id}`);
+        } else {
+          console.warn(`[AUTO RESPONSE] No open conversation found for lead: ${job.lead_id}, proceeding without conversation`);
+        }
+
+        // Send SMS using centralized sendSms function
+        console.log('[AUTO RESPONSE SEND START]', {
+          leadId: job.lead_id,
+          conversationId: conversation?.id,
+          toPhone: lead.caller_phone,
+          messagePreview: job.message_body.substring(0, 50) + '...'
         });
+
+        const smsOptions: any = {
+          lead_id: job.lead_id,
+        };
+
+        // Include conversation_id if we have one
+        if (conversation) {
+          smsOptions.conversation_id = conversation.id;
+        }
+
+        const messageSid = await sendSms(business, lead.caller_phone, job.message_body, smsOptions);
+
+        if (messageSid) {
+          console.log('[AUTO RESPONSE TWILIO SENT]', {
+            messageSid,
+            leadId: job.lead_id,
+            conversationId: conversation?.id
+          });
+        } else {
+          console.error('[AUTO RESPONSE MESSAGE INSERT ERROR]', {
+            leadId: job.lead_id,
+            conversationId: conversation?.id,
+            error: 'No message SID returned from sendSms'
+          });
+        }
 
         if (!messageSid) {
           throw new Error('SMS send failed: no Twilio message SID returned');
