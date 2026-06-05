@@ -3747,9 +3747,9 @@ Do NOT:
                 // Check if ready to close and send final closing
                 if (intakeComplete && !finalClosingStarted && callState === 'active') {
                   console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
-                  console.log('[AI TERMINAL CLOSING START] callState: active -> closing_audio_playing');
+                  console.log('[AI TERMINAL CLOSING START] callState: active -> closing');
 
-                  callState = 'closing_audio_playing';
+                  callState = 'closing';
                   (twilioHandler as any).callState = callState;
                   terminalClosingResponseStarted = true;
                   (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
@@ -3769,8 +3769,21 @@ Do NOT:
                     openAiWs.send(JSON.stringify(finalClosingMessage));
                     console.log('[AI FINAL GOODBYE SENT] Final closing message sent to OpenAI');
                     console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] Final closing message sent to OpenAI');
-                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] callState: closing_audio_playing');
+                    console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] callState: closing');
                     console.log('[AI TERMINAL CLOSING RESPONSE CREATE SENT] terminalClosingResponseStarted: true');
+                    
+                    // Immediately schedule hangup after sending final goodbye (deterministic)
+                    // No need to wait for next response.done
+                    if (!hangupScheduled) {
+                      console.log('[AI TERMINAL CLOSING AUDIO DONE] Final goodbye sent, scheduling hangup after 1500ms buffer');
+                      console.log('[AI FINAL AUDIO DONE] Final goodbye audio completed, initiating hangup');
+                      hangupScheduled = true;
+                      (twilioHandler as any).hangupScheduled = hangupScheduled;
+                      
+                      setTimeout(async () => {
+                        await endCallCleanly(ws, twilioHandler);
+                      }, 1500); // 1500ms buffer
+                    }
                   }
                 }
               }
