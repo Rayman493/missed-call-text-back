@@ -242,7 +242,7 @@ function generateConfirmationMessage(intake: IntakeData): string {
     allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
   });
 
-  const confirmation = `Just to confirm, I have your name as ${name}, you're calling about ${service}, the additional details are ${issue}, urgency is ${urgency}, the address is ${location}, the best callback time is ${callbackTime}, and the best callback number is ${callbackNumber}. Is this correct?`;
+  const confirmation = `Just to confirm, I have your name as ${name}, you're calling about ${service}, the additional details are ${issue}, urgency is ${urgency}, the address is ${location}, the best callback time is ${callbackTime}, and the best callback number is ${callbackNumber}.`;
 
   console.log('[AI FULL CONFIRMATION GENERATED]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
@@ -3136,6 +3136,8 @@ Return only JSON, no other text.`;
             let responseCreatedReceived = false;
             let sessionCreated = false;
             let sessionUpdatedReceived = false;
+            let confirmationSummaryInProgress = false;
+            let awaitingFinalConfirmationQuestion = false;
             
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
@@ -3720,30 +3722,18 @@ Do NOT:
                     console.log('[AI ISSUE DESCRIPTION REQUIRED] Issue description still missing');
                   }
 
-                  // Check if this is a confirmation message and apply suffix enforcement
+                  // Check if this is a confirmation message and send it via direct response.create
                   let responseToSend = intakeResponse.response;
                   const isConfirmationMessage = intakeResponse.nextStage === 'complete' || intakeResponse.nextStage === 'confirmation';
                   
                   if (isConfirmationMessage) {
-                    console.log('[AI CONFIRMATION BEFORE SEND]', { text: responseToSend });
+                    console.log('[AI CONFIRMATION SUMMARY SENT]', { text: responseToSend });
                     
-                    responseToSend = responseToSend.trim();
+                    // Set state flags
+                    confirmationSummaryInProgress = true;
+                    awaitingFinalConfirmationQuestion = true;
                     
-                    // Remove any existing "Is this correct?" or "Is that correct?" variations
-                    responseToSend = responseToSend
-                      .replace(/\bIs that correct\??$/i, "")
-                      .replace(/\bIs this correct\??$/i, "")
-                      .trim();
-                    
-                    // Ensure it ends with a period
-                    responseToSend = responseToSend.replace(/[.?!]*$/, ".");
-                    
-                    // Append the confirmation suffix
-                    responseToSend = `${responseToSend}${CONFIRMATION_SUFFIX}`;
-                    
-                    console.log('[AI CONFIRMATION AFTER SEND TEXT]', { text: responseToSend });
-                    
-                    // Send confirmation message via direct response.create
+                    // Send confirmation summary via direct response.create
                     const confirmationPayload = {
                       type: 'response.create',
                       response: {
@@ -3753,7 +3743,7 @@ Do NOT:
                     
                     if (openAiWs) {
                       openAiWs.send(JSON.stringify(confirmationPayload));
-                      console.log('[CONFIRMATION SENT VIA RESPONSE.CREATE]', { text: responseToSend });
+                      console.log('[CONFIRMATION SUMMARY SENT VIA RESPONSE.CREATE]', { text: responseToSend });
                     }
                     
                     // Update stage
@@ -3827,6 +3817,25 @@ Do NOT:
                   assistantSpeaking = false;
                   console.log('[AI ASSISTANT SPEAKING FALSE]');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                }
+
+                // Check if we're awaiting the final confirmation question
+                if (awaitingFinalConfirmationQuestion) {
+                  console.log('[AI CONFIRMATION QUESTION TRIGGERED] Awaiting final confirmation question, sending now');
+                  awaitingFinalConfirmationQuestion = false;
+                  confirmationSummaryInProgress = false;
+
+                  const confirmationQuestionPayload = {
+                    type: 'response.create',
+                    response: {
+                      instructions: 'Say exactly: "Is this correct?"'
+                    }
+                  };
+
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(confirmationQuestionPayload));
+                    console.log('[AI CONFIRMATION QUESTION SENT] Confirmation question sent via response.create');
+                  }
                 }
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
