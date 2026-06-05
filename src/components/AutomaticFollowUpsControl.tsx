@@ -17,10 +17,11 @@ interface FollowUpJob {
 interface AutomaticFollowUpsControlProps {
   followUpJobs: FollowUpJob[]
   leadId: string
+  leadData?: any
   onUpdate?: () => void
 }
 
-export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpdate }: AutomaticFollowUpsControlProps) {
+export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadData, onUpdate }: AutomaticFollowUpsControlProps) {
   const [loading, setLoading] = useState(false)
 
   const allCancelledAfterReply = followUpJobs.every(
@@ -34,6 +35,12 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpda
 
   const allPaused = pausedJobs.length > 0 && upcomingJobs.length === 0
   const hasAnyActiveJobs = upcomingJobs.length > 0 || pausedJobs.length > 0
+
+  // Check if auto reply was sent (step 1 job with status 'sent')
+  const autoReplySent = followUpJobs.some((job) => job.step === 1 && job.status === 'sent')
+  
+  // Check if customer replied (based on lead metadata)
+  const customerReplied = leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || allCancelledAfterReply
 
   const handleSendFollowUp = async (jobId: string) => {
     setLoading(true)
@@ -146,43 +153,34 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpda
       <div className="p-4 sm:p-5 space-y-6">
         {/* Lead Status Summary */}
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-          <h4 className="text-sm font-semibold text-foreground mb-3">Lead Status Summary</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-500" />
-              <div>
-                <div className="text-xs text-muted-foreground">Lead Status</div>
-                <div className="text-sm font-medium text-foreground">
-                  {allCancelledAfterReply ? 'Customer Replied' : allPaused ? 'Paused' : upcomingJobs.length > 0 ? 'Awaiting Reply' : 'Completed'}
-                </div>
+          <h4 className="text-sm font-semibold text-foreground mb-3">Lead Automation Status</h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-slate-500" />
+                <span className="text-xs text-muted-foreground">Status</span>
               </div>
+              <span className="text-sm font-medium text-foreground">
+                {hasAnyActiveJobs ? 'Active' : 'Inactive'}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-500" />
-              <div>
-                <div className="text-xs text-muted-foreground">Automation</div>
-                <div className="text-sm font-medium text-foreground">
-                  {hasAnyActiveJobs ? 'Active' : 'Inactive'}
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-slate-500" />
+                <span className="text-xs text-muted-foreground">Auto Reply</span>
               </div>
+              <span className="text-sm font-medium text-foreground">
+                {autoReplySent ? 'Sent' : 'Not Sent'}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-500" />
-              <div>
-                <div className="text-xs text-muted-foreground">Next Follow-Up</div>
-                <div className="text-sm font-medium text-foreground">
-                  {upcomingJobs.length > 0 ? formatRelativeTime(upcomingJobs[0].scheduled_for) : 'None scheduled'}
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-slate-500" />
+                <span className="text-xs text-muted-foreground">Customer Replied</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-500" />
-              <div>
-                <div className="text-xs text-muted-foreground">Last Activity</div>
-                <div className="text-sm font-medium text-foreground">
-                  {followUpJobs.length > 0 ? formatRelativeTime(followUpJobs[followUpJobs.length - 1].scheduled_for) : 'No activity'}
-                </div>
-              </div>
+              <span className="text-sm font-medium text-foreground">
+                {customerReplied ? 'Yes' : 'No'}
+              </span>
             </div>
           </div>
         </div>
@@ -204,15 +202,17 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, onUpda
                   </div>
                   <div>
                     <div className="text-sm font-medium text-foreground">
-                      {job.step === 1 ? 'Initial Text' : `Follow-Up #${job.step - 1}`}
+                      {job.step === 1 ? 'Auto Reply' : `Follow-Up ${job.step - 1}`}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {job.status === 'sent' ? `Sent ${formatRelativeTime(job.scheduled_for)}` :
                        job.status === 'pending' ? `Scheduled ${formatRelativeTime(job.scheduled_for)}` :
-                       job.status === 'paused' ? 'Paused' : 'Cancelled'}
+                       job.status === 'paused' ? 'Paused' : 
+                       job.cancelled_reason ? `Cancelled (${job.cancelled_reason.replace('_', ' ')})` : 'Cancelled'}
                     </div>
                   </div>
                 </div>
+                {getStatusBadge(job.status)}
               </div>
             ))}
           </div>

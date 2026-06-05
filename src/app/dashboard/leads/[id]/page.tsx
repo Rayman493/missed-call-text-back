@@ -1487,6 +1487,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <AutomaticFollowUpsControl
                   followUpJobs={followUpJobs}
                   leadId={params.id}
+                  leadData={leadData}
                   onUpdate={() => {
                     getLeadDetails(params.id).then(setLeadData)
                   }}
