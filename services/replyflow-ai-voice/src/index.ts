@@ -3837,18 +3837,8 @@ Do NOT:
                   });
                 }
                 
-                // Handle call completion if natural closing was detected
-                if ((ws as any).callComplete && !(ws as any).hangupScheduled) {
-                  console.log('[AI CALL HANGUP SCHEDULED]', { 
-                    timestamp: new Date().toISOString()
-                  });
-                  
-                  // Schedule hangup after closing message (2.5 seconds)
-                  (ws as any).hangupScheduled = true;
-                  setTimeout(async () => {
-                    await endCallCleanly(ws, twilioHandler);
-                  }, 2500); // 2.5 second delay
-                }
+                // Legacy hangup logic removed - using final response.done + 1500ms buffer only
+                console.log('[AI LEGACY HANGUP REMOVED - USING FINAL RESPONSE DONE ONLY]');
                 
                 // Check for AI intake completion patterns (legacy - kept for compatibility)
                 const assistantTranscript = message.transcript || '';
