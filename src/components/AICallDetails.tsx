@@ -43,6 +43,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
+  const [summaryExpanded, setSummaryExpanded] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -206,25 +207,42 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         </div>
       )}
 
-      {/* AI Summary Card - Business Software Feel */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        {/* AI Status Badge */}
-        <div className="flex items-center justify-between mb-4">
+      {/* AI Summary Card - Compact and Collapsible */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <button
+          onClick={() => setSummaryExpanded(!summaryExpanded)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-              ✓ Intake Complete
+            <span className="text-xs font-semibold text-green-700 dark:text-green-400">
+              ✓ AI Intake Summary
             </span>
           </div>
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
-            {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
-          </span>
-        </div>
+          <svg className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        {summaryExpanded && (
+          <div className="px-4 pb-4">
+            {/* AI Status Badge */}
+            <div className="flex items-center justify-between mb-3">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
+                {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+              </span>
+              <button
+                onClick={() => setSummaryExpanded(false)}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                Collapse
+              </button>
+            </div>
 
-        {/* Structured Information */}
-        <div className="space-y-2.5">
+            {/* Structured Information */}
+            <div className="space-y-2">
           {/* Customer Information */}
           <div className="flex items-center gap-2">
             <span className="text-base">👤</span>
@@ -282,7 +300,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
             </div>
           </div>
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

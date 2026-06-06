@@ -23,6 +23,7 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import PhotoModal from '@/components/PhotoModal'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -125,6 +126,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     activity: true,
     automation: true
   })
+  const [photoModalOpen, setPhotoModalOpen] = useState(false)
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -972,7 +975,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -1441,7 +1444,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2">
         
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 h-[calc(100vh-140px)]">
@@ -1493,7 +1496,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer */}
-            <div className="border-t border-border px-4 sm:px-5 lg:px-6 py-3 bg-background/50">
+            <div className="border-t border-border px-4 sm:px-5 lg:px-6 py-2 bg-background/50">
               <div className="flex gap-3 items-end">
                 <input
                   type="text"
@@ -1525,12 +1528,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Desktop Sidebar */}
           <aside className="overflow-y-auto h-[calc(100vh-140px)]" data-sidebar>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                <div className="sticky top-0 bg-background z-10 pb-4">
-                  <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
+                <div className="sticky top-0 bg-background z-10 pb-3">
+                  <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Intake</h3>
                     <AICallDetails
                       leadId={params.id}
                       businessId={business.id}
@@ -1542,9 +1545,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
               {/* Lead Health Card */}
-              <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lead Health</h3>
-                <div className="space-y-2.5">
+              <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Lead Health</h3>
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">AI Intake</span>
                     <span className="text-xs font-medium text-foreground">
@@ -1594,20 +1597,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               key={`${messageId}-${idx}`}
                               className="relative group cursor-pointer"
                               onClick={() => {
-                                const expanded = document.createElement('div')
-                                expanded.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4'
-                                expanded.innerHTML = `
-                                  <div class="relative max-w-4xl max-h-[90vh]">
-                                    <button class="absolute -top-10 right-0 text-white hover:text-slate-300">
-                                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                    <img src="${url}" alt="Expanded view" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
-                                  </div>
-                                `
-                                expanded.onclick = () => expanded.remove()
-                                document.body.appendChild(expanded)
+                                setSelectedPhotoUrl(url)
+                                setPhotoModalOpen(true)
                               }}
                             >
                               <img
@@ -2313,6 +2304,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       )}
     </main>
     <FloatingHelpButton />
+    <PhotoModal
+      imageUrl={selectedPhotoUrl}
+      isOpen={photoModalOpen}
+      onClose={() => {
+        setPhotoModalOpen(false)
+        setSelectedPhotoUrl('')
+      }}
+    />
     </DashboardErrorBoundary>
   )
 }

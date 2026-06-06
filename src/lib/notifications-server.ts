@@ -27,9 +27,9 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'View Lead'
   }),
   
-  customer_reply: (data: { leadName: string; message: string; leadId: string }) => ({
-    title: 'Customer Replied',
-    message: `${data.leadName}: "${data.message.substring(0, 60)}${data.message.length > 60 ? '...' : ''}"`,
+  customer_reply: (data: { leadName: string; message: string; leadId: string; hasPhoto?: boolean }) => ({
+    title: data.hasPhoto ? 'Customer Sent Photo' : 'Customer Replied',
+    message: data.message.substring(0, 80) + (data.message.length > 80 ? '...' : ''),
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'Reply'
   }),
