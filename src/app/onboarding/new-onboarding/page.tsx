@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import HelpAssistant from '@/components/HelpAssistant'
 import { hasValidSubscription, isActiveSubscription } from '@/lib/subscription'
 
 const supabase = createBrowserClient()
@@ -481,6 +482,13 @@ export default function NewOnboardingPage() {
                     📖 View Troubleshooting FAQ
                   </Link>
                 </div>
+              </div>
+            )}
+
+            {/* Help Assistant */}
+            {selectedCarrier && (
+              <div className="mt-6">
+                <HelpAssistant defaultCategory="Call Forwarding" />
               </div>
             )}
 
