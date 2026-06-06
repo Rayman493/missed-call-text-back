@@ -4,6 +4,78 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 
+// Helper function to download MMS media from Twilio and store in Supabase Storage
+async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
+  try {
+    console.log('[MMS STORAGE DOWNLOAD START]', { 
+      url: twilioMediaUrl.substring(0, 50) + '...',
+      messageId,
+      index 
+    })
+
+    // Fetch media from Twilio with authentication
+    const response = await fetch(twilioMediaUrl, {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(
+          `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+        ).toString('base64')}`,
+      },
+    })
+
+    if (!response.ok) {
+      console.error('[MMS STORAGE DOWNLOAD FAILED]', { 
+        status: response.status, 
+        statusText: response.statusText 
+      })
+      return null
+    }
+
+    // Get content type and extension
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    const extension = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' 
+                    : contentType.includes('png') ? 'png'
+                    : contentType.includes('gif') ? 'gif'
+                    : contentType.includes('webp') ? 'webp'
+                    : 'bin'
+
+    // Generate unique filename
+    const filename = `mms-${messageId}-${index}-${Date.now()}.${extension}`
+    const storagePath = `mms/${messageId}/${filename}`
+
+    // Get file buffer
+    const buffer = Buffer.from(await response.arrayBuffer())
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('mms-media')
+      .upload(storagePath, buffer, {
+        contentType,
+        upsert: false
+      })
+
+    if (uploadError) {
+      console.error('[MMS STORAGE UPLOAD FAILED]', uploadError)
+      return null
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('mms-media')
+      .getPublicUrl(storagePath)
+
+    console.log('[MMS STORAGE PUBLIC URL]', { 
+      publicUrl,
+      messageId,
+      index 
+    })
+
+    return publicUrl
+  } catch (error: any) {
+    console.error('[MMS STORAGE ERROR]', error)
+    return null
+  }
+}
+
 export interface ProcessInboundSmsParams {
   messageSid: string
   from: string
@@ -656,11 +728,24 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         for (const mediaItem of media) {
           try {
             console.log(`[INBOUND MMS STORING] message_id=${message.id}, type=${mediaItem.contentType}`)
+            
+            // Download media from Twilio and store in Supabase Storage
+            const supabaseUrl = await downloadAndStoreMedia(mediaItem.url, message.id, media.indexOf(mediaItem))
+            
+            // Use Supabase URL if download succeeded, otherwise fall back to Twilio URL
+            const finalMediaUrl = supabaseUrl || mediaItem.url
+            
+            console.log(`[INBOUND MMS URL CHOICE]`, { 
+              messageId: message.id,
+              supabaseUrl: supabaseUrl ? 'YES' : 'NO',
+              finalUrl: finalMediaUrl.substring(0, 50) + '...'
+            })
+            
             const { error: mediaError } = await supabaseAdmin
               .from('message_media')
               .insert({
                 message_id: message.id,
-                media_url: mediaItem.url,
+                media_url: finalMediaUrl,
                 mime_type: mediaItem.contentType,
                 created_at: new Date().toISOString(),
               })
@@ -672,7 +757,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
                 console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
               }
             } else {
-              console.log(`[INBOUND MMS STORED] type=${mediaItem.contentType}`)
+              console.log(`[INBOUND MMS STORED] type=${mediaItem.contentType}, url_type=${supabaseUrl ? 'supabase' : 'twilio'}`)
             }
           } catch (error: any) {
             console.error(`[INBOUND MMS ERROR] Insert exception:`, error)

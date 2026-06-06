@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
           }
         } else {
           console.log("[MMS DEBUG] Media rows fetched:", messageMedia?.length || 0)
+          console.log("[MMS DEBUG] Media URLs:", messageMedia?.map(m => m.media_url))
           // Group media by message_id
           messageMediaMap = (messageMedia || []).reduce((acc: Record<string, any[]>, media: any) => {
             if (!acc[media.message_id]) {

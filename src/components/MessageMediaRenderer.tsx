@@ -9,13 +9,17 @@ interface MessageMediaRendererProps {
   onImageLoad?: () => void
 }
 
-// Helper function to convert Twilio media URL to proxy URL
-function getProxiedMediaUrl(originalUrl: string): string {
+// Helper function to get media URL - use direct URL for Supabase, proxy for Twilio
+function getMediaUrl(originalUrl: string): string {
+  // If it's already a Supabase URL, return as-is (no proxy needed)
+  if (originalUrl.includes('supabase.co') || originalUrl.includes('/storage/v1')) {
+    return originalUrl
+  }
   // If it's already a proxy URL, return as-is
   if (originalUrl.includes('/api/twilio/media')) {
     return originalUrl
   }
-  // Otherwise, proxy through our API
+  // Otherwise, proxy through our API for Twilio URLs
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
@@ -24,6 +28,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [loadedMedia, setLoadedMedia] = useState<Set<string>>(new Set())
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
+
+  console.log('[MMS UI ATTACHMENTS LOADED]', { 
+    count: media?.length || 0,
+    mediaUrls: media?.map(m => m.media_url) 
+  })
 
   if (!media || media.length === 0) {
     return null
@@ -74,7 +83,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     <>
       <div className={`mt-2 ${media.length > 1 ? 'grid gap-2' + getGridClass() : 'flex flex-col gap-2'}`}>
         {media.map((mediaItem, index) => {
-          const proxiedUrl = getProxiedMediaUrl(mediaItem.media_url)
+          const mediaUrl = getMediaUrl(mediaItem.media_url)
           const isLoaded = loadedMedia.has(mediaItem.id)
           const isFailed = failedMedia.has(mediaItem.id)
           
@@ -84,7 +93,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 {/* Image */}
                 {!isFailed && (
                   <img
-                    src={proxiedUrl}
+                    src={mediaUrl}
                     alt="Message attachment"
                     className={`
                       cursor-pointer rounded-xl transition-all
@@ -92,7 +101,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                       max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
                     `}
-                    onClick={() => handleMediaClick(proxiedUrl)}
+                    onClick={() => handleMediaClick(mediaUrl)}
                     onLoad={() => handleImageLoad(mediaItem.id)}
                     onError={() => handleImageError(mediaItem.id)}
                     loading="lazy"
@@ -121,7 +130,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
                 <video
-                  src={proxiedUrl}
+                  src={mediaUrl}
                   controls
                   className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                   preload="metadata"
@@ -137,7 +146,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               <a
-                href={proxiedUrl}
+                href={mediaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline"

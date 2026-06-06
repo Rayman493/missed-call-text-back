@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[MMS DEBUG] Proxying media URL:', mediaUrl.substring(0, 50) + '...')
+    console.log('[MMS RENDER DEBUG] Proxying media URL:', mediaUrl.substring(0, 50) + '...')
+    console.log('[MMS MEDIA URL SELECTED]', { url: mediaUrl })
 
     // Fetch media from Twilio with authentication
     const response = await fetch(mediaUrl, {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
-      console.error('[Twilio Media Proxy] Failed to fetch media:', response.status, response.statusText)
+      console.error('[MMS RENDER DEBUG] Failed to fetch media from Twilio:', response.status, response.statusText)
       return NextResponse.json(
         { error: 'Failed to fetch media from Twilio' },
         { status: response.status }
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest) {
 
     // Get content type from response
     const contentType = response.headers.get('content-type') || 'application/octet-stream'
+
+    console.log('[MMS RENDER DEBUG] Successfully fetched media from Twilio:', contentType)
 
     // Stream the media to the client
     const mediaBuffer = await response.arrayBuffer()
