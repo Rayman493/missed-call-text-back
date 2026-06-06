@@ -141,9 +141,9 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-foreground">Lead Automation</h3>
+              <h3 className="text-base font-semibold text-foreground">ReplyFlow Activity</h3>
               <p className="text-sm text-muted-foreground">
-                Control what ReplyFlow is doing with this lead
+                Automation and follow-up status for this lead
               </p>
             </div>
           </div>

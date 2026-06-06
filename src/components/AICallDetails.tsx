@@ -224,61 +224,63 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         </div>
 
         {/* Structured Information */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {/* Customer Information */}
-          <div>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Customer</h4>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {extractedInfo?.callerName || 'Not Provided'}
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="text-base">👤</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {extractedInfo?.callerName || 'Not Provided'}
+              </p>
+            </div>
           </div>
 
           {/* Service Requested */}
-          <div>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Service Requested</h4>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {extractedInfo?.reasonForCalling || 'Not Provided'}
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="text-base">🌱</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {extractedInfo?.reasonForCalling || 'Not Provided'}
+              </p>
+            </div>
           </div>
 
           {/* Location */}
           {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-            <div>
-              <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Location</h4>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {correctedFields?.address || extractedInfo?.addressOrLocation}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="text-base">📍</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {correctedFields?.address || leadData?.raw_metadata?.location || leadData?.raw_metadata?.address || leadData?.raw_metadata?.service_address || extractedInfo?.addressOrLocation}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Callback Time */}
           {extractedInfo?.preferredCallbackTime && (
-            <div>
-              <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Callback Time</h4>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {extractedInfo.preferredCallbackTime}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="text-base">⏰</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {extractedInfo.preferredCallbackTime}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Urgency */}
-          <div>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Urgency</h4>
-            {extractedInfo?.urgencyLevel ? (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                {extractedInfo.urgencyLevel}
-              </span>
-            ) : (
-              <span className="text-sm text-gray-500 dark:text-gray-400">Unknown</span>
-            )}
-          </div>
-
-          {/* Summary */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Summary</h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              {extractedInfo?.summary || aiCallRecord.summary || 'No summary available'}
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="text-base">🚨</span>
+            <div className="flex-1">
+              {extractedInfo?.urgencyLevel ? (
+                <span className={`text-sm font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                  {extractedInfo.urgencyLevel}
+                </span>
+              ) : (
+                <span className="text-sm text-gray-500 dark:text-gray-400">Unknown</span>
+              )}
+            </div>
           </div>
         </div>
       </div>

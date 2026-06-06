@@ -42,6 +42,17 @@ export default function DesktopConversationMessageList({
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
+          if (event.isDivider) {
+            return (
+              <div key={item.id} className="flex items-center justify-center my-6">
+                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+                <div className="px-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {event.message}
+                </div>
+                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+              </div>
+            )
+          }
           return (
             <div key={item.id} className="flex items-center justify-center my-6">
               <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700">

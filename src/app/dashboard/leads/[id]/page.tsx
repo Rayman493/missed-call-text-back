@@ -282,13 +282,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Add Customer Corrected Address event
     if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
       const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.updated_at
+      const hasAddressCorrection = leadData.raw_metadata.corrected_fields?.address
       systemEvents.push({
         type: 'system_event',
         id: `correction-${leadData.id}`,
         created_at: correctionTimestamp,
         data: {
-          message: 'Customer Updated Information',
-          timestamp: correctionTimestamp
+          message: hasAddressCorrection ? 'Customer Corrected Address' : 'Customer Updated Information',
+          timestamp: correctionTimestamp,
+          isDivider: true
         }
       })
     }
@@ -1194,6 +1196,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
+                    {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        <span>⚠</span>
+                        <span>{Object.keys(leadData.raw_metadata.corrected_fields).length} Customer Correction{Object.keys(leadData.raw_metadata.corrected_fields).length > 1 ? 's' : ''}</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Quick Actions */}
@@ -1462,30 +1470,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               )}
-              {/* Customer Profile Card */}
-              <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-semibold text-lg">
-                    {formatPhoneNumber(leadData?.phone_number || lead?.phone).charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold text-foreground truncate">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</h3>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
-                      {leadData?.status || lead?.status || 'New'}
+              {/* Lead Health Card */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lead Health</h3>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">AI Intake</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'Complete' : 'Incomplete'}
                     </span>
                   </div>
-                </div>
-                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Created</span>
-                    <span className="text-xs font-medium text-foreground">{formatRelativeTime(lead?.created_at)}</span>
+                    <span className="text-xs text-muted-foreground">Customer Replied</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
+                    </span>
                   </div>
-                  {lead?.last_message_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Last Activity</span>
-                      <span className="text-xs font-medium text-foreground">{formatRelativeTime(lead.last_message_at)}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Corrections Made</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Follow-Ups</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {followUpJobs.some((j: any) => j.status === 'pending') ? 'Active' : 
+                       followUpJobs.some((j: any) => j.status === 'cancelled') ? 'Cancelled' : 'Complete'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1493,6 +1506,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Quick Actions</h3>
                 <div className="flex flex-wrap gap-1.5">
+                  {/* Primary Actions */}
                   <button
                     onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
@@ -1502,25 +1516,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </svg>
                     <span>Call</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      const phone = leadData?.phone_number || lead?.phone
-                      if (phone) {
-                        copyToClipboard(phone)
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-md transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>Copy</span>
-                  </button>
                   {getLeadLifecycleStatus(leadData) !== 'completed' && (
                     <button
                       onClick={() => handleStatusUpdate('completed')}
                       disabled={isCompleting}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1528,6 +1528,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <span>{isCompleting ? 'Marking...' : 'Complete'}</span>
                     </button>
                   )}
+                  {/* Secondary Actions */}
+                  <button
+                    onClick={() => {
+                      const phone = leadData?.phone_number || lead?.phone
+                      if (phone) {
+                        copyToClipboard(phone)
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copy</span>
+                  </button>
                   <button
                     onClick={() => setShowIgnoreModal(true)}
                     disabled={isIgnoring}

@@ -44,6 +44,17 @@ export default function MobileConversationMessageList({
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
+          if (event.isDivider) {
+            return (
+              <div key={item.id} className="flex items-center justify-center my-4">
+                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+                <div className="px-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                  {event.message}
+                </div>
+                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+              </div>
+            )
+          }
           return (
             <div key={item.id} className="flex items-center justify-center my-4">
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
