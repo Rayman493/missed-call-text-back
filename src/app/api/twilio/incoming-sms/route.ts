@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     
     // Add debug response with key identifiers
     console.log('[INBOUND SMS DEBUG]', {
-      businessId: result.lead?.business_id || business?.id || 'unknown',
+      businessId: result.lead?.business_id || 'unknown',
       leadId: result.lead?.id || 'unknown',
       conversationId: result.conversation?.id || 'unknown',
       messageId: result.message?.id || 'unknown',
@@ -198,11 +198,11 @@ export async function POST(req: NextRequest) {
     })
       
       // Create notification for customer reply
-      if (result.lead && result.lead.business_id) {
+      if (result.lead && result.lead.business_id && result.message) {
         try {
-          console.log('[NOTIFICATION CREATE ATTEMPT]', { 
-            businessId: result.lead.business_id, 
-            type: 'customer_reply', 
+          console.log('[NOTIFICATION CREATE ATTEMPT]', {
+            businessId: result.lead.business_id,
+            type: 'customer_reply',
             leadId: result.lead.id,
             messageId: result.message.id
           });
@@ -227,7 +227,6 @@ export async function POST(req: NextRequest) {
           // Don't let notification failures break webhook processing
         }
       }
-    }
     
     // Return the TwiML response
     return new Response(result.twiml, {
