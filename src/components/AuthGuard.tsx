@@ -44,9 +44,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     Boolean(sessionId?.startsWith('cs_'))
   
   // Check if we're in billing return grace mode
+  // Exclude /billing/success page - it has its own loading and polling logic
+  const isBillingSuccessPage = typeof window !== 'undefined' && window.location.pathname === '/billing/success'
   const isBillingReturn = 
-    billingReturnParam === 'success' ||
-    Boolean(sessionId?.startsWith('cs_'))
+    !isBillingSuccessPage &&
+    (billingReturnParam === 'success' ||
+    Boolean(sessionId?.startsWith('cs_')))
 
   // Trace log on every AuthGuard render
   useEffect(() => {

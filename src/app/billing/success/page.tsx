@@ -13,6 +13,7 @@ interface CheckoutStatus {
   provisioningStatus: string
   hasTwilioNumber: boolean
   redirectTo: string
+  redirectReady: boolean
   error?: string
   readyForReauth?: boolean
   business?: {
@@ -79,7 +80,8 @@ export default function BillingSuccessPage() {
       try {
         console.log('[Billing Success Poll]', { 
           sessionId, 
-          pollCount: pollCount + 1 
+          pollCount: pollCount + 1,
+          timestamp: new Date().toISOString()
         })
 
         const response = await fetch('/api/billing/checkout-status', {
@@ -93,10 +95,23 @@ export default function BillingSuccessPage() {
         const data: CheckoutStatus = await response.json()
 
         if (!response.ok) {
+          console.error('[Billing Success Poll API Error]', {
+            status: response.status,
+            data,
+            pollCount: pollCount + 1
+          })
           throw new Error(data.error || 'Failed to check status')
         }
 
-        console.log('[Billing Success Poll Response]', data)
+        console.log('[Billing Success Poll Response]', {
+          ok: data.ok,
+          checkoutStatus: data.checkoutStatus,
+          subscriptionStatus: data.subscriptionStatus,
+          provisioningStatus: data.provisioningStatus,
+          hasTwilioNumber: data.hasTwilioNumber,
+          redirectReady: data.redirectReady,
+          pollCount: pollCount + 1
+        })
         setStatus(data)
         setPollCount(prev => prev + 1)
 
@@ -106,7 +121,8 @@ export default function BillingSuccessPage() {
             sessionId,
             subscriptionStatus: data.subscriptionStatus,
             provisioningStatus: data.provisioningStatus,
-            hasTwilioNumber: data.hasTwilioNumber
+            hasTwilioNumber: data.hasTwilioNumber,
+            timestamp: new Date().toISOString()
           })
           
           // Show success state instead of auto-redirecting
@@ -118,7 +134,11 @@ export default function BillingSuccessPage() {
         }
 
       } catch (err) {
-        console.error('[Billing Success Poll Error]', err)
+        console.error('[Billing Success Poll Error]', {
+          error: err instanceof Error ? err.message : String(err),
+          pollCount: pollCount + 1,
+          timestamp: new Date().toISOString()
+        })
         if (pollCount >= 5) { // Allow some retries before showing error
           setError(err instanceof Error ? err.message : 'Failed to check status')
         }
