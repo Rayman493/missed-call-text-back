@@ -16,6 +16,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [recoveryTimeoutElapsed, setRecoveryTimeoutElapsed] = useState(false)
   const [billingGraceTimeoutElapsed, setBillingGraceTimeoutElapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)))
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Trace log at AuthGuard first render
   useEffect(() => {
@@ -79,11 +90,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isBillingReturn, user, loading])
 
-  // Set billing return grace timeout - after 20 seconds, if still no session, redirect to signin
+  // Set billing return grace timeout - after 20s (desktop) or 60s (mobile), if still no session, redirect to signin
   useEffect(() => {
     if (!isBillingReturn || user) return
 
-    console.log('[Dashboard Billing Return] Starting 20-second grace timeout for session restoration')
+    // Mobile requires longer timeout due to PWA session restoration behavior
+    const graceTimeoutMs = isMobile ? 60000 : 20000
+    console.log('[Dashboard Billing Return] Starting billing return grace timeout for session restoration', {
+      isMobile,
+      graceTimeoutMs,
+      device: isMobile ? 'mobile' : 'desktop'
+    })
 
     const timeout = setTimeout(() => {
       console.log('[Dashboard Billing Return Grace Timeout]', {
@@ -91,7 +108,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         search: window.location.search,
         hasSession: !!user,
         authLoading: loading,
-        graceElapsedMs: 20000
+        graceElapsedMs: graceTimeoutMs,
+        isMobile
       })
 
       setBillingGraceTimeoutElapsed(true)
@@ -105,26 +123,28 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         reason: 'billing_return_grace_timeout',
         from: '/dashboard',
         to: signinUrl,
-        billingReturn: true
+        billingReturn: true,
+        isMobile
       })
 
       router.push(signinUrl)
-    }, 20000) // 20 seconds for mobile-safe auth restoration
+    }, graceTimeoutMs)
 
     return () => clearTimeout(timeout)
-  }, [isBillingReturn, user, loading, router, sessionId])
+  }, [isBillingReturn, user, loading, router, sessionId, isMobile])
 
   // Session restoration polling during billing return grace mode
   useEffect(() => {
     if (!isBillingReturn || user || billingGraceTimeoutElapsed) return
 
     let pollCount = 0
-    const maxPolls = 20 // Poll for 20 seconds (20 * 1 second)
+    // Match polling duration to grace timeout (60 polls for mobile, 20 for desktop)
+    const maxPolls = isMobile ? 60 : 20
 
     const pollSession = async () => {
       try {
         pollCount++
-        console.log('[Dashboard Billing Return] Session restoration poll', { pollCount })
+        console.log('[Dashboard Billing Return] Session restoration poll', { pollCount, isMobile, maxPolls })
 
         const { data: { session } } = await supabase.auth.getSession()
         
@@ -133,7 +153,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             pathname: window.location.pathname,
             search: window.location.search,
             hasSession: true,
-            pollCount
+            pollCount,
+            isMobile
           })
           // AuthContext will detect the session and update user state
           return
@@ -151,7 +172,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // Start polling
     pollSession()
 
-  }, [isBillingReturn, user, billingGraceTimeoutElapsed])
+  }, [isBillingReturn, user, billingGraceTimeoutElapsed, isMobile])
 
   // Set recovery timeout - after 3 seconds, if still no session, route to recovery page
   useEffect(() => {
