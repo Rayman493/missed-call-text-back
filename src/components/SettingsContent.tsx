@@ -1494,7 +1494,7 @@ export default function SettingsContent() {
                       </div>
                     </div>
                   </div>
-                  {needsUpgrade(business?.subscription_status) && (
+                  {needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}

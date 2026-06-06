@@ -1,4 +1,5 @@
 import { hasActiveAccess, Business as SubscriptionBusiness } from './subscription-utils'
+import { hasActiveManualAccess } from './manual-access'
 
 export type OnboardingState = 
   | 'unknown'
@@ -37,6 +38,9 @@ export interface BusinessData {
   onboarding_status?: string | null
   messaging_status?: string | null
   a2p_status?: string | null
+  // Manual access fields
+  manual_access_enabled?: boolean | null
+  manual_access_expires_at?: string | null
 }
 
 export interface RelatedData {
@@ -109,7 +113,16 @@ export function getBusinessOnboardingState(
   }
 
   const hasActiveSubscription = hasActiveAccess(subscriptionBusiness)
+  const hasManualAccess = hasActiveManualAccess(business)
   console.log('[getBusinessOnboardingState] hasActiveSubscription:', hasActiveSubscription)
+  console.log('[getBusinessOnboardingState] hasManualAccess:', hasManualAccess)
+  
+  if (hasManualAccess) {
+    console.log('[MANUAL ACCESS] Setup eligible - manual access is active', {
+      manualAccessEnabled: business.manual_access_enabled,
+      manualAccessExpiresAt: business.manual_access_expires_at
+    })
+  }
 
   // STATE 1: PRE_TRIAL - User has not activated trial/subscription
   if (!hasActiveSubscription) {

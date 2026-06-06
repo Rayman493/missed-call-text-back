@@ -2,6 +2,17 @@
 
 import { Business } from './types'
 
+// Partial type for businesses that may or may not have manual access fields
+export interface BusinessWithManualAccess {
+  id?: string
+  manual_access_enabled?: boolean | null
+  manual_access_expires_at?: string | null
+  manual_access_reason?: string | null
+  manual_access_note?: string | null
+  manual_access_granted_at?: string | null
+  manual_access_granted_by?: string | null
+}
+
 export interface ManualAccessStatus {
   hasManualAccess: boolean
   isExpired: boolean
@@ -19,7 +30,7 @@ export interface ManualAccessStatus {
  * - manual_access_enabled is true
  * - AND (manual_access_expires_at is NULL OR manual_access_expires_at > now())
  */
-export function hasActiveManualAccess(business: Business | null): boolean {
+export function hasActiveManualAccess(business: Business | BusinessWithManualAccess | null): boolean {
   if (!business) {
     return false
   }
