@@ -65,8 +65,11 @@ export default function OperationalStatusCard({
   // ONLY use setupHealth forwardingVerified - no other logic
   const isForwardingActive = setupHealth?.forwardingVerified === true
   
-  // Clear monitoring status logic
-  const isMonitoringHealthy = isForwardingActive && isTextReplyActive
+  // Check if onboarding is complete - all required steps done
+  const isOnboardingComplete = business?.onboarding_status === 'completed' && isForwardingActive
+  
+  // Clear monitoring status logic - only consider monitoring healthy if onboarding is complete
+  const isMonitoringHealthy = isOnboardingComplete && isTextReplyActive
   const monitoringStatus = isMonitoringHealthy ? 'active' : 'needs-attention'
   
   // Context for why attention is needed
@@ -84,8 +87,8 @@ export default function OperationalStatusCard({
   }
 
   // Show compact version when setup is complete (both mobile and desktop)
-  // Show full version when setup needs attention
-  if (monitoringStatus === 'active') {
+  // Show full version when setup needs attention or onboarding is incomplete
+  if (monitoringStatus === 'active' && isOnboardingComplete) {
     return (
       <>
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-3.5">
@@ -228,18 +231,20 @@ export default function OperationalStatusCard({
           <div className="flex items-center gap-3">
             {getStatusIndicator(monitoringStatus)}
             <div>
-              <h3 className="text-xl font-bold text-white">ReplyFlow Status</h3>
+              <h3 className="text-xl font-bold text-white">
+                {isOnboardingComplete ? 'ReplyFlow Status' : 'Setup Progress'}
+              </h3>
               <p className="text-sm text-slate-300">
-                 Setup Required
+                 {isOnboardingComplete ? 'All systems operational' : 'Setup Required'}
               </p>
             </div>
           </div>
           
           {/* Health Indicator */}
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-            <span className="text-xs font-medium text-amber-400">
-              Attention Needed
+            <div className={`w-2 h-2 rounded-full ${isOnboardingComplete ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+            <span className={`text-xs font-medium ${isOnboardingComplete ? 'text-green-400' : 'text-amber-400'}`}>
+              {isOnboardingComplete ? 'All Systems Operational' : 'Attention Needed'}
             </span>
           </div>
         </div>
