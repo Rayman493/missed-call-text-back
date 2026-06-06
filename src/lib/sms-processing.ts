@@ -789,17 +789,42 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         leadId: lead.id,
         messageId: message.id
       });
-      await notificationServiceServer.notifyCustomerReply(
+      
+      // Get lead name from raw_metadata if available
+      const leadName = lead.raw_metadata?.caller_name || lead.caller_phone || 'Customer';
+      
+      // Determine message text for notification
+      let notificationMessage = sanitizedBody;
+      if (!sanitizedBody || sanitizedBody.trim() === '') {
+        notificationMessage = 'sent a photo';
+      } else {
+        // Truncate long messages
+        notificationMessage = sanitizedBody.length > 60 
+          ? sanitizedBody.substring(0, 60) + '...'
+          : sanitizedBody;
+      }
+      
+      const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
         business.id,
-        'Customer',
-        sanitizedBody,
-        lead.id
+        leadName,
+        notificationMessage,
+        lead.id,
+        message.id
       );
-      console.log('[NOTIFICATION CREATE SUCCESS]', { 
-        businessId: business.id, 
-        type: 'customer_reply', 
-        leadId: lead.id 
-      });
+      
+      if (notificationSuccess) {
+        console.log('[NOTIFICATION CREATE SUCCESS]', { 
+          businessId: business.id, 
+          type: 'customer_reply', 
+          leadId: lead.id 
+        });
+      } else {
+        console.error('[NOTIFICATION CREATE FAILED]', { 
+          businessId: business.id, 
+          type: 'customer_reply', 
+          leadId: lead.id 
+        });
+      }
     } catch (error) {
       console.error('[NOTIFICATION CREATE ERROR]', { 
         businessId: business.id, 

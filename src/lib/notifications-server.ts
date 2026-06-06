@@ -162,6 +162,28 @@ export class NotificationServiceServer {
       notificationData = template(data || {})
     }
 
+    // Idempotency check: prevent duplicate notifications for the same context
+    if (data && data.messageId && type === 'customer_reply') {
+      const { data: existingNotification } = await supabaseAdmin
+        .from('notifications')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('type', type)
+        .eq('lead_id', data.leadId)
+        .eq('message_id', data.messageId)
+        .maybeSingle()
+
+      if (existingNotification) {
+        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
+          businessId, 
+          type, 
+          leadId: data.leadId,
+          messageId: data.messageId 
+        })
+        return true // Return true to indicate success (notification already exists)
+      }
+    }
+
     console.log('[NOTIFICATIONS INSERT PAYLOAD]', { 
       businessId, 
       type, 
@@ -208,12 +230,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyCustomerReply(businessId: string, leadName: string, message: string, leadId: string): Promise<boolean> {
+  async notifyCustomerReply(businessId: string, leadName: string, message: string, leadId: string, messageId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'customer_reply',
       '',
-      { leadName, message, leadId }
+      { leadName, message, leadId, messageId }
     )
   }
 

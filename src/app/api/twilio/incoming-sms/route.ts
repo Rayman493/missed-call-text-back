@@ -197,46 +197,7 @@ export async function POST(req: NextRequest) {
       numMedia: formData.get('NumMedia') || 0
     })
       
-      // Create notification for customer reply
-      if (result.lead && result.lead.business_id && result.message) {
-        try {
-          console.log('[NOTIFICATION CREATE ATTEMPT]', {
-            businessId: result.lead.business_id,
-            type: 'customer_reply',
-            leadId: result.lead.id,
-            messageId: result.message.id
-          });
-          const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
-            result.lead.business_id,
-            result.lead.caller_phone || 'Unknown',
-            Body || 'Media message',
-            result.lead.id
-          );
-          if (notificationSuccess) {
-            console.log('[NOTIFICATION CREATE SUCCESS]', { 
-              businessId: result.lead.business_id, 
-              type: 'customer_reply', 
-              leadId: result.lead.id 
-            });
-          } else {
-            console.error('[NOTIFICATION CREATE FAILED]', { 
-              businessId: result.lead.business_id, 
-              type: 'customer_reply', 
-              leadId: result.lead.id 
-            });
-          }
-        } catch (error) {
-          console.error('[NOTIFICATION CREATE ERROR]', { 
-            businessId: result.lead.business_id, 
-            type: 'customer_reply', 
-            leadId: result.lead.id,
-            error 
-          });
-          // Don't let notification failures break webhook processing
-        }
-      }
-    
-    // Return the TwiML response
+      // Return the TwiML response
     return new Response(result.twiml, {
       status: 200,
       headers: {

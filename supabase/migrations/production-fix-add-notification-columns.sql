@@ -23,6 +23,11 @@ ALTER TABLE notifications ADD COLUMN IF NOT EXISTS lead_id uuid REFERENCES leads
 -- Add message_id column to notifications table (optional, for linking to specific message)
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message_id uuid REFERENCES messages(id) ON DELETE CASCADE;
 
+-- Add unique index to prevent duplicate customer_reply notifications for the same message
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_customer_reply_message_unique
+ON notifications (business_id, lead_id, message_id, type)
+WHERE type = 'customer_reply' AND message_id IS NOT NULL;
+
 -- Add comments for documentation
 COMMENT ON COLUMN notifications.data IS 'JSON data for notification, includes leadId, messageId, and other contextual information';
 COMMENT ON COLUMN notifications.read IS 'Whether notification has been read by user';
