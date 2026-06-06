@@ -45,6 +45,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
+import FloatingHelpButton from '@/components/FloatingHelpButton'
 
 // Helper to get compact summary for lead card
 function getCompactSummary(lead: any): string {
@@ -1211,6 +1212,7 @@ export default function LeadsPage() {
         </div>
       </BusinessGuard>
     </AuthGuard>
+    <FloatingHelpButton />
     </DashboardErrorBoundary>
   )
 }

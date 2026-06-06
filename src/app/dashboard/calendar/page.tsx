@@ -18,6 +18,7 @@ import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
+import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
@@ -742,6 +743,7 @@ export default function CalendarPage() {
         </div>
       </BusinessGuard>
       <BottomNavigation />
+      <FloatingHelpButton />
     </AuthGuard>
     </DashboardErrorBoundary>
   )

@@ -65,6 +65,7 @@ import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
+import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1439,6 +1440,7 @@ export default function DashboardContent() {
         </BusinessGuard>
       </AuthGuard>
       <BottomNavigation />
+      <FloatingHelpButton />
     </DashboardErrorBoundary>
   )
 }

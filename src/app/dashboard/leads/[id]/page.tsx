@@ -22,6 +22,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
 import { ImageMessage } from '@/components/ImageMessage'
+import FloatingHelpButton from '@/components/FloatingHelpButton'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -2311,6 +2312,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
+    <FloatingHelpButton />
     </DashboardErrorBoundary>
   )
 }

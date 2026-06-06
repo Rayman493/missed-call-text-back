@@ -31,6 +31,7 @@ import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
+import FloatingHelpButton from '@/components/FloatingHelpButton'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -1801,6 +1802,7 @@ export default function SettingsContent() {
         </div>
       </BusinessGuard>
     </AuthGuard>
+    <FloatingHelpButton />
     </DashboardErrorBoundary>
   )
 }
