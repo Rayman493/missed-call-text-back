@@ -1,5 +1,5 @@
 import CalendarDayCell from './CalendarDayCell'
-import { ReactNode } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 interface CalendarGridProps {
@@ -27,6 +27,25 @@ export default function CalendarGrid({
   onAddEvent,
   onDayClick
 }: CalendarGridProps) {
+  // SSR-safe screen size detection
+  // Default to 2 (desktop) during SSR to avoid hydration mismatch
+  // Update to 1 (mobile) after mount if screen width < 768px
+  const [maxVisible, setMaxVisible] = useState(2)
+
+  useEffect(() => {
+    // Only run on client after mount
+    const updateMaxVisible = () => {
+      setMaxVisible(window.innerWidth < 768 ? 1 : 2)
+    }
+
+    // Set initial value
+    updateMaxVisible()
+
+    // Update on resize
+    window.addEventListener('resize', updateMaxVisible)
+    return () => window.removeEventListener('resize', updateMaxVisible)
+  }, [])
+
   // Ensure we're working with local time by reconstructing the date
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
@@ -91,7 +110,7 @@ export default function CalendarGrid({
     })
     
     // Limit visible events based on screen size
-    const maxVisible = typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2
+    // Uses SSR-safe state instead of render-time window access
     const visibleEvents = allMatchedEvents.slice(0, maxVisible)
     const overflowCount = Math.max(0, allMatchedEvents.length - maxVisible)
     
