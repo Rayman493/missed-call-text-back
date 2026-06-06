@@ -50,6 +50,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const checkoutParam = searchParams?.get('checkout')
   const sessionId = searchParams?.get('session_id')
   const billingReturnParam = searchParams?.get('billing_return')
+  const setupParam = searchParams?.get('setup')
   const isCheckoutRecovery = 
     checkoutParam === 'success' ||
     Boolean(sessionId?.startsWith('cs_'))
@@ -61,6 +62,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     !isBillingSuccessPage &&
     (billingReturnParam === 'success' ||
     Boolean(sessionId?.startsWith('cs_')))
+
+  // Check if we're returning from Stripe to setup (grace mode for session restoration)
+  const isStripeSetupReturn = 
+    setupParam === '1' && 
+    (typeof window !== 'undefined' && (window.location.pathname === '/dashboard' || window.location.pathname === '/setup/forwarding'))
+
+  console.log('[AuthGuard] Stripe return detection', {
+    isCheckoutRecovery,
+    isBillingReturn,
+    isStripeSetupReturn,
+    setupParam,
+    pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
+  })
 
   // Trace log on every AuthGuard render
   useEffect(() => {
@@ -264,6 +278,35 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     )
+  }
+
+  // STRIPE SETUP RETURN GRACE MODE: When setup=1 on dashboard/forwarding, wait for session restoration
+  if (isStripeSetupReturn) {
+    console.log('[AuthGuard] Stripe setup return grace mode active - waiting for session restoration', {
+      hasUser: !!user,
+      loading,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
+    })
+    
+    if (!user && !loading) {
+      console.log('[AuthGuard] Stripe setup return - session missing after grace period, redirecting to signin with returnTo')
+      const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard?setup=1')
+      router.push(`/auth/signin?returnTo=${returnTo}`)
+      return <AppLoadingScreen />
+    }
+    
+    // Show loading while waiting for session restoration
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-200 text-lg">Restoring your session...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">This can take a few seconds on mobile.</p>
+          </div>
+        </div>
+      )
+    }
   }
 
   // Show loading during initial auth loading (not recovery mode)

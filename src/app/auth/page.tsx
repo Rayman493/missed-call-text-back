@@ -48,6 +48,7 @@ function AuthContent() {
   const mode = searchParams?.get('mode') || 'signup'
   const emailParam = searchParams?.get('email')
   const redirectParam = searchParams?.get('redirect') || '/dashboard'
+  const returnToParam = searchParams?.get('returnTo')
   
   // Detect if this is a return from Stripe checkout
   const isCheckoutReturn = redirectParam?.includes('checkout=success')
@@ -171,10 +172,16 @@ function AuthContent() {
       setRedirecting(true)
       setLoading(false)
       
-      console.log('[Auth] Session persisted successfully, redirecting to:', redirectParam)
+      // Use returnTo parameter if present (for post-Stripe recovery), otherwise use redirectParam
+      const redirectTarget = returnToParam || redirectParam
+      console.log('[Auth] Session persisted successfully, redirecting to:', redirectTarget, {
+        returnToParam,
+        redirectParam,
+        chosen: redirectTarget
+      })
       
       await new Promise(resolve => setTimeout(resolve, 800))
-      router.push(redirectParam)
+      router.push(redirectTarget)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
     } finally {

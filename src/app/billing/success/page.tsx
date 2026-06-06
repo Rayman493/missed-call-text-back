@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
+import { createBrowserClient } from '@/lib/supabase/browser'
+
+const supabase = createBrowserClient()
 
 interface CheckoutStatus {
   ok: boolean
@@ -46,6 +49,10 @@ export default function BillingSuccessPage() {
   const [showButton, setShowButton] = useState(false)
   const [checkoutMode, setCheckoutMode] = useState<'trial' | 'paid'>('trial')
 
+  // Session restoration state
+  const [sessionRestorationState, setSessionRestorationState] = useState<'checking' | 'restored' | 'missing'>('checking')
+  const [sessionUser, setSessionUser] = useState<any>(null)
+
   // Trace log on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +77,47 @@ export default function BillingSuccessPage() {
       setError('Invalid checkout session')
       return
     }
+  }, [sessionId])
+
+  // Session restoration check - verify Supabase session is available after Stripe return
+  useEffect(() => {
+    if (!sessionId) return
+
+    const checkSession = async () => {
+      console.log('[Stripe Return Auth] Checking session restoration', {
+        sessionId,
+        timestamp: new Date().toISOString()
+      })
+
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('[Stripe Return Auth] Session check error:', sessionError)
+        }
+
+        if (session && session.user) {
+          console.log('[Stripe Return Auth] Session restored', {
+            userId: session.user.id,
+            email: session.user.email,
+            timestamp: new Date().toISOString()
+          })
+          setSessionUser(session.user)
+          setSessionRestorationState('restored')
+        } else {
+          console.log('[Stripe Return Auth] Session missing', {
+            sessionId,
+            timestamp: new Date().toISOString()
+          })
+          setSessionRestorationState('missing')
+        }
+      } catch (error) {
+        console.error('[Stripe Return Auth] Session check failed:', error)
+        setSessionRestorationState('missing')
+      }
+    }
+
+    checkSession()
   }, [sessionId])
 
   // Poll checkout status
@@ -256,23 +304,52 @@ export default function BillingSuccessPage() {
 
           {/* Animated Button - Hard redirect to dashboard with setup mode */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
-            <button
-              onClick={() => {
-                const clickData = {
-                  sessionId,
-                  subscriptionStatus: status.subscriptionStatus,
-                  destination: '/dashboard?setup=1',
-                  timestamp: new Date().toISOString()
-                }
-                console.log('[Billing Success Continue to Dashboard]', clickData)
-                console.log('[Billing Success] Performing hard navigation to force clean state initialization')
-                window.location.href = '/dashboard?setup=1'
-              }}
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
-            >
-              Continue to Dashboard
-            </button>
+            {sessionRestorationState === 'restored' ? (
+              <button
+                onClick={() => {
+                  const clickData = {
+                    sessionId,
+                    subscriptionStatus: status.subscriptionStatus,
+                    destination: '/dashboard?setup=1',
+                    sessionUser: sessionUser?.id,
+                    timestamp: new Date().toISOString()
+                  }
+                  console.log('[Billing Success Continue to Dashboard]', clickData)
+                  console.log('[Billing Success] Performing hard navigation to force clean state initialization')
+                  window.location.href = '/dashboard?setup=1'
+                }}
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
+              >
+                Continue to Dashboard
+              </button>
+            ) : sessionRestorationState === 'missing' ? (
+              <Link
+                href="/auth/signin?returnTo=/dashboard?setup=1"
+                className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-8 py-3 text-sm font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 w-full"
+              >
+                Sign In to Finish Setup
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="inline-flex items-center justify-center rounded-lg bg-slate-400 px-8 py-3 text-sm font-semibold text-white shadow-lg cursor-not-allowed w-full"
+              >
+                Checking session...
+              </button>
+            )}
           </div>
+
+          {/* Session Status Message */}
+          {sessionRestorationState === 'missing' && (
+            <div className="mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <p className="text-amber-900 dark:text-amber-100 text-sm font-medium mb-1">
+                Your payment was successful
+              </p>
+              <p className="text-amber-700 dark:text-amber-300 text-xs">
+                Please sign back in to finish setup. Your account is ready.
+              </p>
+            </div>
+          )}
 
           {/* Improved Subtext */}
           <p className="text-muted-foreground text-sm mt-4">
@@ -299,15 +376,24 @@ export default function BillingSuccessPage() {
           <p className="text-muted-foreground mb-6">
             Your trial is active, but setup is still finishing. Continue to your dashboard to access your account.
           </p>
-          <button
-            onClick={() => {
-              console.log('[Billing Success Timeout] Performing hard navigation to dashboard with setup mode')
-              window.location.href = '/dashboard?setup=1'
-            }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Continue to Dashboard
-          </button>
+          {sessionRestorationState === 'restored' ? (
+            <button
+              onClick={() => {
+                console.log('[Billing Success Timeout] Performing hard navigation to dashboard with setup mode')
+                window.location.href = '/dashboard?setup=1'
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Continue to Dashboard
+            </button>
+          ) : (
+            <Link
+              href="/auth/signin?returnTo=/dashboard?setup=1"
+              className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-6 py-3 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            >
+              Sign In to Finish Setup
+            </Link>
+          )}
         </div>
       </div>
       </PageBackground>
