@@ -7,6 +7,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
 import BottomNavigation from '@/components/BottomNavigation'
@@ -435,7 +436,8 @@ export default function CalendarPage() {
   }
 
   return (
-    <AuthGuard>
+    <DashboardErrorBoundary>
+      <AuthGuard>
       <BusinessGuard>
         <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
           {/* Header */}
@@ -741,5 +743,6 @@ export default function CalendarPage() {
       </BusinessGuard>
       <BottomNavigation />
     </AuthGuard>
+    </DashboardErrorBoundary>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, ReactNode } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 interface Props {
   children: ReactNode
@@ -62,6 +63,26 @@ export default class DashboardErrorBoundary extends Component<Props, State> {
 
     console.error('[DashboardErrorBoundary] Dashboard crashed:', error)
     console.error('[DashboardErrorBoundary] Error info:', errorInfo)
+    
+    // Log to Sentry in production
+    if (process.env.NODE_ENV === 'production') {
+      Sentry.captureException(error, {
+        contexts: {
+          react: {
+            componentStack: errorInfo.componentStack,
+          },
+          debugInfo: {
+            pathname,
+            hasSession,
+            businessFetchComplete,
+            hasBusiness,
+            subscription_status,
+            renderBranch,
+            lastRenderedSection
+          }
+        }
+      })
+    }
     
     if (debug) {
       console.error('[DEBUG] Error details:', {
@@ -131,12 +152,20 @@ export default class DashboardErrorBoundary extends Component<Props, State> {
               </div>
             )}
 
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Refresh Page
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.location.href = '/dashboard'}
+                className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Return to Dashboard
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground mt-4 text-center">
               If this continues, please contact support.
             </p>

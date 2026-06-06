@@ -8,6 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import GettingStarted from '@/components/GettingStarted'
@@ -444,7 +445,8 @@ export default function LeadsPage() {
   }
 
   return (
-    <AuthGuard>
+    <DashboardErrorBoundary>
+      <AuthGuard>
       <BusinessGuard>
         <div className="min-h-screen bg-[#f8fafc] dark:bg-background flex flex-col relative">
             {/* App Header */}
@@ -1196,5 +1198,6 @@ export default function LeadsPage() {
         </div>
       </BusinessGuard>
     </AuthGuard>
+    </DashboardErrorBoundary>
   )
 }

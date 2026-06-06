@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
@@ -769,7 +770,8 @@ export default function SettingsContent() {
   }
 
   return (
-    <AuthGuard>
+    <DashboardErrorBoundary>
+      <AuthGuard>
       <BusinessGuard>
         <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
           {/* Header */}
@@ -1799,5 +1801,6 @@ export default function SettingsContent() {
         </div>
       </BusinessGuard>
     </AuthGuard>
+    </DashboardErrorBoundary>
   )
 }

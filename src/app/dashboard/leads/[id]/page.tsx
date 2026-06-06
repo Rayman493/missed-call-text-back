@@ -8,6 +8,7 @@ import MobileConversationMessageList from '@/components/MobileConversationMessag
 import DesktopConversationMessageList from '@/components/DesktopConversationMessageList'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
+import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
@@ -117,6 +118,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileLeadHealthExpanded, setMobileLeadHealthExpanded] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
   const [messageMedia, setMessageMedia] = useState<Record<string, { urls: string[]; types: string[] }>>({})
+  const [showAllPhotos, setShowAllPhotos] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1170,7 +1172,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const source = leadData?.source || null
 
   return (
-    <main className="min-h-screen bg-background flex flex-col">
+    <DashboardErrorBoundary>
+      <main className="min-h-screen bg-background flex flex-col">
       {/* Standard App Header */}
       <AppHeader />
 
@@ -1569,7 +1572,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Photos Received</h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(messageMedia).slice(0, 4).map(([messageId, media]: [string, any]) => (
+                    {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                       media.urls.slice(0, 1).map((url: string, idx: number) => (
                         <div
                           key={`${messageId}-${idx}`}
@@ -1602,8 +1605,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     ))}
                   </div>
                   {Object.keys(messageMedia).length > 4 && (
-                    <button className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                      View All Photos ({Object.keys(messageMedia).length})
+                    <button
+                      onClick={() => setShowAllPhotos(!showAllPhotos)}
+                      className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    >
+                      {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
                     </button>
                   )}
                 </div>
@@ -2275,6 +2281,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
+    </DashboardErrorBoundary>
   )
 }
 
