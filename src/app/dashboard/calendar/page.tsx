@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -34,9 +35,11 @@ export default function CalendarPage() {
   const { user } = useAuth()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
+  const searchParams = useSearchParams()
 
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isConnecting, setIsConnecting] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
@@ -45,6 +48,15 @@ export default function CalendarPage() {
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
+
+  // Check for OAuth success redirect
+  useEffect(() => {
+    if (searchParams && searchParams.get('calendar') === 'connected') {
+      showToast('Google Calendar connected successfully!', 'success')
+      // Clean up the URL
+      window.history.replaceState({}, '', '/dashboard/calendar')
+    }
+  }, [searchParams])
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
@@ -89,6 +101,29 @@ export default function CalendarPage() {
       return
     }
     setIsEventComposerOpen(true)
+  }
+
+  const handleConnectCalendar = async () => {
+    setIsConnecting(true)
+    try {
+      const response = await fetch('/api/google/calendar/connect', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to initiate Google Calendar connection')
+      }
+
+      const data = await response.json()
+      // Redirect to Google OAuth URL
+      window.location.href = data.authUrl
+    } catch (error) {
+      console.error('Failed to connect calendar:', error)
+      showToast('Failed to connect Google Calendar. Please try again.', 'error')
+      setIsConnecting(false)
+    }
   }
 
   const handleDayClick = (day: number, isCurrentMonth: boolean) => {
@@ -391,13 +426,23 @@ export default function CalendarPage() {
                       <p className="text-slate-600 dark:text-muted-foreground mb-8 max-w-md mx-auto">
                         Connect your Google Calendar to view your schedule from ReplyFlow.
                       </p>
-                      <Link
-                        href="/dashboard/settings#integrations"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md"
+                      <button
+                        onClick={handleConnectCalendar}
+                        disabled={isConnecting}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                       >
-                        <Plus className="w-4 h-4" />
-                        Connect Calendar
-                      </Link>
+                        {isConnecting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Connecting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            <span>Connect Calendar</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
 
