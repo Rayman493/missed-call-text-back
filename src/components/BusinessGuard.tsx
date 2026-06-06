@@ -216,6 +216,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Show loading state while business is loading or not yet initialized
   if (loading || !initialized) {
+    console.log('[BusinessGuard] Showing loading - loading:', loading, 'initialized:', initialized)
     return <AppLoadingScreen />
   }
 

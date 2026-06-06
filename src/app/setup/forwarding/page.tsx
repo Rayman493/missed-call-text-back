@@ -201,24 +201,24 @@ export default function ForwardingSetupPage() {
         </div>
       )
     }
-    console.log('[Forwarding Setup Route] Business data loading - showing loading')
+    console.log('[Forwarding Setup Route] Business data loading - showing loading [FORWARDING_PAGE_LOADING_TIMEOUT]')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">FORWARDING_PAGE_LOADING_TIMEOUT</p>
         </div>
       </div>
     )
   }
 
   if (!business) {
-    console.log('[Forwarding Setup Route] Business data not loaded - showing loading')
+    console.log('[Forwarding Setup Route] Business data not loaded - showing loading [FORWARDING_PAGE_NO_BUSINESS]')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">FORWARDING_PAGE_NO_BUSINESS</p>
         </div>
       </div>
     )
@@ -286,7 +286,7 @@ export default function ForwardingSetupPage() {
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Loading...</p>
+          <p className="text-gray-600 dark:text-gray-200 text-lg">FORWARDING_PAGE_REDIRECTING</p>
         </div>
       </div>
     )
