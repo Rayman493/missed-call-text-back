@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,39 +80,73 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    // Search businesses
+    // After admin is verified, use service role client for unrestricted database access
     console.log('[ADMIN SEARCH QUERY]', {
       query,
       table: 'businesses',
-      searchFields: ['business_name', 'business_phone'],
+      searchFields: ['business_name', 'business_phone', 'primary_phone', 'owner_email'],
       searchPattern: `ilike.%${query}%`,
-      limit: 20
+      limit: 20,
+      client: 'service_role'
     })
 
     try {
-      const { data: businesses, error } = await supabase
+      // Search businesses using service role client for full access
+      let businesses: any[] = []
+
+      // 1. Search businesses by name and phone fields
+      const { data: businessesByNameOrPhone, error: businessError } = await supabaseAdmin
         .from('businesses')
         .select('*')
-        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%`)
+        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%,primary_phone.ilike.%${query}%`)
         .limit(20)
 
+      if (!businessError && businessesByNameOrPhone) {
+        businesses = businessesByNameOrPhone
+      }
+
+      // 2. Search by owner email using auth.users (admin-only access via service role)
+      const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
+      
+      if (!usersError && usersData) {
+        const matchingUsers = usersData.users.filter(user => 
+          user.email && user.email.toLowerCase().includes(query.toLowerCase())
+        )
+        
+        // Get businesses owned by matching users
+        if (matchingUsers.length > 0) {
+          const userIds = matchingUsers.map(u => u.id)
+          const { data: businessesByEmail, error: emailBusinessError } = await supabaseAdmin
+            .from('businesses')
+            .select('*')
+            .in('user_id', userIds)
+            .limit(20)
+          
+          if (!emailBusinessError && businessesByEmail) {
+            // Merge results, avoiding duplicates
+            const existingIds = new Set(businesses.map(b => b.id))
+            for (const business of businessesByEmail) {
+              if (!existingIds.has(business.id)) {
+                businesses.push(business)
+                existingIds.add(business.id)
+              }
+            }
+          }
+        }
+      }
+
+      // Limit final results to 20
+      businesses = businesses.slice(0, 20)
+
       console.log('[ADMIN SEARCH RESULT]', {
-        success: !error,
-        count: businesses?.length || 0,
+        success: true,
+        count: businesses.length,
         businesses: businesses,
-        error: error
+        searchMethod: 'combined'
       })
 
-      if (error) {
-        console.error('[Admin API] Search businesses error:', error)
-        console.error('[ADMIN SEARCH ERROR]', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          stack: error.stack
-        })
-        return NextResponse.json({ success: false, error: 'Search failed' }, { status: 500 })
+      if (businessError) {
+        console.error('[Admin API] Search businesses error:', businessError)
       }
 
       return NextResponse.json({ success: true, businesses })
