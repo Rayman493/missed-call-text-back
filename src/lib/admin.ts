@@ -107,3 +107,25 @@ export function isInternalAdmin(userId?: string | null): boolean {
   const adminIds = getAdminUserIds()
   return adminIds.includes(userId)
 }
+
+/**
+ * Server-side admin check for API routes
+ * This is the canonical admin check for all API routes
+ * Uses ADMIN_USER_IDS environment variable and checks by user ID
+ * @param userId - User ID to check
+ * @returns true if the user ID is in the admin list
+ */
+export function isAdmin(userId?: string | null): boolean {
+  if (!userId) return false
+  
+  const adminIds = getAdminUserIds()
+  const isAdmin = adminIds.includes(userId)
+  
+  console.log('[ADMIN API AUTH]', {
+    userId,
+    adminIds,
+    isAdmin
+  })
+  
+  return isAdmin
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { isAdminUser } from '@/lib/admin'
+import { isAdmin } from '@/lib/admin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check admin access
-    if (!isAdminUser(user.email)) {
+    if (!isAdmin(user.id)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 

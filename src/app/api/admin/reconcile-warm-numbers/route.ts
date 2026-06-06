@@ -1,25 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Twilio from 'twilio';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isAdmin } from '@/lib/admin';
+import Twilio from 'twilio';
 import { ensureWarmNumberMinimum } from '@/lib/warm-number-manager';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Admin endpoint to reconcile warm numbers with Twilio reality
- * Protected by x-admin-secret header
+ * Protected by Supabase auth + ADMIN_USER_IDS
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin secret
-    const adminSecret = request.headers.get('x-admin-secret');
-    const expectedSecret = process.env.ADMIN_SECRET;
+    // Get user from session
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
-    if (!adminSecret || adminSecret !== expectedSecret) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    console.log('[Warm Inventory Sync] Authorized by user:', user.id);
     console.log('[Warm Inventory Sync] ========== START RECONCILIATION ==========');
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -45,11 +70,11 @@ export async function POST(request: NextRequest) {
     }
 
     const client = Twilio(accountSid, authToken);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Fetch all available warm numbers
     console.log('[Warm Inventory Sync] Fetching all available warm numbers...');
-    const { data: availableNumbers, error: fetchError } = await supabase
+    const { data: availableNumbers, error: fetchError } = await serviceSupabase
       .from('twilio_numbers')
       .select('*')
       .eq('status', 'available')

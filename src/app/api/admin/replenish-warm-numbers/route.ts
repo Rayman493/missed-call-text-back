@@ -1,24 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { isAdmin } from '@/lib/admin';
 import { ensureWarmNumberMinimum, getWarmNumberStats } from '@/lib/warm-number-manager';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Admin endpoint to manually trigger warm number replenishment
- * Protected by x-admin-secret header
+ * Protected by Supabase auth + ADMIN_USER_IDS
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin secret
-    const adminSecret = request.headers.get('x-admin-secret');
-    const expectedSecret = process.env.ADMIN_SECRET;
+    // Get user from session
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
-    if (!adminSecret || adminSecret !== expectedSecret) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[Admin Replenish] Starting manual warm number replenishment...');
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    console.log('[Admin Replenish] Starting manual warm number replenishment by user:', user.id);
 
     // Get stats before replenishment
     const statsBefore = await getWarmNumberStats();

@@ -1,21 +1,45 @@
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import { isAdmin } from '@/lib/admin'
 import { provisionTwilioNumber } from '@/lib/twilio'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    const adminSecret = process.env.ADMIN_SECRET
+    // Get user from session
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.slice(7) !== adminSecret) {
-      console.error('[Admin Twilio Retry] Unauthorized access attempt');
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Admin Twilio Retry] Authorized');
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    console.log('[Admin Twilio Retry] Authorized by user:', user.id)
 
     // Parse request body
     const body = await request.json()
@@ -27,13 +51,13 @@ export async function POST(request: Request) {
     }
 
     // Use service role key for admin operations
-    const supabase = createClient(
+    const serviceSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
     // Verify business exists
-    const { data: business, error: fetchError } = await supabase
+    const { data: business, error: fetchError } = await serviceSupabase
       .from('businesses')
       .select('id, subscription_status')
       .eq('id', business_id)

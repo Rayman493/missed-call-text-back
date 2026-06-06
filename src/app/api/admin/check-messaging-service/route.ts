@@ -1,18 +1,45 @@
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import { isAdmin } from '@/lib/admin'
 import Twilio from 'twilio'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    // Verify admin secret
-    const body = await request.json()
-    const { adminSecret } = body
+    // Get user from session
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-    if (adminSecret !== process.env.ADMIN_SECRET) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    console.log('[Check Messaging Service] Authorized by user:', user.id)
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const authToken = process.env.TWILIO_AUTH_TOKEN

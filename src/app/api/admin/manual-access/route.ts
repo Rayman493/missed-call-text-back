@@ -2,15 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { isAdmin } from '@/lib/admin'
 
 export const dynamic = 'force-dynamic'
-
-// Admin user IDs who can grant manual access
-const ADMIN_USER_IDS = process.env.ADMIN_USER_IDS?.split(',') || []
-
-function isAdmin(userId: string): boolean {
-  return ADMIN_USER_IDS.includes(userId)
-}
 
 export async function POST(request: Request) {
   try {

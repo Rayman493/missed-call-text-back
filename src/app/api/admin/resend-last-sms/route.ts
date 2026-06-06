@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-// Admin email allowlist - only these emails can use admin tools
-const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || []
+import { isAdmin } from '@/lib/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (!ADMIN_EMAILS.includes(user.email || '')) {
+    if (!isAdmin(user.id)) {
       return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 })
     }
 

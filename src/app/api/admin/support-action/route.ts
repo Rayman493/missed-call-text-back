@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { isAdminUser } from '@/lib/admin'
+import { isAdmin } from '@/lib/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check admin access
-    if (!isAdminUser(user.email)) {
+    if (!isAdmin(user.id)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
     // Log admin action
-    console.log(`[Admin Action] User ${user.email} performed action ${action} on business ${businessId}`)
+    console.log(`[Admin Action] User ${user.id} performed action ${action} on business ${businessId}`)
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
     let message = ''

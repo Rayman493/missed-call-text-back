@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (!user.email?.includes('@replyflowhq.com')) {
+    if (!isAdmin(user.id)) {
       return NextResponse.json(
         { ok: false, error: 'Admin access required' },
         { status: 403 }

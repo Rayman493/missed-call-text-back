@@ -1,18 +1,48 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import { isAdmin } from '@/lib/admin'
 import Twilio from 'twilio'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { business_id, adminSecret } = body
+    // Get user from session
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-    if (adminSecret !== process.env.ADMIN_SECRET) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { business_id } = body
+
+    console.log('[Repair Twilio Provisioning] Authorized by user:', user.id)
     console.log('[Repair Twilio Provisioning] START business_id=', business_id)
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -24,13 +54,13 @@ export async function POST(request: Request) {
     }
 
     const client = Twilio(accountSid, authToken)
-    const supabase = createClient(
+    const serviceSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     )
 
     // Fetch business details
-    const { data: business, error: businessError } = await supabase
+    const { data: business, error: businessError } = await serviceSupabase
       .from('businesses')
       .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error')
       .eq('id', business_id)
