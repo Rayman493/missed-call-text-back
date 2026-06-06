@@ -27,13 +27,15 @@ export default function CalendarGrid({
   onAddEvent,
   onDayClick
 }: CalendarGridProps) {
+  // Ensure we're working with local time by reconstructing the date
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   
+  // Use local-safe date construction
   const firstDayOfMonth = new Date(year, monthIndex, 1)
   const lastDayOfMonth = new Date(year, monthIndex + 1, 0)
   const daysInMonth = lastDayOfMonth.getDate()
-  const startDayOfWeek = firstDayOfMonth.getDay()
+  const startDayOfWeek = firstDayOfMonth.getDay() // Sunday = 0, Monday = 1, etc.
   
   const today = new Date()
   const isCurrentMonth = today.getMonth() === monthIndex && today.getFullYear() === year

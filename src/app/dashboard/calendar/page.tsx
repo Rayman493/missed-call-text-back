@@ -39,7 +39,7 @@ export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
@@ -288,22 +288,20 @@ export default function CalendarPage() {
 
   const goToPreviousMonth = () => {
     setCurrentMonth(prev => {
-      const newMonth = new Date(prev)
-      newMonth.setMonth(newMonth.getMonth() - 1)
+      const newMonth = new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
       return newMonth
     })
   }
 
   const goToNextMonth = () => {
     setCurrentMonth(prev => {
-      const newMonth = new Date(prev)
-      newMonth.setMonth(newMonth.getMonth() + 1)
+      const newMonth = new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
       return newMonth
     })
   }
 
   const goToToday = () => {
-    setCurrentMonth(new Date())
+    setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   }
 
   // Filter events to only show those in the visible month
