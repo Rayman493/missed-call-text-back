@@ -119,6 +119,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isMobileView, setIsMobileView] = useState(false)
   const [messageMedia, setMessageMedia] = useState<Record<string, { urls: string[]; types: string[] }>>({})
   const [showAllPhotos, setShowAllPhotos] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState({
+    photos: true,
+    activity: true,
+    automation: true
+  })
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1487,20 +1492,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer */}
-            <div className="border-t border-border px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
-              <div className="flex gap-3">
-                <textarea
+            <div className="border-t border-border px-4 sm:px-5 lg:px-6 py-3 bg-background/50">
+              <div className="flex gap-3 items-end">
+                <input
+                  type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
-                  className="flex-1 min-h-[80px] max-h-[150px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  rows={3}
+                  className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!message.trim() || sending}
-                  className="px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-2 self-end shadow-sm hover:shadow-md"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1509,7 +1514,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
-                      <span className="hidden sm:inline">Send</span>
+                      <span>Send</span>
                     </>
                   )}
                 </button>
@@ -1569,48 +1574,60 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Photos Received Card */}
               {Object.keys(messageMedia).length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Photos Received</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
-                      media.urls.slice(0, 1).map((url: string, idx: number) => (
-                        <div
-                          key={`${messageId}-${idx}`}
-                          className="relative group cursor-pointer"
-                          onClick={() => {
-                            const expanded = document.createElement('div')
-                            expanded.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4'
-                            expanded.innerHTML = `
-                              <div class="relative max-w-4xl max-h-[90vh]">
-                                <button class="absolute -top-10 right-0 text-white hover:text-slate-300">
-                                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                                <img src="${url}" alt="Expanded view" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
-                              </div>
-                            `
-                            expanded.onclick = () => expanded.remove()
-                            document.body.appendChild(expanded)
-                          }}
+                <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => setCollapsedSections(prev => ({ ...prev, photos: !prev.photos }))}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Photos Received</h3>
+                    <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.photos ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {!collapsedSections.photos && (
+                    <div className="px-4 pb-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
+                          media.urls.slice(0, 1).map((url: string, idx: number) => (
+                            <div
+                              key={`${messageId}-${idx}`}
+                              className="relative group cursor-pointer"
+                              onClick={() => {
+                                const expanded = document.createElement('div')
+                                expanded.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4'
+                                expanded.innerHTML = `
+                                  <div class="relative max-w-4xl max-h-[90vh]">
+                                    <button class="absolute -top-10 right-0 text-white hover:text-slate-300">
+                                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                    <img src="${url}" alt="Expanded view" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
+                                  </div>
+                                `
+                                expanded.onclick = () => expanded.remove()
+                                document.body.appendChild(expanded)
+                              }}
+                            >
+                              <img
+                                src={url}
+                                alt="Customer photo"
+                                className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
+                                loading="lazy"
+                              />
+                            </div>
+                          ))
+                        ))}
+                      </div>
+                      {Object.keys(messageMedia).length > 4 && (
+                        <button
+                          onClick={() => setShowAllPhotos(!showAllPhotos)}
+                          className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                         >
-                          <img
-                            src={url}
-                            alt="Customer photo"
-                            className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
-                            loading="lazy"
-                          />
-                        </div>
-                      ))
-                    ))}
-                  </div>
-                  {Object.keys(messageMedia).length > 4 && (
-                    <button
-                      onClick={() => setShowAllPhotos(!showAllPhotos)}
-                      className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-                    >
-                      {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
-                    </button>
+                          {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -1670,15 +1687,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Automatic Follow-ups */}
-              <div>
-                <AutomaticFollowUpsControl
-                  followUpJobs={followUpJobs}
-                  leadId={params.id}
-                  leadData={leadData}
-                  onUpdate={() => {
-                    getLeadDetails(params.id).then(setLeadData)
-                  }}
-                />
+              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setCollapsedSections(prev => ({ ...prev, automation: !prev.automation }))}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follow-Up Status</h3>
+                  <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.automation ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {!collapsedSections.automation && (
+                  <div className="px-4 pb-4">
+                    <AutomaticFollowUpsControl
+                      followUpJobs={followUpJobs}
+                      leadId={params.id}
+                      leadData={leadData}
+                      onUpdate={() => {
+                        getLeadDetails(params.id).then(setLeadData)
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </aside>
