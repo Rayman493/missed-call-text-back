@@ -23,7 +23,16 @@ Your role is to:
    - Reason for calling
    - Urgency level (high/medium/low)
    - Best callback number
-3. Thank the caller and end the call
+3. Read back a concise summary of what you captured
+4. Ask for final confirmation: "Is that all correct?"
+5. If caller confirms (yes, correct, that's right, etc.):
+   - Thank the caller
+   - End the call
+6. If caller corrects something:
+   - Update the corrected field
+   - Regenerate summary
+   - Ask confirmation again
+7. Only complete intake after caller confirms the information is correct
 
 Important guidelines:
 - Be polite and professional
@@ -31,11 +40,14 @@ Important guidelines:
 - Do not make up information you don't have
 - If the caller is unclear, ask for clarification in English
 - Do not promise anything beyond taking a message
-- End the call gracefully after collecting all information
+- Always get final confirmation before ending the call
+- If caller provides corrections, acknowledge them and ask confirmation again
 
 Greeting: "Hi, thanks for calling ${businessName}. I'm the automated assistant. I can take a quick message for the team. May I get your name?"
 
-Closing: "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
+Confirmation question: "Let me confirm what I have. [read summary]. Is that all correct?"
+
+Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
 }
 
 /**
@@ -108,6 +120,55 @@ export function getGreeting(businessName: string): string {
  */
 export function getClosing(): string {
   return "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."
+}
+
+/**
+ * Generate confirmation question with summary
+ */
+export function getConfirmationQuestion(data: {
+  caller_name: string
+  reason_for_call: string
+  urgency: string
+  callback_number: string
+}): string {
+  console.log('[AI FINAL CONFIRMATION ASKED]', {
+    caller_name: data.caller_name,
+    reason_for_call: data.reason_for_call,
+    urgency: data.urgency,
+    callback_number: data.callback_number
+  })
+  
+  const summary = `Name: ${data.caller_name}, reason: ${data.reason_for_call}, urgency: ${data.urgency}, callback: ${data.callback_number}`
+  return `Let me confirm what I have. ${summary}. Is that all correct?`
+}
+
+/**
+ * Log confirmation acceptance
+ */
+export function logConfirmationAccepted(): void {
+  console.log('[AI FINAL CONFIRMATION ACCEPTED]')
+}
+
+/**
+ * Log correction received
+ */
+export function logCorrectionReceived(field: string, newValue: string): void {
+  console.log('[AI FINAL CONFIRMATION CORRECTION_RECEIVED]', {
+    field,
+    newValue
+  })
+}
+
+/**
+ * Log summary regenerated after correction
+ */
+export function logSummaryRegenerated(data: {
+  caller_name: string
+  reason_for_call: string
+  urgency: string
+  callback_number: string
+}): void {
+  console.log('[AI SUMMARY REGENERATED_AFTER_CORRECTION]', data)
 }
 
 /**
