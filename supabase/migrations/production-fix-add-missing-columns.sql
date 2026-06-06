@@ -11,27 +11,8 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_count integer DEFAULT 0;
 -- Add caller_phone column to leads table
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS caller_phone text;
 
--- If phone column exists, copy its values to caller_phone
-UPDATE leads SET caller_phone = phone WHERE caller_phone IS NULL AND phone IS NOT NULL;
-
--- Add unique constraint on business_id, caller_phone (if it doesn't exist)
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
-        WHERE table_name = 'leads' AND constraint_name = 'leads_business_id_caller_phone_key'
-    ) THEN
-        -- Drop old constraint if it exists
-        IF EXISTS (
-            SELECT 1 FROM information_schema.table_constraints 
-            WHERE table_name = 'leads' AND constraint_name = 'leads_business_id_phone_key'
-        ) THEN
-            ALTER TABLE leads DROP CONSTRAINT leads_business_id_phone_key;
-        END IF;
-        -- Add new constraint
-        ALTER TABLE leads ADD CONSTRAINT leads_business_id_caller_phone_key UNIQUE (business_id, caller_phone);
-    END IF;
-END $$;
+-- Note: caller_phone will be populated by new lead creation
+-- Existing leads without caller_phone will have it null (acceptable)
 
 -- Add last_reply_at column to leads table
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_reply_at timestamptz;
