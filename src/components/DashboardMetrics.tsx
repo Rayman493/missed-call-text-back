@@ -55,12 +55,24 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         todayStart.setHours(0, 0, 0, 0)
         const todayStartISO = todayStart.toISOString()
         
+        console.log('[DASHBOARD METRICS QUERY]', { 
+          businessId: business.id, 
+          thirtyDaysAgo, 
+          todayStartISO 
+        })
+        
         // Fetch leads (missed calls captured) - 30 days
-        const { data: leads } = await supabase
+        const { data: leads, error: leadsError } = await supabase
           .from('leads')
           .select('created_at, phone_number')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
+
+        console.log('[DASHBOARD LEAD COUNT]', { 
+          count: leads?.length || 0, 
+          leads, 
+          error: leadsError 
+        })
 
         // Fetch leads (missed calls captured) - today
         const { data: leadsToday } = await supabase
@@ -70,11 +82,18 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           .gte('created_at', todayStartISO)
 
         // Fetch messages sent - 30 days
-        const { data: messages } = await supabase
+        const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('direction, created_at, phone_number')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
+
+        console.log('[DASHBOARD MESSAGE COUNT]', { 
+          totalCount: messages?.length || 0, 
+          outboundCount: messages?.filter((m: any) => m.direction === 'outbound').length || 0, 
+          messages, 
+          error: messagesError 
+        })
 
         // Fetch messages sent - today
         const { data: messagesToday } = await supabase
@@ -90,6 +109,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           .select('id')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
+
+        console.log('[DASHBOARD ACTIVE CONVERSATIONS]', { 
+          count: activeConversations?.length || 0, 
+          sevenDaysAgo 
+        })
 
         // Calculate metrics - 30 days
         const missedCallsCaptured = leads?.length || 0
