@@ -84,17 +84,34 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Fetch messages sent - 30 days
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('direction, created_at, from_phone, to_phone, status, message_type')
+          .select('*')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
+        console.log('[DASHBOARD ALL MESSAGES RAW]', {
+          businessId: business.id,
+          businessPhone: business.twilio_phone_number,
+          totalMessages: messages?.length || 0,
+          messages: messages,
+          error: messagesError
+        })
+
         // Filter outbound messages more robustly
         const outboundMessages = messages?.filter((m: any) => {
-          // Check if direction is outbound or starts with outbound
           const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
-          // Check if from_phone matches business twilio phone (ReplyFlow sent it)
           const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-          return isDirectionOutbound || isFromBusinessPhone
+          const result = isDirectionOutbound || isFromBusinessPhone
+          console.log('[DASHBOARD MESSAGE FILTER]', {
+            messageId: m.id,
+            direction: m.direction,
+            fromPhone: m.from_phone,
+            toPhone: m.to_phone,
+            isDirectionOutbound,
+            isFromBusinessPhone,
+            result,
+            businessPhone: business.twilio_phone_number
+          })
+          return result
         }) || []
 
         console.log('[DASHBOARD MESSAGE COUNT]', {
@@ -102,7 +119,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           outboundCount: outboundMessages.length,
           businessPhone: business.twilio_phone_number,
           outboundSample: outboundMessages.slice(0, 3),
-          allMessages: messages,
           error: messagesError
         })
 
