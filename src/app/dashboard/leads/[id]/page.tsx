@@ -1490,14 +1490,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Quick Actions Card */}
-              <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</h3>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Quick Actions</h3>
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                    className="flex flex-col items-center gap-1.5 px-3 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     <span>Call</span>
@@ -1509,9 +1509,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         copyToClipboard(phone)
                       }
                     }}
-                    className="flex flex-col items-center gap-1.5 px-3 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-md transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <span>Copy</span>
@@ -1520,23 +1520,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => handleStatusUpdate('completed')}
                       disabled={isCompleting}
-                      className="flex flex-col items-center gap-1.5 px-3 py-3 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>{isCompleting ? 'Marking...' : 'Mark Complete'}</span>
+                      <span>{isCompleting ? 'Marking...' : 'Complete'}</span>
                     </button>
                   )}
                   <button
                     onClick={() => setShowIgnoreModal(true)}
                     disabled={isIgnoring}
-                    className="flex flex-col items-center gap-1.5 px-3 py-3 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    <span>{isIgnoring ? 'Ignoring...' : 'Ignore Lead'}</span>
+                    <span>{isIgnoring ? 'Ignoring...' : 'Ignore'}</span>
                   </button>
                 </div>
               </div>
