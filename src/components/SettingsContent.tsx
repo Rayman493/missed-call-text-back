@@ -32,6 +32,7 @@ import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import { HelpContext } from '@/components/HelpAssistant'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -1802,7 +1803,14 @@ export default function SettingsContent() {
         </div>
       </BusinessGuard>
     </AuthGuard>
-    <FloatingHelpButton />
+    <FloatingHelpButton context={{
+        currentPage: 'settings',
+        hasLeads: undefined,
+        hasRecentActivity: undefined,
+        forwardingVerified: business?.forwarding_verified ?? undefined,
+        calendarConnected: undefined,
+        isTrial: business?.subscription_status === 'trial'
+      }} />
     </DashboardErrorBoundary>
   )
 }

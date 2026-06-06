@@ -24,6 +24,7 @@ import AICallDetails from '@/components/AICallDetails'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
+import { HelpContext } from '@/components/HelpAssistant'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -2310,7 +2311,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
-    <FloatingHelpButton />
+    <FloatingHelpButton context={{
+        currentPage: 'lead-detail',
+        hasLeads: true,
+        hasRecentActivity: true,
+        forwardingVerified: business?.forwarding_verified ?? undefined,
+        calendarConnected: undefined,
+        isTrial: business?.subscription_status === 'trial'
+      }} />
     <PhotoModal
       imageUrl={selectedPhotoUrl}
       isOpen={photoModalOpen}

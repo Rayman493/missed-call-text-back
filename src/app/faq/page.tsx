@@ -3,7 +3,7 @@ import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
-import HelpAssistant from '@/components/HelpAssistant'
+import HelpAssistant, { HelpContext } from '@/components/HelpAssistant'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ FAQ | Missed Call Response Automation',
@@ -755,7 +755,7 @@ export default function FAQPage() {
 
         {/* Help Assistant */}
         <div className="mt-16">
-          <HelpAssistant defaultCategory="FAQ" />
+          <HelpAssistant defaultCategory="FAQ" context={{ currentPage: undefined }} />
         </div>
 
         {/* CTA Section */}

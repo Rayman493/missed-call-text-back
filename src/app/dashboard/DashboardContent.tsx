@@ -66,6 +66,7 @@ import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import { HelpContext } from '@/components/HelpAssistant'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1440,7 +1441,14 @@ export default function DashboardContent() {
         </BusinessGuard>
       </AuthGuard>
       <BottomNavigation />
-      <FloatingHelpButton />
+      <FloatingHelpButton context={{
+        currentPage: 'dashboard',
+        hasLeads: processedLeads.length > 0,
+        hasRecentActivity: processedLeads.length > 0,
+        forwardingVerified: business?.forwarding_verified,
+        calendarConnected: !!business?.google_calendar_connected,
+        isTrial: business?.subscription_status === 'trial'
+      }} />
     </DashboardErrorBoundary>
   )
 }

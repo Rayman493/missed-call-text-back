@@ -4,19 +4,30 @@ import { useState } from 'react'
 import { Search, MessageCircle, X, ChevronRight } from 'lucide-react'
 import { searchKnowledgeBase, getRelatedArticles, getSuggestedQuestions, type HelpArticle } from '@/lib/help-assistant/knowledge-base'
 
+export interface HelpContext {
+  currentPage?: 'dashboard' | 'leads' | 'lead-detail' | 'calendar' | 'settings' | 'onboarding'
+  hasLeads?: boolean
+  hasRecentActivity?: boolean
+  forwardingVerified?: boolean
+  calendarConnected?: boolean
+  hasNotifications?: boolean
+  isTrial?: boolean
+}
+
 interface HelpAssistantProps {
   className?: string
   defaultCategory?: string
+  context?: HelpContext
 }
 
-export default function HelpAssistant({ className = '', defaultCategory }: HelpAssistantProps) {
+export default function HelpAssistant({ className = '', defaultCategory, context }: HelpAssistantProps) {
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<HelpArticle | null>(null)
   const [related, setRelated] = useState<HelpArticle[]>([])
   const [showResults, setShowResults] = useState(false)
   const [isAccountSpecific, setIsAccountSpecific] = useState(false)
 
-  const suggestedQuestions = getSuggestedQuestions(defaultCategory)
+  const suggestedQuestions = getSuggestedQuestions(defaultCategory, context)
 
   const handleSearch = () => {
     if (!query.trim()) return

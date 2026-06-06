@@ -46,6 +46,7 @@ import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import { HelpContext } from '@/components/HelpAssistant'
 
 // Helper to get compact summary for lead card
 function getCompactSummary(lead: any): string {
@@ -1212,7 +1213,14 @@ export default function LeadsPage() {
         </div>
       </BusinessGuard>
     </AuthGuard>
-    <FloatingHelpButton />
+    <FloatingHelpButton context={{
+        currentPage: 'leads',
+        hasLeads: leads.length > 0,
+        hasRecentActivity: leads.length > 0,
+        forwardingVerified: business?.forwarding_verified ?? undefined,
+        calendarConnected: undefined,
+        isTrial: business?.subscription_status === 'trial'
+      }} />
     </DashboardErrorBoundary>
   )
 }

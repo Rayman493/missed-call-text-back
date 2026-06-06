@@ -19,6 +19,7 @@ import EventComposer from '@/components/calendar/EventComposer'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import { HelpContext } from '@/components/HelpAssistant'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
@@ -743,7 +744,14 @@ export default function CalendarPage() {
         </div>
       </BusinessGuard>
       <BottomNavigation />
-      <FloatingHelpButton />
+      <FloatingHelpButton context={{
+        currentPage: 'calendar',
+        hasLeads: undefined,
+        hasRecentActivity: undefined,
+        forwardingVerified: business?.forwarding_verified ?? undefined,
+        calendarConnected: calendarConnected,
+        isTrial: business?.subscription_status === 'trial'
+      }} />
     </AuthGuard>
     </DashboardErrorBoundary>
   )

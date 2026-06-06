@@ -2,9 +2,13 @@
 
 import { useState } from 'react'
 import { MessageCircle, X } from 'lucide-react'
-import HelpAssistant from './HelpAssistant'
+import HelpAssistant, { HelpContext } from './HelpAssistant'
 
-export default function FloatingHelpButton() {
+interface FloatingHelpButtonProps {
+  context?: HelpContext
+}
+
+export default function FloatingHelpButton({ context }: FloatingHelpButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -37,7 +41,7 @@ export default function FloatingHelpButton() {
             >
               <X className="w-6 h-6" />
             </button>
-            <HelpAssistant />
+            <HelpAssistant context={context} />
           </div>
         </div>
       )}
