@@ -206,17 +206,25 @@ export async function POST(req: NextRequest) {
             leadId: result.lead.id,
             messageId: result.message.id
           });
-          await notificationServiceServer.notifyCustomerReply(
+          const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
             result.lead.business_id,
             result.lead.caller_phone || 'Unknown',
             Body || 'Media message',
             result.lead.id
           );
-          console.log('[NOTIFICATION CREATE SUCCESS]', { 
-            businessId: result.lead.business_id, 
-            type: 'customer_reply', 
-            leadId: result.lead.id 
-          });
+          if (notificationSuccess) {
+            console.log('[NOTIFICATION CREATE SUCCESS]', { 
+              businessId: result.lead.business_id, 
+              type: 'customer_reply', 
+              leadId: result.lead.id 
+            });
+          } else {
+            console.error('[NOTIFICATION CREATE FAILED]', { 
+              businessId: result.lead.business_id, 
+              type: 'customer_reply', 
+              leadId: result.lead.id 
+            });
+          }
         } catch (error) {
           console.error('[NOTIFICATION CREATE ERROR]', { 
             businessId: result.lead.business_id, 

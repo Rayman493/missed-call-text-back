@@ -154,7 +154,7 @@ export class NotificationServiceServer {
     data?: any,
     actionUrl?: string,
     actionText?: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     const template = NOTIFICATION_TEMPLATES[type]
     let notificationData: any = template
     
@@ -191,8 +191,10 @@ export class NotificationServiceServer {
         details: error.details,
         hint: error.hint
       })
+      return false
     } else {
       console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type })
+      return true
     }
   }
 
