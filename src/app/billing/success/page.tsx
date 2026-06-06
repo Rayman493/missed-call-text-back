@@ -266,16 +266,16 @@ export default function BillingSuccessPage() {
                   destination: '/setup/forwarding',
                   timestamp: new Date().toISOString()
                 }
-                console.log('[Billing Success Continue Forwarding]', clickData)
+                console.log('[Billing Success Continue Setup]', clickData)
               }}
             >
-              Continue to Call Forwarding
+              Continue Setup
             </Link>
           </div>
 
           {/* Improved Subtext */}
           <p className="text-muted-foreground text-sm mt-4">
-            Set up call forwarding to start capturing missed calls.
+            We just need to connect your business phone number.
           </p>
         </div>
       </div>

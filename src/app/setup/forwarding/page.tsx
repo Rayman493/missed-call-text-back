@@ -91,6 +91,31 @@ export default function ForwardingSetupPage() {
     }
   }, [businessLoading])
 
+  // Auto-poll when provisioning is pending
+  useEffect(() => {
+    if (!business || businessLoading) return
+
+    const setupState = deriveSetupState(business)
+    
+    if (setupState === 'provisioning_or_number_pending') {
+      console.log('[Forwarding Setup] Provisioning pending - starting auto-poll')
+      
+      const pollInterval = setInterval(async () => {
+        try {
+          console.log('[Forwarding Setup] Auto-polling for provisioning status')
+          await refreshBusiness()
+        } catch (error) {
+          console.error('[Forwarding Setup] Auto-poll error:', error)
+        }
+      }, 3000) // Poll every 3 seconds
+
+      return () => {
+        console.log('[Forwarding Setup] Stopping auto-poll')
+        clearInterval(pollInterval)
+      }
+    }
+  }, [business, businessLoading, refreshBusiness])
+
   // Load persisted state on mount
   useEffect(() => {
     console.log('[Forwarding Setup] Loading persisted state - business:', !!business, 'businessLoading:', businessLoading)

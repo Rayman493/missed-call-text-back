@@ -606,10 +606,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             step1Complete,
             step2Complete,
             wouldNavigate,
-            targetRoute: wouldNavigate ? '/setup/phone-forwarding' : undefined,
+            targetRoute: wouldNavigate ? '/setup/forwarding' : undefined,
             allowed: wouldNavigate ? 'Yes (subscription check via step1Complete)' : 'No'
           })
-          return wouldNavigate ? '/setup/phone-forwarding' : undefined
+          return wouldNavigate ? '/setup/forwarding' : undefined
         })(),
         // Secondary button for users who have already enabled forwarding
         secondaryButtonText: step1Complete && !step2Complete ? (isCompletingForwarding ? "Updating setup..." : "I've Enabled Forwarding") : (step2Complete ? 'Review Forwarding Setup' : undefined),
@@ -621,10 +621,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             subscription_status: business?.subscription_status,
             step2Complete,
             wouldNavigate,
-            targetRoute: wouldNavigate ? '/setup/phone-forwarding' : undefined,
+            targetRoute: wouldNavigate ? '/setup/forwarding' : undefined,
             allowed: wouldNavigate ? 'Yes (forwarding already complete)' : 'No'
           })
-          return wouldNavigate ? '/setup/phone-forwarding' : undefined
+          return wouldNavigate ? '/setup/forwarding' : undefined
         })(),
       },
       {
