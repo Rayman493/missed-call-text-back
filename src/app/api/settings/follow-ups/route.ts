@@ -31,18 +31,21 @@ export async function GET() {
           step: 1,
           enabled: true,
           delayDays: 1,
+          delayUnit: 'days' as const,
           message: `Just checking in from ${business.name} - would you still like help?`
         },
         {
           step: 2,
           enabled: true,
           delayDays: 3,
+          delayUnit: 'days' as const,
           message: `Hi, this is ${business.name}. We wanted to follow up one more time. Reply here if you still need anything.`
         },
         {
           step: 3,
           enabled: false,
           delayDays: 7,
+          delayUnit: 'days' as const,
           message: `Final follow-up from ${business.name}. Let us know if we can help with anything!`
         }
       ]

@@ -65,11 +65,28 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
     // Convert saved settings to schedule format
     const schedule = (followUpSettings.followUps || [])
       .filter((fu: any) => fu.enabled)
-      .map((fu: any) => ({
-        step: fu.step,
-        delayMinutes: fu.delayDays * 24 * 60, // Convert days to minutes
-        message: fu.message.replace('{{businessName}}', business.name || 'My Business')
-      }))
+      .map((fu: any) => {
+        // Convert delay based on unit
+        let delayMinutes: number
+        switch (fu.delayUnit || 'days') {
+          case 'minutes':
+            delayMinutes = fu.delayDays
+            break
+          case 'hours':
+            delayMinutes = fu.delayDays * 60
+            break
+          case 'days':
+          default:
+            delayMinutes = fu.delayDays * 24 * 60
+            break
+        }
+        
+        return {
+          step: fu.step,
+          delayMinutes,
+          message: fu.message.replace('{{businessName}}', business.name || 'My Business')
+        }
+      })
     
     console.log('[GET FOLLOWUP SCHEDULE] Converted schedule:', { length: schedule.length, schedule });
     return schedule

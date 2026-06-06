@@ -7,6 +7,7 @@ interface FollowUpConfig {
   step: number
   enabled: boolean
   delayDays: number
+  delayUnit: 'minutes' | 'hours' | 'days'
   message: string
 }
 
@@ -24,18 +25,21 @@ export default function FollowUpsSettingsPage() {
         step: 1,
         enabled: true,
         delayDays: 1,
+        delayUnit: 'days',
         message: 'Just checking in from {{businessName}} - would you still like help?'
       },
       {
         step: 2,
         enabled: true,
         delayDays: 3,
+        delayUnit: 'days',
         message: 'Hi, this is {{businessName}}. We wanted to follow up one more time. Reply here if you still need anything.'
       },
       {
         step: 3,
         enabled: false,
         delayDays: 7,
+        delayUnit: 'days',
         message: 'Final follow-up from {{businessName}}. Let us know if we can help with anything!'
       }
     ]
@@ -115,8 +119,9 @@ export default function FollowUpsSettingsPage() {
     if (enabledFollowUps.length === 0) return 'No follow-ups scheduled'
 
     return enabledFollowUps.map((fu, index) => {
-      const dayText = fu.delayDays === 1 ? 'Day 1' : `Day ${fu.delayDays}`
-      return `${dayText}: Follow-up #${fu.step}`
+      const unitText = fu.delayUnit === 'minutes' ? 'min' : fu.delayUnit === 'hours' ? 'hr' : 'day'
+      const delayText = fu.delayDays === 1 ? `1 ${unitText}` : `${fu.delayDays} ${unitText}s`
+      return `${delayText}: Follow-up #${fu.step}`
     }).join(' → ')
   }
 
@@ -152,7 +157,9 @@ export default function FollowUpsSettingsPage() {
             <div className="w-px h-4 bg-blue-300 dark:bg-blue-600"></div>
             <div className="flex flex-col items-center text-center">
               <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {followUp.delayDays === 1 ? 'Day 1' : `Day ${followUp.delayDays}`}
+                {followUp.delayUnit === 'minutes' ? `${followUp.delayDays} min` :
+                 followUp.delayUnit === 'hours' ? `${followUp.delayDays} hr` :
+                 followUp.delayDays === 1 ? 'Day 1' : `Day ${followUp.delayDays}`}
               </div>
               <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                 {getFollowUpName(followUp.step)}
@@ -245,45 +252,6 @@ export default function FollowUpsSettingsPage() {
           </div>
         </div>
 
-        {/* Best Practices Panel */}
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100">Follow-Up Best Practices</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-amber-800 dark:text-amber-200">
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              <span>Day 1 captures most responses</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              <span>Day 3 works well as a reminder</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              <span>Day 7 should be your final outreach</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              <span>Customers stop receiving messages after they respond</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Visual Timeline */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">Your Follow-Up Sequence</h3>
-          </div>
-          {renderTimeline()}
-        </div>
-
         {/* Error and Success Messages */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
@@ -296,100 +264,83 @@ export default function FollowUpsSettingsPage() {
           </div>
         )}
 
-        {/* Follow-up Configurations */}
-        <div className="space-y-6">
-          {settings.followUps.map((followUp) => (
-            <div key={followUp.step} className="bg-card border rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">{getFollowUpName(followUp.step)}</h3>
-                <button
-                  onClick={() => updateFollowUp(followUp.step, { enabled: !followUp.enabled })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    followUp.enabled ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      followUp.enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Configuration */}
-                <div className="space-y-4">
-                  {/* Delay */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Send after
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        value={followUp.delayDays}
-                        onChange={(e) => updateFollowUp(followUp.step, { delayDays: parseInt(e.target.value) || 1 })}
-                        className="w-20 px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={!followUp.enabled}
+        {/* Follow-up Configurations - Compact Rows */}
+        <div className="bg-card border rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Follow-Up Sequence</h3>
+          <div className="space-y-4">
+            {settings.followUps.map((followUp) => (
+              <div key={followUp.step} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => updateFollowUp(followUp.step, { enabled: !followUp.enabled })}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        followUp.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          followUp.enabled ? 'translate-x-5' : 'translate-x-1'
+                        }`}
                       />
-                      <span className="text-sm text-muted-foreground">
-                        {followUp.delayDays === 1 ? 'day' : 'days'} after missed call
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Message */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Message Preview
-                    </label>
-                    <textarea
-                      value={followUp.message}
-                      onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      placeholder="Enter your follow-up message..."
-                      disabled={!followUp.enabled}
-                    />
-                    <div className="flex items-center justify-between mt-1">
+                    </button>
+                    <div>
+                      <h4 className="text-sm font-medium text-foreground">{getFollowUpName(followUp.step)}</h4>
                       <p className="text-xs text-muted-foreground">
-                        Use {'{{businessName}}'} as a placeholder for your business name
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {followUp.message.length} / 320 characters
+                        Send after
+                        <input
+                          type="number"
+                          min="1"
+                          max={followUp.delayUnit === 'minutes' ? 60 : followUp.delayUnit === 'hours' ? 24 : 30}
+                          value={followUp.delayDays}
+                          onChange={(e) => updateFollowUp(followUp.step, { delayDays: parseInt(e.target.value) || 1 })}
+                          className="w-14 mx-2 px-2 py-1 border border-input rounded bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                          disabled={!followUp.enabled}
+                        />
+                        <select
+                          value={followUp.delayUnit}
+                          onChange={(e) => updateFollowUp(followUp.step, { delayUnit: e.target.value as 'minutes' | 'hours' | 'days' })}
+                          className="px-2 py-1 border border-input rounded bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={!followUp.enabled}
+                        >
+                          <option value="minutes">minutes</option>
+                          <option value="hours">hours</option>
+                          <option value="days">days</option>
+                        </select>
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Live Preview */}
+                {/* Message Input */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Customer receives:
-                  </label>
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-slate-900 dark:text-slate-100 italic">
-                          "{followUp.message.replace('{{businessName}}', 'ReplyFlowHQ')}"
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                          SMS • {followUp.message.length} characters
-                        </p>
-                      </div>
-                    </div>
+                  <textarea
+                    value={followUp.message}
+                    onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                    placeholder="Enter your follow-up message..."
+                    disabled={!followUp.enabled}
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Use {'{{businessName}}'} as a placeholder
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {followUp.message.length} / 320
+                    </p>
                   </div>
                 </div>
+
+                {/* Compact Preview */}
+                {followUp.enabled && followUp.message && (
+                  <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded text-xs text-slate-700 dark:text-slate-300">
+                    Preview: "{followUp.message.replace('{{businessName}}', 'ReplyFlowHQ')}"
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Save Button */}
