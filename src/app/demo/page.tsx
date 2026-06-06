@@ -226,16 +226,16 @@ export default function DemoPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link
-                href="/onboarding"
+                href="/auth?mode=signup"
                 className="inline-flex items-center h-11 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
               >
-                Start Your Free Trial
+                Start Your 14-Day Free Trial
               </Link>
               <Link
-                href="/dashboard"
+                href="/"
                 className="inline-flex items-center h-11 px-6 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md"
               >
-                Back to Dashboard
+                Back to Home
               </Link>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">
