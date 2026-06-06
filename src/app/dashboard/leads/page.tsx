@@ -46,6 +46,35 @@ import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 
+// Helper to get compact summary for lead card
+function getCompactSummary(lead: any): string {
+  // Try to get AI summary from raw_metadata
+  const aiSummary = lead.raw_metadata?.ai_summary || lead.raw_metadata?.summary
+  if (aiSummary) {
+    // Extract first line or truncate
+    const firstLine = aiSummary.split('\n')[0]
+    return truncateText(firstLine, 80)
+  }
+  
+  // Fall back to latest message
+  if (lead.messages && lead.messages.length > 0) {
+    const latestMessage = lead.messages.sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0]
+    if (latestMessage && latestMessage.body) {
+      return truncateText(latestMessage.body, 80)
+    }
+  }
+  
+  // Fall back to "Tap to view full intake"
+  return 'Tap to view full intake'
+}
+
+// Helper to get address from lead
+function getAddress(lead: any): string | null {
+  return lead.raw_metadata?.address || null
+}
+
 // Helper to normalize phone number for deduplication
 function normalizePhoneNumber(phone: string): string {
   if (!phone) return ''
@@ -996,23 +1025,15 @@ export default function LeadsPage() {
                             </span>
                           </div>
 
-                          {/* Conversation Preview */}
-                          <div className="mb-4">
-                            {latestMessage ? (
-                              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                                  {latestMessage.direction === 'inbound' ? '📱 Customer:' : '💬 You:'}
-                                </p>
-                                <p className="text-base text-slate-700 dark:text-slate-300 line-clamp-2 italic">
-                                  "{latestMessage.body}"
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-                                <p className="text-base text-slate-500 dark:text-slate-400 italic">
-                                  No conversation yet
-                                </p>
-                              </div>
+                          {/* Compact Preview */}
+                          <div className="mb-4 space-y-2">
+                            <p className="text-sm text-slate-700 dark:text-slate-300">
+                              {getCompactSummary(lead)}
+                            </p>
+                            {getAddress(lead) && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {getAddress(lead)}
+                              </p>
                             )}
                           </div>
 
@@ -1120,23 +1141,15 @@ export default function LeadsPage() {
                                 </span>
                               </div>
 
-                              {/* Conversation Preview */}
-                              <div className="mb-3">
-                                {latestMessage ? (
-                                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                                      {latestMessage.direction === 'inbound' ? '📱 Customer:' : '💬 You:'}
-                                    </p>
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
-                                      "{latestMessage.body}"
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                                      No conversation yet
-                                    </p>
-                                  </div>
+                              {/* Compact Preview */}
+                              <div className="mb-3 space-y-1.5">
+                                <p className="text-xs text-slate-700 dark:text-slate-300">
+                                  {getCompactSummary(lead)}
+                                </p>
+                                {getAddress(lead) && (
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    {getAddress(lead)}
+                                  </p>
                                 )}
                               </div>
 
