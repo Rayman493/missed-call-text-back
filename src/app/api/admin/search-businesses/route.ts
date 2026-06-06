@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.log('[ADMIN SEARCH QUERY]', {
       query,
       table: 'businesses',
-      searchFields: ['business_name', 'business_phone', 'primary_phone', 'owner_email'],
+      searchFields: ['name', 'business_phone_number', 'twilio_phone_number', 'personal_phone_number', 'owner_email'],
       searchPattern: `ilike.%${query}%`,
       limit: 20,
       client: 'service_role'
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       const { data: businessesByNameOrPhone, error: businessError } = await supabaseAdmin
         .from('businesses')
         .select('*')
-        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%,primary_phone.ilike.%${query}%`)
+        .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%,personal_phone_number.ilike.%${query}%`)
         .limit(20)
 
       console.log('[ADMIN SEARCH] Query 1 result', {
