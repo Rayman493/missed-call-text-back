@@ -256,7 +256,7 @@ export function searchKnowledgeBase(query: string): HelpArticle | null {
   }
   
   // Only return if we have a meaningful match
-  if (bestMatch && bestScore >= 2) {
+  if (bestMatch && bestScore >= 1) {
     return bestMatch
   }
   

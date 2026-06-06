@@ -617,6 +617,28 @@ export async function POST(request: NextRequest) {
 
           if (!session) {
             console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+          } else {
+            console.log('[AI SESSION LEAD LINKAGE VERIFIED]', {
+              sessionId: session.id,
+              leadId: lead?.id,
+              hasLead: !!lead?.id,
+              callSid: CallSid,
+              businessId: business.id
+            })
+            if (lead?.id) {
+              console.log('[AI SESSION LEAD CREATED BEFORE SESSION]', {
+                leadId: lead.id,
+                sessionId: session.id,
+                callSid: CallSid
+              })
+            } else {
+              console.log('[AI SESSION LEGACY NULL LEAD PATH IGNORED]', {
+                sessionId: session.id,
+                callSid: CallSid,
+                reason: 'lead creation failed, falling back to voicemail'
+              })
+            }
+          }
             // Fall through to voicemail flow
           } else {
             console.log('[AI POC] session created:', session.id)

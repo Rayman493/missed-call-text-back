@@ -104,7 +104,12 @@ export default function NewOnboardingPage() {
           router.push('/auth/signin?redirect=/onboarding')
           return
         }
-        router.push('/onboarding')
+        // Guard against redirect loop - only redirect if not already on /onboarding
+        if (typeof window !== 'undefined' && window.location.pathname !== '/onboarding') {
+          router.push('/onboarding')
+        } else {
+          console.log('[Routing] Already on /onboarding, preventing redirect loop')
+        }
       })
       return
     }
@@ -358,6 +363,9 @@ export default function NewOnboardingPage() {
             {/* Carrier Selection */}
             <div className="mb-6">
               <p className="text-gray-300 font-medium mb-3 text-sm">Who is your phone carrier?</p>
+              {!selectedCarrier && (
+                <p className="text-gray-400 text-xs mb-3 italic">Select your carrier to continue</p>
+              )}
               <div className="space-y-2">
                 {CARRIERS.map(carrier => (
                   <button

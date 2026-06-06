@@ -24,6 +24,7 @@ export default function TestSetupPage() {
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const [testInitiationTime, setTestInitiationTime] = useState<Date | null>(null)
   const [earlyForwardingWarning, setEarlyForwardingWarning] = useState(false)
+  const [pollingTimeout, setPollingTimeout] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Use shared state resolver for consistency
@@ -109,6 +110,17 @@ export default function TestSetupPage() {
     }
 
     setIsPolling(true)
+    setPollingTimeout(false)
+    
+    // Set timeout to stop polling after 2 minutes (120 seconds)
+    const timeoutMs = 120000 // 2 minutes
+    const timeoutTimer = setTimeout(() => {
+      console.log('[TestSetup] Polling timeout reached after 2 minutes')
+      clearInterval(pollInterval)
+      setIsPolling(false)
+      setPollingTimeout(true)
+    }, timeoutMs)
+
     const pollInterval = setInterval(async () => {
       try {
         const { data: updatedBusiness, error } = await supabase
@@ -121,6 +133,7 @@ export default function TestSetupPage() {
           console.error('[TestSetup] Polling query error:', error)
           // Stop polling on repeated errors to prevent flash loops
           clearInterval(pollInterval)
+          clearTimeout(timeoutTimer)
           setIsPolling(false)
           return
         }
@@ -177,12 +190,14 @@ export default function TestSetupPage() {
         console.error('[TestSetup] Polling error:', error)
         // Stop polling on errors to prevent flash loops
         clearInterval(pollInterval)
+        clearTimeout(timeoutTimer)
         setIsPolling(false)
       }
     }, 2000) // Poll every 2 seconds
 
     return () => {
       clearInterval(pollInterval)
+      clearTimeout(timeoutTimer)
       setIsPolling(false)
     }
   }, [business?.id, setupState.step3Complete, setupState.canAccessTestSetup])
@@ -483,6 +498,55 @@ export default function TestSetupPage() {
                 </div>
               </div>
             </div>
+
+            {/* Timeout State */}
+            {pollingTimeout && (
+              <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">
+                      Test Call Timeout
+                    </h3>
+                    <p className="text-sm text-red-800 dark:text-red-300 mb-3">
+                      We couldn't detect your test call after 2 minutes. This may indicate a forwarding configuration issue.
+                    </p>
+                    <div className="space-y-2 mb-4">
+                      <p className="text-xs text-red-700 dark:text-red-400">
+                        • Ensure you're calling from a different phone (not your business line)
+                      </p>
+                      <p className="text-xs text-red-700 dark:text-red-400">
+                        • Verify call forwarding is enabled on your business phone
+                      </p>
+                      <p className="text-xs text-red-700 dark:text-red-400">
+                        • Check that you're calling your published business number
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setPollingTimeout(false)
+                          refreshBusiness()
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Retry Test
+                      </button>
+                      <a
+                        href="mailto:support@replyflowhq.com"
+                        className="bg-white dark:bg-slate-800 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-sm font-medium py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        Contact Support
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Step-by-Step Instructions */}
             <div className="bg-card rounded-lg shadow p-6 mb-8">
