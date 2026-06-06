@@ -1530,6 +1530,13 @@ export default function SettingsContent() {
                             </p>
                           </div>
                         )}
+                        {business.provisioning_status === 'needs_reprovision' && (
+                          <div className="mt-2 pt-2 border-t border-amber-200/50 dark:border-amber-800/30">
+                            <p className="text-[9px] sm:text-[10px] text-amber-700 dark:text-amber-300 mb-1">
+                              Your ReplyFlow number is invalid. A new number will be assigned automatically. You will need to update call forwarding once the new number is assigned.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
