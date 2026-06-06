@@ -36,7 +36,33 @@ export default function CompliancePage() {
       
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          {/* Legal Page Navigation */}
+          <div className="flex justify-center mb-8">
+            <nav className="inline-flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1" aria-label="Legal documents">
+              <Link
+                href="/privacy"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/compliance"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                aria-current="page"
+              >
+                Compliance
+              </Link>
+            </nav>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
               <svg
@@ -60,10 +86,89 @@ export default function CompliancePage() {
 
       {/* Compliance Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="space-y-12">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-12">
+          {/* Table of Contents - Desktop Only */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Table of Contents
+              </h3>
+              <nav className="space-y-2" aria-label="Table of contents">
+                <a
+                  href="#messaging-use-case"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Messaging Use Case
+                </a>
+                <a
+                  href="#missed-call-workflow"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Missed-Call Workflow
+                </a>
+                <a
+                  href="#consent-disclosures"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Consent & Disclosures
+                </a>
+                <a
+                  href="#opt-in-process"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Opt-In Process
+                </a>
+                <a
+                  href="#stop-help"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  STOP/HELP Compliance
+                </a>
+                <a
+                  href="#data-privacy"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Data Privacy
+                </a>
+                <a
+                  href="#ai-voicemail"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  AI Voicemail Compliance
+                </a>
+                <a
+                  href="#call-recording"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Call Recording Notice
+                </a>
+                <a
+                  href="#voice-sms"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Voice + SMS Compliance
+                </a>
+                <a
+                  href="#business-responsibilities"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Business Responsibilities
+                </a>
+                <a
+                  href="#contact-support"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Contact Support
+                </a>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-12">
           
           {/* Conversational Messaging Use Case */}
-          <section>
+          <section id="messaging-use-case">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -100,7 +205,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Missed-Call Workflow */}
-          <section>
+          <section id="missed-call-workflow">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -187,7 +292,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Customer Consent & SMS Disclosures */}
-          <section>
+          <section id="consent-disclosures">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -277,7 +382,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Opt-In Process */}
-          <section>
+          <section id="opt-in-process">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -405,7 +510,7 @@ export default function CompliancePage() {
           </section>
 
           {/* STOP/HELP Compliance */}
-          <section>
+          <section id="stop-help">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -457,7 +562,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Data Privacy */}
-          <section>
+          <section id="data-privacy">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -507,7 +612,7 @@ export default function CompliancePage() {
           </section>
 
           {/* AI Voicemail Intake Compliance */}
-          <section>
+          <section id="ai-voicemail">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -543,7 +648,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Call Recording & Transcript Notice */}
-          <section>
+          <section id="call-recording">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -593,7 +698,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Voice + SMS Compliance */}
-          <section>
+          <section id="voice-sms">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -652,7 +757,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Business Responsibilities */}
-          <section>
+          <section id="business-responsibilities">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -709,7 +814,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Contact Support */}
-          <section>
+          <section id="contact-support">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white">
               <h2 className="text-2xl font-semibold mb-4">
                 Compliance Questions?
@@ -738,6 +843,7 @@ export default function CompliancePage() {
             </div>
           </section>
 
+          </div>
         </div>
       </div>
       <Footer />

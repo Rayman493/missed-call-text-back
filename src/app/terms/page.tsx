@@ -36,7 +36,33 @@ export default function TermsPage() {
       
       {/* Hero Section */}
       <div className="bg-card border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          {/* Legal Page Navigation */}
+          <div className="flex justify-center mb-8">
+            <nav className="inline-flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1" aria-label="Legal documents">
+              <Link
+                href="/privacy"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                aria-current="page"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/compliance"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Compliance
+              </Link>
+            </nav>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-6">
               <svg
@@ -62,11 +88,90 @@ export default function TermsPage() {
       </div>
 
       {/* Terms Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-12">
+          {/* Table of Contents - Desktop Only */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Table of Contents
+              </h3>
+              <nav className="space-y-2" aria-label="Table of contents">
+                <a
+                  href="#service-agreement"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Service Agreement
+                </a>
+                <a
+                  href="#service-description"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Service Description
+                </a>
+                <a
+                  href="#user-responsibilities"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  User Responsibilities
+                </a>
+                <a
+                  href="#prohibited-uses"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Prohibited Uses
+                </a>
+                <a
+                  href="#ai-communications"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  AI Communications
+                </a>
+                <a
+                  href="#payment-terms"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Payment Terms
+                </a>
+                <a
+                  href="#service-termination"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Service Termination
+                </a>
+                <a
+                  href="#limitation-of-liability"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Liability
+                </a>
+                <a
+                  href="#service-availability"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Service Availability
+                </a>
+                <a
+                  href="#sms-terms"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  SMS Terms
+                </a>
+                <a
+                  href="#contact-information"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Contact Information
+                </a>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-12">
           
           {/* Agreement */}
-          <section>
+          <section id="service-agreement">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -88,7 +193,7 @@ export default function TermsPage() {
           </section>
 
           {/* Service Description */}
-          <section>
+          <section id="service-description">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -144,7 +249,7 @@ export default function TermsPage() {
           </section>
 
           {/* User Responsibilities */}
-          <section>
+          <section id="user-responsibilities">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -202,7 +307,7 @@ export default function TermsPage() {
           </section>
 
           {/* Prohibited Uses */}
-          <section>
+          <section id="prohibited-uses">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -260,7 +365,7 @@ export default function TermsPage() {
           </section>
 
           {/* AI-Assisted Communications */}
-          <section>
+          <section id="ai-communications">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -313,7 +418,7 @@ export default function TermsPage() {
           </section>
 
           {/* Payment Terms */}
-          <section>
+          <section id="payment-terms">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -385,7 +490,7 @@ export default function TermsPage() {
           </section>
 
           {/* Limitation of Liability */}
-          <section>
+          <section id="limitation-of-liability">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -427,7 +532,7 @@ export default function TermsPage() {
           </section>
 
           {/* Service Availability */}
-          <section>
+          <section id="service-availability">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -451,7 +556,7 @@ export default function TermsPage() {
           </section>
 
           {/* SMS Messaging Terms */}
-          <section>
+          <section id="sms-terms">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -522,7 +627,7 @@ export default function TermsPage() {
           </section>
 
           {/* Contact Information */}
-          <section>
+          <section id="contact-information">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -563,6 +668,7 @@ export default function TermsPage() {
             </div>
           </section>
 
+          </div>
         </div>
       </div>
       <Footer />

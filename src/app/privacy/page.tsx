@@ -36,7 +36,33 @@ export default function PrivacyPage() {
       
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          {/* Legal Page Navigation */}
+          <div className="flex justify-center mb-8">
+            <nav className="inline-flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1" aria-label="Legal documents">
+              <Link
+                href="/privacy"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                aria-current="page"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/compliance"
+                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+              >
+                Compliance
+              </Link>
+            </nav>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6">
               <svg
@@ -62,11 +88,78 @@ export default function PrivacyPage() {
       </div>
 
       {/* Privacy Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-12">
+          {/* Table of Contents - Desktop Only */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Table of Contents
+              </h3>
+              <nav className="space-y-2" aria-label="Table of contents">
+                <a
+                  href="#introduction"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Our Commitment to Privacy
+                </a>
+                <a
+                  href="#information-we-collect"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Information We Collect
+                </a>
+                <a
+                  href="#how-we-use-information"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  How We Use Information
+                </a>
+                <a
+                  href="#voice-ai-services"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Voice & AI Services
+                </a>
+                <a
+                  href="#data-security"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Data Security
+                </a>
+                <a
+                  href="#data-retention"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Data Retention
+                </a>
+                <a
+                  href="#third-party-providers"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Third-Party Providers
+                </a>
+                <a
+                  href="#your-rights"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Your Privacy Rights
+                </a>
+                <a
+                  href="#contact-information"
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Contact Us
+                </a>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-12">
           
           {/* Introduction */}
-          <section>
+          <section id="introduction">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -89,7 +182,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Information We Collect */}
-          <section>
+          <section id="information-we-collect">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -141,7 +234,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* How We Use Information */}
-          <section>
+          <section id="how-we-use-information">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -205,7 +298,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Voice Calls and AI Services */}
-          <section>
+          <section id="voice-ai-services">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -240,7 +333,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Security */}
-          <section>
+          <section id="data-security">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -310,7 +403,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Retention */}
-          <section>
+          <section id="data-retention">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -342,7 +435,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Third-Party Service Providers */}
-          <section>
+          <section id="third-party-providers">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -397,7 +490,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Your Rights */}
-          <section>
+          <section id="your-rights">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -439,7 +532,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Contact Information */}
-          <section>
+          <section id="contact-information">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -484,6 +577,7 @@ export default function PrivacyPage() {
             </div>
           </section>
 
+          </div>
         </div>
       </div>
       <Footer />
