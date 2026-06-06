@@ -74,12 +74,12 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlowHQ is committed to protecting the privacy and security of our users and their customers. 
+                    ReplyFlowHQ LLC is committed to protecting the privacy and security of our users and their customers. 
                     This privacy policy explains how we collect, use, and protect information in connection with our 
                     conversational missed-call response automation service.
                   </p>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed mt-4">
-                    ReplyFlowHQ provides <strong>conversational messaging services</strong> that help businesses 
+                    ReplyFlowHQ LLC provides <strong>conversational messaging services</strong> that help businesses 
                     respond to missed customer calls through automated text messages. We are not a bulk marketing 
                     platform and only facilitate communications initiated by customer contact.
                   </p>
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlowHQ uses collected information for the following purposes:
+                    ReplyFlowHQ LLC uses collected information for the following purposes:
                   </p>
                   <div className="mt-6 space-y-4">
                     <div className="flex items-start gap-3">
@@ -195,7 +195,7 @@ export default function PrivacyPage() {
                   </div>
                   <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <strong>Important:</strong> ReplyFlowHQ does not sell, rent, or share customer information with third parties 
+                      <strong>Important:</strong> ReplyFlowHQ LLC does not sell, rent, or share customer information with third parties 
                       for marketing purposes. We only use information as described in this policy.
                     </p>
                   </div>
@@ -213,11 +213,11 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlow may process inbound telephone calls, voicemail recordings, call transcripts, call summaries, and AI-assisted conversations for the purpose of lead capture, customer communication, service improvement, and platform functionality.
+                    ReplyFlowHQ LLC may process inbound telephone calls, voicemail recordings, call transcripts, call summaries, and AI-assisted conversations for the purpose of lead capture, customer communication, service improvement, and platform functionality.
                   </p>
                   <div className="mt-6">
                     <p className="text-gray-600 dark:text-gray-400 font-medium mb-3">
-                      Depending on enabled features, ReplyFlow may store:
+                      Depending on enabled features, ReplyFlowHQ LLC may store:
                     </p>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li>• Caller phone numbers</li>
@@ -248,7 +248,7 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlowHQ implements enterprise-grade security measures to protect all data:
+                    ReplyFlowHQ LLC implements enterprise-grade security measures to protect all data:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
@@ -303,6 +303,93 @@ export default function PrivacyPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Data Retention */}
+          <section>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                  Data Retention
+                </h2>
+                <div className="prose prose-gray dark:prose-invert max-w-none">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    ReplyFlowHQ LLC retains data while your account remains active and for a reasonable period afterward for legal, operational, security, fraud-prevention, and dispute-resolution purposes.
+                  </p>
+                  <div className="mt-6">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-3">Data that may be retained includes:</p>
+                    <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <li>• SMS messages and conversation history</li>
+                      <li>• Lead information and contact details</li>
+                      <li>• Conversations and customer interactions</li>
+                      <li>• Voicemail recordings</li>
+                      <li>• Call transcripts</li>
+                      <li>• AI-generated summaries and extracted information</li>
+                    </ul>
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. You may request data deletion by contacting privacy@replyflowhq.com.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Third-Party Service Providers */}
+          <section>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                  Third-Party Service Providers
+                </h2>
+                <div className="prose prose-gray dark:prose-invert max-w-none">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    ReplyFlowHQ LLC uses third-party service providers to deliver our services. These providers only process information necessary to deliver services and are bound by contractual obligations to protect your data.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Twilio</strong> - Voice and SMS delivery services
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>OpenAI</strong> - AI processing and transcription services
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Stripe</strong> - Billing and payment processing
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Supabase</strong> - Authentication and data storage
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <strong>Data Protection:</strong> All third-party providers are evaluated for security and compliance. We only share the minimum data necessary for service delivery.
+                    </p>
                   </div>
                 </div>
               </div>
