@@ -617,7 +617,12 @@ export async function POST(request: NextRequest) {
 
           if (!session) {
             console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+            // Fall through to voicemail flow
           } else {
+            console.log('[AI POC] session created:', session.id)
+            console.log('[AI POC] callSid:', CallSid)
+            console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
+
             console.log('[AI SESSION LEAD LINKAGE VERIFIED]', {
               sessionId: session.id,
               leadId: lead?.id,
@@ -638,12 +643,6 @@ export async function POST(request: NextRequest) {
                 reason: 'lead creation failed, falling back to voicemail'
               })
             }
-          }
-            // Fall through to voicemail flow
-          } else {
-            console.log('[AI POC] session created:', session.id)
-            console.log('[AI POC] callSid:', CallSid)
-            console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
 
             // Get Fly.io WebSocket URL from environment
             const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream';
