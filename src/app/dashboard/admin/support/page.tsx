@@ -233,8 +233,14 @@ export default function AdminSupportPage() {
     if (!business.manual_access_expires_at) {
       return 'Lifetime'
     }
+    // Format date as "June 5, 2026" to avoid timezone confusion
     const expiresAt = new Date(business.manual_access_expires_at)
-    return `Until ${expiresAt.toLocaleDateString()}`
+    const formattedDate = expiresAt.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    return `Until ${formattedDate}`
   }
 
   if (loading) {

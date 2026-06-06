@@ -33,7 +33,7 @@ import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
-import { getManualAccessStatus } from '@/lib/manual-access'
+import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -1449,6 +1449,73 @@ export default function SettingsContent() {
                       Delete Account
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Account Access Section */}
+              <div id="account-access" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account Access</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account access status and expiration.</p>
+                <div className="space-y-2 sm:space-y-3">
+                  {(() => {
+                    const accessInfo = getManualAccessDisplayInfo(business)
+                    const manualStatus = getManualAccessStatus(business)
+                    
+                    if (!business?.manual_access_enabled) {
+                      return (
+                        <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                            <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Manual Access</h4>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
+                            {hasActiveSubscription(business) 
+                              ? 'Your account is active via subscription'
+                              : 'No manual access granted'}
+                          </p>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className={`rounded-lg border p-2 sm:p-3 ${
+                        accessInfo.status === 'active' 
+                          ? 'bg-green-50/60 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/50'
+                          : 'bg-red-50/60 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`w-2 h-2 rounded-full ${
+                            accessInfo.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <h4 className={`text-[10px] sm:text-xs font-semibold ${
+                            accessInfo.status === 'active' 
+                              ? 'text-green-900 dark:text-green-100'
+                              : 'text-red-900 dark:text-red-100'
+                          }`}>
+                            {accessInfo.status === 'active' ? 'Manual Access Active' : 'Manual Access Expired'}
+                          </h4>
+                        </div>
+                        <p className={`text-[10px] sm:text-xs ${
+                          accessInfo.status === 'active' 
+                            ? 'text-green-700 dark:text-green-300'
+                            : 'text-red-700 dark:text-red-300'
+                        }`}>
+                          {accessInfo.description}
+                        </p>
+                        {accessInfo.status === 'expired' && !hasActiveSubscription(business) && (
+                          <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-800/30">
+                            <button
+                              onClick={() => handleBillingActionClick('upgrade')}
+                              disabled={isStartingCheckout}
+                              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
+                            >
+                              {isStartingCheckout ? 'Processing...' : 'Subscribe to Reactivate'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
 

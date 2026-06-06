@@ -61,13 +61,23 @@ export async function POST(request: Request) {
     )
 
     if (action === 'grant') {
+      // If expiresAt is provided, set it to end-of-day to avoid timezone confusion
+      // Example: Admin selects 2026-06-05, store as 2026-06-05T23:59:59.999Z
+      let processedExpiresAt = null
+      if (expiresAt) {
+        const date = new Date(expiresAt)
+        // Set to end of day (23:59:59.999)
+        date.setHours(23, 59, 59, 999)
+        processedExpiresAt = date.toISOString()
+      }
+
       const updateData: any = {
         manual_access_enabled: true,
         manual_access_granted_at: new Date().toISOString(),
         manual_access_granted_by: user.id,
         manual_access_reason: reason || null,
         manual_access_note: note || null,
-        manual_access_expires_at: expiresAt ? new Date(expiresAt).toISOString() : null
+        manual_access_expires_at: processedExpiresAt
       }
 
       const { data, error } = await serviceSupabase

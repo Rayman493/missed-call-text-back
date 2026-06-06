@@ -145,6 +145,75 @@ export function getManualAccessStatusText(business: Business | null): string {
     return 'Lifetime'
   }
 
+  // Format date as "June 5, 2026" to avoid timezone confusion
   const expiresDate = new Date(status.expiresAt)
-  return `Until ${expiresDate.toLocaleDateString()}`
+  const formattedDate = expiresDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  return `Until ${formattedDate}`
+}
+
+/**
+ * Get detailed manual access display information for UI
+ */
+export function getManualAccessDisplayInfo(business: Business | null): {
+  status: 'active' | 'expired' | 'disabled'
+  label: string
+  description: string | null
+  expiresAt: string | null
+  isLifetime: boolean
+} {
+  const status = getManualAccessStatus(business)
+  
+  if (!business?.manual_access_enabled) {
+    return {
+      status: 'disabled',
+      label: 'Manual Access',
+      description: null,
+      expiresAt: null,
+      isLifetime: false
+    }
+  }
+
+  if (status.isExpired) {
+    const formattedDate = status.expiresAt 
+      ? new Date(status.expiresAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      : null
+    return {
+      status: 'expired',
+      label: 'Manual Access',
+      description: formattedDate ? `Expired ${formattedDate}` : 'Expired',
+      expiresAt: status.expiresAt,
+      isLifetime: false
+    }
+  }
+
+  if (!status.expiresAt) {
+    return {
+      status: 'active',
+      label: 'Manual Access',
+      description: 'Lifetime access',
+      expiresAt: null,
+      isLifetime: true
+    }
+  }
+
+  const formattedDate = new Date(status.expiresAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  return {
+    status: 'active',
+    label: 'Manual Access',
+    description: `Expires ${formattedDate}`,
+    expiresAt: status.expiresAt,
+    isLifetime: false
+  }
 }
