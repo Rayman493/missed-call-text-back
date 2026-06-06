@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -304,36 +305,39 @@ export default function NewOnboardingPage() {
               Now we'll set up call forwarding. This lets ReplyFlow automatically text back when you miss a call. You'll still receive all your normal calls.
             </p>
 
-            {/* Visual Flow Diagram */}
-            <div className="bg-gray-700 rounded-lg p-6 mb-6">
-              <p className="text-gray-400 text-sm mb-4 font-medium text-center">How call forwarding works:</p>
-              <div className="flex flex-col items-center space-y-2 text-sm sm:text-base">
-                <div className="bg-blue-600/20 border border-blue-500 rounded-lg px-4 py-2 text-center">
-                  Customer Calls
+            {/* Visual Flow Diagram - Enhanced */}
+            <div className="bg-gradient-to-br from-blue-900/30 to-green-900/30 border border-blue-500/50 rounded-lg p-6 mb-6">
+              <p className="text-white font-semibold mb-4 text-center text-base">How call forwarding works:</p>
+              <div className="flex flex-col items-center space-y-3 text-sm sm:text-base">
+                <div className="bg-blue-600 rounded-lg px-6 py-3 text-center text-white font-semibold shadow-lg">
+                  Customer Calls Your Business
                 </div>
-                <div className="text-gray-400">↓</div>
-                <div className="bg-gray-600 rounded-lg px-4 py-2 text-center">
-                  Your Business Number
+                <div className="text-2xl text-gray-400">↓</div>
+                <div className="bg-gray-700 rounded-lg px-6 py-3 text-center text-white">
+                  You Don't Answer
                 </div>
-                <div className="text-gray-400">↓ (when you don't answer)</div>
-                <div className="bg-green-600/20 border border-green-500 rounded-lg px-4 py-2 text-center font-semibold">
-                  ReplyFlow Number
+                <div className="text-2xl text-gray-400">↓</div>
+                <div className="bg-green-600 rounded-lg px-6 py-3 text-center text-white font-semibold shadow-lg">
+                  Call Forwards To ReplyFlow
                 </div>
-                <div className="text-gray-400">↓</div>
-                <div className="bg-blue-600/20 border border-blue-500 rounded-lg px-4 py-2 text-center">
-                  Lead Captured
+                <div className="text-2xl text-gray-400">↓</div>
+                <div className="bg-blue-600 rounded-lg px-6 py-3 text-center text-white font-semibold shadow-lg">
+                  ReplyFlow Sends Text Back
                 </div>
               </div>
             </div>
 
-            {/* Warning Box */}
-            <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 mb-6">
-              <p className="text-red-300 text-sm font-semibold mb-2">⚠️ Important:</p>
-              <p className="text-red-200 text-sm">
-                Forward YOUR BUSINESS NUMBER to the ReplyFlow number above.
+            {/* Common Mistake Warning - Enhanced */}
+            <div className="bg-red-600 border-2 border-red-400 rounded-xl p-6 mb-6 shadow-lg">
+              <p className="text-white font-bold mb-3 text-base flex items-center gap-2">
+                <span className="text-2xl">⚠️</span>
+                Common Mistake to Avoid:
               </p>
-              <p className="text-red-200 text-sm mt-2">
-                Do NOT forward the ReplyFlow number to your business number.
+              <p className="text-white text-sm font-semibold mb-2">
+                Forward YOUR BUSINESS NUMBER → TO → ReplyFlow Number
+              </p>
+              <p className="text-red-100 text-sm">
+                Do NOT forward the ReplyFlow number to your business number. This will not work.
               </p>
             </div>
 
@@ -365,15 +369,38 @@ export default function NewOnboardingPage() {
                     }`}
                   >
                     <div className="text-base sm:text-lg font-semibold">{carrier.name}</div>
+                    {carrier.id === 'verizon' && (
+                      <div className="text-xs text-gray-400 mt-1">Dial code: *71 + ReplyFlow number</div>
+                    )}
+                    {carrier.id === 'at&t' && (
+                      <div className="text-xs text-gray-400 mt-1">Dial code: *004* + ReplyFlow number #</div>
+                    )}
+                    {carrier.id === 't-mobile' && (
+                      <div className="text-xs text-gray-400 mt-1">Dial code: **21* + ReplyFlow number #</div>
+                    )}
+                    {carrier.id === 'other' && (
+                      <div className="text-xs text-gray-400 mt-1">Contact your carrier for forwarding instructions</div>
+                    )}
                   </button>
                 ))}
               </div>
+
+              {/* VoIP Guidance */}
+              <div className="mt-4 p-4 bg-gray-700 rounded-lg">
+                <p className="text-gray-300 font-semibold text-sm mb-2">Using a VoIP service?</p>
+                <p className="text-gray-400 text-xs mb-2">
+                  If you use RingCentral, 8x8, Grasshopper, Google Voice, or other VoIP providers, you typically set up forwarding through their website dashboard instead of dialing codes on your phone.
+                </p>
+                <p className="text-gray-400 text-xs">
+                  Look for "Call Forwarding" or "Forwarding Settings" in your provider's online portal.
+                </p>
+              </div>
             </div>
 
-            {/* Dynamic Forwarding Instructions */}
-            {selectedCarrier && (
+            {/* Dynamic Forwarding Instructions - Simplified */}
+            {selectedCarrier && selectedCarrier !== 'other' && (
               <div className="bg-gray-700 rounded-lg p-5 sm:p-6 mb-6">
-                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 1: From your business phone, dial this code</p>
+                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 1: Dial this code on your business phone</p>
                 <div className="text-3xl sm:text-4xl font-mono text-center mb-4 break-all leading-tight bg-gray-800 rounded-lg p-4">
                   {getForwardingCode()}
                 </div>
@@ -384,7 +411,24 @@ export default function NewOnboardingPage() {
                   Copy Code
                 </button>
                 <p className="text-gray-400 text-xs sm:text-sm text-center">
-                  This enables missed-call forwarding. Your phone will still ring normally for all calls.
+                  After dialing, you'll hear a confirmation tone. Your phone will still ring normally for all incoming calls.
+                </p>
+              </div>
+            )}
+
+            {/* Other Carrier Instructions */}
+            {selectedCarrier === 'other' && (
+              <div className="bg-gray-700 rounded-lg p-5 sm:p-6 mb-6">
+                <p className="text-gray-400 text-sm mb-3 font-medium">STEP 1: Set up forwarding with your carrier</p>
+                <p className="text-gray-300 text-sm mb-3">
+                  Contact your phone provider and ask them to enable "conditional call forwarding" to your ReplyFlow number.
+                </p>
+                <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                  <p className="text-gray-400 text-xs mb-1">Forward to this number:</p>
+                  <p className="text-xl font-mono text-white">{business.twilio_phone_number}</p>
+                </div>
+                <p className="text-gray-400 text-xs sm:text-sm">
+                  Tell them: "Forward my calls when I don't answer to this number"
                 </p>
               </div>
             )}
@@ -413,6 +457,30 @@ export default function NewOnboardingPage() {
                 <p className="text-blue-300 text-sm">
                   ✓ Your phone still rings normally
                 </p>
+              </div>
+            )}
+
+            {/* Need Help Section */}
+            {selectedCarrier && (
+              <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                <p className="text-gray-300 font-semibold mb-3 text-sm">Need help?</p>
+                <p className="text-gray-400 text-sm mb-3">
+                  If you're having trouble with call forwarding, we're here to help.
+                </p>
+                <div className="space-y-2">
+                  <a
+                    href="mailto:support@replyflowhq.com"
+                    className="block text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    📧 support@replyflowhq.com
+                  </a>
+                  <Link
+                    href="/faq"
+                    className="block text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    📖 View Troubleshooting FAQ
+                  </Link>
+                </div>
               </div>
             )}
 
