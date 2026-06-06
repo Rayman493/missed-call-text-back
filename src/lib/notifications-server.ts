@@ -199,8 +199,8 @@ export class NotificationServiceServer {
   }
 
   // Helper methods for common notification scenarios
-  async notifyNewLead(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<void> {
-    await this.createNotification(
+  async notifyNewLead(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'new_lead',
       '',
@@ -208,8 +208,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyCustomerReply(businessId: string, leadName: string, message: string, leadId: string): Promise<void> {
-    await this.createNotification(
+  async notifyCustomerReply(businessId: string, leadName: string, message: string, leadId: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'customer_reply',
       '',
@@ -217,8 +217,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyFollowupCompleted(businessId: string, leadName: string, leadId: string): Promise<void> {
-    await this.createNotification(
+  async notifyFollowupCompleted(businessId: string, leadName: string, leadId: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'followup_completed',
       '',
@@ -226,8 +226,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyVoicemailReceived(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<void> {
-    await this.createNotification(
+  async notifyVoicemailReceived(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'voicemail_received',
       '',
@@ -235,8 +235,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyTrialEnding(businessId: string, daysLeft: number): Promise<void> {
-    await this.createNotification(
+  async notifyTrialEnding(businessId: string, daysLeft: number): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'trial_ending',
       '',
@@ -244,8 +244,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifySubscriptionIssue(businessId: string, issue: string): Promise<void> {
-    await this.createNotification(
+  async notifySubscriptionIssue(businessId: string, issue: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'subscription_issue',
       '',
@@ -253,8 +253,8 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string): Promise<void> {
-    await this.createNotification(
+  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string): Promise<boolean> {
+    return await this.createNotification(
       businessId,
       'ai_intake_completed',
       '',
