@@ -350,6 +350,21 @@ export default function ForwardingSetupPage() {
     }
   }
 
+  const handleOpenDialer = (dialCode: string) => {
+    // URL-encode special characters for tel: protocol
+    const encodedCode = dialCode.replace(/\*/g, '%2A').replace(/#/g, '%23')
+    const telUrl = `tel:${encodedCode}`
+    
+    console.log('[Forwarding Setup] Opening dialer with code:', {
+      originalCode: dialCode,
+      encodedCode,
+      telUrl
+    })
+    
+    // Open dialer
+    window.location.href = telUrl
+  }
+
   const getCarrierInstructions = () => {
     if (!carrier) return null
     const instructions = CARRIER_INSTRUCTIONS[carrier]
@@ -399,6 +414,15 @@ export default function ForwardingSetupPage() {
 
         {/* Utility buttons */}
         <div className="flex items-center gap-3 mb-6">
+          {carrier !== 'ringcentral' && carrier !== 'grasshopper' && carrier !== 'google_voice' && carrier !== 'other' && (
+            <button
+              onClick={() => handleOpenDialer(dialCode)}
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Phone className="w-4 h-4" />
+              Open Dialer
+            </button>
+          )}
           <button
             onClick={() => handleCopyCode(dialCode)}
             className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
