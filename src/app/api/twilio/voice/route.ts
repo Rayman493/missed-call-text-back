@@ -584,10 +584,34 @@ export async function POST(request: NextRequest) {
         console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
         try {
-          // Create AI session
+          // Create lead before AI session to ensure data linkage
+          const normalizedCallerPhone = From.replace(/^\+1/, '').replace(/\D/g, '')
+          let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
+          
+          if (!lead) {
+            console.log('[AI CALL ASSISTANT] No existing lead, creating new lead for AI session')
+            lead = await db.createLead({
+              business_id: business.id,
+              caller_phone: normalizedCallerPhone,
+              status: 'new',
+              name: null,
+              raw_metadata: { source: 'ai_voice' },
+            })
+            
+            if (!lead) {
+              console.error('[AI CALL ASSISTANT] Failed to create lead, falling back to voicemail')
+              // Fall through to voicemail flow
+            } else {
+              console.log('[AI CALL ASSISTANT] Lead created for AI session:', lead.id)
+            }
+          } else {
+            console.log('[AI CALL ASSISTANT] Using existing lead for AI session:', lead.id)
+          }
+
+          // Create AI session with lead linkage
           const session = await createAISession({
             business_id: business.id,
-            lead_id: null, // Phase 1A: no lead creation yet
+            lead_id: lead?.id || null,
             call_sid: CallSid,
           })
 
