@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { SUBSCRIPTION_STATES, isEligibleForProvisioning } from '@/lib/subscription'
 // Legacy numberManager removed - only provisionTwilioNumber should be used for provisioning
 import getStripe from '@/lib/stripe'
+import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
 
 export const dynamic = 'force-dynamic'
 
@@ -358,6 +359,9 @@ export async function POST(request: Request) {
           } else {
             console.error('[ProvisioningState] Failed to fetch updated business state:', updatedBusinessError)
           }
+
+          // Cancel any scheduled Twilio release since access is being restored
+          await cancelTwilioRelease(businessId)
         }
 
         // DISABLED: Old Twilio Number Manager provisioning path
@@ -471,6 +475,9 @@ export async function POST(request: Request) {
           } else {
             console.log('[DEBUG] Update affected 1 row - business:', business.id)
           
+          // Cancel any scheduled Twilio release since subscription is being created
+          await cancelTwilioRelease(business.id)
+
           console.log('[Stripe Webhook] subscription status updated:', subscription.status)
           console.log('[Stripe Webhook] triggering provisioning check for business:', business.id)
           
@@ -814,6 +821,46 @@ export async function POST(request: Request) {
         }
         
         console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.DELETED END ==========')
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        console.log('[STRIPE CANCEL] ========== INVOICE.PAYMENT.FAILED START ==========')
+        
+        const invoice = event.data.object as Stripe.Invoice
+        const subscriptionId = (invoice as any).subscription as string | null
+
+        if (!subscriptionId) {
+          console.log('[STRIPE CANCEL] No subscription ID in invoice, skipping')
+          break
+        }
+
+        console.log('[STRIPE CANCEL] Subscription ID:', subscriptionId)
+
+        // Find business by stripe_subscription_id
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id, subscription_status, manual_access_enabled, manual_access_expires_at')
+          .eq('stripe_subscription_id', subscriptionId)
+          .limit(1)
+          .single()
+
+        if (business) {
+          console.log('[STRIPE CANCEL] Business found:', business.id)
+          
+          // Check if business has manual access - if so, don't schedule release
+          const hasManualAccess = business.manual_access_enabled && 
+            (!business.manual_access_expires_at || new Date(business.manual_access_expires_at) > new Date())
+          
+          if (!hasManualAccess) {
+            console.log('[STRIPE CANCEL] No manual access, scheduling Twilio release')
+            await scheduleTwilioRelease(business.id, 'subscription_canceled')
+          } else {
+            console.log('[STRIPE CANCEL] Manual access exists, skipping Twilio release')
+          }
+        }
+        
+        console.log('[STRIPE CANCEL] ========== INVOICE.PAYMENT.FAILED END ==========')
         break
       }
 
