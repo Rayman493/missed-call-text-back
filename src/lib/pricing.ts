@@ -5,7 +5,7 @@ import { getAppBaseUrl, getDashboardUrl } from './urls'
 export const PRICING_CONFIG = {
   // Plan configuration
   PLAN_NAME: "ReplyFlow",
-  MONTHLY_PRICE: "$49",
+  MONTHLY_PRICE: "$59",
   TRIAL_DAYS: 14,
 
   // Stripe configuration
@@ -13,9 +13,9 @@ export const PRICING_CONFIG = {
 
   // Display text
   PLAN_DISPLAY_NAME: "ReplyFlow",
-  PRICE_DISPLAY: "$49/month",
+  PRICE_DISPLAY: "$59/month",
   TRIAL_DISPLAY: "14-day free trial",
-  FULL_PRICING_DISPLAY: "14-day free trial, then $49/month",
+  FULL_PRICING_DISPLAY: "14-day free trial, then $59/month",
 
   // URLs - use dynamic URL resolution for proper environment handling
   CHECKOUT_SUCCESS_URL: `${getAppBaseUrl()}/dashboard?checkout=success`,

@@ -192,15 +192,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Price ID not configured - NEXT_PUBLIC_STRIPE_PRICE_ID missing' }, { status: 500 })
     }
 
-    console.log('[stripe-checkout] Creating Stripe checkout session with:', {
+    console.log('[STRIPE CHECKOUT] Creating checkout session with:', {
       customerId,
       priceId,
+      mode: 'subscription',
       origin,
       businessId: business.id,
       onboardingStatus: business.onboarding_status,
       subscriptionStatus: business.subscription_status,
       hasStripeCustomerId: !!business.stripe_customer_id,
-      action: 'checkout'
+      action: 'checkout',
+      checkoutMode,
+      trialPeriodDays: checkoutMode === 'trial' ? 14 : undefined
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow

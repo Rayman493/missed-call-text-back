@@ -6,7 +6,7 @@ import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Pricing | Simple Pricing for Missed-Call Recovery',
-  description: 'ReplyFlowHQ pricing: $49/month with a 14-day free trial. Automated missed-call text-back automation for local service businesses. Cancel anytime.',
+  description: 'ReplyFlowHQ pricing: $59/month with a 14-day free trial. Automated missed-call text-back automation for local service businesses. Cancel anytime.',
 }
 
 export default function PricingPage() {
@@ -53,7 +53,7 @@ export default function PricingPage() {
               Simple pricing for missed-call recovery
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Start with a 14-day free trial. Then $49/month. Cancel anytime.
+              Start with a 14-day free trial. Then $59/month. Cancel anytime.
             </p>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function PricingPage() {
               <div className="bg-blue-600 dark:bg-blue-600 px-8 py-6 text-center">
                 <h2 className="text-2xl font-bold text-white mb-2">ReplyFlowHQ</h2>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold text-white">$49</span>
+                  <span className="text-4xl font-bold text-white">$59</span>
                   <span className="text-lg text-blue-100 ml-1">/month</span>
                 </div>
                 <p className="text-blue-100 mt-2">14-day free trial</p>
