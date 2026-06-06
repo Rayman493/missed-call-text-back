@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { SUBSCRIPTION_STATES } from '@/lib/subscription'
+import { SUBSCRIPTION_STATES, isEligibleForProvisioning } from '@/lib/subscription'
 // Legacy numberManager removed - only provisionTwilioNumber should be used for provisioning
 import getStripe from '@/lib/stripe'
 
@@ -272,7 +272,7 @@ export async function POST(request: Request) {
           console.log('[ProvisioningState] Fetching business state after update')
           const { data: updatedBusiness, error: updatedBusinessError } = await supabase
             .from('businesses')
-            .select('id, provisioning_status, provisioning_error, subscription_status, twilio_phone_number, twilio_phone_number_sid')
+            .select('id, provisioning_status, provisioning_error, subscription_status, manual_access_enabled, manual_access_expires_at, twilio_phone_number, twilio_phone_number_sid')
             .eq('id', businessId)
             .single()
           
@@ -282,27 +282,28 @@ export async function POST(request: Request) {
               provisioning_status: updatedBusiness.provisioning_status,
               provisioning_error: updatedBusiness.provisioning_error,
               subscription_status: updatedBusiness.subscription_status,
+              manual_access_enabled: updatedBusiness.manual_access_enabled,
+              manual_access_expires_at: updatedBusiness.manual_access_expires_at,
               twilio_phone_number: updatedBusiness.twilio_phone_number,
               twilio_phone_number_sid: updatedBusiness.twilio_phone_number_sid
             })
             
-            // Check if provisioning should be triggered
-            const shouldProvision = 
-              (updatedBusiness.subscription_status === 'trialing' || updatedBusiness.subscription_status === 'active') &&
-              !updatedBusiness.twilio_phone_number &&
-              updatedBusiness.provisioning_status !== 'provisioning'
+            // Check if provisioning should be triggered using centralized eligibility check
+            const shouldProvision = isEligibleForProvisioning(updatedBusiness)
             
             console.log('[ProvisioningState] Should trigger provisioning:', shouldProvision)
-            console.log('[ProvisioningState] Provisioning trigger conditions:', {
+            console.log('[MANUAL ACCESS PROVISIONING]', {
+              eligible: shouldProvision,
+              reason: shouldProvision ? 'Eligible for provisioning' : 'Not eligible',
               subscription_status: updatedBusiness.subscription_status,
-              has_twilio_phone_number: !!updatedBusiness.twilio_phone_number,
-              provisioning_status: updatedBusiness.provisioning_status,
-              is_trialing_or_active: updatedBusiness.subscription_status === 'trialing' || updatedBusiness.subscription_status === 'active',
-              not_already_provisioning: updatedBusiness.provisioning_status !== 'provisioning'
+              manual_access_enabled: updatedBusiness.manual_access_enabled,
+              manual_access_expires_at: updatedBusiness.manual_access_expires_at,
+              twilio_phone_number: updatedBusiness.twilio_phone_number,
+              provisioning_status: updatedBusiness.provisioning_status
             })
             
             if (shouldProvision) {
-              console.log('[ProvisioningState] TRIGGERING provisioning from checkout.session.completed webhook')
+              console.log('[MANUAL ACCESS PROVISIONING] Triggering provisioning')
               console.log('[PROVISIONING FLOW] Starting provisioning process')
               console.log('[PROVISIONING FLOW] Business ID:', businessId)
               console.log('[PROVISIONING FLOW] Subscription ID:', subscriptionId)

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
+import { isEligibleForProvisioning } from '@/lib/subscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +88,38 @@ export async function POST(request: Request) {
         reason,
         expiresAt: updateData.manual_access_expires_at
       })
+
+      // Check if business is eligible for provisioning after manual access grant
+      console.log('[MANUAL ACCESS PROVISIONING] Checking eligibility after manual access grant')
+      const isEligible = isEligibleForProvisioning(data)
+      
+      if (isEligible) {
+        console.log('[MANUAL ACCESS PROVISIONING] Eligible - Triggering provisioning')
+        
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET || ''
+            },
+            body: JSON.stringify({
+              business_id: businessId
+            })
+          })
+          
+          if (response.ok) {
+            console.log('[MANUAL ACCESS PROVISIONING] ✓ Provisioning triggered successfully')
+          } else {
+            const errorText = await response.text()
+            console.error('[MANUAL ACCESS PROVISIONING] ✗ Failed to trigger provisioning:', errorText)
+          }
+        } catch (provisioningError) {
+          console.error('[MANUAL ACCESS PROVISIONING] ✗ Error triggering provisioning:', provisioningError)
+        }
+      } else {
+        console.log('[MANUAL ACCESS PROVISIONING] Not eligible - skipping provisioning trigger')
+      }
 
       return NextResponse.json({
         success: true,

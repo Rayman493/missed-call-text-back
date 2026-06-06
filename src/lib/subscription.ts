@@ -177,3 +177,73 @@ export function getPricingDisplay(): string {
 export function getTrialDisplay(): string {
   return PRICING_CONFIG.TRIAL_DISPLAY
 }
+
+/**
+ * Check if a business has valid manual access for provisioning
+ * Manual access is valid if:
+ * - manual_access_enabled is true
+ * - manual_access_expires_at is NULL OR manual_access_expires_at > now()
+ */
+export function hasValidManualAccess(business: {
+  manual_access_enabled?: boolean | null
+  manual_access_expires_at?: string | null
+}): boolean {
+  if (!business.manual_access_enabled) {
+    return false
+  }
+  
+  if (!business.manual_access_expires_at) {
+    // No expiration = lifetime access
+    return true
+  }
+  
+  // Check if not expired
+  const expiresAt = new Date(business.manual_access_expires_at)
+  const now = new Date()
+  return expiresAt > now
+}
+
+/**
+ * Check if a business is eligible for Twilio number provisioning
+ * Eligibility requires:
+ * - Valid subscription (trialing/active) OR valid manual access
+ * - No existing Twilio phone number
+ * - Not already provisioning
+ */
+export function isEligibleForProvisioning(business: {
+  subscription_status?: string | null
+  manual_access_enabled?: boolean | null
+  manual_access_expires_at?: string | null
+  twilio_phone_number?: string | null
+  provisioning_status?: string | null
+}): boolean {
+  const hasValidSubscription = 
+    business.subscription_status === 'trialing' || 
+    business.subscription_status === 'active'
+  
+  const hasManualAccess = hasValidManualAccess(business)
+  
+  const hasBillingAccess = hasValidSubscription || hasManualAccess
+  
+  const needsProvisioning = !business.twilio_phone_number
+  const notAlreadyProvisioning = business.provisioning_status !== 'provisioning'
+  
+  const eligible = hasBillingAccess && needsProvisioning && notAlreadyProvisioning
+  
+  console.log('[PROVISIONING ELIGIBILITY]', {
+    businessId: 'check',
+    subscription_status: business.subscription_status,
+    manual_access_enabled: business.manual_access_enabled,
+    manual_access_expires_at: business.manual_access_expires_at,
+    hasValidSubscription,
+    hasManualAccess,
+    hasBillingAccess,
+    twilio_phone_number: business.twilio_phone_number,
+    needsProvisioning,
+    provisioning_status: business.provisioning_status,
+    notAlreadyProvisioning,
+    eligible
+  })
+  
+  return eligible
+}
