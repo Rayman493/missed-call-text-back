@@ -349,8 +349,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
       </div>
 
-      {/* Simplified Empty State */}
-      {metrics.missedCallsCaptured === 0 && metrics.leadsGenerated === 0 && metrics.messagesSent === 0 && (
+      {/* Simplified Empty State - only show when no leads exist */}
+      {metrics.leadsGenerated === 0 && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-6">
           <div className="space-y-4">
             <div className="space-y-1">
@@ -397,6 +397,37 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               <Phone className="w-4 h-4" />
               Run Test Call
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ReplyFlow is Live - show when leads exist */}
+      {metrics.leadsGenerated > 0 && (
+        <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800 p-4 sm:p-6">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
+                <span className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
+                ReplyFlow is Live
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                Your lead capture system is active and working
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">{metrics.leadsGenerated}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Leads Captured</p>
+              </div>
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">{metrics.activeConversations}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Active Conversations</p>
+              </div>
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">{todayMetrics.newLeads}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">New Today</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
