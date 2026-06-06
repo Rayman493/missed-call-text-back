@@ -1457,7 +1457,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
           {/* Desktop Conversation Section */}
-          <section className="flex flex-col min-h-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden h-[calc(100vh-200px)]">
+          <section className="flex flex-col min-h-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden h-[calc(100vh-320px)]">
             {/* Desktop Message Thread */}
             <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0" style={{ minHeight: '200px' }}>
               {loading ? (
