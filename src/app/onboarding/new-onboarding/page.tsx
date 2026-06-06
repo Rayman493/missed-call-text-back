@@ -303,10 +303,43 @@ export default function NewOnboardingPage() {
             <p className="text-gray-300 mb-6 text-sm sm:text-base">
               Now we'll set up call forwarding. This lets ReplyFlow automatically text back when you miss a call. You'll still receive all your normal calls.
             </p>
-            
+
+            {/* Visual Flow Diagram */}
+            <div className="bg-gray-700 rounded-lg p-6 mb-6">
+              <p className="text-gray-400 text-sm mb-4 font-medium text-center">How call forwarding works:</p>
+              <div className="flex flex-col items-center space-y-2 text-sm sm:text-base">
+                <div className="bg-blue-600/20 border border-blue-500 rounded-lg px-4 py-2 text-center">
+                  Customer Calls
+                </div>
+                <div className="text-gray-400">↓</div>
+                <div className="bg-gray-600 rounded-lg px-4 py-2 text-center">
+                  Your Business Number
+                </div>
+                <div className="text-gray-400">↓ (when you don't answer)</div>
+                <div className="bg-green-600/20 border border-green-500 rounded-lg px-4 py-2 text-center font-semibold">
+                  ReplyFlow Number
+                </div>
+                <div className="text-gray-400">↓</div>
+                <div className="bg-blue-600/20 border border-blue-500 rounded-lg px-4 py-2 text-center">
+                  Lead Captured
+                </div>
+              </div>
+            </div>
+
+            {/* Warning Box */}
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 mb-6">
+              <p className="text-red-300 text-sm font-semibold mb-2">⚠️ Important:</p>
+              <p className="text-red-200 text-sm">
+                Forward YOUR BUSINESS NUMBER to the ReplyFlow number above.
+              </p>
+              <p className="text-red-200 text-sm mt-2">
+                Do NOT forward the ReplyFlow number to your business number.
+              </p>
+            </div>
+
             <div className="bg-gray-700 rounded-lg p-6 mb-6">
               <p className="text-gray-400 text-sm mb-2">Your dedicated ReplyFlow number:</p>
-              <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight">
+              <div className="text-4xl sm:text-5xl font-mono text-center mb-4 break-all leading-tight bg-green-900/20 border border-green-500 rounded-lg p-4">
                 {business.twilio_phone_number}
               </div>
               <button

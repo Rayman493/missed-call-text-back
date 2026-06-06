@@ -254,15 +254,31 @@ export default function TestSetupPage() {
   const troubleshooting = [
     {
       issue: 'If calls are not forwarding',
-      solution: 'Make sure you enabled call forwarding on your business phone using the carrier-specific code provided in the phone setup step.'
+      solution: 'Make sure you enabled call forwarding on your business phone using the carrier-specific code provided in the phone setup step. Wait 5-10 minutes for carrier activation.'
     },
     {
       issue: 'If you did not receive a text message',
-      solution: 'Wait a minute and try again. Some carriers may take a few extra minutes to activate new numbers.'
+      solution: 'Wait 1-2 minutes and try again. Some carriers may take a few extra minutes to activate new numbers. Verify your phone can receive SMS from short codes.'
     },
     {
       issue: 'If the lead does not appear',
-      solution: 'Try refreshing the dashboard. If the issue persists, check that your Twilio number is properly configured.'
+      solution: 'Try refreshing the dashboard. If the issue persists, check that you called from a different phone (not your business line).'
+    },
+    {
+      issue: 'Verizon: Calls answer too quickly',
+      solution: 'Call Verizon support and ask to "set conditional call forwarding/no-answer forwarding to your ReplyFlow number after 30 seconds." Do not use immediate forwarding.'
+    },
+    {
+      issue: 'AT&T: Forwarding not activating',
+      solution: 'Verify you dialed the full code including the # at the end. Try dialing again and wait for confirmation tone.'
+    },
+    {
+      issue: 'T-Mobile: Calls go to voicemail',
+      solution: 'T-Mobile may require deactivating voicemail first. Call T-Mobile support to disable conditional call forwarding voicemail.'
+    },
+    {
+      issue: 'VoIP (RingCentral, 8x8, etc.)',
+      solution: 'Log into your VoIP provider dashboard and enable call forwarding in web settings instead of using dial codes.'
     }
   ]
 
@@ -302,6 +318,26 @@ export default function TestSetupPage() {
                     <p className="text-blue-100 mb-4">
                       ReplyFlow will automatically detect your test call and verify everything is working.
                     </p>
+
+                    {/* Test Call Reminders */}
+                    <div className="bg-white/10 rounded-lg p-4 mb-4">
+                      <p className="text-sm font-semibold text-white mb-2">Important reminders:</p>
+                      <ul className="space-y-1">
+                        <li className="text-sm text-blue-100 flex items-start gap-2">
+                          <span className="text-yellow-400">⚠️</span>
+                          <span>Use a <strong>different phone</strong> (not your business line)</span>
+                        </li>
+                        <li className="text-sm text-blue-100 flex items-start gap-2">
+                          <span className="text-yellow-400">⚠️</span>
+                          <span><strong>Do not answer</strong> the call - let it ring</span>
+                        </li>
+                        <li className="text-sm text-blue-100 flex items-start gap-2">
+                          <span className="text-yellow-400">⚠️</span>
+                          <span>Wait for forwarding to activate (may take 5-10 min)</span>
+                        </li>
+                      </ul>
+                    </div>
+
                     <p className="text-sm text-blue-200 mb-4 italic">
                       Your business number still works exactly like normal.
                     </p>

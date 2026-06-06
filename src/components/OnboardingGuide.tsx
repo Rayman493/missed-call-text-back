@@ -131,6 +131,39 @@ export default function OnboardingGuide({ isTrialActive = false }: OnboardingGui
           </span>
         </div>
       </div>
+
+      {/* What Happens Next - Expectation Setting */}
+      {isTrialActive && (
+        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+          <h3 className="text-sm font-semibold text-foreground mb-3">What happens next?</h3>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold">1</span>
+              </div>
+              <p>Missed calls from your business number automatically become leads in your dashboard</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold">2</span>
+              </div>
+              <p>Customers receive automated text replies with your custom message</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold">3</span>
+              </div>
+              <p>Customer replies and photos appear in your conversation threads</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold">4</span>
+              </div>
+              <p>Follow-up messages run automatically to re-engage leads</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
