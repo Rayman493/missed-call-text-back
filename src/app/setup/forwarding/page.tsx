@@ -72,15 +72,36 @@ export default function ForwardingSetupPage() {
   const [error, setError] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
   const [isForwardingEnabled, setIsForwardingEnabled] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   // Use business's dedicated Twilio number
   const twilioNumber = business?.twilio_phone_number || process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
   const formattedTwilioNumber = formatForDisplay(twilioNumber)
 
+  // Loading timeout - after 15 seconds, show recovery option
+  useEffect(() => {
+    if (businessLoading) {
+      const timer = setTimeout(() => {
+        console.log('[Forwarding Setup] Loading timeout reached - businessLoading still true after 15s')
+        setLoadingTimeout(true)
+      }, 15000)
+      return () => clearTimeout(timer)
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [businessLoading])
+
   // Load persisted state on mount
   useEffect(() => {
+    console.log('[Forwarding Setup] Loading persisted state - business:', !!business, 'businessLoading:', businessLoading)
+    
     // First, try to load from business context if available
     if (business && !businessLoading) {
+      console.log('[Forwarding Setup] Loading from business context:', {
+        business_phone_number: business.business_phone_number,
+        carrier: business.carrier,
+        call_forwarding_enabled: business.call_forwarding_enabled
+      })
       setPhoneNumber(business.business_phone_number || '')
       setCarrier(business.carrier || '')
       setIsForwardingEnabled(!!business.call_forwarding_enabled)
@@ -90,7 +111,15 @@ export default function ForwardingSetupPage() {
     const persistedState = getPhoneSetupState()
     const isPersistedFresh = isPhoneSetupStateFresh(persistedState)
     
+    console.log('[Forwarding Setup] Persisted state:', {
+      hasPersisted: !!persistedState,
+      isFresh: isPersistedFresh,
+      phoneNumber: persistedState?.phoneNumber,
+      carrier: persistedState?.carrier
+    })
+    
     if (isPersistedFresh && (!business?.business_phone_number || !business?.carrier)) {
+      console.log('[Forwarding Setup] Loading from persisted state')
       setPhoneNumber(persistedState.phoneNumber || phoneNumber)
       setCarrier(persistedState.carrier || carrier)
     }
@@ -115,6 +144,38 @@ export default function ForwardingSetupPage() {
   // HARD GUARD: Check subscription status BEFORE any UI rendering
   // This prevents flash of forwarding UI when subscription is not active
   if (businessLoading) {
+    if (loadingTimeout) {
+      // Show recovery option after timeout
+      return (
+        <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-4">Setup Taking Longer</h1>
+            <p className="text-muted-foreground mb-6">
+              We're having trouble loading your setup information. This can happen when returning from payment.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Refresh Page
+              </button>
+              <Link
+                href="/dashboard"
+                className="block w-full px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground font-medium rounded-lg transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      )
+    }
     console.log('[Forwarding Setup Route] Business data loading - showing loading')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
@@ -143,6 +204,7 @@ export default function ForwardingSetupPage() {
     subscription_status: business.subscription_status,
     twilio_phone_number: business.twilio_phone_number,
     forwarding_verified: business.forwarding_verified,
+    provisioning_status: business.provisioning_status,
   })
 
   const setupState = deriveSetupState(business)
@@ -157,9 +219,43 @@ export default function ForwardingSetupPage() {
     redirectTarget: '/dashboard'
   })
 
+  // Show friendly provisioning state when number is still being set up
+  if (setupState === 'provisioning_or_number_pending') {
+    console.log('[Forwarding Setup Route] Provisioning pending - showing friendly message')
+    return (
+      <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Setting Up Your ReplyFlow Number</h1>
+          <p className="text-muted-foreground mb-6">
+            We're provisioning your ReplyFlow phone number. This usually takes less than a minute.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => refreshBusiness()}
+              className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              Check Status
+            </button>
+            <Link
+              href="/dashboard"
+              className="block w-full px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground font-medium rounded-lg transition-colors"
+            >
+              Go to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // HARD GUARD: If subscription is not active, immediately redirect without rendering any UI
   if (setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
-    console.log('[Forwarding Setup Route] Blocking access - redirecting to dashboard (no UI rendered)')
+    console.log('[Forwarding Setup Route] Blocking access - redirecting to dashboard (no UI rendered)', { setupState })
     router.replace('/dashboard')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
