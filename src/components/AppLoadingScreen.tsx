@@ -19,7 +19,7 @@ export default function AppLoadingScreen() {
 
       {/* Loading text */}
       <p className="text-slate-400 dark:text-slate-400 text-lg font-medium animate-pulse">
-        AUTHGUARD_APP_LOADING_SCREEN
+        Loading ReplyFlow…
       </p>
     </div>
   )
