@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.log('[ADMIN SEARCH QUERY]', {
       query,
       table: 'businesses',
-      searchFields: ['name', 'business_phone_number', 'twilio_phone_number', 'personal_phone_number', 'owner_email'],
+      searchFields: ['name', 'business_phone_number', 'twilio_phone_number', 'owner_email'],
       searchPattern: `ilike.%${query}%`,
       limit: 20,
       client: 'service_role'
@@ -109,11 +109,11 @@ export async function GET(request: NextRequest) {
       let businesses: any[] = []
 
       console.log('[ADMIN SEARCH] Query 1: Searching businesses by name and phone fields')
-      // 1. Search businesses by name and phone fields
+      // 1. Search businesses by name and phone fields (only columns that exist in production)
       const { data: businessesByNameOrPhone, error: businessError } = await supabaseAdmin
         .from('businesses')
         .select('*')
-        .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%,personal_phone_number.ilike.%${query}%`)
+        .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
         .limit(20)
 
       console.log('[ADMIN SEARCH] Query 1 result', {
