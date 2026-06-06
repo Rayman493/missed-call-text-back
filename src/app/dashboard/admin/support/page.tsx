@@ -39,6 +39,8 @@ interface Business {
   twilio_released_at: string | null
   twilio_release_status: string | null
   twilio_release_reason: string | null
+  is_protected_account: boolean | null
+  protected_reason: string | null
 }
 
 export default function AdminSupportPage() {
@@ -64,6 +66,11 @@ export default function AdminSupportPage() {
   const [manualAccessReason, setManualAccessReason] = useState('')
   const [manualAccessNote, setManualAccessNote] = useState('')
   const [showManualAccessModal, setShowManualAccessModal] = useState(false)
+
+  // Protect account state
+  const [protectAction, setProtectAction] = useState<'protect' | 'unprotect'>('protect')
+  const [protectReason, setProtectReason] = useState('')
+  const [showProtectModal, setShowProtectModal] = useState(false)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -245,6 +252,48 @@ export default function AdminSupportPage() {
       day: 'numeric'
     })
     return `Until ${formattedDate}`
+  }
+
+  const handleProtect = async () => {
+    if (!selectedBusiness) return
+    
+    setActionLoading(true)
+    setActionResult(null)
+    
+    try {
+      const response = await fetch('/api/admin/protect-business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: selectedBusiness.id,
+          action: protectAction,
+          reason: protectAction === 'protect' ? protectReason : undefined
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setActionResult({ success: true, message: data.message || `Business ${protectAction === 'protect' ? 'protected' : 'unprotected'} successfully` })
+        setShowProtectModal(false)
+        setProtectReason('')
+        // Refresh business data
+        const updatedBusiness = { 
+          ...selectedBusiness, 
+          is_protected_account: protectAction === 'protect',
+          protected_reason: protectAction === 'protect' ? protectReason : undefined
+        } as Business
+        setSelectedBusiness(updatedBusiness)
+        const updatedResults = searchResults.map(b => b.id === selectedBusiness.id ? updatedBusiness : b)
+        setSearchResults(updatedResults)
+      } else {
+        setActionResult({ success: false, message: data.error || `Failed to ${protectAction} business` })
+      }
+    } catch (error) {
+      setActionResult({ success: false, message: `Failed to ${protectAction} business` })
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   if (loading) {
@@ -454,6 +503,25 @@ export default function AdminSupportPage() {
                       )}
                     </>
                   )}
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Protected Status</p>
+                    <div className="flex items-center gap-2">
+                      {selectedBusiness.is_protected_account ? (
+                        <>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            Protected
+                          </span>
+                          {selectedBusiness.protected_reason && (
+                            <p className="text-sm text-slate-600 dark:text-slate-400">({selectedBusiness.protected_reason})</p>
+                          )}
+                        </>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                          Not Protected
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Admin Actions */}
@@ -513,6 +581,20 @@ export default function AdminSupportPage() {
                       className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       View Stripe Portal
+                    </button>
+                    <button
+                      onClick={() => {
+                        setProtectAction(selectedBusiness.is_protected_account ? 'unprotect' : 'protect')
+                        setShowProtectModal(true)
+                      }}
+                      disabled={actionLoading}
+                      className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                        selectedBusiness.is_protected_account
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
+                    >
+                      {selectedBusiness.is_protected_account ? 'Unprotect Account' : 'Protect Account'}
                     </button>
                     {selectedBusiness.twilio_phone_number && selectedBusiness.twilio_release_status === 'scheduled' && (
                       <>
@@ -642,6 +724,75 @@ export default function AdminSupportPage() {
                       className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {actionLoading ? 'Processing...' : (manualAccessAction === 'grant' ? 'Grant Access' : 'Revoke Access')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Protect Account Modal */}
+            {showProtectModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                    {protectAction === 'protect' ? 'Protect Account' : 'Unprotect Account'}
+                  </h3>
+                  
+                  {protectAction === 'protect' ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Protected businesses are skipped by cleanup/reset operations. This is useful for admin accounts or important test data.
+                      </p>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Reason
+                        </label>
+                        <select
+                          value={protectReason}
+                          onChange={(e) => setProtectReason(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                        >
+                          <option value="">Select reason...</option>
+                          <option value="admin_account">Admin account</option>
+                          <option value="production_customer">Production customer</option>
+                          <option value="important_test">Important test data</option>
+                          <option value="demo_account">Demo account</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Are you sure you want to unprotect this account? It will no longer be excluded from cleanup/reset operations.
+                      </p>
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="text-sm text-amber-800 dark:text-amber-300">
+                          <strong>Warning:</strong> This business will be included in future cleanup/reset operations.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setShowProtectModal(false)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleProtect}
+                      disabled={actionLoading || (protectAction === 'protect' && !protectReason)}
+                      className={`px-4 py-2 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                        protectAction === 'protect'
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : 'bg-red-600 hover:bg-red-700'
+                      }`}
+                    >
+                      {actionLoading ? 'Processing...' : (protectAction === 'protect' ? 'Protect Account' : 'Unprotect Account')}
                     </button>
                   </div>
                 </div>
