@@ -84,21 +84,32 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Fetch messages sent - 30 days
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('direction, created_at, from_phone, to_phone')
+          .select('direction, created_at, from_phone, to_phone, status, message_type')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        console.log('[DASHBOARD MESSAGE COUNT]', { 
-          totalCount: messages?.length || 0, 
-          outboundCount: messages?.filter((m: any) => m.direction === 'outbound').length || 0, 
-          messages, 
-          error: messagesError 
+        // Filter outbound messages more robustly
+        const outboundMessages = messages?.filter((m: any) => {
+          // Check if direction is outbound or starts with outbound
+          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+          // Check if from_phone matches business twilio phone (ReplyFlow sent it)
+          const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
+          return isDirectionOutbound || isFromBusinessPhone
+        }) || []
+
+        console.log('[DASHBOARD MESSAGE COUNT]', {
+          totalCount: messages?.length || 0,
+          outboundCount: outboundMessages.length,
+          businessPhone: business.twilio_phone_number,
+          outboundSample: outboundMessages.slice(0, 3),
+          allMessages: messages,
+          error: messagesError
         })
 
         // Fetch messages sent - today
         const { data: messagesToday } = await supabase
           .from('messages')
-          .select('direction, created_at')
+          .select('direction, created_at, from_phone')
           .eq('business_id', business.id)
           .gte('created_at', todayStartISO)
 
@@ -118,14 +129,18 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Calculate metrics - 30 days
         const missedCallsCaptured = leads?.length || 0
         const leadsGenerated = missedCallsCaptured
-        const messagesSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
+        const messagesSent = outboundMessages.length
         const activeConversationsCount = activeConversations?.length || 0
         const recoveryRate = leadsGenerated > 0 ? Math.round((messagesSent / leadsGenerated) * 100) : 0
 
         // Calculate metrics - today
         const missedCallsToday = leadsToday?.length || 0
         const newLeadsToday = missedCallsToday
-        const messagesSentToday = messagesToday?.filter((m: any) => m.direction === 'outbound').length || 0
+        const messagesSentToday = messagesToday?.filter((m: any) => {
+          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+          const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
+          return isDirectionOutbound || isFromBusinessPhone
+        }).length || 0
 
         setMetrics({
           missedCallsCaptured,
