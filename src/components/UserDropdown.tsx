@@ -176,7 +176,7 @@ export default function UserDropdown() {
 
                   {/* View Public Site */}
                   <Link
-                    href="/home"
+                    href="/"
                     onClick={() => {
                       console.log('[VIEW PUBLIC SITE LINK CLICKED] User clicked View public site link')
                       setIsOpen(false)

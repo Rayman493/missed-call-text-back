@@ -108,6 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign out function that clears all sensitive data
   const signOut = async (options?: { manual?: boolean }) => {
     const isManualLogout = options?.manual !== false // Default to true if not specified
+    
+    console.log('[LOGOUT] Sign out initiated', {
+      isManualLogout,
+      pathname,
+      timestamp: new Date().toISOString()
+    })
+    
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
@@ -131,30 +138,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         localKeysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        console.log('[LOGOUT] Local storage cleared', {
+          keysRemoved: localKeysToRemove.length
+        })
       }
       
       // Sign out from Supabase if available
       if (supabase) {
         await supabase.auth.signOut()
+        console.log('[LOGOUT] Supabase session cleared')
       }
       
       // Clear auth state
       setSession(null)
       setUser(null)
       
+      console.log('[LOGOUT] Auth state cleared')
+      
       // Redirect: manual logout goes to homepage, session expiration goes to signin
       if (isManualLogout) {
+        console.log('[LOGOUT] Redirecting to homepage')
         router.push('/')
       } else {
         // Session expiration: go to signin if not already on homepage
         if (pathname === '/') {
+          console.log('[LOGOUT] Already on homepage, staying here')
           router.push('/')
         } else {
+          console.log('[LOGOUT] Redirecting to signin')
           router.push('/auth/signin')
         }
       }
     } catch (error) {
-      console.error('[Auth] Sign out error:', error)
+      console.error('[LOGOUT] Sign out error:', error)
     }
   }
 
