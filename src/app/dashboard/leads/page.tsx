@@ -937,8 +937,13 @@ export default function LeadsPage() {
 
             {/* Leads List - CRM-style Grid */}
             {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed').map((lead, index) => {
+              (() => {
+                const activeLeads = sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed')
+                const singleLead = activeLeads.length === 1
+
+                if (singleLead) {
+                  // Single lead: centered with supportive text
+                  const lead = activeLeads[0]
                   const latestMessage = lead.messages && lead.messages.length > 0
                     ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
                     : null
@@ -949,124 +954,247 @@ export default function LeadsPage() {
                   const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
                   const isUnread = hasUnread(lead.id)
                   const needsResponse = needsResponseCheck(lead.id)
-
-                  // Calculate lead timing
                   const leadTiming = calculateLeadTiming(lead)
-
-                  // Check if this is the newest lead (within 24 hours)
-                  const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
-
+                  const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
                   const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
 
                   return (
-                    <Link
-                      key={lead.id}
-                      href={`/dashboard/leads/${lead.id}`}
-                      onClick={() => handleConversationClick(lead.id)}
-                      className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group cursor-pointer"
-                    >
-                      {/* Status Color Bar */}
-                      <div className={`h-1 ${
-                        isNewLead ? 'bg-orange-500' :
-                        getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
-                        getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
-                        'bg-slate-400'
-                      }`}></div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">1 active lead</p>
+                      <Link
+                        key={lead.id}
+                        href={`/dashboard/leads/${lead.id}`}
+                        onClick={() => handleConversationClick(lead.id)}
+                        className="w-full max-w-2xl bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group cursor-pointer"
+                      >
+                        {/* Status Color Bar */}
+                        <div className={`h-1 ${
+                          isNewLead ? 'bg-orange-500' :
+                          getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
+                          getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
+                          'bg-slate-400'
+                        }`}></div>
 
-                      <div className="p-4">
-                        {/* Header: Name, Phone, Status */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            {lead.contact_name && (
-                              <h3 className={`text-base font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
-                                {lead.contact_name}
-                              </h3>
-                            )}
-                            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                              {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
-                            </p>
+                        <div className="p-5">
+                          {/* Header: Name, Phone, Status */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1 min-w-0">
+                              {lead.contact_name && (
+                                <h3 className={`text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                  {lead.contact_name}
+                                </h3>
+                              )}
+                              <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
+                                {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold flex-shrink-0 ml-3 ${statusClasses}`}>
+                              {statusBadge}
+                            </span>
                           </div>
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>
-                            {statusBadge}
-                          </span>
-                        </div>
 
-                        {/* Conversation Preview */}
-                        <div className="mb-3">
-                          {latestMessage ? (
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                                {latestMessage.direction === 'inbound' ? '📱 Customer:' : '💬 You:'}
-                              </p>
-                              <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
-                                "{latestMessage.body}"
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-                              <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                                No conversation yet
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                          {/* Conversation Preview */}
+                          <div className="mb-4">
+                            {latestMessage ? (
+                              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                                  {latestMessage.direction === 'inbound' ? '📱 Customer:' : '💬 You:'}
+                                </p>
+                                <p className="text-base text-slate-700 dark:text-slate-300 line-clamp-2 italic">
+                                  "{latestMessage.body}"
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+                                <p className="text-base text-slate-500 dark:text-slate-400 italic">
+                                  No conversation yet
+                                </p>
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Metadata */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${
+                          {/* Metadata */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2.5 h-2.5 rounded-full ${
+                                isNewLead ? 'bg-orange-500' :
+                                getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
+                                getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
+                                'bg-slate-400'
+                              }`}></span>
+                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                                {formatRelativeTime(lead.created_at)}
+                              </span>
+                            </div>
+                            {isNewLead && (
+                              <span className="px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-xs font-semibold rounded-full">
+                                New
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                            {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+                              <a
+                                href={`tel:${lead.caller_phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                title="Call"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                                Call
+                              </a>
+                            )}
+                            <div className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                              View Conversation
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  )
+                } else {
+                  // Multiple leads: grid layout
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {activeLeads.map((lead, index) => {
+                        const latestMessage = lead.messages && lead.messages.length > 0
+                          ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
+                          : null
+
+                        const messageStatus = getLeadMessageStatus(latestMessage)
+                        const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
+                        const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
+                        const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
+                        const isUnread = hasUnread(lead.id)
+                        const needsResponse = needsResponseCheck(lead.id)
+
+                        // Calculate lead timing
+                        const leadTiming = calculateLeadTiming(lead)
+
+                        // Check if this is the newest lead (within 24 hours)
+                        const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+
+                        let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
+                        const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
+
+                        return (
+                          <Link
+                            key={lead.id}
+                            href={`/dashboard/leads/${lead.id}`}
+                            onClick={() => handleConversationClick(lead.id)}
+                            className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group cursor-pointer"
+                          >
+                            {/* Status Color Bar */}
+                            <div className={`h-1 ${
                               isNewLead ? 'bg-orange-500' :
                               getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
                               getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
                               'bg-slate-400'
-                            }`}></span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {formatRelativeTime(lead.created_at)}
-                            </span>
-                          </div>
-                          {isNewLead && (
-                            <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] font-semibold rounded-full">
-                              New
-                            </span>
-                          )}
-                        </div>
+                            }`}></div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
-                          {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
-                            <a
-                              href={`tel:${lead.caller_phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                              title="Call"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                              </svg>
-                              Call
-                            </a>
-                          )}
-                          <div className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-                            View Conversation
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
+                            <div className="p-4">
+                              {/* Header: Name, Phone, Status */}
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1 min-w-0">
+                                  {lead.contact_name && (
+                                    <h3 className={`text-base font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                      {lead.contact_name}
+                                    </h3>
+                                  )}
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                                    {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
+                                  </p>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>
+                                  {statusBadge}
+                                </span>
+                              </div>
+
+                              {/* Conversation Preview */}
+                              <div className="mb-3">
+                                {latestMessage ? (
+                                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                                      {latestMessage.direction === 'inbound' ? '📱 Customer:' : '💬 You:'}
+                                    </p>
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
+                                      "{latestMessage.body}"
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                                      No conversation yet
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Metadata */}
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${
+                                    isNewLead ? 'bg-orange-500' :
+                                    getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
+                                    getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
+                                    'bg-slate-400'
+                                  }`}></span>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    {formatRelativeTime(lead.created_at)}
+                                  </span>
+                                </div>
+                                {isNewLead && (
+                                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] font-semibold rounded-full">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                                {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
+                                  <a
+                                    href={`tel:${lead.caller_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                    title="Call"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    Call
+                                  </a>
+                                )}
+                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+                                  View Conversation
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        )
+                      })}
+                    </div>
                   )
-                })}
-              </div>
+                }
+              })()
             )}
             </>
             )}
             </div>
           </main>
-      </div>
+        </div>
       </BusinessGuard>
-      <BottomNavigation />
     </AuthGuard>
   )
 }

@@ -142,11 +142,11 @@ export default function CalendarGrid({
         </div>
       </div>
       
-      <div className="p-1.5 sm:p-2 md:p-3 md:p-4 pt-0 sm:pt-0 md:pt-0">
+      <div className="p-2 sm:p-3 md:p-4 pt-0 sm:pt-0 md:pt-0">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 sm:mb-1.5 md:mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-[9px] sm:text-[10px] md:text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 text-center py-0.5 sm:py-1 md:py-2">
+            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-2 sm:py-2.5 md:py-3">
               {day}
             </div>
           ))}

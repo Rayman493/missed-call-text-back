@@ -23,7 +23,7 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[55px] sm:min-h-[65px] md:min-h-[75px] p-1 sm:p-1.5 md:p-2 rounded-sm border transition-all duration-150 cursor-pointer active:scale-95
+        min-h-[65px] sm:min-h-[75px] md:min-h-[90px] p-1.5 sm:p-2 md:p-2.5 rounded-sm border transition-all duration-150 cursor-pointer active:scale-95
         ${isCurrentMonth
           ? 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
           : 'bg-slate-50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/50 opacity-50'

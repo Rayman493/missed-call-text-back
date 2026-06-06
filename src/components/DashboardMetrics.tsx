@@ -18,6 +18,12 @@ interface MetricsData {
   period: string
 }
 
+interface TodayMetricsData {
+  missedCalls: number
+  newLeads: number
+  messagesSent: number
+}
+
 export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const [metrics, setMetrics] = useState<MetricsData>({
     missedCallsCaptured: 0,
@@ -26,6 +32,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     activeConversations: 0,
     recoveryRate: 0,
     period: '30 days'
+  })
+  const [todayMetrics, setTodayMetrics] = useState<TodayMetricsData>({
+    missedCalls: 0,
+    newLeads: 0,
+    messagesSent: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -39,19 +50,38 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Get data from the last 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
         
-        // Fetch leads (missed calls captured)
+        // Get data from today
+        const todayStart = new Date()
+        todayStart.setHours(0, 0, 0, 0)
+        const todayStartISO = todayStart.toISOString()
+        
+        // Fetch leads (missed calls captured) - 30 days
         const { data: leads } = await supabase
           .from('leads')
           .select('created_at, phone_number')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch messages sent
+        // Fetch leads (missed calls captured) - today
+        const { data: leadsToday } = await supabase
+          .from('leads')
+          .select('created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', todayStartISO)
+
+        // Fetch messages sent - 30 days
         const { data: messages } = await supabase
           .from('messages')
           .select('direction, created_at, phone_number')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
+
+        // Fetch messages sent - today
+        const { data: messagesToday } = await supabase
+          .from('messages')
+          .select('direction, created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', todayStartISO)
 
         // Fetch active conversations (leads with recent activity)
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -61,12 +91,17 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
 
-        // Calculate metrics
+        // Calculate metrics - 30 days
         const missedCallsCaptured = leads?.length || 0
-        const leadsGenerated = missedCallsCaptured // Each missed call captured = lead generated
+        const leadsGenerated = missedCallsCaptured
         const messagesSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const activeConversationsCount = activeConversations?.length || 0
         const recoveryRate = leadsGenerated > 0 ? Math.round((messagesSent / leadsGenerated) * 100) : 0
+
+        // Calculate metrics - today
+        const missedCallsToday = leadsToday?.length || 0
+        const newLeadsToday = missedCallsToday
+        const messagesSentToday = messagesToday?.filter((m: any) => m.direction === 'outbound').length || 0
 
         setMetrics({
           missedCallsCaptured,
@@ -75,6 +110,12 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           activeConversations: activeConversationsCount,
           recoveryRate,
           period: '30 days'
+        })
+        
+        setTodayMetrics({
+          missedCalls: missedCallsToday,
+          newLeads: newLeadsToday,
+          messagesSent: messagesSentToday
         })
       } catch (error) {
         console.error('Error fetching dashboard metrics:', error)
@@ -213,9 +254,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         ].map((metric) => (
           <div key={metric.type} className="bg-gradient-to-br from-card to-muted/30 dark:from-card dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 overflow-hidden flex flex-col">
             <div className={`h-1.5 bg-gradient-to-r ${getMetricAccentColor(metric.type)} to-transparent opacity-80`}></div>
-            <div className="p-3.5 sm:p-4 flex-1 flex flex-col">
+            <div className="p-4 sm:p-5 flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-3">
-                <div className={`w-9 h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
+                <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                   {getMetricIcon(metric.type)}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">
@@ -224,7 +265,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               </div>
 
               <div className="space-y-0.5 flex-1 flex flex-col justify-center">
-                <div className="text-2.5xl sm:text-3xl md:text-3.5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                   {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
                 </div>
                 <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
@@ -241,22 +282,95 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         ))}
       </div>
 
+      {/* Business Activity Card */}
+      <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
+        <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-4">Business Activity</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          {/* Today */}
+          <div>
+            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">Today</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Missed Calls</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{todayMetrics.missedCalls}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">New Leads</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{todayMetrics.newLeads}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Messages Sent</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{todayMetrics.messagesSent}</span>
+              </div>
+            </div>
+          </div>
+          {/* Last 30 Days */}
+          <div>
+            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">Last 30 Days</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Leads Captured</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.leadsGenerated}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Conversations Started</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.activeConversations}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Recovery Rate</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.recoveryRate}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Simplified Empty State */}
       {metrics.missedCallsCaptured === 0 && metrics.leadsGenerated === 0 && metrics.messagesSent === 0 && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-6">
+          <div className="space-y-4">
             <div className="space-y-1">
               <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">
-                No missed calls captured yet
+                You're ready to start capturing leads
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                Run a test call to verify your setup and see your first lead appear here.
+                Follow these steps to see your first lead appear
               </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-semibold">1</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">Verify call forwarding</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Ensure your business phone is forwarding to ReplyFlow</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-semibold">2</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">Place a test call</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Call your business number from another phone</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-semibold">3</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">Watch your first lead appear</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">The lead will show up in your dashboard</p>
+                </div>
+              </div>
             </div>
             <button
               onClick={() => window.location.href = '/dashboard/test-setup'}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
             >
+              <Phone className="w-4 h-4" />
               Run Test Call
             </button>
           </div>
