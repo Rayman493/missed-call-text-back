@@ -52,6 +52,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   const { messageSid, from, to, body, source, media } = params
   
   console.log('[INBOUND SMS WEBHOOK HIT]')
+  console.log('[INBOUND SMS REQUEST]', { messageSid, from, to, body, source, mediaCount: media?.length || 0 })
   console.log('[INBOUND SMS RAW PAYLOAD]', {
     messageSid,
     from,
@@ -85,6 +86,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   console.log('[INBOUND SMS BUSINESS LOOKUP START]', { to: normalizedToPhone })
   const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)
   
+  console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
+    found: !!leadResult,
+    leadId: leadResult?.lead?.id,
+    businessId: leadResult?.business?.id
+  })
+  
   let business: any
   let lead: any
   
@@ -99,10 +106,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   } else {
     // No existing lead, get first business with this phone number
-    business = await db.getBusinessByPhone(to)
+    // Use getBusinessesByPhone to handle shared toll-free numbers
+    const businesses = await db.getBusinessesByPhone(to)
     
-    if (!business) {
+    if (!businesses || businesses.length === 0) {
       console.error(`[SMS Processing] Business not found for phone: ${to}`)
+      console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
+        found: false,
+        to: to,
+        normalizedTo: normalizedToPhone
+      })
       return {
         success: false,
         error: 'Business not found',
@@ -113,6 +126,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       }
     }
     
+    business = businesses[0]
+    console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
+      found: true,
+      businessId: business.id,
+      businessCount: businesses.length
+    })
     console.log(`[SMS Processing] Using business for new lead: ${business.id}`)
   }
   
@@ -508,7 +527,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   }
   
   // Handle conversation logic - ALWAYS ensure a conversation exists
+  console.log('[INBOUND SMS CONVERSATION LOOKUP START]', {
+    leadId: lead.id,
+    businessId: business.id
+  })
   let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+  
+  console.log('[INBOUND SMS CONVERSATION LOOKUP RESULT]', {
+    found: !!conversation,
+    conversationId: conversation?.id
+  })
   
   if (!conversation) {
     // Create new conversation for SMS
@@ -619,6 +647,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     if (media && media.length > 0) {
       console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${message.id}`)
       console.log(`[INBOUND MMS MEDIA DETECTED] Lead ID: ${lead.id}`)
+      console.log('[INBOUND MMS STORAGE START]', {
+        messageId: message.id,
+        mediaCount: media.length
+      })
       
       try {
         for (const mediaItem of media) {
@@ -652,6 +684,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           }
         }
         console.log(`[INBOUND MMS STORED] Media storage complete for message: ${message.id}`)
+        console.log('[INBOUND MMS STORAGE SUCCESS]', {
+          messageId: message.id,
+          mediaCount: media.length
+        })
       } catch (error: any) {
         console.error('[INBOUND MMS ERROR] Error during media storage:', error)
         // Don't fail the entire message if media storage fails
@@ -731,6 +767,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   }
 
   // Return success response without TwiML message (since we already sent via sendSms)
+  console.log('[INBOUND SMS SUCCESS]', {
+    messageId: message?.id,
+    conversationId: conversation?.id,
+    leadId: lead?.id,
+    businessId: business?.id,
+    numMedia: media?.length || 0
+  })
   return {
     success: true,
     lead,

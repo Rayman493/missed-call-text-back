@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
       
       if (!isValid) {
-        console.error('[SIGNATURE VALIDATION FAILED]', {
+        console.error('[INBOUND SMS SIGNATURE VALID] FAILED', {
           url: req.url,
           contentType,
           bodyLength: rawBody.length
@@ -58,9 +58,9 @@ export async function POST(req: NextRequest) {
         })
       }
       
-      console.log('[SIGNATURE VALIDATION SUCCESS]')
+      console.log('[INBOUND SMS SIGNATURE VALID] SUCCESS')
     } else {
-      console.log('[SIGNATURE VALIDATION BYPASSED] Development environment detected')
+      console.log('[INBOUND SMS SIGNATURE VALID] BYPASSED Development environment detected')
     }
     
     // Parse body using formData for proper form data handling
@@ -186,6 +186,16 @@ export async function POST(req: NextRequest) {
     if (result.message) {
       console.log('[INBOUND SMS] Message inserted:', result.message.id)
       console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
+    }
+    
+    // Add debug response with key identifiers
+    console.log('[INBOUND SMS DEBUG]', {
+      businessId: result.lead?.business_id || business?.id || 'unknown',
+      leadId: result.lead?.id || 'unknown',
+      conversationId: result.conversation?.id || 'unknown',
+      messageId: result.message?.id || 'unknown',
+      numMedia: formData.get('NumMedia') || 0
+    })
       
       // Create notification for customer reply
       if (result.lead && result.lead.business_id) {
