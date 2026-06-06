@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { isEligibleForProvisioning } from '@/lib/subscription'
+import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,6 +100,9 @@ export async function POST(request: Request) {
         expiresAt: updateData.manual_access_expires_at
       })
 
+      // Cancel any scheduled Twilio release since access is being restored
+      await cancelTwilioRelease(businessId)
+
       // Check if business is eligible for provisioning after manual access grant
       console.log('[MANUAL ACCESS PROVISIONING] Checking eligibility after manual access grant')
       const isEligible = isEligibleForProvisioning(data)
@@ -160,6 +164,9 @@ export async function POST(request: Request) {
         businessId,
         revokedBy: user.id
       })
+
+      // Schedule Twilio release since access is being revoked
+      await scheduleTwilioRelease(businessId, 'manual_access_revoked')
 
       return NextResponse.json({
         success: true,

@@ -1461,6 +1461,9 @@ export default function SettingsContent() {
                     const accessInfo = getManualAccessDisplayInfo(business)
                     const manualStatus = getManualAccessStatus(business)
                     
+                    // Check if account is in grace period
+                    const isInGracePeriod = business?.twilio_release_status === 'scheduled' && business?.twilio_release_at
+                    
                     if (!business?.manual_access_enabled) {
                       return (
                         <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
@@ -1473,6 +1476,13 @@ export default function SettingsContent() {
                               ? 'Your account is active via subscription'
                               : 'No manual access granted'}
                           </p>
+                          {isInGracePeriod && business.twilio_phone_number && (
+                            <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/30">
+                              <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                                Your ReplyFlow phone number is reserved until {new Date(business.twilio_release_at!).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )
                     }
@@ -1511,6 +1521,13 @@ export default function SettingsContent() {
                             >
                               {isStartingCheckout ? 'Processing...' : 'Subscribe to Reactivate'}
                             </button>
+                          </div>
+                        )}
+                        {business.provisioning_status === 'released' && (
+                          <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-800/30">
+                            <p className="text-[9px] sm:text-[10px] text-red-700 dark:text-red-300 mb-1">
+                              Your previous ReplyFlow number was released. Reactivating will assign a new ReplyFlow number and you will need to update call forwarding.
+                            </p>
                           </div>
                         )}
                       </div>

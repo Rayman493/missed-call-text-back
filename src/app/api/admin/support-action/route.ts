@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { cancelTwilioRelease } from '@/lib/twilio-reclamation'
 
 export const dynamic = 'force-dynamic'
 
@@ -197,24 +198,119 @@ export async function POST(request: NextRequest) {
 
       case 'view_stripe_portal':
         console.log('[ADMIN SUPPORT ACTION] Executing view_stripe_portal')
-        // Get Stripe customer portal link
+        // View Stripe portal
         const { data: portalBusiness } = await supabaseAdmin
           .from('businesses')
           .select('stripe_customer_id')
           .eq('id', businessId)
           .single()
 
-        console.log('[ADMIN SUPPORT ACTION] view_stripe_portal business found', {
-          stripe_customer_id: portalBusiness?.stripe_customer_id
-        })
-
-        if (!portalBusiness?.stripe_customer_id) {
-          return NextResponse.json({ success: false, error: 'No Stripe customer ID' }, { status: 400 })
+        if (!portalBusiness || !portalBusiness.stripe_customer_id) {
+          return NextResponse.json({ success: false, error: 'No Stripe customer found' }, { status: 404 })
         }
 
-        const portalUrl = `https://dashboard.stripe.com/customers/${portalBusiness.stripe_customer_id}`
-        message = `Stripe portal: ${portalUrl}`
-        console.log('[ADMIN SUPPORT ACTION] view_stripe_portal result', { portalUrl })
+        // Trigger Stripe portal creation
+        const portalResponse = await fetch(`${appUrl}/api/stripe/create-portal-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customer_id: portalBusiness.stripe_customer_id, business_id: businessId }),
+        })
+        const portalData = await portalResponse.json()
+        console.log('[ADMIN SUPPORT ACTION] view_stripe_portal result', {
+          success: portalData.success,
+          error: portalData.error
+        })
+        if (portalData.success && portalData.url) {
+          return NextResponse.json({ success: true, message: 'Stripe portal URL generated', portalUrl: portalData.url })
+        } else {
+          return NextResponse.json({ success: false, error: portalData.error || 'Failed to create portal session' }, { status: 500 })
+        }
+        break
+
+      case 'cancel_twilio_release':
+        console.log('[ADMIN SUPPORT ACTION] Executing cancel_twilio_release')
+        const cancelResult = await cancelTwilioRelease(businessId)
+        if (cancelResult.success) {
+          message = 'Twilio number release canceled'
+        } else {
+          return NextResponse.json({ success: false, error: cancelResult.error || 'Failed to cancel release' }, { status: 500 })
+        }
+        break
+
+      case 'extend_grace_period':
+        console.log('[ADMIN SUPPORT ACTION] Executing extend_grace_period')
+        // Extend grace period by 30 days
+        const { data: extendBusiness } = await supabaseAdmin
+          .from('businesses')
+          .select('twilio_release_at')
+          .eq('id', businessId)
+          .single()
+
+        if (!extendBusiness) {
+          return NextResponse.json({ success: false, error: 'Business not found' }, { status: 404 })
+        }
+
+        const currentReleaseDate = extendBusiness.twilio_release_at ? new Date(extendBusiness.twilio_release_at) : new Date()
+        const extendedReleaseDate = new Date(currentReleaseDate)
+        extendedReleaseDate.setDate(extendedReleaseDate.getDate() + 30)
+
+        const { error: extendError } = await supabaseAdmin
+          .from('businesses')
+          .update({
+            twilio_release_at: extendedReleaseDate.toISOString(),
+            twilio_release_status: 'scheduled',
+            twilio_release_reason: 'grace_period_extended_by_admin'
+          })
+          .eq('id', businessId)
+
+        if (extendError) {
+          console.error('[ADMIN SUPPORT ACTION] extend_grace_period error:', extendError)
+          return NextResponse.json({ success: false, error: 'Failed to extend grace period' }, { status: 500 })
+        }
+        message = `Grace period extended to ${extendedReleaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+        break
+
+      case 'release_twilio_number_now':
+        console.log('[ADMIN SUPPORT ACTION] Executing release_twilio_number_now')
+        // Release number immediately
+        const { data: releaseBusiness } = await supabaseAdmin
+          .from('businesses')
+          .select('twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid')
+          .eq('id', businessId)
+          .single()
+
+        if (!releaseBusiness) {
+          return NextResponse.json({ success: false, error: 'Business not found' }, { status: 404 })
+        }
+
+        if (!releaseBusiness.twilio_phone_number) {
+          return NextResponse.json({ success: false, error: 'No Twilio number assigned' }, { status: 400 })
+        }
+
+        // TODO: Implement actual Twilio number release logic
+        // For now, just mark it as released in the database
+        const { error: releaseNowError } = await supabaseAdmin
+          .from('businesses')
+          .update({
+            twilio_phone_number: null,
+            twilio_phone_number_sid: null,
+            twilio_messaging_service_sid: null,
+            provisioning_status: 'released',
+            twilio_released_at: new Date().toISOString(),
+            twilio_release_status: 'released',
+            twilio_release_reason: 'admin_manual_release',
+            twilio_release_at: null,
+            forwarding_verified: false,
+            call_forwarding_enabled: false,
+            onboarding_status: 'number_released'
+          })
+          .eq('id', businessId)
+
+        if (releaseNowError) {
+          console.error('[ADMIN SUPPORT ACTION] release_twilio_number_now error:', releaseNowError)
+          return NextResponse.json({ success: false, error: 'Failed to release number' }, { status: 500 })
+        }
+        message = 'Twilio number released immediately'
         break
 
       default:

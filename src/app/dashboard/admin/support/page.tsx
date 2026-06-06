@@ -35,6 +35,10 @@ interface Business {
   manual_access_granted_at: string | null
   manual_access_granted_by: string | null
   created_at: string
+  twilio_release_at: string | null
+  twilio_released_at: string | null
+  twilio_release_status: string | null
+  twilio_release_reason: string | null
 }
 
 export default function AdminSupportPage() {
@@ -425,6 +429,31 @@ export default function AdminSupportPage() {
                       )}
                     </>
                   )}
+                  {selectedBusiness.twilio_phone_number && (
+                    <>
+                      <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Twilio Release Status</p>
+                        <p className="text-sm text-slate-900 dark:text-foreground font-medium">
+                          {selectedBusiness.twilio_release_status === 'scheduled' && selectedBusiness.twilio_release_at
+                            ? `Release scheduled for ${new Date(selectedBusiness.twilio_release_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                            : selectedBusiness.twilio_release_status === 'released' && selectedBusiness.twilio_released_at
+                            ? `Released on ${new Date(selectedBusiness.twilio_released_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                            : selectedBusiness.twilio_release_status === 'retained'
+                            ? 'Retained'
+                            : selectedBusiness.twilio_release_status === 'reactivated'
+                            ? 'Reactivated'
+                            : 'Not scheduled'
+                          }
+                        </p>
+                      </div>
+                      {selectedBusiness.twilio_release_reason && (
+                        <div>
+                          <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Release Reason</p>
+                          <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.twilio_release_reason}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Admin Actions */}
@@ -485,6 +514,33 @@ export default function AdminSupportPage() {
                     >
                       View Stripe Portal
                     </button>
+                    {selectedBusiness.twilio_phone_number && selectedBusiness.twilio_release_status === 'scheduled' && (
+                      <>
+                        <button
+                          onClick={() => handleAdminAction('cancel_twilio_release', selectedBusiness.id)}
+                          disabled={actionLoading}
+                          className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Cancel Number Release
+                        </button>
+                        <button
+                          onClick={() => handleAdminAction('extend_grace_period', selectedBusiness.id)}
+                          disabled={actionLoading}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Extend Grace Period (30 days)
+                        </button>
+                      </>
+                    )}
+                    {selectedBusiness.twilio_phone_number && !selectedBusiness.twilio_release_status && (
+                      <button
+                        onClick={() => handleAdminAction('release_twilio_number_now', selectedBusiness.id)}
+                        disabled={actionLoading}
+                        className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Release Number Now
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -83,6 +83,13 @@ export interface Business {
   manual_access_granted_at?: string | null;
   manual_access_granted_by?: string | null;
 
+  // Twilio number reclamation fields
+  twilio_release_at?: string | null;
+  twilio_released_at?: string | null;
+  twilio_release_status?: string | null;
+  twilio_release_reason?: string | null;
+  twilio_release_grace_days?: number | null;
+
   created_at: string;
   updated_at?: string;
 }
