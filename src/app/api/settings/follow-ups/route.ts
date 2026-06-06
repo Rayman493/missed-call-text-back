@@ -1,26 +1,46 @@
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { db } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 
 // GET /api/settings/follow-ups - Retrieve follow-up settings
 export async function GET() {
   try {
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
     // Get the user from the session
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get the user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
+    const lookupResult = await db.getBusinessByUserId(user.id)
+    
+    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+
+    const business = lookupResult.business
 
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}
@@ -61,8 +81,26 @@ export async function GET() {
 // PUT /api/settings/follow-ups - Update follow-up settings
 export async function PUT(request: NextRequest) {
   try {
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
     // Get the user from the session
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -76,15 +114,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get the user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
+    const lookupResult = await db.getBusinessByUserId(user.id)
+    
+    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+
+    const business = lookupResult.business
 
     // Merge with existing automation settings
     const existingAutomationSettings = business.automation_settings || {}
@@ -94,18 +130,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the business record
-    const { data: updatedBusiness, error: updateError } = await supabaseAdmin
-      .from('businesses')
-      .update({
-        automation_settings: updatedAutomationSettings,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', business.id)
-      .select()
-      .single()
+    const updatedBusiness = await db.updateBusiness(business.id, {
+      automation_settings: updatedAutomationSettings
+    })
 
-    if (updateError) {
-      console.error('Error updating follow-up settings:', updateError)
+    if (!updatedBusiness) {
+      console.error('Error updating follow-up settings')
       return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
     }
 
