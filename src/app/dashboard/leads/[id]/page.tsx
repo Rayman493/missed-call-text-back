@@ -982,6 +982,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleMobileKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
     if (sending) return
     
@@ -1794,7 +1801,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={handleMobileKeyDown}
                 placeholder="Type a message..."
                 className="flex-1 min-h-[60px] max-h-[120px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 rows={2}
