@@ -149,11 +149,24 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   // Initial fetch - only once
   useEffect(() => {
+    // Reset ref if loading is stuck (loading=true but fetch not complete)
+    // This can happen if the initial fetch is interrupted (e.g., during Stripe return flow)
+    // The ref prevents re-fetching, causing infinite loading on refresh
+    if (hasInitialFetchRef.current && loading && !fetchComplete) {
+      console.log('[BusinessContext] Detected stuck loading state - resetting initial fetch ref to allow retry', {
+        hasInitialFetchRef: hasInitialFetchRef.current,
+        loading,
+        fetchComplete
+      })
+      hasInitialFetchRef.current = false
+    }
+    
     if (!hasInitialFetchRef.current) {
+      console.log('[BusinessContext] Starting initial business fetch')
       hasInitialFetchRef.current = true
       fetchBusiness()
     }
-  }, [fetchBusiness])
+  }, [fetchBusiness, loading, fetchComplete])
 
   const contextValue = useMemo(() => {
     const value: BusinessContextType = {
