@@ -56,6 +56,7 @@ function AuthContent() {
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
@@ -65,6 +66,26 @@ function AuthContent() {
   const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
   const [redirecting, setRedirecting] = useState(false)
+
+  // Password requirements validation
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+  })
+
+  // Check password requirements as user types
+  useEffect(() => {
+    setPasswordRequirements({
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+    })
+  }, [password])
+
+  const allPasswordRequirementsMet = Object.values(passwordRequirements).every(Boolean)
 
   // Auto-focus email field on desktop only
   useEffect(() => {
@@ -201,6 +222,18 @@ function AuthContent() {
     // Supabase Dashboard → Authentication → Providers → Email → Confirm email = OFF
     // This allows signup to immediately create a session without requiring email confirmation
     // If email confirmation is enabled, users will see: "Please check your email to confirm your account before continuing."
+
+    // Validate password requirements
+    if (!allPasswordRequirementsMet) {
+      setError('Please complete all password requirements.')
+      return
+    }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
 
     // Hard submit lock - prevent double-submit
     if (isSubmitting || isSubmittingRef.current) {
@@ -568,7 +601,79 @@ function AuthContent() {
                 autoComplete={isSignIn ? "current-password" : "new-password"}
                 className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
               />
+              
+              {/* Password Requirements - Only show for signup */}
+              {!isSignIn && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">Password must contain:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
+                      {passwordRequirements.minLength ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                      )}
+                      <span>At least 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasUppercase ? 'text-green-400' : 'text-slate-500'}`}>
+                      {passwordRequirements.hasUppercase ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                      )}
+                      <span>1 uppercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasLowercase ? 'text-green-400' : 'text-slate-500'}`}>
+                      {passwordRequirements.hasLowercase ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                      )}
+                      <span>1 lowercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasNumber ? 'text-green-400' : 'text-slate-500'}`}>
+                      {passwordRequirements.hasNumber ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                      )}
+                      <span>1 number</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Confirm Password - Only show for signup */}
+            {!isSignIn && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
+                  Confirm Password
+                </label>
+                <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                />
+                {confirmPassword && (
+                  <div className={`mt-2 text-xs ${password === confirmPassword ? 'text-green-400' : 'text-red-400'}`}>
+                    {password === confirmPassword ? '✓ Passwords match' : 'Passwords do not match'}
+                  </div>
+                )}
+              </div>
+            )}
 
             {isSignIn && (
               <div className="text-right">
