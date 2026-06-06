@@ -33,6 +33,7 @@ import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
+import { getManualAccessStatus } from '@/lib/manual-access'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -1518,6 +1519,24 @@ export default function SettingsContent() {
                     <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">Status:</span>
                     <span className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
                   </div>
+                  {business && getManualAccessStatus(business).hasManualAccess && (
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                      <svg className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <div className="flex-1">
+                        <span className="text-[10px] sm:text-xs font-medium text-purple-700 dark:text-purple-300">Manual access active</span>
+                        {!getManualAccessStatus(business).expiresAt && (
+                          <span className="text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 ml-1">(Lifetime)</span>
+                        )}
+                        {getManualAccessStatus(business).expiresAt && (
+                          <span className="text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 ml-1">
+                            (Until {new Date(getManualAccessStatus(business).expiresAt!).toLocaleDateString()})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

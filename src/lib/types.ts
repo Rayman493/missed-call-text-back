@@ -74,7 +74,15 @@ export interface Business {
   last_provisioning_attempt_at?: string | null;
   campaign_registered_at?: string | null;
   sender_pool_attached_at?: string | null;
-  
+
+  // Manual access override fields
+  manual_access_enabled?: boolean | null;
+  manual_access_expires_at?: string | null;
+  manual_access_reason?: string | null;
+  manual_access_note?: string | null;
+  manual_access_granted_at?: string | null;
+  manual_access_granted_by?: string | null;
+
   created_at: string;
   updated_at?: string;
 }

@@ -29,6 +29,12 @@ interface Business {
   stripe_subscription_id: string
   provisioning_status: string
   call_forwarding_enabled: boolean
+  manual_access_enabled: boolean | null
+  manual_access_expires_at: string | null
+  manual_access_reason: string | null
+  manual_access_note: string | null
+  manual_access_granted_at: string | null
+  manual_access_granted_by: string | null
   created_at: string
 }
 
@@ -47,6 +53,14 @@ export default function AdminSupportPage() {
   // Admin action state
   const [actionLoading, setActionLoading] = useState(false)
   const [actionResult, setActionResult] = useState<{ success: boolean; message: string } | null>(null)
+  
+  // Manual access state
+  const [manualAccessAction, setManualAccessAction] = useState<'grant' | 'revoke'>('grant')
+  const [manualAccessDuration, setManualAccessDuration] = useState<'7d' | '14d' | '30d' | '60d' | '90d' | 'custom' | 'lifetime'>('lifetime')
+  const [manualAccessCustomDate, setManualAccessCustomDate] = useState('')
+  const [manualAccessReason, setManualAccessReason] = useState('')
+  const [manualAccessNote, setManualAccessNote] = useState('')
+  const [showManualAccessModal, setShowManualAccessModal] = useState(false)
 
   useEffect(() => {
     const checkAdmin = () => {
@@ -124,6 +138,68 @@ export default function AdminSupportPage() {
     } finally {
       setActionLoading(false)
     }
+  }
+
+  const handleManualAccess = async () => {
+    if (!selectedBusiness) return
+    
+    setActionLoading(true)
+    setActionResult(null)
+    
+    try {
+      let expiresAt = null
+      if (manualAccessDuration === 'lifetime') {
+        expiresAt = null
+      } else if (manualAccessDuration === 'custom') {
+        expiresAt = manualAccessCustomDate
+      } else {
+        const days = parseInt(manualAccessDuration)
+        const date = new Date()
+        date.setDate(date.getDate() + days)
+        expiresAt = date.toISOString()
+      }
+
+      const response = await fetch('/api/admin/manual-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: selectedBusiness.id,
+          action: manualAccessAction,
+          expiresAt,
+          reason: manualAccessReason,
+          note: manualAccessNote
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setActionResult({ success: true, message: data.message || 'Manual access updated' })
+        setShowManualAccessModal(false)
+        // Refresh business data
+        const updatedBusiness = { ...selectedBusiness, ...data.business }
+        setSelectedBusiness(updatedBusiness)
+        const updatedResults = searchResults.map(b => b.id === selectedBusiness.id ? updatedBusiness : b)
+        setSearchResults(updatedResults)
+      } else {
+        setActionResult({ success: false, message: data.error || 'Failed to update manual access' })
+      }
+    } catch (error) {
+      setActionResult({ success: false, message: 'Failed to update manual access' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const getManualAccessStatusText = (business: Business) => {
+    if (!business.manual_access_enabled) {
+      return 'Disabled'
+    }
+    if (!business.manual_access_expires_at) {
+      return 'Lifetime'
+    }
+    const expiresAt = new Date(business.manual_access_expires_at)
+    return `Until ${expiresAt.toLocaleDateString()}`
   }
 
   if (loading) {
@@ -290,6 +366,24 @@ export default function AdminSupportPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Call Forwarding</p>
                     <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.call_forwarding_enabled ? 'Enabled' : 'Disabled'}</p>
                   </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access</p>
+                    <p className="text-sm text-slate-900 dark:text-foreground font-medium">{getManualAccessStatusText(selectedBusiness)}</p>
+                  </div>
+                  {selectedBusiness.manual_access_enabled && (
+                    <>
+                      <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access Reason</p>
+                        <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.manual_access_reason || 'Not specified'}</p>
+                      </div>
+                      {selectedBusiness.manual_access_note && (
+                        <div>
+                          <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access Note</p>
+                          <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.manual_access_note}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Admin Actions */}
@@ -298,6 +392,16 @@ export default function AdminSupportPage() {
                     Admin Actions
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <button
+                      onClick={() => {
+                        setManualAccessAction(selectedBusiness.manual_access_enabled ? 'revoke' : 'grant')
+                        setShowManualAccessModal(true)
+                      }}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {selectedBusiness.manual_access_enabled ? 'Revoke Manual Access' : 'Grant Manual Access'}
+                    </button>
                     <button
                       onClick={() => handleAdminAction('retry_provisioning', selectedBusiness.id)}
                       disabled={actionLoading}
@@ -339,6 +443,108 @@ export default function AdminSupportPage() {
                       className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       View Stripe Portal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Manual Access Modal */}
+            {showManualAccessModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                    {manualAccessAction === 'grant' ? 'Grant Manual Access' : 'Revoke Manual Access'}
+                  </h3>
+                  
+                  {manualAccessAction === 'grant' ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Duration
+                        </label>
+                        <select
+                          value={manualAccessDuration}
+                          onChange={(e) => setManualAccessDuration(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                        >
+                          <option value="lifetime">Lifetime</option>
+                          <option value="7d">7 days</option>
+                          <option value="14d">14 days</option>
+                          <option value="30d">30 days</option>
+                          <option value="60d">60 days</option>
+                          <option value="90d">90 days</option>
+                          <option value="custom">Custom date</option>
+                        </select>
+                      </div>
+
+                      {manualAccessDuration === 'custom' && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Expiration Date
+                          </label>
+                          <input
+                            type="date"
+                            value={manualAccessCustomDate}
+                            onChange={(e) => setManualAccessCustomDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Reason
+                        </label>
+                        <select
+                          value={manualAccessReason}
+                          onChange={(e) => setManualAccessReason(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                        >
+                          <option value="">Select reason...</option>
+                          <option value="family_tester">Family tester</option>
+                          <option value="friend">Friend</option>
+                          <option value="early_user">Early user</option>
+                          <option value="promo">Promotional access</option>
+                          <option value="internal">Internal account</option>
+                          <option value="support_exception">Support exception</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Note (optional)
+                        </label>
+                        <textarea
+                          value={manualAccessNote}
+                          onChange={(e) => setManualAccessNote(e.target.value)}
+                          placeholder="Add any additional notes..."
+                          rows={3}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Are you sure you want to revoke manual access for this business?
+                    </p>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setShowManualAccessModal(false)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleManualAccess}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {actionLoading ? 'Processing...' : (manualAccessAction === 'grant' ? 'Grant Access' : 'Revoke Access')}
                     </button>
                   </div>
                 </div>

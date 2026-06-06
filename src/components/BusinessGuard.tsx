@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
+import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
@@ -126,6 +127,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       // This prevents redirecting users who have created a profile but haven't started trial yet
       const isOnboardingComplete = business.onboarding_status === 'completed'
       const hasActiveSubscription = isActiveSubscription(business.subscription_status)
+      const hasAccess = hasBillingAccess(business) // This includes manual access checks
       
       // Check if user has basic business profile data
       const hasBasicProfile = business.name && business.business_phone_number
@@ -134,7 +136,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       const derivedState = (() => {
         if (!business) return 'no_business'
         if (!hasBasicProfile) return 'no_profile'
-        if (hasActiveSubscription) return 'subscription_active'
+        if (hasAccess) return 'access_granted'
         if (business.subscription_status === null) return 'trial_pending'
         return 'subscription_inactive'
       })()
@@ -144,26 +146,30 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         hasBasicProfile,
         isOnboardingComplete,
         hasActiveSubscription,
+        hasBillingAccess: hasAccess,
+        manualAccessEnabled: business.manual_access_enabled,
+        manualAccessExpiresAt: business.manual_access_expires_at,
         subscription_status: business.subscription_status,
         business_name: business.name,
         business_phone_number: business.business_phone_number,
       })
       
       // Only redirect to onboarding if user truly has no business or no basic profile
-      // IMPORTANT: Users with trialing/active subscription should NEVER be redirected to onboarding
-      // Only send to onboarding if subscription is not trialing/active AND profile is missing
-      if (!hasBasicProfile && !hasActiveSubscription) {
+      // IMPORTANT: Users with trialing/active subscription OR manual access should NEVER be redirected to onboarding
+      // Only send to onboarding if no access (stripe or manual) AND profile is missing
+      if (!hasBasicProfile && !hasAccess) {
         console.log('[Post Trial Routing Decision]', {
           pathname,
           destination: '/onboarding',
           subscriptionStatus: business.subscription_status,
           onboardingStatus: business.onboarding_status,
           hasBusiness: !!business,
-          reason: 'No basic profile AND no active subscription'
+          hasAccess,
+          reason: 'No basic profile AND no access (stripe or manual)'
         })
         
         console.log('[BusinessGuard] Redirecting to onboarding - no basic profile', {
-          reason: 'Missing basic profile data (name or business_phone_number) AND no active subscription',
+          reason: 'Missing basic profile data (name or business_phone_number) AND no access',
           derivedState,
           redirectAllowed: true
         })
@@ -185,7 +191,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         console.log('[REDIRECT]', {
           from: pathname,
           to: '/onboarding',
-          reason: 'No basic business profile AND no active subscription',
+          reason: 'No basic business profile AND no access',
           hasSession: !!session,
           component: 'BusinessGuard',
         })
@@ -199,13 +205,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         subscriptionStatus: business.subscription_status,
         onboardingStatus: business.onboarding_status,
         hasBusiness: !!business,
-        reason: hasActiveSubscription ? 'Active subscription allows dashboard access' : 'Profile exists, allowing dashboard access'
+        hasAccess,
+        reason: hasAccess ? 'Access granted (stripe or manual)' : 'Profile exists, allowing dashboard access'
       })
       
       console.log('[BusinessGuard] Allowing access - user has business profile', {
         reason: derivedState === 'trial_pending' ? 'Profile exists, trial pending' : 
-               derivedState === 'subscription_active' ? 'Subscription active' : 
-               'Profile exists',
+                 derivedState === 'access_granted' ? 'Access granted (stripe or manual)' : 
+                 'Profile exists',
         derivedState,
         redirectAllowed: false
       })

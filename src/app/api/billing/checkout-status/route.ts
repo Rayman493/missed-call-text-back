@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
+import { hasActiveManualAccess, getManualAccessStatus } from '@/lib/manual-access'
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,15 +109,20 @@ export async function POST(request: NextRequest) {
       hasTwilioNumber: !!business.twilio_phone_number,
       provisioningStatus: business.provisioning_status,
       stripeCustomerId: business.stripe_customer_id,
-      stripeSubscriptionId: business.stripe_subscription_id
+      stripeSubscriptionId: business.stripe_subscription_id,
+      manualAccessEnabled: business.manual_access_enabled,
+      manualAccessExpiresAt: business.manual_access_expires_at
     })
 
     // Determine checkout status and redirect readiness
     const subscriptionStatus = business.subscription_status
     const hasActiveSubscription = ['trialing', 'active'].includes(subscriptionStatus)
+    const hasManualAccess = hasActiveManualAccess(business)
+    const hasAccess = hasActiveSubscription || hasManualAccess
     const hasTwilioNumber = !!business.twilio_phone_number
     const provisioningComplete = business.provisioning_status === 'completed'
-    const redirectReady = hasActiveSubscription // Ready when subscription is trialing or active
+    const redirectReady = hasAccess // Ready when subscription is trialing/active OR manual access is granted
+    const manualAccessStatus = getManualAccessStatus(business)
 
     let redirectTo = '/dashboard'
     let checkoutStatus = 'processing'
@@ -147,12 +153,16 @@ export async function POST(request: NextRequest) {
       businessId: business.id,
       redirectReady,
       redirectTo,
+      hasManualAccess,
+      manualAccessStatus,
       business: {
         id: business.id,
         subscriptionStatus: business.subscription_status,
         onboardingStatus: business.onboarding_status,
         hasTwilioNumber: !!business.twilio_phone_number,
-        provisioningStatus: business.provisioning_status
+        provisioningStatus: business.provisioning_status,
+        manualAccessEnabled: business.manual_access_enabled,
+        manualAccessExpiresAt: business.manual_access_expires_at
       }
     })
 
