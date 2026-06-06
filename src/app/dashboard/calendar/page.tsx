@@ -40,6 +40,10 @@ export default function CalendarPage() {
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
+  const [tokenExpired, setTokenExpired] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
@@ -126,6 +130,16 @@ export default function CalendarPage() {
     }
   }
 
+  // Reset tokenExpired state when OAuth success is detected
+  useEffect(() => {
+    if (searchParams && searchParams.get('calendar') === 'connected') {
+      setTokenExpired(false)
+      showToast('Google Calendar connected successfully!', 'success')
+      // Clean up the URL
+      window.history.replaceState({}, '', '/dashboard/calendar')
+    }
+  }, [searchParams])
+
   const handleDayClick = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return
 
@@ -180,47 +194,51 @@ export default function CalendarPage() {
   }
 
   const fetchCalendarStatus = async () => {
-    console.log('[Calendar Page] Fetching calendar status...')
+    console.log('[GOOGLE CALENDAR SYNC START] Fetching calendar status...')
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        console.log('[Calendar Page] No session token')
+        console.log('[GOOGLE CALENDAR SYNC] No session token')
         setCalendarConnected(false)
         return
       }
 
-      console.log('[Calendar Page] Requesting status from API')
+      console.log('[GOOGLE CALENDAR SYNC] Requesting status from API')
       const response = await fetch('/api/google/calendar/status?provider=google', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      console.log('[Calendar Page] Status response:', response.status, response.statusText)
+      console.log('[GOOGLE CALENDAR SYNC] Status response:', response.status, response.statusText)
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('[Calendar Page] Unauthorized response')
+          console.log('[GOOGLE CALENDAR SYNC] Unauthorized response')
           setCalendarConnected(false)
           return
         }
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[Calendar Page] Status error:', errorData)
+        console.error('[GOOGLE CALENDAR SYNC] Status error:', errorData)
         throw new Error('Failed to fetch calendar status')
       }
 
       const data = await response.json()
-      console.log('[Calendar Page] Status data:', { connected: data.connected, provider: data.provider })
+      console.log('[GOOGLE CALENDAR SYNC] Status data:', { connected: data.connected, provider: data.provider, calendarEmail: data.calendarEmail })
       setCalendarConnected(data.connected || false)
+      setCalendarEmail(data.calendarEmail || null)
+      if (data.connectedAt) {
+        setLastSyncTime(new Date(data.connectedAt))
+      }
 
       if (data.connected) {
-        console.log('[Calendar Page] Calendar connected, fetching events')
+        console.log('[GOOGLE CALENDAR SYNC] Calendar connected, fetching events')
         await fetchEvents()
       }
     } catch (error) {
-      console.error('[Calendar Page] Error fetching calendar status:', error)
+      console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
       setCalendarConnected(false)
     } finally {
       setIsLoading(false)
@@ -228,14 +246,14 @@ export default function CalendarPage() {
   }
 
   const fetchEvents = async () => {
-    console.log('[Calendar Page] Fetching events...')
+    console.log('[GOOGLE CALENDAR SYNC] Fetching events...')
     setIsLoadingEvents(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        console.log('[Calendar Page] No session token for events')
+        console.log('[GOOGLE CALENDAR SYNC] No session token for events')
         throw new Error('Not authenticated')
       }
 
@@ -256,7 +274,7 @@ export default function CalendarPage() {
       const gridEnd = new Date(year, monthIndex + 1, remainingDays)
       gridEnd.setHours(23, 59, 59, 999)
 
-      console.log('[Calendar Page] Fetching events for date range:', {
+      console.log('[GOOGLE CALENDAR SYNC] Fetching events for date range:', {
         timeMin: gridStart.toISOString(),
         timeMax: gridEnd.toISOString()
       })
@@ -270,30 +288,54 @@ export default function CalendarPage() {
         }
       )
 
-      console.log('[Calendar Page] Events response:', response.status, response.statusText)
+      console.log('[GOOGLE CALENDAR SYNC] Events response:', response.status, response.statusText)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[Calendar Page] Events error', errorData)
-        console.error('[Calendar Page] Events response', { status: response.status, statusText: response.statusText, ok: response.ok })
+        console.error('[GOOGLE CALENDAR SYNC ERROR] Events error', errorData)
+        console.error('[GOOGLE CALENDAR SYNC ERROR] Events response', { status: response.status, statusText: response.statusText, ok: response.ok })
+        
+        // Handle token expiration
+        if (response.status === 401) {
+          console.log('[GOOGLE CALENDAR TOKEN EXPIRED] Token refresh failed, requiring reauthentication')
+          setTokenExpired(true)
+          throw new Error('Google Calendar connection requires reauthentication')
+        }
+        
         throw new Error('We couldn\'t load your calendar events. Please try again.')
       }
 
       const data = await response.json()
-      console.log('[Calendar Page] Events data:', { eventCount: data.events?.length || 0, calendarEmail: data.calendarEmail })
+      console.log('[GOOGLE CALENDAR EVENTS IMPORTED]', { eventCount: data.events?.length || 0, calendarEmail: data.calendarEmail })
+      
+      // Update last sync time
+      setLastSyncTime(new Date())
       
       // Deduplicate events by id
       const uniqueEvents = Array.from(
         new Map((data.events || []).map((event: CalendarEvent) => [event.id, event])).values()
       ) as CalendarEvent[]
       
-      console.log('[Calendar Page] After deduplication:', { uniqueEventCount: uniqueEvents.length })
+      console.log('[GOOGLE CALENDAR SYNC] After deduplication:', { uniqueEventCount: uniqueEvents.length })
       setEvents(uniqueEvents)
     } catch (error) {
-      console.error('[Calendar Page] Events error', error)
+      console.error('[GOOGLE CALENDAR SYNC ERROR] Events error', error)
       showToast('We couldn\'t load your calendar events. Please try again.', 'error')
     } finally {
       setIsLoadingEvents(false)
+    }
+  }
+
+  const handleSync = async () => {
+    setIsSyncing(true)
+    try {
+      await fetchEvents()
+      showToast('Calendar synced successfully', 'success')
+    } catch (error) {
+      console.error('[GOOGLE CALENDAR SYNC ERROR] Sync failed:', error)
+      showToast('Failed to sync calendar. Please try again.', 'error')
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -311,6 +353,28 @@ export default function CalendarPage() {
       minute: '2-digit',
       hour12: true 
     })
+  }
+
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    
+    if (diffInSeconds < 60) {
+      return 'just now'
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) {
+      return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`
   }
 
   const isAllDay = (start: { dateTime?: string; date?: string }) => {
@@ -450,7 +514,7 @@ export default function CalendarPage() {
                   {calendarConnected && (
                     <div>
                       {/* Calendar Summary Row */}
-                      <div className="mb-6">
+                      <div className="mb-4 sm:mb-6">
                         <div className="flex items-center gap-6 sm:gap-8 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
                           <div className="flex items-center gap-3">
                             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/30"></div>
@@ -475,6 +539,91 @@ export default function CalendarPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Connection StatusCard */}
+                      <div className="mb-4 sm:mb-6">
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm shadow-green-500/30 flex-shrink-0"></div>
+                              <div>
+                                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">Google Calendar Connected</h3>
+                                {calendarEmail && (
+                                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Connected as: {calendarEmail}</p>
+                                )}
+                                {lastSyncTime && (
+                                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+                                    Last synced: {formatTimeAgo(lastSyncTime)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={handleSync}
+                              disabled={isSyncing}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
+                            >
+                              {isSyncing ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-slate-600 dark:border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                  <span>Syncing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  <span>Sync Now</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Token Expired Warning Banner */}
+                      {tokenExpired && (
+                        <div className="mb-4 sm:mb-6">
+                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <h3 className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                                    Google Calendar connection requires reauthentication
+                                  </h3>
+                                  <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+                                    Your Google Calendar access token has expired. Please reconnect to continue syncing your calendar.
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleConnectCalendar}
+                                disabled={isConnecting}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
+                              >
+                                {isConnecting ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span>Connecting...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>Reconnect</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* View Mode Toggle */}
                       <div className="mb-6">
@@ -520,6 +669,7 @@ export default function CalendarPage() {
                                   title={event.summary}
                                   time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
                                   isHoliday={event.isHoliday}
+                                  source={event.source === 'holiday' ? 'holiday' : 'primary'}
                                   onClick={() => {
                                     if (event.htmlLink) {
                                       window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
@@ -532,12 +682,22 @@ export default function CalendarPage() {
 
                           {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
                           <div className="lg:col-span-1 order-2 lg:order-2">
-                            <UpcomingAgenda events={events} maxEvents={8} />
+                            <UpcomingAgenda 
+                              events={events} 
+                              maxEvents={8} 
+                              onRefresh={handleSync}
+                              calendarConnected={calendarConnected}
+                            />
                           </div>
                         </div>
                       ) : (
                         <div>
-                          <UpcomingAgenda events={events} maxEvents={20} />
+                          <UpcomingAgenda 
+                            events={events} 
+                            maxEvents={20} 
+                            onRefresh={handleSync}
+                            calendarConnected={calendarConnected}
+                          />
                         </div>
                       )}
 

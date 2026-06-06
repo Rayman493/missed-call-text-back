@@ -86,6 +86,8 @@ export default function SettingsContent() {
   const [isLoadingCalendar, setIsLoadingCalendar] = useState(false)
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false)
   const [isDisconnectingCalendar, setIsDisconnectingCalendar] = useState(false)
+  const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
   const supabase = createBrowserClient()
 
@@ -410,9 +412,14 @@ export default function SettingsContent() {
       }
 
       const data = await response.json()
+      console.log('[GOOGLE CALENDAR SYNC] Status data:', { connected: data.connected, provider: data.provider, calendarEmail: data.calendarEmail })
       setCalendarConnected(data.connected || false)
+      setCalendarEmail(data.calendarEmail || null)
+      if (data.connectedAt) {
+        setLastSyncTime(new Date(data.connectedAt))
+      }
     } catch (error) {
-      console.error('Error fetching calendar status:', error)
+      console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
       setCalendarConnected(false)
     } finally {
       setIsLoadingCalendar(false)
@@ -458,6 +465,28 @@ export default function SettingsContent() {
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
+
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    
+    if (diffInSeconds < 60) {
+      return 'just now'
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) {
+      return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`
   }
 
   const handleBillingActionClick = async (action: 'portal' | 'upgrade') => {
@@ -1261,6 +1290,16 @@ export default function SettingsContent() {
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
                         Schedule follow-ups and appointments in Google Calendar.
                       </p>
+                      {calendarConnected && calendarEmail && (
+                        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Connected as: {calendarEmail}
+                        </p>
+                      )}
+                      {calendarConnected && lastSyncTime && (
+                        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+                          Last synced: {formatTimeAgo(lastSyncTime)}
+                        </p>
+                      )}
                     </div>
                     {!isLoadingCalendar && (
                       <button

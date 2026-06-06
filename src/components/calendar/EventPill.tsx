@@ -6,9 +6,10 @@ interface EventPillProps {
   onClick?: () => void
   isHoliday?: boolean
   eventType?: 'holiday' | 'client' | 'personal' | 'task'
+  source?: 'primary' | 'holiday' | 'replyflow'
 }
 
-export default function EventPill({ title, time, onClick, isHoliday = false, eventType = 'client' }: EventPillProps) {
+export default function EventPill({ title, time, onClick, isHoliday = false, eventType = 'client', source }: EventPillProps) {
   const getEventColors = () => {
     if (isHoliday || eventType === 'holiday') {
       return {
@@ -53,6 +54,18 @@ export default function EventPill({ title, time, onClick, isHoliday = false, eve
 
   const colors = getEventColors()
 
+  const getSourceLabel = () => {
+    if (source === 'holiday') return 'Holiday'
+    if (source === 'replyflow') return 'ReplyFlow'
+    return 'Google'
+  }
+
+  const getSourceColor = () => {
+    if (source === 'holiday') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+    if (source === 'replyflow') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+    return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+  }
+
   return (
     <div
       onClick={onClick}
@@ -72,6 +85,14 @@ export default function EventPill({ title, time, onClick, isHoliday = false, eve
         `}>
           {title}
         </div>
+        {source && (
+          <div className={`
+            inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium mt-0.5
+            ${getSourceColor()}
+          `}>
+            {getSourceLabel()}
+          </div>
+        )}
         {time && (
           <div className={`
             text-[9px] sm:text-[9px] md:text-[10px] flex items-center gap-0.5 sm:gap-1 mt-0.5 leading-tight hidden md:flex
