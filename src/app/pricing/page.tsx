@@ -146,7 +146,7 @@ export default function PricingPage() {
                     href="/auth?mode=signup"
                     className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
                   >
-                    Start Free Trial
+                    Start Your 14-Day Free Trial
                   </Link>
                   <Link
                     href="/"

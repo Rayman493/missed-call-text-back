@@ -752,6 +752,22 @@ export default function FAQPage() {
 
         </div>
 
+        {/* CTA Section */}
+        <div className="mt-16 text-center">
+          <h3 className="text-2xl font-semibold text-foreground mb-4">
+            Ready to get started?
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            Start your 14-day free trial and never miss another customer call.
+          </p>
+          <Link
+            href="/auth?mode=signup"
+            className="inline-flex items-center h-12 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+          >
+            Start Your 14-Day Free Trial
+          </Link>
+        </div>
+
         {/* Contact Section */}
         <div className="mt-16 text-center bg-card rounded-2xl p-8 border border-border">
           <h3 className="text-2xl font-semibold text-foreground mb-4">
@@ -762,7 +778,7 @@ export default function FAQPage() {
           </p>
           <a
             href="mailto:support@replyflowhq.com"
-            className="inline-flex items-center h-12 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+            className="inline-flex items-center h-12 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
           >
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />

@@ -328,7 +328,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     href="/auth?mode=signup"
                     className="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
                   >
-                    Start Free Trial
+                    Start Your 14-Day Free Trial
                   </Link>
                 </>
               )}
@@ -431,7 +431,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     onClick={closeMobileMenu}
                     className="w-full bg-blue-600 text-white font-semibold rounded-lg px-4 py-3 text-center hover:bg-blue-700 transition-colors"
                   >
-                    Sign Up
+                    Start Your 14-Day Free Trial
                   </Link>
                 </div>
               </nav>

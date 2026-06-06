@@ -240,11 +240,10 @@ export default async function Home() {
               <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 {/* Primary CTA */}
                 <Link
-                  href="/signup"
+                  href="/auth?mode=signup"
                   className="inline-flex items-center justify-center h-11 sm:h-12 px-4 sm:px-8 w-[280px] sm:w-auto sm:min-w-[240px] bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 hover:scale-105"
                 >
-                  <span className="sm:hidden">Start Free Trial</span>
-                  <span className="hidden sm:inline">Start 14-Day Free Trial</span>
+                  Start Your 14-Day Free Trial
                 </Link>
               </div>
 
@@ -961,10 +960,10 @@ export default async function Home() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 <Link
-                  href="/signup"
+                  href="/auth?mode=signup"
                   className="h-14 px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
                 >
-                  Start Free Trial
+                  Start Your 14-Day Free Trial
                 </Link>
                 <Link
                   href="/demo"
