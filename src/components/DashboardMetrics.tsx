@@ -171,7 +171,14 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         const leadsGenerated = missedCallsCaptured
         const messagesSent = outboundMessages.length
         const activeConversationsCount = activeConversations?.length || 0
-        const recoveryRate = leadsGenerated > 0 ? Math.round((messagesSent / leadsGenerated) * 100) : 0
+        // Recovery rate should be recovered leads / captured leads, not messages sent / captured leads
+        const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / missedCallsCaptured) * 100))) : 0
+
+        console.log('[DASHBOARD RECOVERY RATE]', {
+          numerator: activeConversationsCount,
+          denominator: missedCallsCaptured,
+          finalRate: recoveryRate
+        })
 
         // Calculate metrics - today
         const missedCallsToday = leadsToday?.length || 0
