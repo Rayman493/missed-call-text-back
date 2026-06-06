@@ -447,9 +447,10 @@ export default function ForwardingSetupPage() {
   }
 
   if (businessLoading) {
+    console.log('[Forwarding Setup Route] businessLoading at bottom - showing loading [FORWARDING_PAGE_BOTTOM_LOADING]')
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">FORWARDING_PAGE_BOTTOM_LOADING</div>
       </div>
     )
   }
