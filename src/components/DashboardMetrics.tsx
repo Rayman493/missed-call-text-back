@@ -82,15 +82,31 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           .gte('created_at', todayStartISO)
 
         // Fetch messages sent - 30 days
+        // First get lead IDs for this business
+        const { data: businessLeads } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        const leadIds = businessLeads?.map((l: any) => l.id) || []
+
+        console.log('[DASHBOARD LEAD IDS]', {
+          businessId: business.id,
+          leadIds,
+          count: leadIds.length
+        })
+
+        // Then fetch messages for those leads
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('*')
-          .eq('business_id', business.id)
+          .in('lead_id', leadIds)
           .gte('created_at', thirtyDaysAgo)
 
         console.log('[DASHBOARD ALL MESSAGES RAW]', {
           businessId: business.id,
-          businessPhone: business.twilio_phone_number,
+          leadIds,
           totalMessages: messages?.length || 0,
           messages: messages,
           error: messagesError
@@ -123,10 +139,18 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         })
 
         // Fetch messages sent - today
+        const { data: businessLeadsToday } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('business_id', business.id)
+          .gte('created_at', todayStartISO)
+
+        const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
+
         const { data: messagesToday } = await supabase
           .from('messages')
           .select('direction, created_at, from_phone')
-          .eq('business_id', business.id)
+          .in('lead_id', leadIdsToday)
           .gte('created_at', todayStartISO)
 
         // Fetch active conversations (leads with recent activity)
