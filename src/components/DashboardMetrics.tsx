@@ -64,7 +64,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Fetch leads (missed calls captured) - 30 days
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
-          .select('created_at, phone_number')
+          .select('id, created_at, caller_phone')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -84,7 +84,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         // Fetch messages sent - 30 days
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('direction, created_at, phone_number')
+          .select('direction, created_at, from_phone, to_phone')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
