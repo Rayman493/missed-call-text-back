@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createBrowserClient } from '@/lib/supabase/browser'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +14,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Query parameter required' }, { status: 400 })
     }
 
-    // Get user from session
-    const supabase = createBrowserClient()
+    // Get user from session using server-side client with cookie handling
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const sessionFound = !!user
+    const authError = userError?.message || null
+
+    console.log('[ADMIN SEARCH AUTH]', {
+      userId: user?.id || null,
+      email: user?.email || null,
+      sessionFound,
+      authError
+    })
 
     if (userError || !user) {
       console.log('[Admin Search Businesses] 401 Unauthorized - Auth failed:', {
