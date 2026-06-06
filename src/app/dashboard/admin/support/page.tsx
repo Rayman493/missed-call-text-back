@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { isAdminUser } from '@/lib/admin'
 import AuthGuard from '@/components/AuthGuard'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
@@ -63,17 +62,27 @@ export default function AdminSupportPage() {
   const [showManualAccessModal, setShowManualAccessModal] = useState(false)
 
   useEffect(() => {
-    const checkAdmin = () => {
-      if (!user?.email) return
+    const checkAdmin = async () => {
+      if (!user?.id) return
       
-      const adminCheck = isAdminUser(user.email)
-      if (!adminCheck) {
+      try {
+        const response = await fetch('/api/admin/check-status')
+        const data = await response.json()
+        
+        console.log('[ADMIN SUPPORT PAGE] Admin check result:', data)
+        
+        if (!data.isAdmin) {
+          console.log('[ADMIN SUPPORT PAGE] User is not admin, redirecting to dashboard')
+          router.push('/dashboard')
+          return
+        }
+        
+        setIsAdmin(true)
+        setLoading(false)
+      } catch (error) {
+        console.error('[ADMIN SUPPORT PAGE] Admin check failed:', error)
         router.push('/dashboard')
-        return
       }
-      
-      setIsAdmin(true)
-      setLoading(false)
     }
 
     checkAdmin()
