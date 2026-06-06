@@ -189,6 +189,25 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       replied_after_ai_call: true
     }
 
+    // Store image metadata for future AI analysis
+    if (media && media.length > 0) {
+      const currentImages = currentRawMetadata.images || []
+      const newImages = media.map((m: any) => ({
+        url: m.url,
+        mime_type: m.contentType,
+        received_at: now,
+        message_sid: messageSid
+      }))
+      updatedRawMetadata.images = [...currentImages, ...newImages]
+      updatedRawMetadata.image_count = (currentRawMetadata.image_count || 0) + media.length
+      updatedRawMetadata.has_images = true
+      console.log('[INBOUND MMS] Image metadata stored in lead.raw_metadata', {
+        leadId: lead.id,
+        image_count: updatedRawMetadata.image_count,
+        total_images: updatedRawMetadata.images.length
+      })
+    }
+
     const updatedLead = await db.updateLead(lead.id, {
       status: 'replied', // Customer replied, so mark as replied
       last_message_at: now,
@@ -554,6 +573,21 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     toPhone: to
   })
   const sanitizedBody = sanitizeMessageContent(body)
+  
+  // Determine message type and media count
+  const hasMedia = media && media.length > 0
+  const hasText = sanitizedBody && sanitizedBody.trim().length > 0
+  const message_type = hasMedia && hasText ? 'mixed' : (hasMedia ? 'image' : 'text')
+  const media_count = hasMedia ? media.length : 0
+  
+  console.log('[INBOUND MMS RECEIVED]', {
+    hasMedia,
+    media_count,
+    hasText,
+    message_type,
+    leadId: lead.id
+  })
+  
   const message = await db.createMessageWithConversation({
     lead_id: lead.id,
     conversation_id: conversation.id,
@@ -563,6 +597,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     to_phone: to,
     twilio_message_sid: messageSid,
     status: 'received',
+    message_type,
+    media_count,
     created_at: new Date().toISOString(),
   })
   
@@ -581,13 +617,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     // Store media attachments if present
     if (media && media.length > 0) {
-      console.log(`[MMS DEBUG] Storing ${media.length} media attachments for message: ${message.id}`)
-      console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)
+      console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${message.id}`)
+      console.log(`[INBOUND MMS MEDIA DETECTED] Lead ID: ${lead.id}`)
       
       try {
         for (const mediaItem of media) {
           try {
-            console.log(`[MMS DEBUG] Inserting media row: message_id=${message.id}, type=${mediaItem.contentType}`)
+            console.log(`[INBOUND MMS STORING] message_id=${message.id}, type=${mediaItem.contentType}`)
             const { error: mediaError } = await supabaseAdmin
               .from('message_media')
               .insert({
@@ -598,31 +634,30 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
               })
             
             if (mediaError) {
-              console.error(`[MMS DEBUG] Insert failure:`, mediaError)
+              console.error(`[INBOUND MMS ERROR] Insert failure:`, mediaError)
               // Check if table doesn't exist
               if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
-                console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
+                console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
               }
             } else {
-              console.log(`[MMS DEBUG] Insert success: type=${mediaItem.contentType}`)
+              console.log(`[INBOUND MMS STORED] type=${mediaItem.contentType}`)
             }
           } catch (error: any) {
-            console.error(`[MMS DEBUG] Insert exception:`, error)
+            console.error(`[INBOUND MMS ERROR] Insert exception:`, error)
             // Check if table doesn't exist
             if (error.message?.includes('does not exist') || error.code === '42P01') {
-              console.error('[MMS CRITICAL] message_media table does not exist. Please run migration.')
+              console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
             }
             // Continue with other media even if one fails
           }
         }
-        console.log(`[MMS DEBUG] Media storage complete for message: ${message.id}`)
+        console.log(`[INBOUND MMS STORED] Media storage complete for message: ${message.id}`)
       } catch (error: any) {
-        console.error('[MMS DEBUG] Error during media storage:', error)
+        console.error('[INBOUND MMS ERROR] Error during media storage:', error)
         // Don't fail the entire message if media storage fails
       }
     } else {
-      console.log(`[MMS DEBUG] No media attachments to store for message: ${message.id}`)
-      console.log(`[MMS DEBUG] Lead ID for tracing: ${lead.id}`)
+      console.log(`[INBOUND MMS] No media attachments for message: ${message.id}`)
     }
     
     // Create notification for customer reply

@@ -109,6 +109,8 @@ export interface Message {
   error_code?: string | null;
   error_message?: string | null;
   status_updated_at?: string | null;
+  message_type?: 'text' | 'note' | 'summary' | 'transcript' | 'image' | 'mixed' | null;
+  media_count?: number | null;
   created_at: string;
 }
 

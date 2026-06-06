@@ -27,13 +27,41 @@ export async function POST(req: NextRequest) {
     console.log('[INCOMING SMS MEDIA URL 0]', params['MediaUrl0'])
     console.log('[INCOMING SMS CONTENT TYPE 0]', params['MediaContentType0'])
     
-    // TEMPORARILY DISABLE signature validation for debugging
-    // const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
-    // if (!isValid) {
-    //   console.error('[MMS DEBUG] signature validation failed')
-    //   return new Response('Unauthorized', { status: 401 });
-    // }
-    console.log('[MMS DEBUG] signature validation DISABLED for debugging')
+    // Signature validation
+    console.log('[SIGNATURE VALIDATION START]', {
+      url: req.url,
+      contentType,
+      bodyLength: rawBody.length
+    })
+    
+    // Bypass signature validation for local development only
+    const isDevEnvironment = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true'
+    
+    if (!isDevEnvironment) {
+      const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+      
+      if (!isValid) {
+        console.error('[SIGNATURE VALIDATION FAILED]', {
+          url: req.url,
+          contentType,
+          bodyLength: rawBody.length
+        })
+        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Unauthorized: Invalid signature</Message>
+</Response>`
+        return new Response(errorTwiml, {
+          status: 401,
+          headers: {
+            'Content-Type': 'text/xml',
+          },
+        })
+      }
+      
+      console.log('[SIGNATURE VALIDATION SUCCESS]')
+    } else {
+      console.log('[SIGNATURE VALIDATION BYPASSED] Development environment detected')
+    }
     
     // Parse body using formData for proper form data handling
     const formData = new FormData()

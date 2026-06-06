@@ -20,6 +20,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
+import { ImageMessage } from '@/components/ImageMessage'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -115,6 +116,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessageRef = useRef<HTMLDivElement>(null)
   const [mobileLeadHealthExpanded, setMobileLeadHealthExpanded] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
+  const [messageMedia, setMessageMedia] = useState<Record<string, { urls: string[]; types: string[] }>>({})
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -200,6 +202,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setInternalNotes(leadData.notes)
     }
   }, [leadData?.notes])
+
+  // Fetch media for messages with media_count > 0
+  useEffect(() => {
+    const fetchMessageMedia = async () => {
+      if (!leadData?.messages) return
+
+      const messagesWithMedia = leadData.messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
+      if (messagesWithMedia.length === 0) return
+
+      const mediaMap: Record<string, { urls: string[]; types: string[] }> = {}
+
+      for (const message of messagesWithMedia) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          const headers: HeadersInit = { 'Content-Type': 'application/json' }
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`
+          }
+
+          const response = await fetch(`/api/message-media?messageId=${message.id}`, { headers })
+          if (response.ok) {
+            const mediaData = await response.json()
+            mediaMap[message.id] = {
+              urls: mediaData.map((m: any) => m.media_url),
+              types: mediaData.map((m: any) => m.mime_type)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching message media:', error)
+        }
+      }
+
+      setMessageMedia(mediaMap)
+    }
+
+    fetchMessageMedia()
+  }, [leadData?.messages, supabase])
 
   // Merge messages by ID to prevent overwriting local state with stale data
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
@@ -308,6 +347,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ? 'Follow-Ups Cancelled (Customer Replied)' 
             : 'Follow-Ups Cancelled',
           timestamp: latestCancelled.created_at
+        }
+      })
+    }
+
+    // Add Customer Sent Photos event
+    const messagesWithPhotos = messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
+    if (messagesWithPhotos.length > 0) {
+      const firstPhotoMessage = messagesWithPhotos[0]
+      const totalPhotos = messagesWithPhotos.reduce((sum: number, msg: any) => sum + (msg.media_count || 0), 0)
+      systemEvents.push({
+        type: 'system_event',
+        id: `customer-sent-photos-${leadData.id}`,
+        created_at: firstPhotoMessage.created_at,
+        data: {
+          message: `Customer Sent ${totalPhotos} Photo${totalPhotos > 1 ? 's' : ''}`,
+          timestamp: firstPhotoMessage.created_at,
+          isDivider: true
         }
       })
     }
@@ -1402,6 +1458,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-3 sm:space-y-4">
                   {messagesArray.map((message: any, index: number) => {
                     const isLatest = index === messagesArray.length - 1
+                    const media = messageMedia[message.id]
                     return (
                       <div
                         key={message.id}
@@ -1409,7 +1466,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
                       >
                         <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-xl px-4 py-2.5 shadow-sm`}>
-                          <p className={`text-sm ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
+                          {message.body && (
+                            <p className={`text-sm ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
+                          )}
+                          {media && media.urls.length > 0 && (
+                            <ImageMessage mediaUrls={media.urls} mediaTypes={media.types} />
+                          )}
                           <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
                             {formatRelativeTime(message.created_at)}
                           </p>
@@ -1501,6 +1563,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               </div>
+
+              {/* Photos Received Card */}
+              {Object.keys(messageMedia).length > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Photos Received</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(messageMedia).slice(0, 4).map(([messageId, media]: [string, any]) => (
+                      media.urls.slice(0, 1).map((url: string, idx: number) => (
+                        <div
+                          key={`${messageId}-${idx}`}
+                          className="relative group cursor-pointer"
+                          onClick={() => {
+                            const expanded = document.createElement('div')
+                            expanded.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4'
+                            expanded.innerHTML = `
+                              <div class="relative max-w-4xl max-h-[90vh]">
+                                <button class="absolute -top-10 right-0 text-white hover:text-slate-300">
+                                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <img src="${url}" alt="Expanded view" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
+                              </div>
+                            `
+                            expanded.onclick = () => expanded.remove()
+                            document.body.appendChild(expanded)
+                          }}
+                        >
+                          <img
+                            src={url}
+                            alt="Customer photo"
+                            className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
+                            loading="lazy"
+                          />
+                        </div>
+                      ))
+                    ))}
+                  </div>
+                  {Object.keys(messageMedia).length > 4 && (
+                    <button className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                      View All Photos ({Object.keys(messageMedia).length})
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Quick Actions Card */}
               <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
