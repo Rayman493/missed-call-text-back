@@ -186,12 +186,17 @@ export function deriveSetupState(business: Business | null | undefined): SetupSt
 
   // Check if provisioning is in progress or number not ready
   const isProvisioning = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
+  const isProvisioned = business.provisioning_status === 'ready' || business.provisioning_status === 'purchased'
   const hasNumber = Boolean(business.twilio_phone_number)
   const isMessagingReady = business.messaging_status === 'active' || business.a2p_status === 'verified' || business.a2p_status === 'approved'
 
-  if (isProvisioning || !hasNumber || !isMessagingReady) {
+  if (isProvisioning || !hasNumber) {
     console.log('[deriveSetupState] Provisioning or number pending - returning provisioning_or_number_pending')
     return 'provisioning_or_number_pending'
+  }
+
+  if (isProvisioned) {
+    console.log('[deriveSetupState] Number provisioned - checking forwarding status')
   }
 
   // Check if forwarding is verified

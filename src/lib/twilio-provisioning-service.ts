@@ -230,9 +230,10 @@ async function purchaseNumber(
         twilio_phone_number: purchasedNumber.phoneNumber,
         twilio_phone_number_sid: purchasedNumber.sid,
         twilio_messaging_service_sid: messagingServiceSid,
-        provisioning_status: 'purchased',
+        provisioning_status: 'ready',
         provisioning_error: null,
         last_provisioning_attempt_at: new Date().toISOString(),
+        provisioned_at: new Date().toISOString(),
       })
       .eq('id', businessId);
     
@@ -240,6 +241,15 @@ async function purchaseNumber(
       console.error('[PURCHASE NUMBER] Business update failed:', updateError);
       return { success: false, error: 'Failed to update business record' };
     }
+    
+    console.log('[PROVISIONING STATUS] Business provisioned successfully', {
+      businessId,
+      phoneNumber: purchasedNumber.phoneNumber,
+      phoneNumberSid: purchasedNumber.sid,
+      messagingServiceSid,
+      provisioning_status: 'ready',
+      provisioned_at: new Date().toISOString()
+    });
     
     console.log('[PURCHASE NUMBER] ========== COMPLETE ==========');
     return {

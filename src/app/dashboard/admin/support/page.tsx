@@ -132,11 +132,37 @@ export default function AdminSupportPage() {
       
       if (data.success) {
         setActionResult({ success: true, message: data.message || 'Action completed successfully' })
-        // Refresh business data
-        if (selectedBusiness?.id === businessId) {
-          const updatedBusiness = searchResults.find(b => b.id === businessId)
-          if (updatedBusiness) {
-            setSelectedBusiness(updatedBusiness)
+        
+        console.log('[ADMIN SUPPORT] Action completed successfully:', { action, businessId })
+        
+        // For actions that modify business state, refresh the business data from server
+        const actionsThatModifyBusiness = ['retry_provisioning', 'reconcile_messaging_service', 'mark_forwarding_verified', 'reset_onboarding', 'refresh_subscription']
+        
+        if (actionsThatModifyBusiness.includes(action) && selectedBusiness?.id === businessId) {
+          console.log('[ADMIN SUPPORT] Refreshing business after action:', { action, businessId })
+          
+          // Re-fetch the specific business from the server
+          try {
+            const searchResponse = await fetch(`/api/admin/search-businesses?query=${encodeURIComponent(selectedBusiness.business_name || selectedBusiness.twilio_phone_number || '')}`)
+            const searchData = await searchResponse.json()
+            
+            if (searchData.success && searchData.businesses) {
+              const updatedBusiness = searchData.businesses.find((b: Business) => b.id === businessId)
+              if (updatedBusiness) {
+                console.log('[ADMIN SUPPORT] Business refreshed successfully:', {
+                  businessId,
+                  provisioning_status: updatedBusiness.provisioning_status,
+                  twilio_phone_number: updatedBusiness.twilio_phone_number
+                })
+                setSelectedBusiness(updatedBusiness)
+                
+                // Also update the search results
+                const updatedResults = searchResults.map(b => b.id === businessId ? updatedBusiness : b)
+                setSearchResults(updatedResults)
+              }
+            }
+          } catch (refreshError) {
+            console.error('[ADMIN SUPPORT] Failed to refresh business after action:', refreshError)
           }
         }
       } else {
