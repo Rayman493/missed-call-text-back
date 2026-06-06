@@ -80,18 +80,51 @@ export async function GET(request: NextRequest) {
     }
 
     // Search businesses
-    const { data: businesses, error } = await supabase
-      .from('businesses')
-      .select('*')
-      .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%`)
-      .limit(20)
+    console.log('[ADMIN SEARCH QUERY]', {
+      query,
+      table: 'businesses',
+      searchFields: ['business_name', 'business_phone'],
+      searchPattern: `ilike.%${query}%`,
+      limit: 20
+    })
 
-    if (error) {
-      console.error('[Admin API] Search businesses error:', error)
+    try {
+      const { data: businesses, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%`)
+        .limit(20)
+
+      console.log('[ADMIN SEARCH RESULT]', {
+        success: !error,
+        count: businesses?.length || 0,
+        businesses: businesses,
+        error: error
+      })
+
+      if (error) {
+        console.error('[Admin API] Search businesses error:', error)
+        console.error('[ADMIN SEARCH ERROR]', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          stack: error.stack
+        })
+        return NextResponse.json({ success: false, error: 'Search failed' }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true, businesses })
+    } catch (searchError: any) {
+      console.error('[ADMIN SEARCH ERROR]', {
+        message: searchError.message,
+        name: searchError.name,
+        stack: searchError.stack,
+        query,
+        table: 'businesses'
+      })
       return NextResponse.json({ success: false, error: 'Search failed' }, { status: 500 })
     }
-
-    return NextResponse.json({ success: true, businesses })
   } catch (error) {
     console.error('[Admin API] Search businesses error:', error)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
