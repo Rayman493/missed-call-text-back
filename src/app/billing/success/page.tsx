@@ -254,28 +254,29 @@ export default function BillingSuccessPage() {
             </div>
           )}
 
-          {/* Animated Button - Direct to Forwarding Setup */}
+          {/* Animated Button - Hard redirect to dashboard with setup mode */}
           <div className={`transition-opacity duration-700 ${showButton ? 'opacity-100' : 'opacity-0'}`}>
-            <Link
-              href="/setup/forwarding"
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
+            <button
               onClick={() => {
                 const clickData = {
                   sessionId,
                   subscriptionStatus: status.subscriptionStatus,
-                  destination: '/setup/forwarding',
+                  destination: '/dashboard?setup=1',
                   timestamp: new Date().toISOString()
                 }
-                console.log('[Billing Success Continue Setup]', clickData)
+                console.log('[Billing Success Continue to Dashboard]', clickData)
+                console.log('[Billing Success] Performing hard navigation to force clean state initialization')
+                window.location.href = '/dashboard?setup=1'
               }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
             >
-              Continue Setup
-            </Link>
+              Continue to Dashboard
+            </button>
           </div>
 
           {/* Improved Subtext */}
           <p className="text-muted-foreground text-sm mt-4">
-            We just need to connect your business phone number.
+            Your account is ready. Complete setup to start capturing missed calls.
           </p>
         </div>
       </div>
@@ -298,12 +299,15 @@ export default function BillingSuccessPage() {
           <p className="text-muted-foreground mb-6">
             Your trial is active, but setup is still finishing. Continue to your dashboard to access your account.
           </p>
-          <Link 
-            href="/dashboard"
+          <button
+            onClick={() => {
+              console.log('[Billing Success Timeout] Performing hard navigation to dashboard with setup mode')
+              window.location.href = '/dashboard?setup=1'
+            }}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Continue to Dashboard
-          </Link>
+          </button>
         </div>
       </div>
       </PageBackground>

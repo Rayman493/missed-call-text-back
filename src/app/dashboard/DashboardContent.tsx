@@ -220,6 +220,15 @@ export default function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Setup mode detection - check if user came from billing success
+  const setupMode = searchParams?.get('setup') === '1'
+  console.log('[Dashboard Setup Mode]', {
+    setupMode,
+    hasBusiness: !!business,
+    businessLoading,
+    businessFetchComplete
+  })
+
   // Check if user is admin based on email allowlist
   const isAdmin = isAdminUser(user?.email)
   
@@ -967,6 +976,68 @@ export default function DashboardContent() {
             {/* Main Content */}
             <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1 sm:space-y-1.5">
+
+                {/* Setup Mode Banner - Show when user comes from billing success */}
+                {setupMode && (
+                  <SectionErrorBoundary sectionName="SetupModeBanner">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-xl p-4 sm:p-6 shadow-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h2 className="text-xl font-bold text-white mb-1">Welcome to ReplyFlow!</h2>
+                            <p className="text-blue-100 text-sm sm:text-base">
+                              Your account is ready. Complete these 3 steps to start capturing missed calls:
+                            </p>
+                            <div className="mt-3 space-y-2">
+                              <div className="flex items-center gap-2 text-white/90 text-sm">
+                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">1</span>
+                                <span>Connect your phone number</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-white/90 text-sm">
+                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">2</span>
+                                <span>Run a test call</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-white/90 text-sm">
+                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">3</span>
+                                <span>ReplyFlow is active</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <Link
+                          href="/setup/forwarding"
+                          className="inline-flex items-center justify-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-md whitespace-nowrap"
+                        >
+                          Connect Phone Number
+                        </Link>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
+
+                {/* Provisioning Status Banner - Show when provisioning is pending */}
+                {!setupMode && business?.provisioning_status === 'pending' && (
+                  <SectionErrorBoundary sectionName="ProvisioningBanner">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-amber-900 dark:text-amber-100 font-semibold text-sm">Setting up your ReplyFlow number...</p>
+                          <p className="text-amber-700 dark:text-amber-300 text-xs">This usually takes less than a minute. We'll notify you when it's ready.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
                         
                 
                 {/* HARD RENDER GUARD: ProvisioningSuccessBanner if subscription is active */}
