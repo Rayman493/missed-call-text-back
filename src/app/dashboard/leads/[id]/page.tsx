@@ -147,6 +147,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
+  const isInitialAutoScrollingRef = useRef(false)
   
   // Close more actions dropdown when clicking outside
   useEffect(() => {
@@ -585,6 +586,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
       
+      // Set initial auto-scrolling flag to prevent other scroll effects from interfering
+      isInitialAutoScrollingRef.current = true
+      
       console.log('[INITIAL SCROLL] Triggered:', {
         timestamp,
         label: 'initial-scroll-useEffect',
@@ -638,12 +642,78 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               isDesktop
             })
             
-            setHasScrolledToBottomOnLoad(true)
+            // Don't set hasScrolledToBottomOnLoad yet - wait for media fetch final scroll
           }, 200)
         })
       })
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
+
+  // Final scroll after media fetch completes during initial load
+  useEffect(() => {
+    // Only run final scroll during initial auto-scrolling phase
+    if (isInitialAutoScrollingRef.current && Object.keys(messageMedia).length > 0 && !hasScrolledToBottomOnLoad) {
+      const timestamp = Date.now()
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      
+      console.log('[FINAL SCROLL] Media fetch complete, triggering final scroll:', {
+        timestamp,
+        label: 'final-scroll-after-media',
+        isDesktop,
+        hasContainer: !!container,
+        mediaCount: Object.keys(messageMedia).length,
+        messagesCount: messagesArray.length,
+        hasScrolledToBottomOnLoad
+      })
+      
+      if (!container) {
+        console.log('[FINAL SCROLL] No container found')
+        return
+      }
+      
+      const scrollHeightBefore = container.scrollHeight
+      const scrollTopBefore = container.scrollTop
+      
+      console.log('[FINAL SCROLL] Before scroll:', {
+        timestamp,
+        label: 'final-scroll-after-media',
+        scrollTop: scrollTopBefore,
+        scrollHeight: scrollHeightBefore,
+        clientHeight: container.clientHeight,
+        messagesCount: messagesArray.length,
+        isDesktop
+      })
+      
+      // Use double requestAnimationFrame + 100ms timeout for final scroll
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            container.scrollTop = container.scrollHeight
+            
+            const scrollTopAfter = container.scrollTop
+            const scrollHeightAfter = container.scrollHeight
+            
+            console.log('[FINAL SCROLL] After scroll:', {
+              timestamp: Date.now(),
+              timeSinceTrigger: Date.now() - timestamp,
+              label: 'final-scroll-after-media',
+              scrollTop: scrollTopAfter,
+              scrollHeight: scrollHeightAfter,
+              scrollTopDelta: scrollTopAfter - scrollTopBefore,
+              heightDelta: scrollHeightAfter - scrollHeightBefore,
+              messagesCount: messagesArray.length,
+              isDesktop
+            })
+            
+            // Clear initial auto-scrolling flag and mark initial scroll complete
+            isInitialAutoScrollingRef.current = false
+            setHasScrolledToBottomOnLoad(true)
+          }, 100)
+        })
+      })
+    }
+  }, [messageMedia, hasScrolledToBottomOnLoad])
 
   // Scroll to bottom when messages array changes (for MMS refresh and realtime updates)
   useEffect(() => {
@@ -709,10 +779,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       clientHeight,
       messagesCount: messagesArray.length,
       hasScrolledToBottomOnLoad,
+      isInitialAutoScrolling: isInitialAutoScrollingRef.current,
       isDesktop
     })
 
     const handleScroll = () => {
+      // Don't interfere during initial auto-scrolling phase
+      if (isInitialAutoScrollingRef.current) {
+        console.log('[SCROLL PRESERVATION] Skipping - initial auto-scrolling in progress')
+        return
+      }
+      
       const scrollTimestamp = Date.now()
       const scrollThreshold = 200
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
@@ -731,7 +808,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     container.addEventListener('scroll', handleScroll)
-    handleScroll() // Check initial position
+    
+    // Only check initial position if not during initial auto-scrolling
+    if (!isInitialAutoScrollingRef.current) {
+      handleScroll()
+    }
     
     return () => container.removeEventListener('scroll', handleScroll)
   }, [messagesArray.length])
