@@ -165,18 +165,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
-    console.log('[Scroll Debug] scrollToBottom called:', {
-      isDesktop,
-      hasDesktopRef: !!conversationContainerRef.current,
-      hasMobileRef: !!mobileConversationContainerRef.current,
-      container: container ? container.className : 'null',
-      force,
-      isInitialLoad,
-      behavior
-    })
-    
     if (!container) {
-      console.error('[Scroll Debug] No scroll container found')
       return
     }
 
@@ -184,39 +173,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const scrollThreshold = 200
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
 
-    console.log('[Scroll Debug] Scroll state:', {
-      scrollHeight: container.scrollHeight,
-      scrollTop: container.scrollTop,
-      clientHeight: container.clientHeight,
-      scrollThreshold,
-      isNearBottom,
-      shouldScroll: force || isInitialLoad || isNearBottom || behavior === 'auto'
-    })
-
     // Force scroll on initial load regardless of scroll position
     if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
       requestAnimationFrame(() => {
         // Scroll to sentinel if available, otherwise to bottom
         if (bottomSentinelRef.current) {
           bottomSentinelRef.current.scrollIntoView({ behavior, block: 'end' })
-          console.log('[Scroll Debug] Scrolled to sentinel')
         } else {
           container.scrollTo({
             top: container.scrollHeight,
             behavior
           })
-          console.log('[Scroll Debug] Scrolled to bottom:', container.scrollHeight)
         }
         setShowJumpButton(false)
         if (isInitialLoad) {
           setHasScrolledToBottomOnLoad(true)
-          console.log('[Scroll Debug] Initial scroll complete, hasScrolledToBottomOnLoad set to true')
         }
       })
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
       setShowJumpButton(true)
-      console.log('[Scroll Debug] Showing jump button (user scrolled up)')
     }
   }
 
@@ -549,15 +525,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Scroll to bottom after messages load
   useEffect(() => {
-    console.log('[Scroll Debug] Initial load useEffect triggered:', {
-      loading,
-      messagesArrayLength: messagesArray.length,
-      hasScrolledToBottomOnLoad
-    })
-    
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
-      console.log('[Scroll Debug] Calling scrollToBottom for initial load')
-      scrollToBottom('smooth', false, true) // Force scroll on initial load
+      scrollToBottom('auto', false, true) // Use 'auto' for immediate scroll on initial load
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
@@ -1013,7 +982,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ...result.message
             }
             
-            console.log('[Send] SMS - Updated optimistic message:', updatedMessage.id, updatedMessage.status)
             return updatedMessage
           }
           return prev
@@ -1025,18 +993,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             if (!prev) return prev
             
             const currentMessages = prev.messages || []
-            console.log('[Send DEBUG] SMS - Before merge - current messages:', {
-              count: currentMessages.length,
-              messageIds: currentMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count }))
-            })
-            
             const mergedMessages = mergeMessagesById(currentMessages, [result.message])
-            
-            console.log('[Send DEBUG] SMS - After merge - merged messages:', {
-              count: mergedMessages.length,
-              messageIds: mergedMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count })),
-              newMessage: result.message
-            })
             
             return {
               ...prev,
@@ -1053,9 +1010,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // For MMS, call refreshConversationData to get complete message with media
       if (isMMS && result.message) {
-        console.log('[Send] MMS - Refreshing conversation data for message:', result.message.id)
         await handleRefresh()
-        console.log('[Send] MMS - Conversation data refreshed')
         
         // Clear mobile images after successful MMS send
         setMobileImages([])
@@ -1064,6 +1019,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         if (clearComposerImagesRef.current) {
           clearComposerImagesRef.current()
         }
+        
+        // Scroll to bottom after refresh completes
+        setTimeout(() => {
+          scrollToBottom('smooth', true)
+        }, 100)
       }
 
       // Clear input and set success
