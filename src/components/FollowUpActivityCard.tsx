@@ -150,16 +150,16 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
             </div>
             <div>
               <p className="text-xs font-medium text-slate-900 dark:text-foreground">
-                No follow-ups configured
+                No follow-up campaigns configured.
               </p>
               <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 mb-1.5">
-                Create automated campaigns to recover more leads.
+                Create follow-up sequences to automatically reconnect with missed leads.
               </p>
               <Link
                 href="/dashboard/settings/follow-ups"
-                className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-block"
+                className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-medium rounded-lg transition-colors"
               >
-                Configure Follow-Ups →
+                Configure Follow-Ups
               </Link>
             </div>
           </div>

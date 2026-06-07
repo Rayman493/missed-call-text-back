@@ -338,16 +338,38 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             {!isOnboardingExpanded && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                  Your first captured lead will appear here
+                  No leads yet
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Contact details, service request, and conversation history.
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                  ReplyFlow is active and waiting for your first missed call.
                 </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                  To test ReplyFlow, call your business number from another phone and let it ring.
+                </p>
+                <div className="text-left bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Expected result:
+                  </p>
+                  <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-300">
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>ReplyFlow answers</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Customer receives a text</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Lead appears here</span>
+                    </li>
+                  </ul>
+                </div>
                 <Link
                   href="/dashboard/test-setup"
                   className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
                 >
-                  Run Test Call
+                  Test My Setup
                 </Link>
               </div>
             )}

@@ -167,10 +167,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         <div className="text-center py-4 px-4">
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-              No recent activity yet
+              No activity yet
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Your activity feed will show missed calls, incoming texts, outgoing messages, and follow-up activity.
+              Missed calls, text conversations, and follow-up activity will appear here.
             </p>
           </div>
         </div>
