@@ -3,7 +3,7 @@
 // @ts-nocheck - TypeScript disabled due to disabled Admin Tools section with complex type checking
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -30,7 +30,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
-import { hasActiveAccess, hasActiveTrial, hasActiveSubscription } from '@/lib/subscription-utils'
+import { hasActiveAccess, hasActiveTrial, hasActiveSubscription, deriveSetupState } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getSetupHealth } from '@/lib/setup-health'
@@ -218,6 +218,7 @@ export default function DashboardContent() {
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
 
   // Setup mode detection - check if user came from billing success
@@ -860,6 +861,44 @@ export default function DashboardContent() {
   // If loading timeout reached, show dashboard anyway (don't render blank)
   if (loadingTimeout) {
     console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
+  }
+
+  // CENTRAL DASHBOARD GUARD: Prevent incomplete users from accessing full dashboard
+  // Uses deriveSetupState to determine if setup is complete and route accordingly
+  // Admin/protected accounts are exempt from this guard
+  const setupState = deriveSetupState(business)
+  const isSetupComplete = setupState === 'complete'
+
+  if (businessFetchComplete && !businessLoading && business && !isAdmin) {
+    // If setup is incomplete, route to the correct next step
+    if (!isSetupComplete) {
+      const targetRoute = (() => {
+        switch (setupState) {
+          case 'needs_trial':
+            return '/onboarding'
+          case 'provisioning_or_number_pending':
+            return '/onboarding/new-onboarding'
+          case 'needs_forwarding':
+            return '/setup/forwarding'
+          case 'needs_final_test':
+            return '/dashboard/test-setup'
+          default:
+            return null
+        }
+      })()
+
+      if (targetRoute && targetRoute !== pathname) {
+        console.log('[Dashboard Gate] Setup incomplete, redirecting:', {
+          setupState,
+          targetRoute,
+          currentPath: pathname,
+          subscription_status: business?.subscription_status,
+          provisioning_status: business?.provisioning_status
+        })
+        router.push(targetRoute)
+        return <AppLoadingScreen />
+      }
+    }
   }
 
   // DASHBOARD GATE: Redirect users without complete business profile to onboarding/profile
