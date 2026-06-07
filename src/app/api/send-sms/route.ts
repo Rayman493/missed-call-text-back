@@ -168,33 +168,74 @@ export async function POST(request: Request) {
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
       try {
-        console.log('[MMS] Uploading media files to storage:', mediaFiles.length)
+        console.log('[MMS] Uploading media files to storage:', {
+          mediaCount: mediaFiles.length,
+          fileNames: mediaFiles.map(f => f.name),
+          fileSizes: mediaFiles.map(f => f.size),
+          bucketName: 'message-media'
+        })
         
         for (const file of mediaFiles) {
           const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`
           const filePath = `${business.id}/${lead.id}/${fileName}`
+          
+          console.log('[MMS] Uploading file:', {
+            fileName,
+            filePath,
+            fileSize: file.size,
+            fileType: file.type
+          })
           
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from('message-media')
             .upload(filePath, file)
           
           if (uploadError) {
-            console.error('[MMS] Upload error:', uploadError)
-            return NextResponse.json({ error: 'Failed to upload media' }, { status: 500 })
+            console.error('[MMS] Upload error:', {
+              error: uploadError,
+              message: uploadError.message,
+              statusCode: uploadError.statusCode,
+              filePath,
+              fileName
+            })
+            return NextResponse.json({ 
+              error: 'Failed to upload media',
+              details: uploadError.message 
+            }, { status: 500 })
           }
+          
+          console.log('[MMS] Upload successful:', {
+            path: uploadData?.path,
+            fullPath: uploadData?.fullPath
+          })
           
           // Get public URL
           const { data: publicUrlData } = supabaseAdmin.storage
             .from('message-media')
             .getPublicUrl(filePath)
           
+          console.log('[MMS] Generated public URL:', {
+            publicUrl: publicUrlData.publicUrl,
+            filePath
+          })
+          
           mediaUrls.push(publicUrlData.publicUrl)
         }
         
-        console.log('[MMS] Media uploaded successfully:', mediaUrls.length)
-      } catch (error) {
-        console.error('[MMS] Error uploading media:', error)
-        return NextResponse.json({ error: 'Failed to upload media' }, { status: 500 })
+        console.log('[MMS] Media uploaded successfully:', {
+          mediaCount: mediaUrls.length,
+          urls: mediaUrls
+        })
+      } catch (error: any) {
+        console.error('[MMS] Error uploading media:', {
+          error: error,
+          message: error?.message,
+          stack: error?.stack
+        })
+        return NextResponse.json({ 
+          error: 'Failed to upload media',
+          details: error?.message || 'Unknown error'
+        }, { status: 500 })
       }
     }
 
@@ -214,12 +255,14 @@ export async function POST(request: Request) {
       messageSid = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
         conversation_id: conversation.id,
+        isManual: true, // Mark as manual user message to bypass duplicate check
       });
     } else {
       // Send SMS
       messageSid = await sendSms(business, lead.caller_phone, sanitizedMessage, {
         lead_id: lead.id,
         conversation_id: conversation.id,
+        isManual: true, // Mark as manual user message to bypass duplicate check
       });
     }
 
