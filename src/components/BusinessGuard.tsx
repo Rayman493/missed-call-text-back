@@ -155,11 +155,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       })
       
       // Check if forwarding is enabled but not verified - redirect to test-setup
-      if (business.call_forwarding_enabled && !business.forwarding_verified && !pathname?.startsWith('/dashboard/test-setup')) {
+      // BUT only if user is not already on dashboard and has access (to prevent hard-lock)
+      if (business.call_forwarding_enabled && !business.forwarding_verified && !pathname?.startsWith('/dashboard/test-setup') && !pathname?.startsWith('/dashboard') && hasAccess) {
         console.log('[BusinessGuard] Forwarding enabled but not verified - redirecting to test-setup', {
           call_forwarding_enabled: business.call_forwarding_enabled,
           forwarding_verified: business.forwarding_verified,
-          pathname
+          pathname,
+          hasAccess
         })
         router.replace('/dashboard/test-setup')
         return

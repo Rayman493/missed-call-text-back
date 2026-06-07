@@ -100,6 +100,38 @@ export async function POST(req: NextRequest) {
       console.error('[Twilio Voice Status Webhook] Early return: no business matched')
       return new Response("OK", { status: 200 })
     }
+
+    // TEST SETUP: Update test_call_received_at for businesses in pending_test or incomplete setup
+    const isTestSetup = business.onboarding_status === 'pending_test' || 
+                        (business.call_forwarding_enabled && !business.forwarding_verified)
+    
+    if (isTestSetup) {
+      console.log('[TEST SETUP] Test call received for business in test setup', {
+        businessId: business.id,
+        onboarding_status: business.onboarding_status,
+        call_forwarding_enabled: business.call_forwarding_enabled,
+        forwarding_verified: business.forwarding_verified
+      })
+
+      try {
+        const { error: testUpdateError } = await supabase
+          .from('businesses')
+          .update({
+            test_call_received_at: new Date().toISOString(),
+            // Keep forwarding_verified if already set
+            forwarding_verified: business.forwarding_verified || undefined
+          })
+          .eq('id', business.id)
+
+        if (testUpdateError) {
+          console.error('[TEST SETUP] Failed to update test_call_received_at:', testUpdateError)
+        } else {
+          console.log('[TEST SETUP] Successfully set test_call_received_at for business:', business.id)
+        }
+      } catch (testUpdateException) {
+        console.error('[TEST SETUP] Exception updating test_call_received_at:', testUpdateException)
+      }
+    }
     
     // Normalize customer phone number
     const normalizedCallerPhone = normalizePhoneNumber(From)
@@ -435,6 +467,69 @@ export async function POST(req: NextRequest) {
         if (messageSid) {
           console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
           autoReplySent = true
+
+          // TEST SETUP: Update test_sms_sent_at for businesses in test setup
+          if (isTestSetup) {
+            console.log('[TEST SETUP] Test SMS sent for business in test setup', {
+              businessId: business.id
+            })
+
+            try {
+              const { error: testSmsUpdateError } = await supabase
+                .from('businesses')
+                .update({
+                  test_sms_sent_at: new Date().toISOString()
+                })
+                .eq('id', business.id)
+
+              if (testSmsUpdateError) {
+                console.error('[TEST SETUP] Failed to update test_sms_sent_at:', testSmsUpdateError)
+              } else {
+                console.log('[TEST SETUP] Successfully set test_sms_sent_at for business:', business.id)
+
+                // TEST SETUP: Check if both test flags are set, then mark onboarding complete
+                const { data: updatedBusiness } = await supabase
+                  .from('businesses')
+                  .select('test_call_received_at, test_sms_sent_at, call_forwarding_enabled')
+                  .eq('id', business.id)
+                  .single()
+
+                if (updatedBusiness && 
+                    updatedBusiness.test_call_received_at && 
+                    updatedBusiness.test_sms_sent_at &&
+                    updatedBusiness.call_forwarding_enabled) {
+                  console.log('[TEST SETUP] Both test flags set, marking onboarding complete', {
+                    businessId: business.id,
+                    test_call_received_at: updatedBusiness.test_call_received_at,
+                    test_sms_sent_at: updatedBusiness.test_sms_sent_at
+                  })
+
+                  try {
+                    const { error: completeError } = await supabase
+                      .from('businesses')
+                      .update({
+                        forwarding_verified: true,
+                        forwarding_verified_at: new Date().toISOString(),
+                        onboarding_status: 'completed',
+                        setup_completed: true,
+                        setup_completed_at: new Date().toISOString()
+                      })
+                      .eq('id', business.id)
+
+                    if (completeError) {
+                      console.error('[TEST SETUP] Failed to mark onboarding complete:', completeError)
+                    } else {
+                      console.log('[TEST SETUP] Successfully marked onboarding complete for business:', business.id)
+                    }
+                  } catch (completeException) {
+                    console.error('[TEST SETUP] Exception marking onboarding complete:', completeException)
+                  }
+                }
+              }
+            } catch (testSmsUpdateException) {
+              console.error('[TEST SETUP] Exception updating test_sms_sent_at:', testSmsUpdateException)
+            }
+          }
 
           // Update lead status to contacted after SMS sent
           try {

@@ -25,6 +25,7 @@ export default function TestSetupPage() {
   const [testInitiationTime, setTestInitiationTime] = useState<Date | null>(null)
   const [earlyForwardingWarning, setEarlyForwardingWarning] = useState(false)
   const [pollingTimeout, setPollingTimeout] = useState(false)
+  const [isCompletingManually, setIsCompletingManually] = useState(false)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Use shared state resolver for consistency
@@ -218,6 +219,33 @@ export default function TestSetupPage() {
       }
     } catch (error) {
       console.error('[TestSetup] Error fetching latest lead:', error)
+    }
+  }
+
+  const handleManualComplete = async () => {
+    if (!business) return
+    
+    setIsCompletingManually(true)
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({
+          forwarding_verified: true,
+          forwarding_verified_at: new Date().toISOString(),
+          onboarding_status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', business.id)
+
+      if (error) throw error
+
+      console.log('[TestSetup] Manual completion successful')
+      await refreshBusiness()
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('[TestSetup] Manual completion failed:', error)
+    } finally {
+      setIsCompletingManually(false)
     }
   }
 
@@ -659,6 +687,34 @@ export default function TestSetupPage() {
                 </div>
               )}
             </div>
+
+            {/* Manual Completion Button (Beta) */}
+            {!success && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                      Test call not detected?
+                    </h3>
+                    <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
+                      If you received the test text but the system didn't detect it, you can manually complete setup.
+                    </p>
+                    <button
+                      onClick={handleManualComplete}
+                      disabled={isCompletingManually}
+                      className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                    >
+                      {isCompletingManually ? 'Completing...' : 'I received the test text — finish setup'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="space-y-4">
