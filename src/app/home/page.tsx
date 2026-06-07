@@ -199,7 +199,7 @@ export default function PublicHome() {
             {/* Pricing Information */}
             <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
               <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-              <span className="text-slate-700 dark:text-foreground text-lg">$49/month after trial</span>
+              <span className="text-slate-700 dark:text-foreground text-lg">$59/month after trial</span>
             </div>
 
             {/* Trust Copy */}

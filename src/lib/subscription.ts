@@ -118,9 +118,9 @@ export function getSubscriptionStatusDescription(subscriptionStatus: string | nu
   
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
-      return 'Your 14-day free trial is active. Billing starts at $49/month after trial unless canceled.'
+      return 'Your 14-day free trial is active. Billing starts at $59/month after trial unless canceled.'
     case SUBSCRIPTION_STATES.ACTIVE:
-      return 'Your ReplyFlow subscription is active at $49/month.'
+      return 'Your ReplyFlow subscription is active at $59/month.'
     case SUBSCRIPTION_STATES.BETA:
       return 'This account has complimentary beta access.'
     case SUBSCRIPTION_STATES.COMPED:
