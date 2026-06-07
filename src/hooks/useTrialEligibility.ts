@@ -49,9 +49,8 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            businessId: business.id,
-            email: user.email,
-            phoneNumber: business.business_phone_number,
+            business_phone_number: business.business_phone_number,
+            business_email: user.email,
           }),
         })
 
@@ -61,17 +60,18 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
 
         const data = await response.json()
         
-        const hasUsedTrial = !!data.has_used_trial
-        const cooldownActive = !!data.cooldown_end_date
+        // API returns: { ok: true, eligible: boolean, checks: {...}, message: string, reasons?: string[], support_email?: string }
+        const hasUsedTrial = !data.eligible && data.checks?.phone_number_eligible === false
+        const cooldownActive = !!data.checks?.cooldown_end_date
         
-        const mode: 'trial' | 'paid' = hasUsedTrial || cooldownActive ? 'paid' : 'trial'
+        const mode: 'trial' | 'paid' = data.eligible ? 'trial' : 'paid'
         
         setCheckoutMode(mode)
         setEligibility({
           eligible: data.eligible,
           hasUsedTrial,
           cooldownActive,
-          cooldownEndDate: data.cooldown_end_date,
+          cooldownEndDate: data.checks?.cooldown_end_date,
           reasons: data.reasons || []
         })
 
@@ -81,7 +81,7 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
           checkoutMode: mode,
           businessId: business.id,
           eligible: data.eligible,
-          cooldownEndDate: data.cooldown_end_date
+          cooldownEndDate: data.checks?.cooldown_end_date
         })
       } catch (err) {
         console.error('[Trial Eligibility] Error checking eligibility:', err)
