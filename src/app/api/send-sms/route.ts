@@ -308,6 +308,12 @@ export async function POST(request: Request) {
           .single()
         
         if (messageRecord) {
+          console.log('[MMS] Found message record for media insert:', {
+            messageId: messageRecord.id,
+            twilioSid: messageSid,
+            mediaCount: mediaUrls.length
+          })
+          
           for (const mediaUrl of mediaUrls) {
             const { error: mediaError } = await supabaseAdmin
               .from('message_media')
@@ -320,8 +326,17 @@ export async function POST(request: Request) {
             
             if (mediaError) {
               console.error('[MMS] Error storing media in database:', mediaError)
+            } else {
+              console.log('[MMS] Media stored successfully:', {
+                messageId: messageRecord.id,
+                mediaUrl: mediaUrl.substring(0, 50) + '...'
+              })
             }
           }
+        } else {
+          console.error('[MMS] Message record not found for media insert:', {
+            twilioSid: messageSid
+          })
         }
       } catch (error) {
         console.error('[MMS] Error storing media metadata:', error)

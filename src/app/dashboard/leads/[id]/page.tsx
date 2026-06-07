@@ -325,18 +325,39 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             headers['Authorization'] = `Bearer ${session.access_token}`
           }
 
+          console.log('[Media Fetch] Fetching media for message:', {
+            messageId: message.id,
+            direction: message.direction,
+            mediaCount: message.media_count
+          })
+
           const response = await fetch(`/api/message-media?messageId=${message.id}`, { headers })
           if (response.ok) {
             const mediaData = await response.json()
+            console.log('[Media Fetch] Media data received:', {
+              messageId: message.id,
+              mediaCount: mediaData.length,
+              mediaUrls: mediaData.map((m: any) => m.media_url?.substring(0, 50) + '...')
+            })
             mediaMap[message.id] = {
               urls: mediaData.map((m: any) => m.media_url),
               types: mediaData.map((m: any) => m.mime_type)
             }
+          } else {
+            console.error('[Media Fetch] Failed to fetch media:', {
+              messageId: message.id,
+              status: response.status
+            })
           }
         } catch (error) {
           console.error('Error fetching message media:', error)
         }
       }
+
+      console.log('[Media Fetch] Final media map:', {
+        messageCount: Object.keys(mediaMap).length,
+        messageIds: Object.keys(mediaMap)
+      })
 
       setMessageMedia(mediaMap)
     }
