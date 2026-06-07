@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
+import { twilioClient } from '@/lib/twilio'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -105,14 +106,39 @@ export async function POST(request: NextRequest) {
         console.log('[delete-account] No active Stripe subscriptions to cancel')
       }
 
-      // Step 1.6: Twilio number release - log only for now (full release not implemented yet)
+      // Step 1.6: Twilio number release - release from Twilio API
       for (const b of businesses as any[]) {
         if (b.twilio_phone_number_sid) {
-          console.log('[delete-account] TODO: release Twilio number', {
+          console.log('[delete-account] Releasing Twilio number', {
             businessId: b.id,
             phoneNumber: b.twilio_phone_number,
             sid: b.twilio_phone_number_sid,
           })
+
+          try {
+            if (twilioClient) {
+              await twilioClient.incomingPhoneNumbers(b.twilio_phone_number_sid).remove()
+              console.log('[delete-account] Twilio number released successfully', {
+                businessId: b.id,
+                phoneNumber: b.twilio_phone_number,
+                sid: b.twilio_phone_number_sid,
+              })
+            } else {
+              console.error('[delete-account] Twilio client not available, cannot release number', {
+                businessId: b.id,
+                phoneNumber: b.twilio_phone_number,
+                sid: b.twilio_phone_number_sid,
+              })
+            }
+          } catch (twilioError) {
+            console.error('[delete-account] Failed to release Twilio number (continuing deletion)', {
+              businessId: b.id,
+              phoneNumber: b.twilio_phone_number,
+              sid: b.twilio_phone_number_sid,
+              error: twilioError instanceof Error ? twilioError.message : String(twilioError),
+            })
+            // Continue deletion process even if Twilio release fails
+          }
         }
       }
     }
