@@ -532,26 +532,31 @@ function AuthContent() {
           )}
           
           {error && (
-            <div className="bg-red-900/20 dark:bg-red-900/20 border border-red-800 dark:border-red-800 rounded-2xl p-4 mb-6">
-              <p className="text-sm text-red-300 dark:text-red-300 mb-2">{error}</p>
-              {debugError && (
-                <div className="text-xs text-red-400/70 dark:text-red-400/70 font-mono bg-red-950/30 dark:bg-red-950/30 rounded p-2">
-                  <div>Debug: {debugError.message}</div>
-                  <div>Status: {debugError.status}</div>
-                  <div>Code: {debugError.code}</div>
-                  <div>HasUser: {debugError.hasUser ? 'YES' : 'NO'}</div>
-                  <div>HasSession: {debugError.hasSession ? 'YES' : 'NO'}</div>
+            <div className="bg-amber-900/20 dark:bg-amber-900/20 border border-amber-800 dark:border-amber-800 rounded-2xl p-4 mb-6">
+              <div className="flex items-start gap-3 mb-3">
+                <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-100 dark:text-amber-100 mb-1">
+                    {existingAccount ? 'Account Already Exists' : 'Authentication Error'}
+                  </p>
+                  <p className="text-sm text-amber-200/80 dark:text-amber-200/80">
+                    {existingAccount 
+                      ? 'An account with this email address already exists. Please sign in to continue or use a different email address.'
+                      : error}
+                  </p>
                 </div>
-              )}
+              </div>
               {existingAccount && !isSignIn && (
-                <div className="space-y-3">
+                <div className="space-y-2 pt-2 border-t border-amber-800/50">
                   <button
                     onClick={() => {
                       setError('')
                       setExistingAccount(false)
                       router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
                     }}
-                    className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition-all hover:-translate-y-[1px] font-semibold"
+                    className="w-full h-11 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition-all font-semibold text-sm"
                   >
                     Sign In
                   </button>
@@ -560,10 +565,25 @@ function AuthContent() {
                       setExistingAccount(false)
                       setError('')
                     }}
-                    className="w-full text-sm text-slate-400 dark:text-slate-400 hover:text-slate-300 dark:hover:text-slate-300 underline"
+                    className="w-full text-sm text-amber-200/70 dark:text-amber-200/70 hover:text-amber-100 dark:hover:text-amber-100 underline"
                   >
                     Use a different email
                   </button>
+                </div>
+              )}
+              {/* Debug info only in development */}
+              {debugError && process.env.NODE_ENV === 'development' && (
+                <div className="mt-3 pt-3 border-t border-amber-800/50">
+                  <details className="text-xs text-amber-400/50 dark:text-amber-400/50 font-mono">
+                    <summary className="cursor-pointer hover:text-amber-400/70">Debug Info (dev only)</summary>
+                    <div className="mt-2 space-y-1 pl-2">
+                      <div>Message: {debugError.message}</div>
+                      <div>Status: {debugError.status}</div>
+                      <div>Code: {debugError.code}</div>
+                      <div>HasUser: {debugError.hasUser ? 'YES' : 'NO'}</div>
+                      <div>HasSession: {debugError.hasSession ? 'YES' : 'NO'}</div>
+                    </div>
+                  </details>
                 </div>
               )}
             </div>
