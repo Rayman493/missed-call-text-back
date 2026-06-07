@@ -6,6 +6,7 @@ interface ConversationComposerProps {
   setMessage: (message: string) => void
   handleSendMessage: (media?: File[]) => void
   sending: boolean
+  onClearImages?: (clearFn: () => void) => void
 }
 
 interface ImagePreview {
@@ -18,12 +19,21 @@ export default function ConversationComposer({
   message, 
   setMessage, 
   handleSendMessage, 
-  sending 
+  sending,
+  onClearImages
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+
+  // Clear images when onClearImages is called
+  React.useEffect(() => {
+    if (onClearImages) {
+      // Register the clear function with the parent
+      onClearImages(() => setImages([]))
+    }
+  }, [onClearImages])
 
   const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
 

@@ -131,6 +131,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
   const [mobileImages, setMobileImages] = useState<File[]>([])
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
+  const clearComposerImagesRef = useRef<(() => void) | null>(null)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -896,6 +897,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     
     // Check if media files were passed
     const mediaFiles = Array.isArray(e) ? e : undefined
+    const isMMS = mediaFiles && mediaFiles.length > 0
     
     // Don't send if message is empty (unless media is present), whitespace, or already sending
     if (!message.trim() && !mediaFiles) return
@@ -904,18 +906,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Create stable client temp ID
     const clientTempId = crypto.randomUUID()
     
-    // Create optimistic message with stable ID
-    const optimisticMsg = {
-      id: clientTempId,
-      clientTempId,
-      direction: 'outbound',
-      body: message.trim(),
-      status: 'sending',
-      created_at: new Date().toISOString(),
-      isOptimistic: true
+    // Only create optimistic message for text-only SMS (skip for MMS)
+    if (!isMMS) {
+      const optimisticMsg = {
+        id: clientTempId,
+        clientTempId,
+        direction: 'outbound',
+        body: message.trim(),
+        status: 'sending',
+        created_at: new Date().toISOString(),
+        isOptimistic: true
+      }
+      setOptimisticMessage(optimisticMsg)
     }
     
-    setOptimisticMessage(optimisticMsg)
     setSending(true)
     setError('')
     setSuccessMessage('')
@@ -968,12 +972,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        // Update optimistic message to failed state
-        setOptimisticMessage({
-          ...optimisticMsg,
-          status: 'failed',
-          error_message: result.error || 'We couldn\'t send this message'
-        })
+        // Update optimistic message to failed state (SMS only)
+        if (!isMMS) {
+          setOptimisticMessage((prev: any) => ({
+            ...prev,
+            status: 'failed',
+            error_message: result.error || 'We couldn\'t send this message'
+          }))
+        }
         
         // Show appropriate error message based on response
         if (result.error === 'Lead not found') {
@@ -990,10 +996,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data using clientTempId
-      if (result.clientTempId === clientTempId && result.message) {
-        console.log('[Send] Messages before send:', leadData?.messages?.length || 0)
-        console.log('[Send] API returned message id:', result.message.id, 'status:', result.message.status)
+      // Update optimistic message with real message data using clientTempId (SMS only)
+      if (!isMMS && result.clientTempId === clientTempId && result.message) {
+        console.log('[Send] SMS - Messages before send:', leadData?.messages?.length || 0)
+        console.log('[Send] SMS - API returned message id:', result.message.id, 'status:', result.message.status)
         
         setOptimisticMessage((prev: any) => {
           // Only update if this is the same message
@@ -1007,7 +1013,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ...result.message
             }
             
-            console.log('[Send] Updated optimistic message:', updatedMessage.id, updatedMessage.status)
+            console.log('[Send] SMS - Updated optimistic message:', updatedMessage.id, updatedMessage.status)
             return updatedMessage
           }
           return prev
@@ -1019,14 +1025,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             if (!prev) return prev
             
             const currentMessages = prev.messages || []
-            console.log('[Send DEBUG] Before merge - current messages:', {
+            console.log('[Send DEBUG] SMS - Before merge - current messages:', {
               count: currentMessages.length,
               messageIds: currentMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count }))
             })
             
             const mergedMessages = mergeMessagesById(currentMessages, [result.message])
             
-            console.log('[Send DEBUG] After merge - merged messages:', {
+            console.log('[Send DEBUG] SMS - After merge - merged messages:', {
               count: mergedMessages.length,
               messageIds: mergedMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count })),
               newMessage: result.message
@@ -1039,41 +1045,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           })
         }, 100)
         
-        // Update messageMedia state if the message has media
-        if (result.message.media_count > 0 && result.message.message_media) {
-          setTimeout(() => {
-            setMessageMedia((prev: any) => {
-              const mediaUrls = result.message.message_media.map((m: any) => m.media_url)
-              const mediaTypes = result.message.message_media.map((m: any) => m.mime_type)
-              
-              console.log('[Send DEBUG] Updating messageMedia for new message:', {
-                messageId: result.message.id,
-                mediaUrls: mediaUrls.length,
-                mediaTypes: mediaTypes.length,
-                existingKeys: Object.keys(prev),
-                newKey: result.message.id
-              })
-              
-              return {
-                ...prev,
-                [result.message.id]: {
-                  urls: mediaUrls,
-                  types: mediaTypes
-                }
-              }
-            })
-          }, 100)
-        } else {
-          console.log('[Send DEBUG] No media to attach:', {
-            media_count: result.message.media_count,
-            message_media: result.message.message_media
-          })
-        }
-        
         // Clear optimistic message after it's merged into local state
         setTimeout(() => {
           setOptimisticMessage(null)
         }, 500)
+      }
+
+      // For MMS, call refreshConversationData to get complete message with media
+      if (isMMS && result.message) {
+        console.log('[Send] MMS - Refreshing conversation data for message:', result.message.id)
+        await handleRefresh()
+        console.log('[Send] MMS - Conversation data refreshed')
+        
+        // Clear mobile images after successful MMS send
+        setMobileImages([])
+        
+        // Clear desktop composer images after successful MMS send
+        if (clearComposerImagesRef.current) {
+          clearComposerImagesRef.current()
+        }
       }
 
       // Clear input and set success
@@ -1090,12 +1080,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         scrollToBottom('smooth')
       }, 50)
     } catch (err) {
-      // Update optimistic message to failed state
-      setOptimisticMessage({
-        ...optimisticMsg,
-        status: 'failed',
-        error_message: 'Network error occurred'
-      })
+      // Update optimistic message to failed state (SMS only)
+      if (!isMMS) {
+        setOptimisticMessage((prev: any) => ({
+          ...prev,
+          status: 'failed',
+          error_message: 'Network error occurred'
+        }))
+      }
       setError('Failed to send message. Please try again.')
     } finally {
       setSending(false)
@@ -1701,6 +1693,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 setMessage={setMessage}
                 handleSendMessage={handleSendMessage}
                 sending={sending}
+                onClearImages={(clearFn: () => void) => {
+                  clearComposerImagesRef.current = clearFn
+                }}
               />
             </div>
           </section>
