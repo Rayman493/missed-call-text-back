@@ -42,7 +42,8 @@ export async function sendSms(
     console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate automated message', {
       lead_id: options.lead_id,
       message_body: message.substring(0, 50),
-      to
+      to,
+      isManual: options?.isManual
     });
 
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
