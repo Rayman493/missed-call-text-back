@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
     } else if (MessageStatus === 'delivered') {
       updateData.delivered_at = new Date().toISOString()
     } else if (MessageStatus === 'failed' || MessageStatus === 'undelivered') {
-      updateData.failed_at = new Date().toISOString()
       updateData.error_code = ErrorCode
       updateData.error_message = ErrorMessage
     }

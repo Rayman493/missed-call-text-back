@@ -167,6 +167,21 @@ export async function POST(request: Request) {
 
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
+      // Validate file types - Twilio MMS only supports JPEG, PNG, GIF
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      const unsupportedFile = mediaFiles.find(f => !supportedTypes.includes(f.type))
+      
+      if (unsupportedFile) {
+        console.error('[MMS] Unsupported file type:', {
+          fileName: unsupportedFile.name,
+          fileType: unsupportedFile.type
+        })
+        return NextResponse.json({ 
+          error: 'WEBP images are not supported for MMS. Please upload a JPG or PNG.',
+          details: `Unsupported file type: ${unsupportedFile.type}`
+        }, { status: 400 })
+      }
+      
       try {
         console.log('[MMS] Uploading media files to storage:', {
           mediaCount: mediaFiles.length,

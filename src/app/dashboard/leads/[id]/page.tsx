@@ -242,10 +242,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const validateImageFile = (file: File): { valid: boolean; error?: string } => {
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif']
+    // Check file type - Twilio MMS only supports JPEG, PNG, GIF
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
     if (!validTypes.includes(file.type)) {
-      return { valid: false, error: 'Only JPEG, PNG, and GIF images are supported' }
+      return { valid: false, error: 'WEBP images are not supported for MMS. Please upload a JPG or PNG.' }
     }
 
     // Check file size (5MB max)

@@ -21,16 +21,26 @@ export default function ConversationComposer({
   sending 
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
     const newImages: ImagePreview[] = []
+    let unsupportedFile = ''
+
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return
+
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        unsupportedFile = file.name
+        return
+      }
 
       const preview = URL.createObjectURL(file)
       newImages.push({
@@ -39,6 +49,11 @@ export default function ConversationComposer({
         id: Math.random().toString(36).substr(2, 9)
       })
     })
+
+    if (unsupportedFile) {
+      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    }
 
     setImages(prev => [...prev, ...newImages])
   }
@@ -66,8 +81,15 @@ export default function ConversationComposer({
     if (!files) return
 
     const newImages: ImagePreview[] = []
+    let unsupportedFile = ''
+
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return
+
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        unsupportedFile = file.name
+        return
+      }
 
       const preview = URL.createObjectURL(file)
       newImages.push({
@@ -76,6 +98,11 @@ export default function ConversationComposer({
         id: Math.random().toString(36).substr(2, 9)
       })
     })
+
+    if (unsupportedFile) {
+      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    }
 
     setImages(prev => [...prev, ...newImages])
   }
@@ -113,6 +140,13 @@ export default function ConversationComposer({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2 rounded-lg text-sm">
+            {error}
           </div>
         )}
 
