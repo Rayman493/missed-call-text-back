@@ -11,7 +11,7 @@ import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import { useDashboardRouteTracking } from '@/hooks/useDashboardRouteTracking'
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
-import { isAdminUser } from '@/lib/admin'
+import { isAdminUserById } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -230,8 +230,8 @@ export default function DashboardContent() {
     businessFetchComplete
   })
 
-  // Check if user is admin based on email allowlist
-  const isAdmin = isAdminUser(user?.email)
+  // Check if user is admin based on user ID
+  const isAdmin = isAdminUserById(user?.id)
   
   // ALL hooks must be called before any conditional returns to prevent React #310
   const [processedLeads, setProcessedLeads] = useState<any[]>([])

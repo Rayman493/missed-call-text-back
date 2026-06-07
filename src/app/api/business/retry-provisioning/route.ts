@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retryProvisioning } from '@/lib/twilio-provisioning-service';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { isAdmin } from '@/lib/admin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +12,44 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const cookieStore = cookies();
+    const authSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log('[RETRY PROVISIONING API] Unauthorized - No user session');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      console.log('[RETRY PROVISIONING API] Forbidden - Admin check failed:', { userId: user.id });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { business_id } = body;
 
@@ -21,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[RETRY PROVISIONING API] ========== START ==========');
     console.log('[RETRY PROVISIONING API] business_id:', business_id);
+    console.log('[RETRY PROVISIONING API] Authorized by admin:', user.id);
 
     // Verify business exists
     const { data: business, error: businessError } = await supabase

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { isAdminUser } from '@/lib/admin'
+import { isAdminUserById } from '@/lib/admin'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Navigation from '@/components/Navigation'
@@ -33,9 +33,9 @@ export default function AdminDiagnosticsPage() {
 
   useEffect(() => {
     const checkAdminAndLoadData = async () => {
-      if (!user?.email) return
+      if (!user?.id) return
       
-      const adminCheck = isAdminUser(user.email)
+      const adminCheck = isAdminUserById(user.id)
       if (!adminCheck) {
         router.push('/dashboard')
         return

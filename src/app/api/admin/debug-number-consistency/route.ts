@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +34,15 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      console.log('[Debug Number Consistency] Forbidden - Admin check failed:', { userId: user.id })
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
       )
     }
 
