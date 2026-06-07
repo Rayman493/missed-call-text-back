@@ -1203,12 +1203,19 @@ export default function DashboardContent() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                           <div>
                             <h3 className="text-base font-semibold text-foreground mb-1">
-                              {eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now')}
+                              {eligibilityLoading 
+                                ? 'Checking plan...' 
+                                : (eligibility && !eligibility.eligible && eligibility.failureTitle
+                                  ? eligibility.failureTitle
+                                  : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now'))
+                              }
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               {eligibilityLoading 
                                 ? 'Determining your subscription options...'
-                                : 'Activate ReplyFlow to begin capturing missed calls automatically.'
+                                : (eligibility && !eligibility.eligible && eligibility.failureMessage
+                                  ? eligibility.failureMessage
+                                  : 'Activate ReplyFlow to begin capturing missed calls automatically.')
                               }
                             </p>
                           </div>
@@ -1217,10 +1224,18 @@ export default function DashboardContent() {
                             disabled={checkoutLoading || eligibilityLoading}
                             className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           >
-                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now'))}
+                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : 'Subscribe Now')}
                           </button>
                         </div>
-                        {checkoutError && (
+                        {eligibility && !eligibility.eligible && eligibility.failureDetails && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">{eligibility.failureDetails}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                              Need help? Contact <a href="mailto:support@replyflowhq.com" className="underline hover:no-underline">support@replyflowhq.com</a> and we'll take a look.
+                            </p>
+                          </div>
+                        )}
+                        {checkoutError && !eligibility?.failureDetails && (
                           <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                             <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-1">{checkoutError}</p>
                             <p className="text-xs text-red-600 dark:text-red-400">

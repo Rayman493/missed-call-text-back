@@ -11,6 +11,10 @@ export interface TrialEligibilityResult {
   cooldownActive: boolean
   cooldownEndDate?: string
   reasons?: string[]
+  failureType?: 'previous_subscription' | 'previous_trial' | 'phone_used' | 'cooldown' | 'domain_abuse' | 'generic'
+  failureTitle?: string
+  failureMessage?: string
+  failureDetails?: string
 }
 
 export interface UseTrialEligibilityReturn {
@@ -66,13 +70,54 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
         
         const mode: 'trial' | 'paid' = data.eligible ? 'trial' : 'paid'
         
+        // Determine failure type and user-friendly messages
+        let failureType: 'previous_subscription' | 'previous_trial' | 'phone_used' | 'cooldown' | 'domain_abuse' | 'generic' = 'generic'
+        let failureTitle = 'Free Trial Not Available'
+        let failureMessage = 'You are not eligible for a free trial at this time.'
+        let failureDetails = ''
+        
+        if (!data.eligible) {
+          const reasons = data.reasons || []
+          
+          if (data.checks?.stripe_eligible === false) {
+            failureType = 'previous_subscription'
+            failureTitle = 'Free Trial Already Used'
+            failureMessage = 'This email has already been associated with a previous ReplyFlow trial or subscription.'
+            failureDetails = 'To prevent abuse, free trials are limited to one per customer. You can continue by subscribing directly.'
+          } else if (data.checks?.phone_number_eligible === false) {
+            if (data.checks?.cooldown_end_date) {
+              failureType = 'cooldown'
+              failureTitle = 'Trial Cooldown Period'
+              failureMessage = 'This business phone number is within the trial cooldown period.'
+              const cooldownDate = new Date(data.checks.cooldown_end_date)
+              failureDetails = `You can start another free trial after ${cooldownDate.toLocaleDateString()}.`
+            } else {
+              failureType = 'phone_used'
+              failureTitle = 'Phone Number Already Used'
+              failureMessage = 'This business phone number is already associated with an active account.'
+              failureDetails = 'Each phone number can only be used for one free trial. You can continue by subscribing directly.'
+            }
+          } else if (data.checks?.email_domain_eligible === false) {
+            failureType = 'domain_abuse'
+            failureTitle = 'Free Trial Limit Reached'
+            failureMessage = 'This domain has been associated with multiple trial accounts.'
+            failureDetails = 'To prevent abuse, free trials are limited per domain. You can continue by subscribing directly.'
+          } else if (reasons.length > 0) {
+            failureDetails = reasons.join(' ')
+          }
+        }
+        
         setCheckoutMode(mode)
         setEligibility({
           eligible: data.eligible,
           hasUsedTrial,
           cooldownActive,
           cooldownEndDate: data.checks?.cooldown_end_date,
-          reasons: data.reasons || []
+          reasons: data.reasons || [],
+          failureType: data.eligible ? undefined : failureType,
+          failureTitle: data.eligible ? undefined : failureTitle,
+          failureMessage: data.eligible ? undefined : failureMessage,
+          failureDetails: data.eligible ? undefined : failureDetails
         })
 
         console.log('[Trial Eligibility] Determined checkout mode', {
