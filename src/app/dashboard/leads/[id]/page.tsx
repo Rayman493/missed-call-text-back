@@ -129,6 +129,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
+  const [mobileImages, setMobileImages] = useState<File[]>([])
+  const mobileFileInputRef = useRef<HTMLInputElement>(null)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -137,6 +139,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // ALL hooks must must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
+  const [hasScrolledToBottomOnLoad, setHasScrolledToBottomOnLoad] = useState(false)
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
@@ -154,7 +157,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMoreActions])
   
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false) => {
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Scroll conversation container to bottom
     const container = conversationContainerRef.current
     if (!container) return
@@ -162,14 +165,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-    
-    if (force || isNearBottom || behavior === 'auto') {
+
+    // Force scroll on initial load regardless of scroll position
+    if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
       setTimeout(() => {
         container.scrollTo({
           top: container.scrollHeight,
           behavior
         })
         setShowJumpButton(false)
+        if (isInitialLoad) {
+          setHasScrolledToBottomOnLoad(true)
+        }
       }, 100)
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
@@ -199,12 +206,62 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     scrollToBottom('auto', true)
   }
 
+  const validateImageFile = (file: File): { valid: boolean; error?: string } => {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      return { valid: false, error: 'Only JPEG, PNG, and GIF images are supported' }
+    }
+
+    // Check file size (5MB max)
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      return { valid: false, error: 'Image must be less than 5MB' }
+    }
+
+    return { valid: true }
+  }
+
+  const handleMobileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const validFiles: File[] = []
+    const errors: string[] = []
+
+    // Check max 10 images total
+    if (mobileImages.length + files.length > 10) {
+      setError('Maximum 10 images allowed')
+      return
+    }
+
+    Array.from(files).forEach(file => {
+      const validation = validateImageFile(file)
+      if (validation.valid) {
+        validFiles.push(file)
+      } else {
+        errors.push(validation.error || 'Invalid file')
+      }
+    })
+
+    if (errors.length > 0) {
+      setError(errors[0])
+    }
+
+    setMobileImages(prev => [...prev, ...validFiles])
+  }
+
+  const removeMobileImage = (index: number) => {
+    setMobileImages(prev => prev.filter((_, i) => i !== index))
+  }
+
   
   
   // Scroll to bottom after sending a message
   useEffect(() => {
     if (!sending && successMessage) {
       scrollToBottom('smooth')
+      setMobileImages([]) // Clear mobile images after successful send
     }
   }, [sending, successMessage])
 
@@ -423,10 +480,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Scroll to bottom after messages load
   useEffect(() => {
-    if (!loading && messagesArray.length > 0) {
-      scrollToBottom('auto')
+    if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
+      scrollToBottom('smooth', false, true) // Force scroll on initial load
     }
-  }, [loading, messagesArray.length])
+  }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
@@ -1504,33 +1561,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer */}
-            <div className="shrink-0 border-t border-border px-4 sm:px-5 lg:px-6 py-3 pb-4 bg-background/50">
-              <div className="flex gap-3 items-end">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!message.trim() || sending}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
-                >
-                  {sending ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      <span>Send</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="shrink-0 border-t border-border bg-background/50">
+              <ConversationComposer
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
+                sending={sending}
+              />
             </div>
           </section>
           
@@ -1798,7 +1835,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Mobile Message Composer */}
           <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
-            <div className="flex gap-3">
+            {/* Image Previews */}
+            {mobileImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {mobileImages.map((file, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="Preview"
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                    />
+                    <button
+                      onClick={() => removeMobileImage(index)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      type="button"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-3 items-end">
+              <button
+                type="button"
+                onClick={() => mobileFileInputRef.current?.click()}
+                className="p-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                disabled={sending}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <input
+                ref={mobileFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif"
+                multiple
+                onChange={handleMobileImageSelect}
+                className="hidden"
+              />
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -1808,8 +1886,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 rows={2}
               />
               <button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || sending}
+                onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
+                disabled={(!message.trim() && mobileImages.length === 0) || sending}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
               >
                 {sending ? (
