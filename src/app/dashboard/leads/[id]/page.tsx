@@ -165,28 +165,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
-    console.log('[AUTO SCROLL] Triggered:', {
-      isDesktop,
-      hasContainer: !!container,
-      force,
-      isInitialLoad,
-      behavior,
-      messagesCount: messagesArray.length
-    })
-    
     if (!container) {
-      console.log('[AUTO SCROLL] No container found')
       return
     }
-
-    const scrollTopBefore = container.scrollTop
-    const containerHeightBefore = container.scrollHeight
-    
-    console.log('[AUTO SCROLL] Before scroll:', {
-      scrollTop: scrollTopBefore,
-      scrollHeight: containerHeightBefore,
-      clientHeight: container.clientHeight
-    })
 
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
@@ -204,17 +185,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             behavior
           })
         }
-        
-        const scrollTopAfter = container.scrollTop
-        const containerHeightAfter = container.scrollHeight
-        
-        console.log('[AUTO SCROLL] After scroll:', {
-          scrollTop: scrollTopAfter,
-          scrollHeight: containerHeightAfter,
-          scrollTopDelta: scrollTopAfter - scrollTopBefore,
-          heightDelta: containerHeightAfter - containerHeightBefore
-        })
-        
         setShowJumpButton(false)
         if (isInitialLoad) {
           setHasScrolledToBottomOnLoad(true)
@@ -223,7 +193,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
       setShowJumpButton(true)
-      console.log('[AUTO SCROLL] Not scrolling - user scrolled up')
     }
   }
 
@@ -557,7 +526,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Scroll to bottom after messages load
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
-      scrollToBottom('auto', false, true) // Use 'auto' for immediate scroll on initial load
+      // Use double requestAnimationFrame and small delay to ensure images render
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            scrollToBottom('auto', false, true)
+          }, 200)
+        })
+      })
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
@@ -573,7 +549,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
         
         if (isNearBottom) {
-          console.log('[AUTO SCROLL] Messages array changed, scrolling to bottom')
           // Use double requestAnimationFrame to ensure React has finished rendering
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -1065,9 +1040,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // For MMS, call refreshConversationData to get complete message with media
       if (isMMS && result.message) {
-        console.log('[AUTO SCROLL] MMS refresh starting for message:', result.message.id)
         await handleRefresh()
-        console.log('[AUTO SCROLL] MMS refresh completed, messages count:', leadData?.messages?.length)
         
         // Clear mobile images after successful MMS send
         setMobileImages([])
@@ -1079,7 +1052,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         // Scroll to bottom after refresh completes
         setTimeout(() => {
-          console.log('[AUTO SCROLL] MMS scroll after refresh timeout')
           scrollToBottom('smooth', true)
         }, 100)
       }
@@ -1663,21 +1635,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const isLatest = index === messagesArray.length - 1
                     const media = messageMedia[message.id]
                     
-                    // Debug log for outbound MMS messages
-                    if (message.direction === 'outbound' && message.media_count > 0) {
-                      console.log('[Renderer DEBUG] Outbound MMS message:', {
-                        message_id: message.id,
-                        direction: message.direction,
-                        media_count: message.media_count,
-                        message_type: message.message_type,
-                        body: message.body?.substring(0, 30) + '...',
-                        media_attached: !!media,
-                        media_urls: media?.urls?.length || 0,
-                        media_types: media?.types?.length || 0,
-                        hasMediaKey: messageMedia.hasOwnProperty(message.id)
-                      })
-                    }
-                    
                     return (
                       <div
                         key={message.id}
@@ -1693,7 +1650,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               mediaUrls={media.urls} 
                               mediaTypes={media.types} 
                               onImageLoad={() => {
-                                console.log('[AUTO SCROLL] Image loaded, scrolling to bottom')
                                 scrollToBottom('smooth', true)
                               }}
                             />
@@ -1705,8 +1661,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )
                   })}
-                  {/* Bottom spacer to ensure latest message is visible above composer */}
-                  <div className="h-24 sm:h-32" />
                   {/* Bottom sentinel for scroll targeting */}
                   <div ref={bottomSentinelRef} className="h-1" />
                 </div>
