@@ -418,6 +418,7 @@ export async function sendSms(
         error_code: twilioErrorCode,
         error_message: twilioErrorMessage,
         created_at: new Date().toISOString(),
+        is_manual: options?.isManual || false,
       });
 
     if (insertError) {
@@ -639,6 +640,7 @@ export async function sendMms(
         sent_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
+        is_manual: options?.isManual || false,
       });
 
     if (insertError) {
