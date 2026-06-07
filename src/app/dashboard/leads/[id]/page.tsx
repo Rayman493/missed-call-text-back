@@ -1689,7 +1689,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <p className={`text-sm ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
                           )}
                           {media && media.urls.length > 0 && (
-                            <ImageMessage mediaUrls={media.urls} mediaTypes={media.types} />
+                            <ImageMessage 
+                              mediaUrls={media.urls} 
+                              mediaTypes={media.types} 
+                              onImageLoad={() => {
+                                console.log('[AUTO SCROLL] Image loaded, scrolling to bottom')
+                                scrollToBottom('smooth', true)
+                              }}
+                            />
                           )}
                           <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
                             {formatRelativeTime(message.created_at)}
@@ -1698,6 +1705,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )
                   })}
+                  {/* Bottom spacer to ensure latest message is visible above composer */}
+                  <div className="h-24 sm:h-32" />
                   {/* Bottom sentinel for scroll targeting */}
                   <div ref={bottomSentinelRef} className="h-1" />
                 </div>

@@ -6,9 +6,10 @@ import { X } from 'lucide-react'
 interface ImageMessageProps {
   mediaUrls: string[]
   mediaTypes: string[]
+  onImageLoad?: () => void
 }
 
-export function ImageMessage({ mediaUrls, mediaTypes }: ImageMessageProps) {
+export function ImageMessage({ mediaUrls, mediaTypes, onImageLoad }: ImageMessageProps) {
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   if (!mediaUrls || mediaUrls.length === 0) {
@@ -29,6 +30,11 @@ export function ImageMessage({ mediaUrls, mediaTypes }: ImageMessageProps) {
               alt={`Attachment ${index + 1}`}
               className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
               loading="lazy"
+              onLoad={() => {
+                if (index === mediaUrls.length - 1 && onImageLoad) {
+                  onImageLoad()
+                }
+              }}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg" />
           </div>
