@@ -144,6 +144,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
+  const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
+  const bottomSentinelRef = useRef<HTMLDivElement>(null)
   
   // Close more actions dropdown when clicking outside
   useEffect(() => {
@@ -158,29 +160,62 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [showMoreActions])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
-    // Scroll conversation container to bottom
-    const container = conversationContainerRef.current
-    if (!container) return
+    // Get the correct container based on viewport size
+    const isDesktop = window.innerWidth >= 1024
+    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    
+    console.log('[Scroll Debug] scrollToBottom called:', {
+      isDesktop,
+      hasDesktopRef: !!conversationContainerRef.current,
+      hasMobileRef: !!mobileConversationContainerRef.current,
+      container: container ? container.className : 'null',
+      force,
+      isInitialLoad,
+      behavior
+    })
+    
+    if (!container) {
+      console.error('[Scroll Debug] No scroll container found')
+      return
+    }
 
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
 
+    console.log('[Scroll Debug] Scroll state:', {
+      scrollHeight: container.scrollHeight,
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight,
+      scrollThreshold,
+      isNearBottom,
+      shouldScroll: force || isInitialLoad || isNearBottom || behavior === 'auto'
+    })
+
     // Force scroll on initial load regardless of scroll position
     if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
-      setTimeout(() => {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior
-        })
+      requestAnimationFrame(() => {
+        // Scroll to sentinel if available, otherwise to bottom
+        if (bottomSentinelRef.current) {
+          bottomSentinelRef.current.scrollIntoView({ behavior, block: 'end' })
+          console.log('[Scroll Debug] Scrolled to sentinel')
+        } else {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior
+          })
+          console.log('[Scroll Debug] Scrolled to bottom:', container.scrollHeight)
+        }
         setShowJumpButton(false)
         if (isInitialLoad) {
           setHasScrolledToBottomOnLoad(true)
+          console.log('[Scroll Debug] Initial scroll complete, hasScrolledToBottomOnLoad set to true')
         }
-      }, 100)
+      })
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
       setShowJumpButton(true)
+      console.log('[Scroll Debug] Showing jump button (user scrolled up)')
     }
   }
 
@@ -480,14 +515,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Scroll to bottom after messages load
   useEffect(() => {
+    console.log('[Scroll Debug] Initial load useEffect triggered:', {
+      loading,
+      messagesArrayLength: messagesArray.length,
+      hasScrolledToBottomOnLoad
+    })
+    
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
+      console.log('[Scroll Debug] Calling scrollToBottom for initial load')
       scrollToBottom('smooth', false, true) // Force scroll on initial load
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
-    const container = conversationContainerRef.current
+    const isDesktop = window.innerWidth >= 1024
+    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
@@ -1556,6 +1599,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )
                   })}
+                  {/* Bottom sentinel for scroll targeting */}
+                  <div ref={bottomSentinelRef} className="h-1" />
                 </div>
               )}
             </div>
@@ -1795,7 +1840,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Thread */}
-          <div ref={conversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1829,6 +1874,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )
                 })}
+                {/* Bottom sentinel for scroll targeting */}
+                <div ref={bottomSentinelRef} className="h-1" />
               </div>
             )}
           </div>
