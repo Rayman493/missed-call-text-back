@@ -381,14 +381,55 @@ export default function OnboardingPage() {
       // Refresh business context to update state
       await refreshBusiness()
       
-      // Redirect to dashboard to show Start Free Trial
-      router.push('/dashboard')
+      // Create Stripe checkout session directly
+      console.log('[Onboarding] Creating Stripe checkout session...')
+      const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          checkout_mode: 'trial',
+        }),
+      })
+
+      if (!checkoutResponse.ok) {
+        const checkoutError = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Onboarding] Checkout session creation failed:', checkoutError)
+        
+        // If checkout fails, redirect to dashboard where user can try again
+        console.log('[Onboarding] Redirecting to dashboard for manual checkout retry')
+        router.push('/dashboard')
+        return
+      }
+
+      const checkoutData = await checkoutResponse.json()
+      
+      if (!checkoutData.url) {
+        console.error('[Onboarding] No checkout URL returned:', checkoutData)
+        setError('Failed to create checkout session. Please try again.')
+        return
+      }
+
+      console.log('[Onboarding] Checkout session created, redirecting to Stripe:', checkoutData.url)
+      
+      // Redirect to Stripe checkout
+      window.location.href = checkoutData.url
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'
       setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('[Onboarding] Sign out error:', error)
     }
   }
 
@@ -404,7 +445,15 @@ export default function OnboardingPage() {
             <p className="text-xs text-slate-400 text-right">Step 1 of 2</p>
           </div>
           
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">Welcome to ReplyFlow</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Welcome to ReplyFlow</h1>
+            <button
+              onClick={handleSignOut}
+              className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
           <p className="text-sm text-slate-400 mb-5">You keep your phone number. We only handle missed calls.</p>
           
           {/* Pricing Information */}
