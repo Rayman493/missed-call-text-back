@@ -165,9 +165,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
+    console.log('[AUTO SCROLL] Triggered:', {
+      isDesktop,
+      hasContainer: !!container,
+      force,
+      isInitialLoad,
+      behavior,
+      messagesCount: messagesArray.length
+    })
+    
     if (!container) {
+      console.log('[AUTO SCROLL] No container found')
       return
     }
+
+    const scrollTopBefore = container.scrollTop
+    const containerHeightBefore = container.scrollHeight
+    
+    console.log('[AUTO SCROLL] Before scroll:', {
+      scrollTop: scrollTopBefore,
+      scrollHeight: containerHeightBefore,
+      clientHeight: container.clientHeight
+    })
 
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
@@ -185,6 +204,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             behavior
           })
         }
+        
+        const scrollTopAfter = container.scrollTop
+        const containerHeightAfter = container.scrollHeight
+        
+        console.log('[AUTO SCROLL] After scroll:', {
+          scrollTop: scrollTopAfter,
+          scrollHeight: containerHeightAfter,
+          scrollTopDelta: scrollTopAfter - scrollTopBefore,
+          heightDelta: containerHeightAfter - containerHeightBefore
+        })
+        
         setShowJumpButton(false)
         if (isInitialLoad) {
           setHasScrolledToBottomOnLoad(true)
@@ -193,6 +223,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
       setShowJumpButton(true)
+      console.log('[AUTO SCROLL] Not scrolling - user scrolled up')
     }
   }
 
@@ -529,6 +560,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       scrollToBottom('auto', false, true) // Use 'auto' for immediate scroll on initial load
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
+
+  // Scroll to bottom when messages array changes (for MMS refresh and realtime updates)
+  useEffect(() => {
+    if (hasScrolledToBottomOnLoad && messagesArray.length > 0) {
+      // Only scroll if we're near bottom or if this is after a refresh
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      
+      if (container) {
+        const scrollThreshold = 200
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+        
+        if (isNearBottom) {
+          console.log('[AUTO SCROLL] Messages array changed, scrolling to bottom')
+          // Use double requestAnimationFrame to ensure React has finished rendering
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              scrollToBottom('smooth', false)
+            })
+          })
+        }
+      }
+    }
+  }, [messagesArray.length])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
@@ -1010,7 +1065,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // For MMS, call refreshConversationData to get complete message with media
       if (isMMS && result.message) {
+        console.log('[AUTO SCROLL] MMS refresh starting for message:', result.message.id)
         await handleRefresh()
+        console.log('[AUTO SCROLL] MMS refresh completed, messages count:', leadData?.messages?.length)
         
         // Clear mobile images after successful MMS send
         setMobileImages([])
@@ -1022,6 +1079,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         // Scroll to bottom after refresh completes
         setTimeout(() => {
+          console.log('[AUTO SCROLL] MMS scroll after refresh timeout')
           scrollToBottom('smooth', true)
         }, 100)
       }
