@@ -1,6 +1,13 @@
 import { NextRequest } from 'next/server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { processInboundSms } from '@/lib/sms-processing'
+import { createClient } from '@supabase/supabase-js'
+
+// Initialize Supabase client for idempotency check
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: NextRequest) {
   console.log('[INBOUND SMS WEBHOOK HIT]')
@@ -9,15 +16,15 @@ export async function POST(req: NextRequest) {
     url: req.url,
     timestamp: new Date().toISOString()
   })
-  
+
   try {
     // Read raw body exactly once for validation
     const rawBody = await req.text();
     const contentType = req.headers.get('content-type') || '';
-    
+
     // Parse body into params using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody));
-    
+
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
     if (!isValid) {
@@ -27,14 +34,14 @@ export async function POST(req: NextRequest) {
       })
       return new Response('Unauthorized', { status: 401 });
     }
-    
+
     console.log('[INBOUND SMS SIGNATURE VALID]')
-    
+
     const From = params.From
     const To = params.To
     const Body = params.Body
     const MessageSid = params.MessageSid
-    
+
     if (!From || !To || !Body || !MessageSid) {
       console.error('[INBOUND SMS ERROR]', {
         error: 'Missing required fields',
@@ -43,12 +50,12 @@ export async function POST(req: NextRequest) {
         BodyLength: Body?.length || 0,
         MessageSid
       })
-      
+
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Service unavailable</Message>
 </Response>`
-      
+
       return new Response(errorTwiml, {
         status: 200,
         headers: {
@@ -56,17 +63,39 @@ export async function POST(req: NextRequest) {
         }
       })
     }
-    
+
+    // Database-backed idempotency check using Twilio MessageSid
+    // Prevents replay attacks across server instances and deployments
+    const { data: existingMessage, error: idempotencyError } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('twilio_message_sid', MessageSid)
+      .maybeSingle()
+
+    if (existingMessage) {
+      console.log('[INBOUND SMS IDEMPOTENCY] Message already processed', {
+        MessageSid,
+        existing_message_id: existingMessage.id
+      })
+      // Return success to prevent Twilio retries
+      return new Response('ok', { status: 200 })
+    }
+
+    if (idempotencyError && idempotencyError.code !== 'PGRST116') {
+      console.error('[INBOUND SMS IDEMPOTENCY] Error checking message:', idempotencyError)
+      // Continue with processing on error (don't block legitimate messages)
+    }
+
     console.log('[INBOUND SMS BUSINESS LOOKUP START]', { to: To })
     console.log('[INBOUND SMS LEAD LOOKUP START]', { from: From })
-    
+
     console.log('[INBOUND SMS] Processing message:', {
       MessageSid,
       From,
       To,
       BodyLength: Body.length
     })
-    
+
     // Process inbound SMS using the same shared function as incoming-sms
     const result = await processInboundSms({
       messageSid: MessageSid,

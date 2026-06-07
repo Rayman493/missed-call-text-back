@@ -4,6 +4,8 @@ import { sendSms } from '@/lib/twilio'
 import { db } from '@/lib/supabase/admin'
 import { checkCronRateLimit } from '@/lib/rate-limit'
 import { notificationService } from '@/lib/notifications'
+import { isIgnoredContact } from '@/lib/ignored-contacts'
+import { hasBillingAccess } from '@/lib/manual-access'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -19,7 +21,7 @@ function isDuringBusinessHours(date: Date, timezone: string): boolean {
 }
 
 // Helper function to find next business hours slot
-function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
+function getNextBusinessHoursSlot(date: Date, timezone: string): Date | null {
   let candidate = new Date(date)
   const maxIterations = 14 * 24 // prevent infinite loops (max 2 weeks ahead)
   let iterations = 0
@@ -34,8 +36,8 @@ function getNextBusinessHoursSlot(date: Date, timezone: string): Date {
   }
   
   // Fallback: return original date if we can't find a slot
-  console.warn('[Cron] Could not find business hours slot within 2 weeks, using original time')
-  return date
+  console.warn('[Cron] Could not find business hours slot within 14 days - caller should mark job as failed/skipped')
+  return null
 }
 
 // Helper function to validate environment variables
@@ -156,19 +158,40 @@ export async function POST(req: NextRequest) {
           console.error(`[send-followups] Missing lead_id for follow-up: ${followUp.id}`)
           const { error: failError } = await supabase
             .from('follow_up_jobs')
-            .update({ 
+            .update({
               status: 'failed',
               last_error_message: 'Missing lead_id'
             })
             .eq('id', followUp.id)
-          
+
           if (failError) {
             console.error('[send-followups] Error marking follow-up as failed:', failError)
           }
           errors++
           continue
         }
-        
+
+        // ATOMIC CLAIM: Update job from pending -> processing
+        // Only the worker that successfully claims the job may proceed
+        const { data: claimedJob, error: claimError } = await supabase
+          .from('follow_up_jobs')
+          .update({
+            status: 'processing',
+            processing_started_at: new Date().toISOString()
+          })
+          .eq('id', followUp.id)
+          .eq('status', 'pending') // Only claim if still pending
+          .select()
+          .single()
+
+        if (claimError || !claimedJob) {
+          console.log(`[send-followups] Job ${followUp.id} already claimed or failed to claim, skipping`)
+          errors++
+          continue
+        }
+
+        console.log(`[send-followups] Job ${followUp.id} successfully claimed for processing`)
+
         // Get open conversation for this lead (safe lookup by lead_id only)
         const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
@@ -294,6 +317,47 @@ export async function POST(req: NextRequest) {
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
         
+
+        // Check if lead phone is in ignored contacts
+        if (lead.caller_phone) {
+          const isIgnored = await isIgnoredContact(business.id, lead.caller_phone)
+          if (isIgnored) {
+            console.log(`[send-followups] Lead ${lead.id} phone is in ignored contacts, skipping follow-up ${followUp.id}`)
+            const { error: cancelError } = await supabase
+              .from('follow_up_jobs')
+              .update({
+                status: 'cancelled',
+                cancelled_reason: 'ignored_contact',
+                cancelled_at: new Date().toISOString()
+              })
+              .eq('id', followUp.id)
+
+            if (cancelError) {
+              console.error('[send-followups] Error cancelling follow-up for ignored contact:', cancelError)
+            }
+            cancelled++
+            continue
+          }
+        }
+
+        // Check if business has active access (subscription or manual access)
+        if (!hasBillingAccess(business)) {
+          console.log(`[send-followups] Business ${business.id} does not have active access, skipping follow-up ${followUp.id}`)
+          const { error: cancelError } = await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'no_active_access',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', followUp.id)
+
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for inactive business:', cancelError)
+          }
+          cancelled++
+          continue
+        }
         // QA LOGGING: Track timezone and business hours for follow-up execution
         const businessTimezone = business.business_hours_timezone || 'America/New_York'
         const businessHoursEnabled = business.business_hours_enabled || false
@@ -326,10 +390,31 @@ export async function POST(req: NextRequest) {
               followUpId: followUp.id,
               currentUTC: now.toISOString(),
               currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
-              nextSlotUTC: nextSlot.toISOString(),
-              nextSlotLocal: nextSlot.toLocaleString('en-US', { timeZone: businessTimezone }),
-              reason: 'Outside business hours'
             })
+
+            if (!nextSlot) {
+              // No business hours slot found within 14 days - mark job as failed
+              console.warn('[QA - Follow Ups] No business hours slot found within 14 days, marking job as failed:', {
+                followUpId: followUp.id,
+                currentUTC: now.toISOString(),
+                currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
+              })
+
+              const { error: failError } = await supabase
+                .from('follow_up_jobs')
+                .update({
+                  status: 'failed',
+                  last_error_message: 'Could not find business hours slot within 14 days'
+                })
+                .eq('id', followUp.id)
+
+              if (failError) {
+                console.error('[QA - Follow Ups] Error marking follow-up as failed:', failError)
+              }
+              errors++
+              continue
+            }
+
             
             // Update job with new scheduled time
             const { error: updateError } = await supabase
@@ -588,6 +673,27 @@ export async function GET(req: NextRequest) {
           }
           errors++
           continue
+
+        // ATOMIC CLAIM: Update job from pending -> processing
+        // Only the worker that successfully claims the job may proceed
+        const { data: claimedJob, error: claimError } = await supabase
+          .from('follow_up_jobs')
+          .update({
+            status: 'processing',
+            processing_started_at: new Date().toISOString()
+          })
+          .eq('id', followUp.id)
+          .eq('status', 'pending') // Only claim if still pending
+          .select()
+          .single()
+
+        if (claimError || !claimedJob) {
+          console.log(`[send-followups] Job ${followUp.id} already claimed or failed to claim, skipping`)
+          errors++
+          continue
+        }
+
+        console.log(`[send-followups] Job ${followUp.id} successfully claimed for processing`)
         }
         
         // Get open conversation for this lead (safe lookup by lead_id only)
@@ -715,6 +821,47 @@ export async function GET(req: NextRequest) {
         }
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
+
+        // Check if lead phone is in ignored contacts
+        if (lead.caller_phone) {
+          const isIgnored = await isIgnoredContact(business.id, lead.caller_phone)
+          if (isIgnored) {
+            console.log(`[send-followups] Lead ${lead.id} phone is in ignored contacts, skipping follow-up ${followUp.id}`)
+            const { error: cancelError } = await supabase
+              .from('follow_up_jobs')
+              .update({
+                status: 'cancelled',
+                cancelled_reason: 'ignored_contact',
+                cancelled_at: new Date().toISOString()
+              })
+              .eq('id', followUp.id)
+
+            if (cancelError) {
+              console.error('[send-followups] Error cancelling follow-up for ignored contact:', cancelError)
+            }
+            cancelled++
+            continue
+          }
+        }
+
+        // Check if business has active access (subscription or manual access)
+        if (!hasBillingAccess(business)) {
+          console.log(`[send-followups] Business ${business.id} does not have active access, skipping follow-up ${followUp.id}`)
+          const { error: cancelError } = await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'no_active_access',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', followUp.id)
+
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for inactive business:', cancelError)
+          }
+          cancelled++
+          continue
+        }
         
         // QA LOGGING: Track timezone and business hours for follow-up execution
         const businessTimezone = business.business_hours_timezone || 'America/New_York'
@@ -748,10 +895,31 @@ export async function GET(req: NextRequest) {
               followUpId: followUp.id,
               currentUTC: now.toISOString(),
               currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
-              nextSlotUTC: nextSlot.toISOString(),
-              nextSlotLocal: nextSlot.toLocaleString('en-US', { timeZone: businessTimezone }),
-              reason: 'Outside business hours'
             })
+
+            if (!nextSlot) {
+              // No business hours slot found within 14 days - mark job as failed
+              console.warn('[QA - Follow Ups] No business hours slot found within 14 days, marking job as failed:', {
+                followUpId: followUp.id,
+                currentUTC: now.toISOString(),
+                currentLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
+              })
+
+              const { error: failError } = await supabase
+                .from('follow_up_jobs')
+                .update({
+                  status: 'failed',
+                  last_error_message: 'Could not find business hours slot within 14 days'
+                })
+                .eq('id', followUp.id)
+
+              if (failError) {
+                console.error('[QA - Follow Ups] Error marking follow-up as failed:', failError)
+              }
+              errors++
+              continue
+            }
+
             
             // Update job with new scheduled time
             const { error: updateError } = await supabase
@@ -930,3 +1098,4 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+

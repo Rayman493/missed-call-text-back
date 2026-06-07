@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
+import { isIgnoredContact } from "@/lib/ignored-contacts";
+import { hasBillingAccess } from "@/lib/manual-access";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -142,6 +144,27 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // ATOMIC CLAIM: Update job from pending -> processing
+        // Only the worker that successfully claims the job may proceed
+        const { data: claimedJob, error: claimError } = await supabase
+          .from('follow_up_jobs')
+          .update({
+            status: 'processing',
+            processing_started_at: new Date().toISOString()
+          })
+          .eq('id', job.id)
+          .eq('status', 'pending') // Only claim if still pending
+          .select()
+          .single();
+
+        if (claimError || !claimedJob) {
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Job ${job.id} already claimed or failed to claim, skipping`);
+          errors++;
+          continue;
+        }
+
+        console.log(`[SYSTEM] [FOLLOWUP-CRON] Job ${job.id} successfully claimed for processing`);
+
         // Get business information for Twilio Messaging Service SID
         const { data: business, error: businessError } = await supabase
           .from('businesses')
@@ -162,6 +185,37 @@ export async function POST(request: Request) {
             })
             .eq('id', job.id);
           
+          failed++;
+          continue;
+        }
+
+        // Check if lead phone is in ignored contacts
+        const isIgnored = await isIgnoredContact(business.id, lead.caller_phone);
+        if (isIgnored) {
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Lead ${lead.id} phone is in ignored contacts, skipping job ${job.id}`);
+          await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'ignored_contact',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          failed++;
+          continue;
+        }
+
+        // Check if business has active access (subscription or manual access)
+        if (!hasBillingAccess(business)) {
+          console.log(`[SYSTEM] [FOLLOWUP-CRON] Business ${business.id} does not have active access, skipping job ${job.id}`);
+          await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'no_active_access',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
           failed++;
           continue;
         }

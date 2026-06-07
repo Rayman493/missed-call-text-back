@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     // BETA PROVISIONING: Use server-side admin client to bypass RLS
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id')
+      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at')
       .eq('id', business_id)
       .single()
 
@@ -167,15 +167,47 @@ export async function POST(request: Request) {
       existing_number_sid: business.twilio_phone_number_sid,
       provisioning_status: business.provisioning_status,
       provisioning_error: business.provisioning_error,
-      provisioning_lock_id: business.provisioning_lock_id
+      provisioning_lock_id: business.provisioning_lock_id,
+      last_provisioning_attempt_at: business.last_provisioning_attempt_at
     })
+
+    // Check for stale provisioning lock (older than 10 minutes)
+    const STALE_LOCK_MINUTES = 10
+    if (business.provisioning_status === 'provisioning' && business.last_provisioning_attempt_at) {
+      const lastAttempt = new Date(business.last_provisioning_attempt_at)
+      const minutesSinceAttempt = (Date.now() - lastAttempt.getTime()) / (1000 * 60)
+
+      if (minutesSinceAttempt > STALE_LOCK_MINUTES) {
+        console.warn('[ProvisioningTrigger] Stale provisioning lock detected, allowing retry:', {
+          business_id: business.id,
+          provisioning_status: business.provisioning_status,
+          last_provisioning_attempt_at: business.last_provisioning_attempt_at,
+          minutes_since_attempt: minutesSinceAttempt,
+          stale_lock_threshold_minutes: STALE_LOCK_MINUTES
+        })
+        // Continue to acquire lock - will overwrite the stale lock
+      } else {
+        console.warn('[ProvisioningTrigger] Provisioning already in progress, rejecting request:', {
+          business_id: business.id,
+          provisioning_status: business.provisioning_status,
+          last_provisioning_attempt_at: business.last_provisioning_attempt_at,
+          minutes_since_attempt: minutesSinceAttempt
+        })
+        return NextResponse.json({
+          error: 'Provisioning already in progress',
+          provisioning_status: business.provisioning_status,
+          last_provisioning_attempt_at: business.last_provisioning_attempt_at
+        }, { status: 409 })
+      }
+    }
 
     // Acquire lock by setting provisioning status and lock ID
     await supabaseAdmin
       .from('businesses')
-      .update({ 
+      .update({
         provisioning_status: 'provisioning',
-        provisioning_lock_id: correlationId
+        provisioning_lock_id: correlationId,
+        last_provisioning_attempt_at: new Date().toISOString()
       })
       .eq('id', business.id)
 

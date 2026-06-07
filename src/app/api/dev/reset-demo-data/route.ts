@@ -57,16 +57,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check if user email is in allowlist (for production access)
-    if (!isDevelopment && allowedEmails.length > 0) {
-      if (!user.email || !allowedEmails.includes(user.email)) {
-        console.error('[DEV] Reset demo data blocked - user email not in allowlist:', user.email)
+    // Check if user is admin using canonical admin check (for production access)
+    if (!isDevelopment) {
+      const { isAdminUserById } = await import('@/lib/admin')
+      if (!isAdminUserById(user.id)) {
+        console.error('[DEV] Reset demo data blocked - user is not admin:', user.id)
         return NextResponse.json(
           { error: 'You do not have permission to reset demo data' },
           { status: 403 }
         )
       }
-      console.log('[DEV] Reset demo data allowed for admin email:', user.email)
+      console.log('[DEV] Reset demo data allowed for admin user:', user.id)
     }
 
     // Get business for this user

@@ -30,38 +30,42 @@ export async function sendSms(
   options?: {
     lead_id?: string;
     conversation_id?: string;
+    isManual?: boolean; // Flag to distinguish manual user messages from automated
   }
 ): Promise<string | null> {
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
-  const isAutomatedMessage = options?.lead_id && !message.includes('ReplyFlow Admin') && !message.includes('Manual test');
+  // Check for any outbound message to the same lead/phone within 5 minutes, regardless of body
+  // This prevents duplicates even if message body differs slightly
+  // Manual user messages are exempt from this check to allow normal conversation flow
+  const isAutomatedMessage = options?.lead_id && !options.isManual && !message.includes('ReplyFlow Admin') && !message.includes('Manual test');
   if (isAutomatedMessage) {
     console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate automated message', {
       lead_id: options.lead_id,
       message_body: message.substring(0, 50),
       to
     });
-    
+
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: existingMessage, error: duplicateError } = await supabase
       .from('messages')
-      .select('id, created_at')
+      .select('id, created_at, body')
       .eq('lead_id', options.lead_id)
-      .eq('body', message)
       .eq('direction', 'outbound')
       .gte('created_at', fiveMinutesAgo)
       .limit(1)
       .single();
-    
+
     if (existingMessage) {
-      console.log('[MESSAGE DUPLICATE BLOCKED] Found similar automated message within 5 minutes', {
+      console.log('[MESSAGE DUPLICATE BLOCKED] Found outbound message to same lead within 5 minutes', {
         existing_message_id: existingMessage.id,
         existing_created_at: existingMessage.created_at,
+        existing_body: existingMessage.body?.substring(0, 50),
         lead_id: options.lead_id,
-        message_body: message.substring(0, 50)
+        new_body: message.substring(0, 50)
       });
       return null; // Block duplicate
     }
-    
+
     if (duplicateError && duplicateError.code !== 'PGRST116') {
       console.error('[MESSAGE DUPLICATE CHECK] Error checking for duplicates:', duplicateError);
       // Continue with send if check fails (don't block legitimate messages)
@@ -508,6 +512,7 @@ export async function sendMms(
   options?: {
     lead_id?: string;
     conversation_id?: string;
+    isManual?: boolean; // Flag to distinguish manual user messages from automated
   }
 ): Promise<string | null> {
   // Validate Twilio environment for SMS operations
