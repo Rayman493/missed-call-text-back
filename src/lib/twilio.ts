@@ -641,6 +641,8 @@ export async function sendMms(
         status_updated_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
         is_manual: options?.isManual || false,
+        media_count: mediaUrls.length,
+        message_type: !message && mediaUrls.length > 0 ? 'image' : message && mediaUrls.length > 0 ? 'mixed' : 'text',
       });
 
     if (insertError) {
