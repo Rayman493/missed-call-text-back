@@ -315,6 +315,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const messagesWithMedia = leadData.messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
       if (messagesWithMedia.length === 0) return
 
+      console.log('[Media Fetch DEBUG] Messages with media_count > 0:', {
+        totalMessages: leadData.messages.length,
+        messagesWithMediaCount: messagesWithMedia.length,
+        messages: messagesWithMedia.map((msg: any) => ({
+          id: msg.id,
+          direction: msg.direction,
+          media_count: msg.media_count,
+          message_type: msg.message_type,
+          body: msg.body?.substring(0, 30) + '...'
+        }))
+      })
+
       const mediaMap: Record<string, { urls: string[]; types: string[] }> = {}
 
       for (const message of messagesWithMedia) {
@@ -1600,6 +1612,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {messagesArray.map((message: any, index: number) => {
                     const isLatest = index === messagesArray.length - 1
                     const media = messageMedia[message.id]
+                    
+                    // Debug log for outbound MMS messages
+                    if (message.direction === 'outbound' && message.media_count > 0) {
+                      console.log('[Renderer DEBUG] Outbound MMS message:', {
+                        message_id: message.id,
+                        direction: message.direction,
+                        media_count: message.media_count,
+                        message_type: message.message_type,
+                        body: message.body?.substring(0, 30) + '...',
+                        media_attached: !!media,
+                        media_urls: media?.urls?.length || 0,
+                        media_types: media?.types?.length || 0,
+                        hasMediaKey: messageMedia.hasOwnProperty(message.id)
+                      })
+                    }
+                    
                     return (
                       <div
                         key={message.id}
