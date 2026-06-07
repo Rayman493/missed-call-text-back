@@ -526,11 +526,47 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Scroll to bottom after messages load
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
-      // Use double requestAnimationFrame and small delay to ensure images render
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      
+      console.log('[INITIAL SCROLL] Container state:', {
+        isDesktop,
+        hasContainer: !!container,
+        messagesCount: messagesArray.length
+      })
+      
+      if (!container) {
+        console.log('[INITIAL SCROLL] No container found')
+        return
+      }
+      
+      const scrollHeightBefore = container.scrollHeight
+      const clientHeight = container.clientHeight
+      const scrollTopBefore = container.scrollTop
+      
+      console.log('[INITIAL SCROLL] Before scroll:', {
+        scrollHeight: scrollHeightBefore,
+        clientHeight,
+        scrollTop: scrollTopBefore
+      })
+      
+      // Use requestAnimationFrame + setTimeout + scrollTop for deterministic scroll
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            scrollToBottom('auto', false, true)
+            container.scrollTop = container.scrollHeight
+            
+            const scrollTopAfter = container.scrollTop
+            const scrollHeightAfter = container.scrollHeight
+            
+            console.log('[INITIAL SCROLL] After scroll:', {
+              scrollTop: scrollTopAfter,
+              scrollHeight: scrollHeightAfter,
+              scrollTopDelta: scrollTopAfter - scrollTopBefore,
+              heightDelta: scrollHeightAfter - scrollHeightBefore
+            })
+            
+            setHasScrolledToBottomOnLoad(true)
           }, 200)
         })
       })
