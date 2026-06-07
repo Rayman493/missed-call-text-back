@@ -1019,9 +1019,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             if (!prev) return prev
             
             const currentMessages = prev.messages || []
+            console.log('[Send DEBUG] Before merge - current messages:', {
+              count: currentMessages.length,
+              messageIds: currentMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count }))
+            })
+            
             const mergedMessages = mergeMessagesById(currentMessages, [result.message])
             
-            console.log('[Send] Messages after local update:', mergedMessages.length)
+            console.log('[Send DEBUG] After merge - merged messages:', {
+              count: mergedMessages.length,
+              messageIds: mergedMessages.map((m: any) => ({ id: m.id, direction: m.direction, media_count: m.media_count })),
+              newMessage: result.message
+            })
             
             return {
               ...prev,
@@ -1037,10 +1046,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               const mediaUrls = result.message.message_media.map((m: any) => m.media_url)
               const mediaTypes = result.message.message_media.map((m: any) => m.mime_type)
               
-              console.log('[Send] Updating messageMedia for new message:', {
+              console.log('[Send DEBUG] Updating messageMedia for new message:', {
                 messageId: result.message.id,
                 mediaUrls: mediaUrls.length,
-                mediaTypes: mediaTypes.length
+                mediaTypes: mediaTypes.length,
+                existingKeys: Object.keys(prev),
+                newKey: result.message.id
               })
               
               return {
@@ -1052,6 +1063,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }
             })
           }, 100)
+        } else {
+          console.log('[Send DEBUG] No media to attach:', {
+            media_count: result.message.media_count,
+            message_media: result.message.message_media
+          })
         }
         
         // Clear optimistic message after it's merged into local state
