@@ -265,20 +265,25 @@ export async function POST(request: Request) {
     })
 
     // Send SMS or MMS
+    let messageId: string | null = null
     if (mediaUrls.length > 0) {
       // Send MMS
-      messageSid = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
+      const result = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
       });
+      messageSid = result?.sid || null
+      messageId = result?.messageId || null
     } else {
       // Send SMS
-      messageSid = await sendSms(business, lead.caller_phone, sanitizedMessage, {
+      const result = await sendSms(business, lead.caller_phone, sanitizedMessage, {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
       });
+      messageSid = result?.sid || null
+      messageId = result?.messageId || null
     }
 
     if (!messageSid) {
@@ -298,50 +303,41 @@ export async function POST(request: Request) {
     })
 
     // Store media in message_media table if present
-    if (mediaUrls.length > 0 && messageSid) {
+    if (mediaUrls.length > 0 && messageId) {
       try {
-        // First get the message ID using the Twilio SID
-        const { data: messageRecord } = await supabase
-          .from('messages')
-          .select('id')
-          .eq('twilio_message_sid', messageSid)
-          .single()
+        console.log('[MMS] Inserting media using direct message ID:', {
+          messageId,
+          mediaCount: mediaUrls.length
+        })
         
-        if (messageRecord) {
-          console.log('[MMS] Found message record for media insert:', {
-            messageId: messageRecord.id,
-            twilioSid: messageSid,
-            mediaCount: mediaUrls.length
-          })
+        for (const mediaUrl of mediaUrls) {
+          const { error: mediaError } = await supabaseAdmin
+            .from('message_media')
+            .insert({
+              message_id: messageId,
+              media_url: mediaUrl,
+              mime_type: 'image/jpeg', // Simplified - could detect from file
+              created_at: new Date().toISOString(),
+            })
           
-          for (const mediaUrl of mediaUrls) {
-            const { error: mediaError } = await supabaseAdmin
-              .from('message_media')
-              .insert({
-                message_id: messageRecord.id,
-                media_url: mediaUrl,
-                mime_type: 'image/jpeg', // Simplified - could detect from file
-                created_at: new Date().toISOString(),
-              })
-            
-            if (mediaError) {
-              console.error('[MMS] Error storing media in database:', mediaError)
-            } else {
-              console.log('[MMS] Media stored successfully:', {
-                messageId: messageRecord.id,
-                mediaUrl: mediaUrl.substring(0, 50) + '...'
-              })
-            }
+          if (mediaError) {
+            console.error('[MMS] Error storing media in database:', mediaError)
+          } else {
+            console.log('[MMS] Media stored successfully:', {
+              messageId,
+              mediaUrl: mediaUrl.substring(0, 50) + '...'
+            })
           }
-        } else {
-          console.error('[MMS] Message record not found for media insert:', {
-            twilioSid: messageSid
-          })
         }
       } catch (error) {
         console.error('[MMS] Error storing media metadata:', error)
         // Don't fail the request - message was sent successfully
       }
+    } else if (mediaUrls.length > 0 && !messageId) {
+      console.error('[MMS] Cannot insert media - messageId is null', {
+        mediaCount: mediaUrls.length,
+        messageSid
+      })
     }
 
     // Update conversation activity

@@ -32,7 +32,7 @@ export async function sendSms(
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
   }
-): Promise<string | null> {
+): Promise<{ sid: string | null; messageId: string | null }> {
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
   // Check for any outbound message to the same lead/phone within 5 minutes, regardless of body
   // This prevents duplicates even if message body differs slightly
@@ -64,7 +64,7 @@ export async function sendSms(
         lead_id: options.lead_id,
         new_body: message.substring(0, 50)
       });
-      return null; // Block duplicate
+      return { sid: null, messageId: null }; // Block duplicate
     }
 
     if (duplicateError && duplicateError.code !== 'PGRST116') {
@@ -100,7 +100,7 @@ export async function sendSms(
     });
     // Still log the failed attempt
     await logFailedMessage(business, to, message, options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
-    return null;
+    return { sid: null, messageId: null };
   }
 
   console.log('[SMS Sender] business_id:', business.id);
@@ -130,7 +130,7 @@ export async function sendSms(
       twilio_phone_number_sid: business.twilio_phone_number_sid
     });
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
-    return null;
+    return { sid: null, messageId: null };
   }
 
   // FAIL-SAFE: Check if number is ready for use before sending
@@ -141,7 +141,7 @@ export async function sendSms(
     console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
     console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
     await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
-    return null;
+    return { sid: null, messageId: null };
   }
   
   console.log('[SMS FAIL-SAFE] Number is ready for use');
@@ -151,7 +151,7 @@ export async function sendSms(
     console.log('[SMS] 🧪 Simulated SMS sent:', { to, body: message.substring(0, 50) + '...' });
     
     // Insert simulated message record into database
-    const { error: insertError } = await supabase
+    const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
         lead_id: options?.lead_id,
@@ -164,20 +164,23 @@ export async function sendSms(
         status: 'simulated',
         error_message: null,
         created_at: new Date().toISOString(),
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       console.error('[SMS] Failed to insert simulated message record:', insertError);
     } else {
       console.log('[MESSAGE INSERTED] Simulated message record inserted successfully', {
         lead_id: options?.lead_id,
+        message_id: insertedMessage.id,
         message_body: message.substring(0, 50),
         to,
         message_type: 'simulated'
       });
     }
 
-    return `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return { sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, messageId: insertedMessage?.id || null };
   }
 
   // Create fresh Twilio client for this SMS
@@ -237,7 +240,7 @@ export async function sendSms(
               selected_from: fromNumber,
             });
             await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
-            return null;
+            return { sid: null, messageId: null };
           }
           
           console.log('[SMS SEND] Calling Twilio API with Messaging Service:', {
@@ -281,13 +284,13 @@ export async function sendSms(
             console.error('[sms] failed to trigger repair:', repairError);
           }
           
-          return null;
+          return { sid: null, messageId: null };
         }
       } catch (poolError) {
         console.error('[SMS FAILED] Error checking sender pool:', poolError);
         errorMessage = 'Failed to verify sender pool membership';
         await logFailedMessage(business, to, message, options, errorMessage, 'SENDER_POOL_CHECK_ERROR', false);
-        return null;
+        return { sid: null, messageId: null };
       }
     } else {
       // No Messaging Service configured - use direct from with business number
@@ -315,7 +318,7 @@ export async function sendSms(
           selected_from: fromNumber,
         });
         await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
-        return null;
+        return { sid: null, messageId: null };
       }
       
       console.log('[SMS SEND] Calling Twilio API with direct from:', {
@@ -402,7 +405,7 @@ export async function sendSms(
     }
 
     // Insert successful message record into database
-    const { error: insertError } = await supabase
+    const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
         lead_id: options?.lead_id,
@@ -419,7 +422,9 @@ export async function sendSms(
         error_message: twilioErrorMessage,
         created_at: new Date().toISOString(),
         is_manual: options?.isManual || false,
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       console.error('[SMS SEND] message insert failed:', {
@@ -431,6 +436,7 @@ export async function sendSms(
     } else {
       console.log('[MESSAGE INSERTED] Message record stored with delivery info:', {
         message_sid: messageResult.sid,
+        message_id: insertedMessage.id,
         business_id: business.id,
         lead_id: options?.lead_id,
         from: business.twilio_phone_number,
@@ -450,7 +456,7 @@ export async function sendSms(
       await markForwardingVerified(business.id, 'auto_response_sms_sent');
     }
 
-    return messageResult.sid
+    return { sid: messageResult.sid, messageId: insertedMessage?.id };
   } catch (error: any) {
     console.error('[SMS FAILED] Twilio send failed:', {
       business_id: business.id,
@@ -502,7 +508,7 @@ export async function sendSms(
     await logFailedMessage(business, to, message, options, errorMessage, errorCode, true); // Twilio was called
     
     // Return null instead of throwing to prevent webhooks from crashing
-    return null
+    return { sid: null, messageId: null }
   }
 }
 
@@ -516,7 +522,7 @@ export async function sendMms(
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
   }
-): Promise<string | null> {
+): Promise<{ sid: string | null; messageId: string | null }> {
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
   
@@ -536,14 +542,14 @@ export async function sendMms(
   if (!smsValidation.isValid) {
     console.error('[MMS FAILED] Twilio validation failed:', smsValidation.error);
     await logFailedMessage(business, to, message || '[MMS]', options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
-    return null;
+    return { sid: null, messageId: null };
   }
 
   // Verify business has a canonical number
   if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
     console.error('[MMS FAILED] No canonical Twilio number assigned to business');
     await logFailedMessage(business, to, message || '[MMS]', options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
-    return null;
+    return { sid: null, messageId: null };
   }
 
   // FAIL-SAFE: Check if number is ready for use before sending
@@ -552,14 +558,14 @@ export async function sendMms(
   if (!isReady) {
     console.error('[MMS FAILED] Number not ready for use - provisioning incomplete');
     await logFailedMessage(business, to, message || '[MMS]', options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
-    return null;
+    return { sid: null, messageId: null };
   }
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
     console.log('[MMS] 🧪 Simulated MMS sent:', { to, mediaCount: mediaUrls.length });
     
-    const { error: insertError } = await supabase
+    const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
         lead_id: options?.lead_id,
@@ -572,13 +578,16 @@ export async function sendMms(
         status: 'simulated',
         error_message: null,
         created_at: new Date().toISOString(),
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       console.error('[MMS] Failed to insert simulated message record:', insertError);
     } else {
       console.log('[MESSAGE INSERTED] MMS simulated message record inserted successfully', {
         lead_id: options?.lead_id,
+        message_id: insertedMessage.id,
         message_body: message.substring(0, 50),
         to,
         message_type: 'mms_simulated',
@@ -586,7 +595,7 @@ export async function sendMms(
       });
     }
 
-    return `SIM_MMS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return { sid: `SIM_MMS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, messageId: insertedMessage?.id || null };
   }
 
   const client = Twilio(
@@ -626,7 +635,7 @@ export async function sendMms(
     });
 
     // Insert successful message record into database
-    const { error: insertError } = await supabase
+    const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
         lead_id: options?.lead_id,
@@ -643,13 +652,16 @@ export async function sendMms(
         is_manual: options?.isManual || false,
         media_count: mediaUrls.length,
         message_type: !message && mediaUrls.length > 0 ? 'image' : message && mediaUrls.length > 0 ? 'mixed' : 'text',
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       console.error('[MMS SEND] message insert failed:', insertError);
     } else {
       console.log('[MESSAGE INSERTED] MMS message record stored successfully', {
         message_sid: messageResult.sid,
+        message_id: insertedMessage.id,
         business_id: business.id,
         lead_id: options?.lead_id,
         from: business.twilio_phone_number,
@@ -660,7 +672,7 @@ export async function sendMms(
       });
     }
 
-    return messageResult.sid
+    return { sid: messageResult.sid, messageId: insertedMessage?.id };
   } catch (error: any) {
     console.error('[MMS FAILED] Twilio send failed:', {
       business_id: business.id,
@@ -675,7 +687,7 @@ export async function sendMms(
     
     await logFailedMessage(business, to, message || '[MMS]', options, errorMessage, errorCode, true);
     
-    return null
+    return { sid: null, messageId: null }
   }
 }
 

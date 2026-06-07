@@ -374,10 +374,12 @@ export async function POST(request: NextRequest) {
             });
 
             // Send SMS
-            const messageSid = await sendSms(businessDetails, from, personalizedMessage, {
+            const result = await sendSms(businessDetails, from, personalizedMessage, {
               lead_id: lead.id,
               conversation_id: conversation?.id,
             });
+
+            const messageSid = result?.sid || null;
 
             if (messageSid) {
               console.log('[MISSED CALL TIMING] SMS sent successfully:', messageSid);
