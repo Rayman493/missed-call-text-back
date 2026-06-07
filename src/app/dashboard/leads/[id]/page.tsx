@@ -141,6 +141,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Auto-scroll to newest message with jump button logic
   const [showJumpButton, setShowJumpButton] = useState(false)
   const [hasScrolledToBottomOnLoad, setHasScrolledToBottomOnLoad] = useState(false)
+  const [initialScrollReady, setInitialScrollReady] = useState(false)
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
@@ -166,38 +167,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
-    const timestamp = Date.now()
-    
-    console.log('[SCROLL TO BOTTOM] Triggered:', {
-      timestamp,
-      label: 'scrollToBottom',
-      isDesktop,
-      hasContainer: !!container,
-      force,
-      isInitialLoad,
-      behavior,
-      messagesCount: messagesArray.length,
-      hasScrolledToBottomOnLoad
-    })
-    
     if (!container) {
       return
     }
-
-    const scrollTopBefore = container.scrollTop
-    const scrollHeightBefore = container.scrollHeight
-    const clientHeight = container.clientHeight
-    
-    console.log('[SCROLL TO BOTTOM] Before scroll:', {
-      timestamp,
-      label: 'scrollToBottom',
-      scrollTop: scrollTopBefore,
-      scrollHeight: scrollHeightBefore,
-      clientHeight,
-      messagesCount: messagesArray.length,
-      hasScrolledToBottomOnLoad,
-      isDesktop
-    })
 
     // Only scroll if user is near bottom (within 200px) or if forced
     const scrollThreshold = 200
@@ -215,22 +187,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             behavior
           })
         }
-        
-        const scrollTopAfter = container.scrollTop
-        const scrollHeightAfter = container.scrollHeight
-        
-        console.log('[SCROLL TO BOTTOM] After scroll:', {
-          timestamp: Date.now(),
-          label: 'scrollToBottom',
-          scrollTop: scrollTopAfter,
-          scrollHeight: scrollHeightAfter,
-          scrollTopDelta: scrollTopAfter - scrollTopBefore,
-          heightDelta: scrollHeightAfter - scrollHeightBefore,
-          messagesCount: messagesArray.length,
-          hasScrolledToBottomOnLoad,
-          isDesktop
-        })
-        
         setShowJumpButton(false)
         if (isInitialLoad) {
           setHasScrolledToBottomOnLoad(true)
@@ -390,12 +346,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
 
       console.log('[Media Fetch] Final media map:', {
-        timestamp: Date.now(),
-        label: 'media-fetch-complete',
         messageCount: Object.keys(mediaMap).length,
-        messageIds: Object.keys(mediaMap),
-        messagesCount: messagesArray.length,
-        hasScrolledToBottomOnLoad
+        messageIds: Object.keys(mediaMap)
       })
 
       setMessageMedia(mediaMap)
@@ -406,15 +358,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Merge messages by ID to prevent overwriting local state with stale data
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
-    console.log('[MERGE MESSAGES] Start:', {
-      timestamp: Date.now(),
-      label: 'mergeMessagesById',
-      existingCount: existingMessages.length,
-      newCount: newMessages.length,
-      messagesCount: messagesArray.length,
-      hasScrolledToBottomOnLoad
-    })
-    
     const messageMap = new Map()
     
     // Add existing messages first (preserve local state)
@@ -582,66 +525,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Scroll to bottom after messages load
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
-      const timestamp = Date.now()
+      // Set initial scroll not ready to hide message pane during scroll
+      setInitialScrollReady(false)
+      
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
       
       // Set initial auto-scrolling flag to prevent other scroll effects from interfering
       isInitialAutoScrollingRef.current = true
       
-      console.log('[INITIAL SCROLL] Triggered:', {
-        timestamp,
-        label: 'initial-scroll-useEffect',
-        isDesktop,
-        hasContainer: !!container,
-        messagesCount: messagesArray.length,
-        hasScrolledToBottomOnLoad
-      })
-      
       if (!container) {
-        console.log('[INITIAL SCROLL] No container found')
         return
       }
-      
-      const scrollHeightBefore = container.scrollHeight
-      const clientHeight = container.clientHeight
-      const scrollTopBefore = container.scrollTop
-      
-      console.log('[INITIAL SCROLL] Before scroll:', {
-        timestamp,
-        label: 'initial-scroll-useEffect',
-        scrollTop: scrollTopBefore,
-        scrollHeight: scrollHeightBefore,
-        clientHeight,
-        messagesCount: messagesArray.length,
-        hasScrolledToBottomOnLoad,
-        isDesktop
-      })
       
       // Use requestAnimationFrame + setTimeout + scrollTop for deterministic scroll
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            const timestampBeforeScroll = Date.now()
             container.scrollTop = container.scrollHeight
-            
-            const scrollTopAfter = container.scrollTop
-            const scrollHeightAfter = container.scrollHeight
-            
-            console.log('[INITIAL SCROLL] After scroll:', {
-              timestamp: Date.now(),
-              timestampBeforeScroll,
-              timeSinceTrigger: Date.now() - timestamp,
-              label: 'initial-scroll-useEffect',
-              scrollTop: scrollTopAfter,
-              scrollHeight: scrollHeightAfter,
-              scrollTopDelta: scrollTopAfter - scrollTopBefore,
-              heightDelta: scrollHeightAfter - scrollHeightBefore,
-              messagesCount: messagesArray.length,
-              hasScrolledToBottomOnLoad,
-              isDesktop
-            })
-            
             // Don't set hasScrolledToBottomOnLoad yet - wait for media fetch final scroll
           }, 200)
         })
@@ -653,37 +554,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     // Only run final scroll during initial auto-scrolling phase
     if (isInitialAutoScrollingRef.current && Object.keys(messageMedia).length > 0 && !hasScrolledToBottomOnLoad) {
-      const timestamp = Date.now()
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
       
-      console.log('[FINAL SCROLL] Media fetch complete, triggering final scroll:', {
-        timestamp,
-        label: 'final-scroll-after-media',
-        isDesktop,
-        hasContainer: !!container,
-        mediaCount: Object.keys(messageMedia).length,
-        messagesCount: messagesArray.length,
-        hasScrolledToBottomOnLoad
-      })
-      
       if (!container) {
-        console.log('[FINAL SCROLL] No container found')
         return
       }
-      
-      const scrollHeightBefore = container.scrollHeight
-      const scrollTopBefore = container.scrollTop
-      
-      console.log('[FINAL SCROLL] Before scroll:', {
-        timestamp,
-        label: 'final-scroll-after-media',
-        scrollTop: scrollTopBefore,
-        scrollHeight: scrollHeightBefore,
-        clientHeight: container.clientHeight,
-        messagesCount: messagesArray.length,
-        isDesktop
-      })
       
       // Use double requestAnimationFrame + 100ms timeout for final scroll
       requestAnimationFrame(() => {
@@ -691,24 +567,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           setTimeout(() => {
             container.scrollTop = container.scrollHeight
             
-            const scrollTopAfter = container.scrollTop
-            const scrollHeightAfter = container.scrollHeight
-            
-            console.log('[FINAL SCROLL] After scroll:', {
-              timestamp: Date.now(),
-              timeSinceTrigger: Date.now() - timestamp,
-              label: 'final-scroll-after-media',
-              scrollTop: scrollTopAfter,
-              scrollHeight: scrollHeightAfter,
-              scrollTopDelta: scrollTopAfter - scrollTopBefore,
-              heightDelta: scrollHeightAfter - scrollHeightBefore,
-              messagesCount: messagesArray.length,
-              isDesktop
-            })
-            
             // Clear initial auto-scrolling flag and mark initial scroll complete
             isInitialAutoScrollingRef.current = false
             setHasScrolledToBottomOnLoad(true)
+            setInitialScrollReady(true)
           }, 100)
         })
       })
@@ -717,35 +579,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Scroll to bottom when messages array changes (for MMS refresh and realtime updates)
   useEffect(() => {
-    const timestamp = Date.now()
-    const isDesktop = window.innerWidth >= 1024
-    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    
-    console.log('[MESSAGES ARRAY CHANGE] Triggered:', {
-      timestamp,
-      label: 'messages-array-change-useEffect',
-      hasScrolledToBottomOnLoad,
-      messagesCount: messagesArray.length,
-      isDesktop
-    })
-    
     if (hasScrolledToBottomOnLoad && messagesArray.length > 0) {
       // Only scroll if we're near bottom or if this is after a refresh
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      
       if (container) {
-        const scrollTopBefore = container.scrollTop
-        const scrollHeightBefore = container.scrollHeight
         const scrollThreshold = 200
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-        
-        console.log('[MESSAGES ARRAY CHANGE] Check near bottom:', {
-          timestamp,
-          label: 'messages-array-change-useEffect',
-          scrollTop: scrollTopBefore,
-          scrollHeight: scrollHeightBefore,
-          isNearBottom,
-          messagesCount: messagesArray.length,
-          isDesktop
-        })
         
         if (isNearBottom) {
           // Use double requestAnimationFrame to ensure React has finished rendering
@@ -761,50 +602,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
-    const timestamp = Date.now()
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
     if (!container) return
 
-    const scrollTop = container.scrollTop
-    const scrollHeight = container.scrollHeight
-    const clientHeight = container.clientHeight
-    
-    console.log('[SCROLL PRESERVATION] Check:', {
-      timestamp,
-      label: 'scroll-preservation-useEffect',
-      scrollTop,
-      scrollHeight,
-      clientHeight,
-      messagesCount: messagesArray.length,
-      hasScrolledToBottomOnLoad,
-      isInitialAutoScrolling: isInitialAutoScrollingRef.current,
-      isDesktop
-    })
-
     const handleScroll = () => {
       // Don't interfere during initial auto-scrolling phase
       if (isInitialAutoScrollingRef.current) {
-        console.log('[SCROLL PRESERVATION] Skipping - initial auto-scrolling in progress')
         return
       }
       
-      const scrollTimestamp = Date.now()
       const scrollThreshold = 200
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
       setShowJumpButton(!isNearBottom && messagesArray.length > 0)
-      
-      console.log('[SCROLL PRESERVATION] Handle scroll:', {
-        timestamp: scrollTimestamp,
-        label: 'scroll-preservation-handleScroll',
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        isNearBottom,
-        messagesCount: messagesArray.length,
-        isDesktop
-      })
     }
 
     container.addEventListener('scroll', handleScroll)
@@ -1853,7 +1664,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Conversation Section */}
           <section className="flex flex-col min-h-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden h-[calc(100vh-320px)]">
             {/* Desktop Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className={`flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0 transition-opacity duration-200 ${!initialScrollReady ? 'opacity-0' : 'opacity-100'}`} style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2144,7 +1955,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Thread */}
-          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+          <div ref={mobileConversationContainerRef} className={`p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth transition-opacity duration-200 ${!initialScrollReady ? 'opacity-0' : 'opacity-100'}`} style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
