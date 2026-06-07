@@ -1030,6 +1030,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           })
         }, 100)
         
+        // Update messageMedia state if the message has media
+        if (result.message.media_count > 0 && result.message.message_media) {
+          setTimeout(() => {
+            setMessageMedia((prev: any) => {
+              const mediaUrls = result.message.message_media.map((m: any) => m.media_url)
+              const mediaTypes = result.message.message_media.map((m: any) => m.mime_type)
+              
+              console.log('[Send] Updating messageMedia for new message:', {
+                messageId: result.message.id,
+                mediaUrls: mediaUrls.length,
+                mediaTypes: mediaTypes.length
+              })
+              
+              return {
+                ...prev,
+                [result.message.id]: {
+                  urls: mediaUrls,
+                  types: mediaTypes
+                }
+              }
+            })
+          }, 100)
+        }
+        
         // Clear optimistic message after it's merged into local state
         setTimeout(() => {
           setOptimisticMessage(null)

@@ -303,6 +303,7 @@ export async function POST(request: Request) {
     })
 
     // Store media in message_media table if present
+    let mediaItems: any[] = []
     if (mediaUrls.length > 0 && messageId) {
       try {
         console.log('[MMS] Inserting media using direct message ID:', {
@@ -326,6 +327,10 @@ export async function POST(request: Request) {
             console.log('[MMS] Media stored successfully:', {
               messageId,
               mediaUrl: mediaUrl.substring(0, 50) + '...'
+            })
+            mediaItems.push({
+              media_url: mediaUrl,
+              mime_type: 'image/jpeg'
             })
           }
         }
@@ -355,12 +360,25 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      messageSid,
-      leadId,
-      conversationId: conversation.id,
-      clientTempId,
-      mediaCount: mediaUrls.length,
-      timestamp: new Date().toISOString()
+      message: {
+        id: messageId,
+        lead_id: leadId,
+        conversation_id: conversation.id,
+        direction: 'outbound',
+        body: sanitizedMessage,
+        from_phone: business.twilio_phone_number,
+        to_phone: lead.caller_phone,
+        twilio_message_sid: messageSid,
+        status: 'queued',
+        sent_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        is_manual: true,
+        media_count: mediaUrls.length,
+        message_type: !sanitizedMessage && mediaUrls.length > 0 ? 'image' : sanitizedMessage && mediaUrls.length > 0 ? 'mixed' : 'text',
+        message_media: mediaItems
+      },
+      mediaItems
     });
 
   } catch (error) {
