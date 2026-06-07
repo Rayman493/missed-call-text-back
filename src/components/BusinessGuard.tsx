@@ -154,6 +154,17 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         business_phone_number: business.business_phone_number,
       })
       
+      // Check if forwarding is enabled but not verified - redirect to test-setup
+      if (business.call_forwarding_enabled && !business.forwarding_verified && !pathname?.startsWith('/dashboard/test-setup')) {
+        console.log('[BusinessGuard] Forwarding enabled but not verified - redirecting to test-setup', {
+          call_forwarding_enabled: business.call_forwarding_enabled,
+          forwarding_verified: business.forwarding_verified,
+          pathname
+        })
+        router.replace('/dashboard/test-setup')
+        return
+      }
+
       // Only redirect to onboarding if user truly has no business or no basic profile
       // IMPORTANT: Users with trialing/active subscription OR manual access should NEVER be redirected to onboarding
       // Only send to onboarding if no access (stripe or manual) AND profile is missing

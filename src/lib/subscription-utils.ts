@@ -199,14 +199,19 @@ export function deriveSetupState(business: Business | null | undefined): SetupSt
     console.log('[deriveSetupState] Number provisioned - checking forwarding status')
   }
 
-  // Check if forwarding is verified
-  if (!business.forwarding_verified) {
-    console.log('[deriveSetupState] Forwarding not verified - returning needs_forwarding')
+  // Check if forwarding is enabled but not yet verified (needs final test)
+  if (business.call_forwarding_enabled && !business.forwarding_verified) {
+    console.log('[deriveSetupState] Forwarding enabled but not verified - returning needs_final_test')
+    return 'needs_final_test'
+  }
+
+  // Check if forwarding is not enabled at all
+  if (!business.call_forwarding_enabled) {
+    console.log('[deriveSetupState] Forwarding not enabled - returning needs_forwarding')
     return 'needs_forwarding'
   }
 
-  // Check if final test is needed
-  // For now, if forwarding is verified, we consider it complete
+  // Forwarding is verified - setup is complete
   console.log('[deriveSetupState] All checks passed - returning complete')
   return 'complete'
 }
