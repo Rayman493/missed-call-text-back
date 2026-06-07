@@ -110,17 +110,42 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
   }
 }
 
-export function getSubscriptionStatusDescription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string {
+export function getSubscriptionStatusDescription(
+  subscriptionStatus: string | null | undefined,
+  stripeCustomerId?: string | null,
+  stripeSubscriptionId?: string | null,
+  cancelAtPeriodEnd?: boolean | null,
+  currentPeriodEnd?: string | null,
+  trialEndsAt?: string | null
+): string {
   // Check for invalid trial state first
   if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
     return 'Start your free trial to activate ReplyFlow. No charge today.'
   }
-  
+
+  // Handle canceled but still active subscription (Stripe behavior)
+  if (subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE && cancelAtPeriodEnd === true && currentPeriodEnd) {
+    const endDate = new Date(currentPeriodEnd).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    return `Your subscription has been canceled, but you'll keep access until ${endDate}.`
+  }
+
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
+      if (trialEndsAt) {
+        const endDate = new Date(trialEndsAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+        return `Your 14-day free trial ends on ${endDate}.`
+      }
       return 'Your 14-day free trial is active. Billing starts at $59/month after trial unless canceled.'
     case SUBSCRIPTION_STATES.ACTIVE:
-      return 'Your ReplyFlow subscription is active at $59/month.'
+      return 'Your subscription is active at $59/month.'
     case SUBSCRIPTION_STATES.BETA:
       return 'This account has complimentary beta access.'
     case SUBSCRIPTION_STATES.COMPED:
@@ -128,7 +153,7 @@ export function getSubscriptionStatusDescription(subscriptionStatus: string | nu
     case SUBSCRIPTION_STATES.PAST_DUE:
       return 'Payment required - update your billing information'
     case SUBSCRIPTION_STATES.CANCELED:
-      return 'Subscription inactive. Start or resume your free trial to activate ReplyFlow.'
+      return 'Your access has ended. Your ReplyFlow number is reserved for 30 days.'
     case SUBSCRIPTION_STATES.UNPAID:
       return 'Payment required - update your billing information'
     case SUBSCRIPTION_STATES.CANCELING:
@@ -165,7 +190,7 @@ export function getSubscriptionActionButton(subscriptionStatus: string | null | 
 export function getSubscriptionTrustNote(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string | null {
   // Show trust note for users who haven't completed checkout
   if (!hasValidSubscription(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
-    return 'No charge today. Cancel anytime before your trial ends.'
+    return 'No charge today. Cancel anytime.'
   }
   return null
 }

@@ -19,7 +19,8 @@ import {
   formatPhoneNumber, 
   formatRelativeTime, 
   truncateText, 
-  getLeadStatusColor
+  getLeadStatusColor,
+  normalizePhoneNumberForSearch
 } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -367,6 +368,8 @@ export default function LeadsPage() {
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = !searchQuery || 
       lead.caller_phone.includes(searchQuery) ||
+      lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
       (lead.messages && lead.messages.some((m: any) => 
         m.body.toLowerCase().includes(searchQuery.toLowerCase())
       ))

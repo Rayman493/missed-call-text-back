@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { normalizePunctuation } from '@/lib/utils'
 
 export interface Notification {
   id: string
@@ -78,7 +79,7 @@ export const NOTIFICATION_TEMPLATES = {
 
   ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
     title: 'New AI Intake Lead',
-    message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${data.serviceRequested}` : ''}`,
+    message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${normalizePunctuation(data.serviceRequested)}` : ''}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function TabbedDemoSection() {
   const [activeTab, setActiveTab] = useState<'ai' | 'sms'>('ai')
@@ -206,6 +207,20 @@ export default function TabbedDemoSection() {
               </div>
             </div>
           )}
+
+          {/* CTA Section */}
+          <div className="mt-12 text-center space-y-4">
+            <Link
+              href="/auth?mode=signup"
+              className="inline-flex items-center justify-center h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+            >
+              Start Your 14-Day Free Trial
+            </Link>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">$59/month after trial</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500">No contracts • Cancel anytime</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -21,6 +21,7 @@ import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import {
   getSubscriptionStatusText,
+  getSubscriptionStatusDescription,
   isInTrialPeriod,
   needsUpgrade,
   getPricingDisplay,
@@ -1566,6 +1567,16 @@ export default function SettingsContent() {
                         <p className="text-sm sm:text-base font-black text-slate-900 dark:text-foreground">
                           {getPricingDisplay()}
                           {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          {getSubscriptionStatusDescription(
+                            business?.subscription_status,
+                            business?.stripe_customer_id,
+                            business?.stripe_subscription_id,
+                            business?.cancel_at_period_end,
+                            business?.current_period_end,
+                            business?.trial_ends_at
+                          )}
                         </p>
                       </div>
                       <div className="flex-shrink-0">

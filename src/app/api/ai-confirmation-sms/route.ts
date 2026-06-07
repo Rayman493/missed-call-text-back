@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
+import { normalizePunctuation } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,10 +14,21 @@ interface ConfirmationSMSRequest {
   callerPhone: string
   businessName: string
   extractedInfo?: {
+    caller_name?: string
     service_requested?: string
     reason?: string
+    reason_for_call?: string
     summary?: string
+    details?: string
+    important_details?: string
+    issue?: string
+    urgency?: string
+    urgency_level?: string
     location?: string
+    address?: string
+    addressOrLocation?: string
+    preferred_callback_time?: string
+    callback_number?: string
   }
 }
 
@@ -146,16 +158,81 @@ export async function POST(request: NextRequest) {
       provisioningStatus: business.provisioning_status
     })
 
-    // Build confirmation message
-    const serviceRequested = extractedInfo?.service_requested || extractedInfo?.reason || extractedInfo?.summary || 'your request'
-    const locationText = extractedInfo?.location ? ` at ${extractedInfo.location}` : ''
+    // Build confirmation message with all extracted fields
+    const callerName = normalizePunctuation(
+      extractedInfo?.caller_name || 
+      extractedInfo?.caller_name || 
+      'Not provided'
+    )
+    
+    const reason = normalizePunctuation(
+      extractedInfo?.service_requested || 
+      extractedInfo?.reason || 
+      extractedInfo?.reason_for_call || 
+      extractedInfo?.summary || 
+      'Not provided'
+    )
+    
+    const details = normalizePunctuation(
+      extractedInfo?.details || 
+      extractedInfo?.important_details || 
+      extractedInfo?.issue || 
+      ''
+    )
+    
+    const urgency = normalizePunctuation(
+      extractedInfo?.urgency || 
+      extractedInfo?.urgency_level || 
+      'Not specified'
+    )
+    
+    const location = normalizePunctuation(
+      extractedInfo?.location || 
+      extractedInfo?.address || 
+      extractedInfo?.addressOrLocation || 
+      'Not provided'
+    )
+    
+    const callbackTime = normalizePunctuation(
+      extractedInfo?.preferred_callback_time || 
+      'Not provided'
+    )
+    
+    const callbackNumber = normalizePunctuation(
+      extractedInfo?.callback_number || 
+      callerPhone || 
+      "We'll use the number you called from"
+    )
 
-    const messageBody = `Hi, this is ${businessName}. Thanks for calling — we got your request about ${serviceRequested}${locationText}. We'll follow up as soon as possible. If there's anything else we should know, just reply to this text.`
+    // Build comprehensive confirmation message
+    let messageBody = `Hi, this is ${businessName}. Thanks for calling — we received your request.\n\n`
+    
+    // Add summary section if details exist
+    if (details) {
+      messageBody += `Summary:\n${details}\n\n`
+    }
+    
+    // Add details section
+    messageBody += `Details:\n`
+    messageBody += `• Name: ${callerName}\n`
+    messageBody += `• Reason: ${reason}\n`
+    messageBody += `• Urgency: ${urgency}\n`
+    messageBody += `• Location: ${location}\n`
+    messageBody += `• Callback time: ${callbackTime}\n`
+    messageBody += `• Callback number: ${callbackNumber}\n\n`
+    
+    // Add next step and reply instruction
+    messageBody += `We'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
 
     console.log('[AI CONFIRMATION SMS BODY]', {
       businessName,
-      serviceRequested,
-      locationText,
+      callerName,
+      reason,
+      urgency,
+      location,
+      callbackTime,
+      callbackNumber,
+      hasDetails: !!details,
       messageBodyLength: messageBody.length
     })
 

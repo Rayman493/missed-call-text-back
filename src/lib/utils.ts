@@ -175,3 +175,59 @@ export function getLeadStatusColor(status: string): string {
       return 'bg-slate-800 text-slate-400'
   }
 }
+
+/**
+ * Normalize punctuation to prevent duplicate periods and other punctuation issues.
+ * 
+ * This function ensures that when concatenating strings, we don't create duplicate punctuation
+ * like "..", "... .", or similar artifacts that can occur when AI-generated text is combined
+ * with templates or other strings.
+ * 
+ * Examples:
+ * - "Need estimate." + "." → "Need estimate."
+ * - "Need estimate" + "." → "Need estimate."
+ * - "Need estimate..." + "." → "Need estimate."
+ * 
+ * @param text - The text to normalize
+ * @returns The text with normalized punctuation
+ */
+export function normalizePunctuation(text: string | null | undefined): string {
+  if (!text) return ''
+  
+  const original = text.trim()
+  let normalized = original
+  
+  // Remove trailing periods, question marks, and exclamation marks
+  // This prevents duplicates when concatenating with punctuation
+  normalized = normalized.replace(/[.!?]+$/, '')
+  
+  // Log normalization for debugging
+  if (original !== normalized) {
+    console.log('[AI FIELD NORMALIZED]', {
+      original: original,
+      normalized: normalized
+    })
+  }
+  
+  return normalized
+}
+
+/**
+ * Normalize phone number for search by removing all formatting characters.
+ * 
+ * This function removes spaces, parentheses, dashes, periods, and plus signs
+ * to enable flexible phone number search across different formats.
+ * 
+ * Examples:
+ * - "+14125551234" → "14125551234"
+ * - "(412) 555-1234" → "4125551234"
+ * - "412-555-1234" → "4125551234"
+ * - "412 555 1234" → "4125551234"
+ * 
+ * @param phone - The phone number to normalize
+ * @returns The normalized phone number (digits only)
+ */
+export function normalizePhoneNumberForSearch(phone: string | null | undefined): string {
+  if (!phone) return ''
+  return phone.replace(/[\s\(\)\-\.\+]/g, '')
+}

@@ -3,6 +3,7 @@ import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
+import { normalizePunctuation } from '@/lib/utils'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
@@ -93,28 +94,28 @@ function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const parts: string[] = []
   
   if (extractedInfo.callerName) {
-    parts.push(`Caller: ${extractedInfo.callerName}`)
+    parts.push(`Caller: ${normalizePunctuation(extractedInfo.callerName)}`)
   }
   
   if (extractedInfo.reasonForCalling) {
-    parts.push(`Service: ${extractedInfo.reasonForCalling}`)
+    parts.push(`Service: ${normalizePunctuation(extractedInfo.reasonForCalling)}`)
   }
   
   if (extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress) {
     const address = extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress
-    parts.push(`Location: ${address}`)
+    parts.push(`Location: ${normalizePunctuation(address)}`)
   }
   
   if (extractedInfo.urgencyLevel) {
-    parts.push(`Urgency: ${extractedInfo.urgencyLevel}`)
+    parts.push(`Urgency: ${normalizePunctuation(extractedInfo.urgencyLevel)}`)
   }
   
   if (extractedInfo.preferredCallbackTime) {
-    parts.push(`Preferred callback time: ${extractedInfo.preferredCallbackTime}`)
+    parts.push(`Preferred callback time: ${normalizePunctuation(extractedInfo.preferredCallbackTime)}`)
   }
   
   if (extractedInfo.importantDetails) {
-    parts.push(`Details: ${extractedInfo.importantDetails}`)
+    parts.push(`Details: ${normalizePunctuation(extractedInfo.importantDetails)}`)
   }
   
   return parts.length > 0 ? parts.join('. ') : 'No information provided'
