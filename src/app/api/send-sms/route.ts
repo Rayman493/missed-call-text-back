@@ -172,7 +172,7 @@ export async function POST(request: Request) {
           mediaCount: mediaFiles.length,
           fileNames: mediaFiles.map(f => f.name),
           fileSizes: mediaFiles.map(f => f.size),
-          bucketName: 'message-media'
+          bucketName: 'mms-media'
         })
         
         for (const file of mediaFiles) {
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
           })
           
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-            .from('message-media')
+            .from('mms-media')
             .upload(filePath, file)
           
           if (uploadError) {
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
           
           // Get public URL
           const { data: publicUrlData } = supabaseAdmin.storage
-            .from('message-media')
+            .from('mms-media')
             .getPublicUrl(filePath)
           
           console.log('[MMS] Generated public URL:', {
