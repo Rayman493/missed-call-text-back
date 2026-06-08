@@ -2092,36 +2092,21 @@ Return only JSON, no other text.`;
             callSid: sessionCallSid
           });
           
-          // Create follow-up jobs directly using Supabase (empty transcript path)
-          console.log('[FOLLOWUP DIRECT INSERT START - PATH-B]', { 
-            businessId: sessionBusinessId, 
+          // AI completed call suppression: Do not create follow-up jobs for completed AI intake
+          console.log('[AI SERVICE FOLLOWUPS SKIPPED]', {
+            reason: 'ai_intake_completed',
+            path: 'PATH-B-empty-transcript',
+            businessId: sessionBusinessId,
             leadId: null,
-            conversationId: null
+            conversationId: null,
+            callSid: sessionCallSid,
+            note: 'Completed AI intake (empty transcript) should not create follow-up jobs'
           });
-          
-          try {
-            const { error: followUpError } = await supabase
-              .from('follow_up_jobs')
-              .insert({
-                business_id: sessionBusinessId,
-                lead_id: null,
-                conversation_id: null,
-                status: 'pending',
-                scheduled_for: new Date().toISOString(),
-                created_at: new Date().toISOString()
-              });
-            
-            if (followUpError) {
-              console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-B]', followUpError);
-            } else {
-              console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-B]', { 
-                businessId: sessionBusinessId
-              });
-            }
-          } catch (followUpError) {
-            console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-B]', followUpError);
-          }
-          console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-B]');
+
+          console.log('[FOLLOWUP DIRECT INSERT SUPPRESSED - PATH-B]', {
+            businessId: sessionBusinessId,
+            reason: 'AI intake completed - follow-up creation suppressed'
+          });
           
           // Create notification directly using Supabase (empty transcript path)
           console.log('[NOTIFICATION DIRECT INSERT START - PATH-B]', { 
@@ -2366,84 +2351,28 @@ Return only JSON, no other text.`;
         });
 
         // Create follow-up jobs directly using Supabase
-        console.log('[ACTIVE PATH FOLLOWUP START]', { 
-          businessId: sessionBusinessId, 
+        console.log('[ACTIVE PATH FOLLOWUP START]', {
+          businessId: sessionBusinessId,
           leadId: lead.id,
-          conversationId: conversation.id
+          conversationId: conversation.id,
+          outcome: 'completed'
         });
-        
-        try {
-          const idempotencyKey = `${lead.id}-ai-intake-1`;
-          
-          // Fetch business to get name and automation settings
-          const { data: business, error: businessError } = await supabase
-            .from('businesses')
-            .select('name, automation_settings')
-            .eq('id', sessionBusinessId)
-            .single();
-          
-          let messageBody: string;
-          
-          if (!businessError && business) {
-            const businessName = business.name || 'your business';
-            const automationSettings = business.automation_settings || {};
-            const followUpSettings = automationSettings.followUps;
-            
-            // Check if there's a configured follow-up template
-            if (followUpSettings && followUpSettings.followUps && followUpSettings.followUps.length > 0) {
-              const firstFollowUp = followUpSettings.followUps[0];
-              if (firstFollowUp.enabled && firstFollowUp.message) {
-                messageBody = firstFollowUp.message.replace('{{businessName}}', businessName);
-              } else {
-                messageBody = `Hi, this is ${businessName}. Just checking in — would you still like help?`;
-              }
-            } else {
-              messageBody = `Hi, this is ${businessName}. Just checking in — would you still like help?`;
-            }
-          } else {
-            // Fallback if business fetch fails
-            messageBody = `Hi, this is from your business. Just checking in — would you still like help?`;
-          }
-          
-          const followUpPayload = {
-            lead_id: lead.id,
-            business_id: sessionBusinessId,
-            conversation_id: conversation.id,
-            message_body: messageBody,
-            status: 'pending',
-            scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
-            idempotency_key: idempotencyKey,
-            step: 1,
-            created_at: new Date().toISOString()
-          };
-          
-          console.log('[ACTIVE PATH FOLLOWUP PAYLOAD]', { 
-            keys: Object.keys(followUpPayload),
-            businessId: sessionBusinessId, 
-            leadId: lead.id,
-            messageBody: messageBody
-          });
-          
-          const { error: followUpError } = await supabase
-            .from('follow_up_jobs')
-            .insert(followUpPayload);
-          
-          if (followUpError) {
-            console.log('[ACTIVE PATH FOLLOWUP ERROR]', { 
-              error: followUpError,
-              code: followUpError.code,
-              message: followUpError.message,
-              details: followUpError.details
-            });
-          } else {
-            console.log('[ACTIVE PATH FOLLOWUP SUCCESS]', { 
-              businessId: sessionBusinessId, 
-              leadId: lead.id
-            });
-          }
-        } catch (followUpError) {
-          console.log('[ACTIVE PATH FOLLOWUP ERROR]', followUpError);
-        }
+
+        // AI completed call suppression: Do not create follow-up jobs for completed AI intake
+        console.log('[AI SERVICE FOLLOWUPS SKIPPED]', {
+          reason: 'ai_intake_completed',
+          leadId: lead.id,
+          conversationId: conversation.id,
+          businessId: sessionBusinessId,
+          callSid: sessionCallSid,
+          note: 'Completed AI intake should not create follow-up jobs'
+        });
+
+        console.log('[ACTIVE PATH FOLLOWUP SUPPRESSED]', {
+          businessId: sessionBusinessId,
+          leadId: lead.id,
+          reason: 'AI intake completed - follow-up creation suppressed'
+        });
         
         // Create notification directly using Supabase
         console.log('[NOTIFICATION DIRECT INSERT START]', { 
@@ -4680,11 +4609,21 @@ Return only JSON, no other text.`;
                   const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
                   console.log('[NOTIFICATION SERVICE URL - PATH-C]', notificationApiUrl);
 
+                  const internalApiSecret = process.env.INTERNAL_API_SECRET;
+                  if (!internalApiSecret) {
+                    console.log('[NOTIFICATION SERVICE ERROR - PATH-C] INTERNAL_API_SECRET not configured');
+                  }
+
+                  const headers: any = {
+                    'Content-Type': 'application/json',
+                  };
+                  if (internalApiSecret) {
+                    headers['Authorization'] = `Bearer ${internalApiSecret}`;
+                  }
+
                   const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
                     method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
+                    headers,
                     body: JSON.stringify({
                       businessId: sessionBusinessId,
                       leadId: insertPayload.lead_id,
@@ -5032,11 +4971,21 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
                     console.log('[NOTIFICATION SERVICE URL - PATH-D]', notificationApiUrl);
 
+                    const internalApiSecret = process.env.INTERNAL_API_SECRET;
+                    if (!internalApiSecret) {
+                      console.log('[NOTIFICATION SERVICE ERROR - PATH-D] INTERNAL_API_SECRET not configured');
+                    }
+
+                    const headers: any = {
+                      'Content-Type': 'application/json',
+                    };
+                    if (internalApiSecret) {
+                      headers['Authorization'] = `Bearer ${internalApiSecret}`;
+                    }
+
                     const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
                       method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
+                      headers,
                       body: JSON.stringify({
                         businessId: sessionBusinessId,
                         leadId: transcriptInsertPayload.lead_id,
@@ -5329,11 +5278,21 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
                     console.log('[NOTIFICATION SERVICE URL - PATH-E]', notificationApiUrl);
 
+                    const internalApiSecret = process.env.INTERNAL_API_SECRET;
+                    if (!internalApiSecret) {
+                      console.log('[NOTIFICATION SERVICE ERROR - PATH-E] INTERNAL_API_SECRET not configured');
+                    }
+
+                    const headers: any = {
+                      'Content-Type': 'application/json',
+                    };
+                    if (internalApiSecret) {
+                      headers['Authorization'] = `Bearer ${internalApiSecret}`;
+                    }
+
                     const response = await fetch(`${notificationApiUrl}/api/notifications/create`, {
                       method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
+                      headers,
                       body: JSON.stringify({
                         businessId: sessionBusinessId,
                         leadId: fallbackInsertPayload.lead_id,
@@ -5716,10 +5675,17 @@ async function sendAIConfirmationSMS(
     const confirmationUrl = `${process.env.MAIN_APP_URL}/api/ai-confirmation-sms`;
     console.log('[AI CONFIRMATION SMS URL]', { host: new URL(confirmationUrl).host, path: '/api/ai-confirmation-sms' });
 
+    const internalApiSecret = process.env.INTERNAL_API_SECRET;
+    if (!internalApiSecret) {
+      console.error('[AI CONFIRMATION SMS ERROR] INTERNAL_API_SECRET not configured');
+      return;
+    }
+
     const response = await fetch(confirmationUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${internalApiSecret}`,
       },
       body: JSON.stringify({
         businessId,
