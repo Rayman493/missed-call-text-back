@@ -587,14 +587,17 @@ export async function POST(req: NextRequest) {
         })
       } else {
         autoReplyMessage = business.auto_reply_message || 
-          `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
+          `Hi, this is {{business_name}}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
         console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
           businessId: business.id,
           messageBody: autoReplyMessage
         })
       }
       
-      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${autoReplyMessage}`)
+      // Substitute {{business_name}} token with actual business name for both normal and after-hours messages
+      const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'My Business')
+      
+      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${personalizedMessage}`)
       console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
       console.log(`[Twilio Voice Status Webhook] Business has messaging_service_sid: ${!!business.twilio_messaging_service_sid}`)
       
@@ -609,7 +612,7 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString()
         })
         
-        messageSid = await sendSms(business, From, autoReplyMessage, {
+        messageSid = await sendSms(business, From, personalizedMessage, {
           lead_id: lead.id,
           conversation_id: conversation?.id,
         })

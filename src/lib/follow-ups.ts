@@ -84,7 +84,7 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
         return {
           step: fu.step,
           delayMinutes,
-          message: fu.message.replace('{{businessName}}', business.name || 'My Business')
+          message: fu.message.replace('{{business_name}}', business.name || 'My Business')
         }
       })
     
