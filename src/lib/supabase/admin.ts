@@ -1059,7 +1059,7 @@ export const db = {
     if (callEvent && conversationId) {
       await supabaseAdmin
         .from('call_events')
-        .update({ conversation_id })
+        .update({ conversation_id: conversationId })
         .eq('id', callEvent.id)
       console.log('[CALL INTAKE] Updated call_events with conversation_id')
     }
