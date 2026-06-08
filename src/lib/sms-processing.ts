@@ -4,6 +4,7 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
+import { detectCorrection, applyCorrection, generateCorrectionNote } from '@/lib/ai-correction-engine'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
@@ -365,112 +366,50 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       })
     }
 
-    // Detect and process corrections in inbound SMS
-    const correctionPhrases = [
-      'address is actually',
-      'actually',
-      'correction',
-      'it is',
-      'should be',
-      'my address is'
-    ]
-    
-    const lowerBody = body.toLowerCase()
-    const isCorrection = correctionPhrases.some(phrase => lowerBody.includes(phrase))
-    
-    if (isCorrection) {
-      console.log('[INBOUND SMS CORRECTION DETECTED]', {
+    // Detect and process corrections in inbound SMS using AI
+    if (aiCallRecord && aiCallRecord.extracted_info) {
+      console.log('[AI CORRECTION DETECTION START]', {
         leadId: lead.id,
-        body: body
+        aiCallRecordId: aiCallRecord.id,
+        customerReply: body
       })
 
-      // Try to extract address from the message
-      // Look for patterns like "address is actually [address]" or "my address is [address]"
-      let correctedAddress: string | null = null
-      
-      // Pattern 1: "address is actually [address]"
-      const addressActuallyMatch = body.match(/address is actually\s+(.+?)(?:\.|$)/i)
-      if (addressActuallyMatch) {
-        correctedAddress = addressActuallyMatch[1].trim()
-      }
-      
-      // Pattern 2: "my address is [address]"
-      const myAddressMatch = body.match(/my address is\s+(.+?)(?:\.|$)/i)
-      if (myAddressMatch && !correctedAddress) {
-        correctedAddress = myAddressMatch[1].trim()
-      }
-      
-      // Pattern 3: "actually [address]" (fallback, less specific)
-      if (!correctedAddress && lowerBody.includes('actually')) {
-        const actuallyMatch = body.match(/actually\s+(.+?)(?:\.|$)/i)
-        if (actuallyMatch && actuallyMatch[1].trim().length > 5) {
-          correctedAddress = actuallyMatch[1].trim()
-        }
-      }
-      
-      if (correctedAddress) {
-        console.log('[INBOUND SMS ADDRESS CORRECTION EXTRACTED]', {
-          leadId: lead.id,
-          correctedAddress: correctedAddress
-        })
+      const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
 
-        // Update lead raw_metadata with corrected address
-        const currentMetadata = updatedLead?.raw_metadata || {}
-        
-        // Store previous value before correction
-        const previousValues = currentMetadata.previous_values || {}
-        const previousAddress = currentMetadata.location || currentMetadata.address || currentMetadata.service_address
-        
-        if (previousAddress && previousAddress !== correctedAddress) {
-          previousValues.address = previousAddress
-        }
+      console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
-        const correctedMetadata = {
-          ...currentMetadata,
-          location: correctedAddress,
-          address: correctedAddress,
-          service_address: correctedAddress,
-          customer_corrected_info: true,
-          corrected_fields: {
-            ...(currentMetadata.corrected_fields || {}),
-            address: correctedAddress
-          },
-          previous_values: previousValues
-        }
-
-        const leadWithCorrection = await db.updateLead(lead.id, {
-          raw_metadata: correctedMetadata,
-          updated_at: now
-        })
-
-        if (leadWithCorrection) {
-          console.log('[INBOUND SMS LEAD ADDRESS UPDATED]', {
-            leadId: leadWithCorrection.id,
-            address: correctedMetadata.address
+      if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
+        if (correctionResult.requiresReview) {
+          console.log('[AI CORRECTION REVIEW REQUIRED]', {
+            leadId: lead.id,
+            aiCallRecordId: aiCallRecord.id,
+            fieldChanged: correctionResult.fieldChanged,
+            confidence: correctionResult.confidence,
+            reason: correctionResult.reason
           })
         } else {
-          console.error('[INBOUND SMS LEAD ADDRESS UPDATE ERROR]', {
+          console.log('[AI CORRECTION APPLIED]', {
             leadId: lead.id,
-            error: 'Failed to update lead with corrected address'
+            aiCallRecordId: aiCallRecord.id,
+            fieldChanged: correctionResult.fieldChanged,
+            oldValue: correctionResult.oldValue,
+            newValue: correctionResult.newValue,
+            confidence: correctionResult.confidence
           })
-        }
 
-        // Update AI call record with corrected address if found
-        if (aiCallRecord) {
-          const currentExtractedInfo = aiCallRecord.extracted_info || {}
-          const updatedExtractedInfo = {
-            ...currentExtractedInfo,
-            addressOrLocation: correctedAddress,
-            address: correctedAddress,
-            location: correctedAddress,
-            serviceAddress: correctedAddress
-          }
+          // Apply correction to extracted_info
+          const updatedExtractedInfo = applyCorrection(
+            aiCallRecord.extracted_info,
+            correctionResult.fieldChanged,
+            correctionResult.newValue
+          )
 
           // Regenerate summary from updated extracted_info
           const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)
 
+          // Update AI call record
           const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
-            .from('ai_call_records')
+            .from('ai_call_sessions')
             .update({
               extracted_info: updatedExtractedInfo,
               summary: regeneratedSummary,
@@ -481,22 +420,66 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             .single()
 
           if (!aiUpdateError && updatedAiRecord) {
-            console.log('[INBOUND SMS AI INTAKE UPDATED]', {
+            console.log('[AI CORRECTION AI INTAKE UPDATED]', {
               callRecordId: updatedAiRecord.id,
-              address: updatedExtractedInfo.address,
+              fieldChanged: correctionResult.fieldChanged,
               summary: regeneratedSummary
             })
           } else {
-            console.error('[INBOUND SMS AI INTAKE UPDATE ERROR]', {
+            console.error('[AI CORRECTION AI INTAKE UPDATE ERROR]', {
               callRecordId: aiCallRecord.id,
               error: aiUpdateError
             })
           }
+
+          // Update lead raw_metadata with correction history
+          const currentMetadata = updatedLead?.raw_metadata || {}
+          const correctionNote = generateCorrectionNote(
+            correctionResult.fieldChanged,
+            correctionResult.oldValue || 'unknown',
+            correctionResult.newValue,
+            correctionResult.confidence
+          )
+
+          const correctedMetadata = {
+            ...currentMetadata,
+            customer_corrected_info: true,
+            last_correction_at: now,
+            last_correction_field: correctionResult.fieldChanged,
+            last_correction_note: correctionNote
+          }
+
+          const leadWithCorrection = await db.updateLead(lead.id, {
+            raw_metadata: correctedMetadata,
+            updated_at: now
+          })
+
+          if (leadWithCorrection) {
+            console.log('[AI CORRECTION LEAD UPDATED]', {
+              leadId: leadWithCorrection.id,
+              correctionNote
+            })
+          } else {
+            console.error('[AI CORRECTION LEAD UPDATE ERROR]', {
+              leadId: lead.id,
+              error: 'Failed to update lead with correction metadata'
+            })
+          }
+
+          // Add correction note to conversation
+          if (conversation) {
+            console.log('[AI CORRECTION ADDING NOTE TO CONVERSATION]', {
+              conversationId: conversation.id,
+              correctionNote
+            })
+            // Note: This would require a function to add a system note to the conversation
+            // For now, the correction is logged and stored in lead.raw_metadata
+          }
         }
       } else {
-        console.log('[INBOUND SMS CORRECTION DETECTED BUT NO ADDRESS EXTRACTED]', {
+        console.log('[AI CORRECTION NOT DETECTED]', {
           leadId: lead.id,
-          body: body
+          reason: correctionResult.reason || 'No correction detected'
         })
       }
     }
