@@ -560,6 +560,8 @@ export async function POST(request: NextRequest) {
     const guardResult = checkAllGuards(business.id, business);
     const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true';
     
+    let aiRoutingSucceeded = false;
+    
     console.log('[MAIN VOICE MODE DECISION]', {
       aiVoiceEnabled: guardResult.passed,
       useAiVoice: usePOC,
@@ -835,6 +837,7 @@ export async function POST(request: NextRequest) {
                 expectedBehavior: callType === 'forwarded_missed_call' ? 'Business should have rung for 30+ seconds before forwarding' : 'Direct call - AI should answer immediately'
               });
 
+              aiRoutingSucceeded = true;
               return new NextResponse(twiml, {
                 status: 200,
                 headers: {
@@ -858,6 +861,7 @@ export async function POST(request: NextRequest) {
         console.log('[AI CALL ASSISTANT] Using Phase 0 - redirecting to AI assistant');
         console.log('[VOICE PATH] AI (Phase 0 redirect)');
         const aiStartUrl = new URL('/api/twilio/ai-assistant/start', request.url);
+        aiRoutingSucceeded = true;
         return NextResponse.redirect(aiStartUrl);
       }
     } else {
@@ -873,6 +877,18 @@ export async function POST(request: NextRequest) {
       console.log('[VOICE PATH] VOICEMAIL (GUARDS FAILED)');
     }
     // END AI CALL ASSISTANT CHECK
+
+    // Skip legacy voice path if AI routing succeeded
+    if (aiRoutingSucceeded) {
+      console.log('[AI ROUTING SUCCEEDED] Skipping legacy voice path - canonical records already created')
+      return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/xml',
+          'X-AI-Routing': 'succeeded'
+        },
+      })
+    }
 
     // MISSED CALL TIMING: Log voice webhook received
     console.log('[MISSED CALL TIMING] voice webhook received', {
