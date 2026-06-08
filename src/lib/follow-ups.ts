@@ -41,18 +41,19 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
 }>> {
   try {
     console.log('[GET FOLLOWUP SCHEDULE ENTER]', { businessId });
-    
+
     const business = await db.getBusiness(businessId)
     if (!business) {
       console.error('[GET FOLLOWUP SCHEDULE] Business not found:', businessId)
       return []
     }
 
-    console.log('[GET FOLLOWUP SCHEDULE] Business found:', { businessId, businessName: business.name });
+    console.log('[GET FOLLOWUP SCHEDULE] Business found:', { businessId, businessName: business.name })
+    console.log('[GET FOLLOWUP SCHEDULE] Full automation_settings from DB:', JSON.stringify(business.automation_settings, null, 2))
 
     const automationSettings = business.automation_settings || {}
     console.log('[GET FOLLOWUP SCHEDULE] Automation settings:', automationSettings);
-    
+
     const followUpSettings = automationSettings.followUps
     console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
 
