@@ -1731,6 +1731,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               ) : (
                 <div className="space-y-3 sm:space-y-4">
+                  {/* Temporary debug block */}
+                  <div className="p-2 bg-red-500 text-white">
+                    DEBUG messagesArray.length: {messagesArray.length}
+                    First body: {messagesArray[0]?.body}
+                  </div>
                   {messagesArray.map((message: any, index: number) => {
                     const isLatest = index === messagesArray.length - 1
                     const media = messageMedia[message.id]
