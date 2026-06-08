@@ -85,13 +85,13 @@ export async function POST(req: NextRequest) {
       aiConversationId: null,
       aiLeadId: null
     })
-    
+
     const { data: aiCallRecord } = await supabase
       .from('ai_call_sessions')
-      .select('id, lead_id')
+      .select('id, lead_id, caller_name, reason_for_call, urgency, callback_number, raw_metadata')
       .eq('call_sid', CallSid)
       .maybeSingle()
-    
+
     if (aiCallRecord) {
       console.log('[VOICE STATUS AI RECORD CHECK]', {
         callSid: CallSid,
@@ -583,13 +583,58 @@ export async function POST(req: NextRequest) {
       let messageTemplate = 'unknown'
 
       if (aiCallRecord) {
-        // AI completed intake - use dedicated AI completion template
-        autoReplyMessage = `Thanks for calling {{business_name}}. We've received the information you provided and passed it along to our team. Someone will follow up with you soon.`
-        messageTemplate = 'ai_intake_completed'
-        console.log('[AI SMS TEMPLATE SELECTED]', {
+        // AI completed intake - build summary from extracted fields
+        const summaryParts: string[] = []
+
+        // Add reason for call
+        if (aiCallRecord.reason_for_call) {
+          summaryParts.push(`Reason: ${aiCallRecord.reason_for_call}`)
+        }
+
+        // Add urgency
+        if (aiCallRecord.urgency) {
+          summaryParts.push(`Urgency: ${aiCallRecord.urgency}`)
+        }
+
+        // Add callback number
+        if (aiCallRecord.callback_number) {
+          summaryParts.push(`Callback: ${aiCallRecord.callback_number}`)
+        }
+
+        // Check raw_metadata for additional fields like address/location, callback time
+        if (aiCallRecord.raw_metadata) {
+          const metadata = aiCallRecord.raw_metadata
+
+          if (metadata.address || metadata.location) {
+            summaryParts.push(`Location: ${metadata.address || metadata.location}`)
+          }
+
+          if (metadata.callback_time || metadata.best_callback_time) {
+            summaryParts.push(`Best callback time: ${metadata.callback_time || metadata.best_callback_time}`)
+          }
+        }
+
+        // Build the summary message
+        let summaryText = ''
+        if (summaryParts.length > 0) {
+          summaryText = summaryParts.join('\n')
+        }
+
+        const businessName = business.name || 'My Business'
+        autoReplyMessage = `Thanks for calling ${businessName}. Here's what we captured:\n\n${summaryText}\n\nIf anything is incorrect, simply reply with the correction.`
+        messageTemplate = 'ai_intake_summary'
+
+        console.log('[AI SUMMARY SMS GENERATED]', {
           template: messageTemplate,
           businessId: business.id,
           aiCallRecordId: aiCallRecord.id,
+          extractedFields: {
+            reason: aiCallRecord.reason_for_call,
+            urgency: aiCallRecord.urgency,
+            callbackNumber: aiCallRecord.callback_number,
+            rawMetadata: aiCallRecord.raw_metadata
+          },
+          summaryParts,
           messageBody: autoReplyMessage
         })
       } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
@@ -637,6 +682,17 @@ export async function POST(req: NextRequest) {
         if (messageSid) {
           console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
           autoReplySent = true
+
+          // Log AI summary SMS sent
+          if (messageTemplate === 'ai_intake_summary') {
+            console.log('[AI SUMMARY SMS SENT]', {
+              template: messageTemplate,
+              businessId: business.id,
+              aiCallRecordId: aiCallRecord?.id,
+              leadId: lead.id,
+              twilioSid: messageSid
+            })
+          }
           console.log('[VOICE STATUS SMS SEND]', {
             conversationId: conversation?.id,
             leadId: lead.id
