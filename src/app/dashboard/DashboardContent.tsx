@@ -869,13 +869,32 @@ export default function DashboardContent() {
   const setupState = deriveSetupState(business)
   const isSetupComplete = setupState === 'complete'
 
+  console.log('[DASHBOARD GATE DECISION]', {
+    businessId: business?.id,
+    setupState,
+    subscriptionStatus: business?.subscription_status,
+    trialStatus: business?.subscription_status,
+    redirectTarget: null,
+    reason: 'Evaluating dashboard guard'
+  })
+
   if (businessFetchComplete && !businessLoading && business && !isAdmin) {
     // If setup is incomplete, route to the correct next step
     if (!isSetupComplete) {
       const targetRoute = (() => {
         switch (setupState) {
           case 'needs_trial':
-            return '/onboarding'
+            // DO NOT redirect to /onboarding - that's for users with no business row
+            // If user has a business but needs trial, go to dashboard with billing prompt or trial page
+            console.log('[DASHBOARD GATE DECISION]', {
+              businessId: business?.id,
+              setupState,
+              subscriptionStatus: business?.subscription_status,
+              trialStatus: business?.subscription_status,
+              redirectTarget: '/dashboard',
+              reason: 'Business exists but needs trial - allow dashboard access'
+            })
+            return null  // Stay on dashboard, show billing prompt
           case 'provisioning_or_number_pending':
             return '/onboarding/new-onboarding'
           case 'needs_forwarding':
@@ -888,6 +907,14 @@ export default function DashboardContent() {
       })()
 
       if (targetRoute && targetRoute !== pathname) {
+        console.log('[DASHBOARD GATE DECISION]', {
+          businessId: business?.id,
+          setupState,
+          subscriptionStatus: business?.subscription_status,
+          trialStatus: business?.subscription_status,
+          redirectTarget: targetRoute,
+          reason: 'Setup incomplete, redirecting to setup step'
+        })
         console.log('[Dashboard Gate] Setup incomplete, redirecting:', {
           setupState,
           targetRoute,
