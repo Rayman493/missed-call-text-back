@@ -638,197 +638,167 @@ export async function POST(request: NextRequest) {
         console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
         try {
-          // Create lead before AI session to ensure data linkage
+          // Use shared helper to get or create canonical lead and conversation for this CallSid
           const normalizedCallerPhone = From.replace(/^\+1/, '').replace(/\D/g, '')
           
           logCallTrace({
             route: 'voice',
-            action: 'lead_lookup_start',
+            action: 'call_intake_start',
             callSid: CallSid,
             from: From,
             to: To,
             forwardedFrom: ForwardedFrom,
             businessId: business.id,
             businessName: business.name,
-            reason: 'Looking up lead by caller phone for AI session'
+            reason: 'Getting/creating canonical lead and conversation for AI session'
           })
           
-          let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
-          
-          if (lead) {
-            logCallTrace({
-              route: 'voice',
-              action: 'lead_lookup_success',
-              callSid: CallSid,
-              from: From,
-              to: To,
-              forwardedFrom: ForwardedFrom,
-              businessId: business.id,
-              businessName: business.name,
-              leadId: lead.id,
-              existingOrCreated: 'existing',
-              reason: 'Found existing lead for AI session'
-            })
-          }
-          
-          if (!lead) {
-            console.log('[AI CALL ASSISTANT] No existing lead, creating new lead for AI session')
-            
-            logCallTrace({
-              route: 'voice',
-              action: 'lead_create_start',
-              callSid: CallSid,
-              from: From,
-              to: To,
-              forwardedFrom: ForwardedFrom,
-              businessId: business.id,
-              businessName: business.name,
-              reason: 'No existing lead found, creating new lead for AI session'
-            })
-            
-            lead = await db.createLead({
-              business_id: business.id,
-              caller_phone: normalizedCallerPhone,
-              status: 'new',
-              raw_metadata: { source: 'ai_voice' },
-            })
-            
-            if (!lead) {
-              console.error('[AI CALL ASSISTANT] Failed to create lead, falling back to voicemail')
-              
-              logCallTrace({
-                route: 'voice',
-                action: 'lead_create_failed',
-                callSid: CallSid,
-                from: From,
-                to: To,
-                forwardedFrom: ForwardedFrom,
-                businessId: business.id,
-                businessName: business.name,
-                reason: 'Failed to create lead for AI session'
-              })
-              
-              // Fall through to voicemail flow
-            } else {
-              console.log('[AI CALL ASSISTANT] Lead created for AI session:', lead.id)
-              
-              logCallTrace({
-                route: 'voice',
-                action: 'lead_create_success',
-                callSid: CallSid,
-                from: From,
-                to: To,
-                forwardedFrom: ForwardedFrom,
-                businessId: business.id,
-                businessName: business.name,
-                leadId: lead.id,
-                existingOrCreated: 'created',
-                reason: 'Created new lead for AI session'
-              })
-            }
-          } else {
-            console.log('[AI CALL ASSISTANT] Using existing lead for AI session:', lead.id)
-          }
-
-          // Create AI session with lead linkage
-          logCallTrace({
-            route: 'voice',
-            action: 'ai_session_create_start',
+          const intakeRecords = await db.getOrCreateCallIntakeRecords({
             callSid: CallSid,
-            from: From,
-            to: To,
-            forwardedFrom: ForwardedFrom,
             businessId: business.id,
-            businessName: business.name,
-            leadId: lead?.id,
-            reason: 'Creating AI session with lead linkage'
+            callerPhone: normalizedCallerPhone,
+            to: To,
+            forwardedFrom: ForwardedFrom
           })
           
-          const session = await createAISession({
-            business_id: business.id,
-            lead_id: lead?.id || null,
-            call_sid: CallSid,
-          })
-
-          if (!session) {
-            console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+          if (!intakeRecords.leadId || !intakeRecords.conversationId) {
+            console.error('[AI CALL ASSISTANT] Failed to get or create intake records')
             
             logCallTrace({
               route: 'voice',
-              action: 'ai_session_create_failed',
+              action: 'call_intake_failed',
               callSid: CallSid,
               from: From,
               to: To,
               forwardedFrom: ForwardedFrom,
               businessId: business.id,
               businessName: business.name,
-              leadId: lead?.id,
-              reason: 'Failed to create AI session'
+              reason: 'Failed to get or create intake records'
             })
             
             // Fall through to voicemail flow
           } else {
-            console.log('[AI POC] session created:', session.id)
-            console.log('[AI POC] callSid:', CallSid)
-            console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
+            console.log('[AI CALL ASSISTANT] Intake records obtained:', {
+              leadId: intakeRecords.leadId,
+              conversationId: intakeRecords.conversationId,
+              isNew: intakeRecords.isNew
+            })
             
             logCallTrace({
               route: 'voice',
-              action: 'ai_session_create_success',
+              action: 'call_intake_success',
               callSid: CallSid,
               from: From,
               to: To,
               forwardedFrom: ForwardedFrom,
               businessId: business.id,
               businessName: business.name,
-              leadId: lead?.id,
-              aiCallRecordId: session.id,
-              existingOrCreated: 'created',
-              reason: 'Created AI session successfully'
+              leadId: intakeRecords.leadId,
+              conversationId: intakeRecords.conversationId,
+              existingOrCreated: intakeRecords.isNew ? 'created' : 'existing',
+              reason: 'Successfully obtained canonical lead and conversation'
             })
 
-            console.log('[AI SESSION LEAD LINKAGE VERIFIED]', {
-              sessionId: session.id,
-              leadId: lead?.id,
-              hasLead: !!lead?.id,
+            // Create AI session with lead linkage
+            logCallTrace({
+              route: 'voice',
+              action: 'ai_session_create_start',
               callSid: CallSid,
-              businessId: business.id
-            })
-            if (lead?.id) {
-              console.log('[AI SESSION LEAD CREATED BEFORE SESSION]', {
-                leadId: lead.id,
-                sessionId: session.id,
-                callSid: CallSid
-              })
-            } else {
-              console.log('[AI SESSION LEGACY NULL LEAD PATH IGNORED]', {
-                sessionId: session.id,
-                callSid: CallSid,
-                reason: 'lead creation failed, falling back to voicemail'
-              })
-            }
-
-            // Get Fly.io WebSocket URL from environment
-            const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream';
-            
-            console.log('[MAIN TWIML STREAM URL]', flyWsUrl);
-
-            // Add comprehensive outbound parameter logging
-            console.log('[STREAM PARAMS OUTBOUND]', {
-              sessionId: session.id,
-              callSid: CallSid,
-              businessId: business.id,
-              callType: callPath,
-              callerPhone: From,
               from: From,
               to: To,
-              called: Called,
-              forwardedFrom: ForwardedFrom
-            });
+              forwardedFrom: ForwardedFrom,
+              businessId: business.id,
+              businessName: business.name,
+              leadId: intakeRecords.leadId,
+              reason: 'Creating AI session with lead linkage'
+            })
+            
+            const session = await createAISession({
+              business_id: business.id,
+              lead_id: intakeRecords.leadId,
+              call_sid: CallSid,
+            })
 
-            // Return TwiML with Media Stream to Fly.io
-            // Parameters are passed as <Parameter> elements, not query params
-            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+            if (!session) {
+              console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+              
+              logCallTrace({
+                route: 'voice',
+                action: 'ai_session_create_failed',
+                callSid: CallSid,
+                from: From,
+                to: To,
+                forwardedFrom: ForwardedFrom,
+                businessId: business.id,
+                businessName: business.name,
+                leadId: intakeRecords.leadId,
+                reason: 'Failed to create AI session'
+              })
+              
+              // Fall through to voicemail flow
+            } else {
+              console.log('[AI POC] session created:', session.id)
+              console.log('[AI POC] callSid:', CallSid)
+              console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
+              
+              logCallTrace({
+                route: 'voice',
+                action: 'ai_session_create_success',
+                callSid: CallSid,
+                from: From,
+                to: To,
+                forwardedFrom: ForwardedFrom,
+                businessId: business.id,
+                businessName: business.name,
+                leadId: intakeRecords.leadId,
+                aiCallRecordId: session.id,
+                existingOrCreated: 'created',
+                reason: 'Created AI session successfully'
+              })
+
+              console.log('[AI SESSION LEAD LINKAGE VERIFIED]', {
+                sessionId: session.id,
+                leadId: intakeRecords.leadId,
+                conversationId: intakeRecords.conversationId,
+                hasLead: !!intakeRecords.leadId,
+                callSid: CallSid,
+                businessId: business.id
+              })
+              if (intakeRecords.leadId) {
+                console.log('[AI SESSION LEAD CREATED BEFORE SESSION]', {
+                  leadId: intakeRecords.leadId,
+                  sessionId: session.id,
+                  callSid: CallSid
+                })
+              } else {
+                console.log('[AI SESSION LEGACY NULL LEAD PATH IGNORED]', {
+                  sessionId: session.id,
+                  callSid: CallSid,
+                  reason: 'lead creation failed, falling back to voicemail'
+                })
+              }
+
+              // Get Fly.io WebSocket URL from environment
+              const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream';
+              
+              console.log('[MAIN TWIML STREAM URL]', flyWsUrl);
+
+              // Add comprehensive outbound parameter logging
+              console.log('[STREAM PARAMS OUTBOUND]', {
+                sessionId: session.id,
+                callSid: CallSid,
+                businessId: business.id,
+                callType: callPath,
+                callerPhone: From,
+                from: From,
+                to: To,
+                called: Called,
+                forwardedFrom: ForwardedFrom
+              });
+
+              // Return TwiML with Media Stream to Fly.io
+              // Parameters are passed as <Parameter> elements, not query params
+              const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
     <Stream url="${flyWsUrl}">
@@ -845,34 +815,35 @@ export async function POST(request: NextRequest) {
   </Connect>
 </Response>`
 
-            console.log('[AI POC] final TwiML:', twiml);
-            console.log('[MAIN TWIML GENERATED]', twiml);
-            console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`);
-            console.log('[AI POC FINAL TWIML]', twiml);
-            console.log('[VOICE PATH] AI');
+              console.log('[AI POC] final TwiML:', twiml);
+              console.log('[MAIN TWIML GENERATED]', twiml);
+              console.log(`[AI POC DEPLOYMENT MARKER] version=3105ffc path=ai-poc-${callPath}`);
+              console.log('[AI POC FINAL TWIML]', twiml);
+              console.log('[VOICE PATH] AI');
 
-            // Final timing report
-            const secondsBetweenArrivalAndAIStart = timeFromWebhookToAI / 1000;
-            console.log('[CALL TIMING REPORT]', {
-              seconds_between_call_arrival_and_ai_start: secondsBetweenArrivalAndAIStart,
-              milliseconds_between_call_arrival_and_ai_start: timeFromWebhookToAI,
-              callArrivalTimestamp: callArrivalTimestamp.toISOString(),
-              aiActivationTimestamp: aiActivationTimestamp.toISOString(),
-              callType: callType,
-              callPath: callPath,
-              businessId: business.id,
-              callSid: CallSid,
-              expectedBehavior: callType === 'forwarded_missed_call' ? 'Business should have rung for 30+ seconds before forwarding' : 'Direct call - AI should answer immediately'
-            });
+              // Final timing report
+              const secondsBetweenArrivalAndAIStart = timeFromWebhookToAI / 1000;
+              console.log('[CALL TIMING REPORT]', {
+                seconds_between_call_arrival_and_ai_start: secondsBetweenArrivalAndAIStart,
+                milliseconds_between_call_arrival_and_ai_start: timeFromWebhookToAI,
+                callArrivalTimestamp: callArrivalTimestamp.toISOString(),
+                aiActivationTimestamp: aiActivationTimestamp.toISOString(),
+                callType: callType,
+                callPath: callPath,
+                businessId: business.id,
+                callSid: CallSid,
+                expectedBehavior: callType === 'forwarded_missed_call' ? 'Business should have rung for 30+ seconds before forwarding' : 'Direct call - AI should answer immediately'
+              });
 
-            return new NextResponse(twiml, {
-              status: 200,
-              headers: {
-                'Content-Type': 'text/xml',
-                'X-AI-POC': `phase-1a-${callPath}`,
-                'X-Call-Type': callPath
-              },
-            })
+              return new NextResponse(twiml, {
+                status: 200,
+                headers: {
+                  'Content-Type': 'text/xml',
+                  'X-AI-POC': `phase-1a-${callPath}`,
+                  'X-Call-Type': callPath
+                },
+              })
+            }
           }
         } catch (error) {
           console.error('[AI FAILED - VOICEMAIL FALLBACK] Error generating POC TwiML:', error);
@@ -1096,48 +1067,6 @@ export async function POST(request: NextRequest) {
           existingOrCreated: 'created',
           reason: 'Created new lead for voicemail flow'
         })
-        
-        // Log call lead link debug after creation
-        console.log('[CALL LEAD LINK DEBUG]', {
-          callSid: CallSid,
-          from: From,
-          to: To,
-          normalizedFrom: normalizedCallerPhone,
-          normalizedTo: normalizedTo,
-          forwardedFrom: ForwardedFrom || null,
-          businessId: business.id,
-          existingLeadId: null,
-          shouldReuseLead: false,
-          newLeadCreated: true,
-          finalLeadId: lead.id,
-          finalConversationId: null,
-          aiCallRecordId: null,
-          outboundMessageId: null,
-          reason: 'New lead created from voice webhook'
-        });
-        
-        // Log test call lead trace after creation
-        console.log('[TEST CALL LEAD TRACE]', {
-          callSid: CallSid,
-          from: From,
-          to: To,
-          forwardedFrom: ForwardedFrom,
-          matchedBusinessId: business.id,
-          matchedTwilioNumberId: business.twilio_phone_number_sid,
-          leadId: lead.id,
-          conversationId: null,
-          messageId: null,
-          aiCallRecordId: null,
-          isDemo: lead.is_demo,
-          leadStatus: lead.status,
-          classification: 'new_lead_created',
-          reason: 'Lead successfully created from voice webhook',
-          businessLookup: {
-            lookupSource,
-            twilioPhone: business.twilio_phone_number,
-            businessPhone: business.business_phone_number
-          }
-        });
         
         await timelineEvents.leadCreated(business.id, lead.id, '', normalizedCallerPhone);
         

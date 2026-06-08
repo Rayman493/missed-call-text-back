@@ -911,6 +911,132 @@ export const db = {
     return data
   },
 
+  // Shared helper to get or create canonical lead and conversation for a CallSid
+  async getOrCreateCallIntakeRecords(params: {
+    callSid: string
+    businessId: string
+    callerPhone: string
+    to?: string
+    forwardedFrom?: string
+  }): Promise<{ leadId: string | null; conversationId: string | null; isNew: boolean }> {
+    console.log('[CALL INTAKE] Getting/creating canonical records for CallSid:', params.callSid)
+    
+    // Step 1: Check call_events by twilio_call_sid
+    const { data: callEvent } = await supabaseAdmin
+      .from('call_events')
+      .select('id, lead_id, conversation_id')
+      .eq('twilio_call_sid', params.callSid)
+      .maybeSingle()
+    
+    if (callEvent?.lead_id && callEvent?.conversation_id) {
+      console.log('[CALL INTAKE] Reusing existing lead and conversation from call_events:', {
+        leadId: callEvent.lead_id,
+        conversationId: callEvent.conversation_id
+      })
+      return { leadId: callEvent.lead_id, conversationId: callEvent.conversation_id, isNew: false }
+    }
+    
+    // Step 2: If call_events has conversation_id but lead_id NULL, load conversation.lead_id and update call_events
+    if (callEvent?.conversation_id && !callEvent?.lead_id) {
+      console.log('[CALL INTAKE] call_events has conversation_id but NULL lead_id, loading conversation')
+      const { data: conversation } = await supabaseAdmin
+        .from('conversations')
+        .select('lead_id')
+        .eq('id', callEvent.conversation_id)
+        .single()
+      
+      if (conversation?.lead_id) {
+        // Update call_events with lead_id
+        await supabaseAdmin
+          .from('call_events')
+          .update({ lead_id: conversation.lead_id })
+          .eq('id', callEvent.id)
+        
+        console.log('[CALL INTAKE] Updated call_events with lead_id from conversation:', {
+          leadId: conversation.lead_id,
+          conversationId: callEvent.conversation_id
+        })
+        return { leadId: conversation.lead_id, conversationId: callEvent.conversation_id, isNew: false }
+      }
+    }
+    
+    // Step 3: Check ai_call_records for existing lead_id/conversation_id
+    const { data: aiCallRecord } = await supabaseAdmin
+      .from('ai_call_sessions')
+      .select('lead_id, conversation_id')
+      .eq('call_sid', params.callSid)
+      .maybeSingle()
+    
+    if (aiCallRecord?.lead_id && aiCallRecord?.conversation_id) {
+      console.log('[CALL INTAKE] Reusing existing lead and conversation from ai_call_sessions:', {
+        leadId: aiCallRecord.lead_id,
+        conversationId: aiCallRecord.conversation_id
+      })
+      
+      // Update call_events with these values if it exists
+      if (callEvent) {
+        await supabaseAdmin
+          .from('call_events')
+          .update({ lead_id: aiCallRecord.lead_id, conversation_id: aiCallRecord.conversation_id })
+          .eq('id', callEvent.id)
+      }
+      
+      return { leadId: aiCallRecord.lead_id, conversationId: aiCallRecord.conversation_id, isNew: false }
+    }
+    
+    // Step 4: Create new lead and conversation if neither has usable records
+    console.log('[CALL INTAKE] No existing records found, creating new lead and conversation')
+    
+    // Create lead
+    const normalizedPhone = normalizePhoneNumberForStorage(params.callerPhone)
+    const { data: newLead, error: leadError } = await supabaseAdmin
+      .from('leads')
+      .insert({
+        business_id: params.businessId,
+        caller_phone: normalizedPhone,
+        status: 'new',
+        raw_metadata: { source: 'call_intake', callSid: params.callSid }
+      })
+      .select()
+      .single()
+    
+    if (leadError || !newLead) {
+      console.error('[CALL INTAKE] Failed to create lead:', leadError)
+      return { leadId: null, conversationId: null, isNew: false }
+    }
+    
+    console.log('[CALL INTAKE] Created new lead:', newLead.id)
+    
+    // Create conversation
+    const { data: newConversation, error: conversationError } = await supabaseAdmin
+      .from('conversations')
+      .insert({
+        lead_id: newLead.id,
+        business_id: params.businessId,
+        status: 'active'
+      })
+      .select()
+      .single()
+    
+    if (conversationError || !newConversation) {
+      console.error('[CALL INTAKE] Failed to create conversation:', conversationError)
+      return { leadId: newLead.id, conversationId: null, isNew: true }
+    }
+    
+    console.log('[CALL INTAKE] Created new conversation:', newConversation.id)
+    
+    // Update call_events with lead_id and conversation_id if it exists
+    if (callEvent) {
+      await supabaseAdmin
+        .from('call_events')
+        .update({ lead_id: newLead.id, conversation_id: newConversation.id })
+        .eq('id', callEvent.id)
+      console.log('[CALL INTAKE] Updated call_events with new lead_id and conversation_id')
+    }
+    
+    return { leadId: newLead.id, conversationId: newConversation.id, isNew: true }
+  },
+
   async getLeadsByBusiness(businessId: string): Promise<Lead[]> {
     const { data, error } = await supabaseAdmin
       .from('leads')
