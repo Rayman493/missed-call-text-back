@@ -656,6 +656,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     }
     
     console.log(`[SMS Processing] Created conversation: ${conversation.id}`)
+    console.log('[CONVERSATION CREATE TRACE]', {
+      route: 'processInboundSms',
+      file: 'sms-processing.ts',
+      function: 'processInboundSms',
+      callSid: null,
+      businessId: business.id,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      reason: 'No existing conversation found for SMS, creating new conversation'
+    })
   } else {
     // Update existing conversation's last activity
     const updatedConversation = await db.updateConversation(conversation.id, {

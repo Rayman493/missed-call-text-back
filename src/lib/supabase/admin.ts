@@ -1055,6 +1055,16 @@ export const db = {
       }
       
       console.log('[CALL INTAKE] Created new conversation:', newConversation.id)
+      console.log('[CONVERSATION CREATE TRACE]', {
+        route: 'getOrCreateCallIntakeRecords',
+        file: 'admin.ts',
+        function: 'getOrCreateCallIntakeRecords',
+        callSid: params.callSid,
+        businessId: params.businessId,
+        leadId: leadId,
+        conversationId: newConversation.id,
+        reason: 'No existing conversation found, creating new conversation'
+      })
       conversationId = newConversation.id
     }
     
@@ -1171,6 +1181,17 @@ export const db = {
       console.error('Error creating conversation:', error)
       return null
     }
+    
+    console.log('[CONVERSATION CREATE TRACE]', {
+      route: 'db.createConversation',
+      file: 'admin.ts',
+      function: 'createConversation',
+      callSid: null,
+      businessId: conversation.business_id,
+      leadId: conversation.lead_id,
+      conversationId: data.id,
+      reason: 'Direct conversation creation via db.createConversation'
+    })
     
     return data
   },
