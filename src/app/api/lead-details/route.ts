@@ -95,6 +95,8 @@ export async function GET(request: NextRequest) {
       .select("*")
       .eq("lead_id", leadId)
       .eq("business_id", lead.business_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
@@ -104,16 +106,13 @@ export async function GET(request: NextRequest) {
       conversationLeadId: conversation?.lead_id
     })
 
-    // Fetch messages - primary method: by conversation_id + business_id if conversation exists
+    // Fetch messages by lead_id OR conversation_id - no business_id filter
     let messages: any[] = []
-    let messagesByConversationCount = 0
-    let messagesByLeadCount = 0
-    let mismatchReason = ''
-
+    
     if (conversation) {
-      // Primary: fetch messages by conversation_id + business_id
+      // Prefer conversation_id if conversation exists
       console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-        queryUsed: 'conversation_id + business_id',
+        queryUsed: 'conversation_id',
         leadId,
         conversationId: conversation.id
       })
@@ -122,10 +121,7 @@ export async function GET(request: NextRequest) {
         .from("messages")
         .select("*")
         .eq("conversation_id", conversation.id)
-        .eq("business_id", lead.business_id)
         .order("created_at", { ascending: true })
-
-      messagesByConversationCount = messagesByConversation?.length || 0
 
       if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
         messages = messagesByConversation
@@ -133,31 +129,18 @@ export async function GET(request: NextRequest) {
           count: messages.length,
           firstMessageId: messages[0]?.id || null
         })
-        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-          leadId,
-          businessId: lead.business_id,
-          conversationId: conversation.id,
-          messagesByConversationCount,
-          messagesByLeadCount,
-          displayedMessageCount: messages.length,
-          mismatchReason: null
-        })
       } else {
-        // Fallback: fetch messages by lead_id + business_id
+        // Fallback to lead_id if conversation_id query fails
         console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-          queryUsed: 'lead_id + business_id (fallback)',
+          queryUsed: 'lead_id (fallback)',
           leadId,
           conversationId: conversation.id
         })
-        console.log("[LEAD DETAIL MESSAGE DEBUG] No messages by conversation, trying by lead_id")
         const { data: messagesByLead, error: messagesByLeadError } = await supabase
           .from("messages")
           .select("*")
           .eq("lead_id", leadId)
-          .eq("business_id", lead.business_id)
           .order("created_at", { ascending: true })
-
-        messagesByLeadCount = messagesByLead?.length || 0
 
         if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
           messages = messagesByLead
@@ -165,41 +148,12 @@ export async function GET(request: NextRequest) {
             count: messages.length,
             firstMessageId: messages[0]?.id || null
           })
-          // Check if messages have conversation_id mismatch
-          const messagesWithoutConversation = messagesByLead.filter(m => !m.conversation_id)
-          const messagesWithDifferentConversation = messagesByLead.filter(m => m.conversation_id && m.conversation_id !== conversation.id)
-          
-          if (messagesWithoutConversation.length > 0) {
-            mismatchReason = `Found ${messagesWithoutConversation.length} messages without conversation_id (repair needed)`
-          } else if (messagesWithDifferentConversation.length > 0) {
-            mismatchReason = `Found ${messagesWithDifferentConversation.length} messages linked to different conversation`
-          }
-
-          console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-            leadId,
-            businessId: lead.business_id,
-            conversationId: conversation.id,
-            messagesByConversationCount,
-            messagesByLeadCount,
-            displayedMessageCount: messages.length,
-            mismatchReason
-          })
-        } else {
-          console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-            leadId,
-            businessId: lead.business_id,
-            conversationId: conversation.id,
-            messagesByConversationCount,
-            messagesByLeadCount,
-            displayedMessageCount: 0,
-            mismatchReason: 'No messages found by conversation_id or lead_id'
-          })
         }
       }
     } else {
-      // No conversation, fetch messages by lead_id + business_id only
+      // No conversation, fetch by lead_id only
       console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-        queryUsed: 'lead_id + business_id (no conversation)',
+        queryUsed: 'lead_id (no conversation)',
         leadId,
         conversationId: null
       })
@@ -207,40 +161,13 @@ export async function GET(request: NextRequest) {
         .from("messages")
         .select("*")
         .eq("lead_id", leadId)
-        .eq("business_id", lead.business_id)
         .order("created_at", { ascending: true })
-
-      messagesByLeadCount = messagesByLead?.length || 0
 
       if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
         messages = messagesByLead
-        mismatchReason = 'Conversation missing but messages found by lead_id (repair needed)'
         console.log("[LEAD DETAIL API MESSAGE RESULT]", {
           count: messages.length,
           firstMessageId: messages[0]?.id || null
-        })
-        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-          leadId,
-          businessId: lead.business_id,
-          conversationId: null,
-          messagesByConversationCount,
-          messagesByLeadCount,
-          displayedMessageCount: messages.length,
-          mismatchReason
-        })
-      } else {
-        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
-          count: 0,
-          firstMessageId: null
-        })
-        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-          leadId,
-          businessId: lead.business_id,
-          conversationId: null,
-          messagesByConversationCount,
-          messagesByLeadCount,
-          displayedMessageCount: 0,
-          mismatchReason: 'No conversation and no messages found'
         })
       }
     }
@@ -422,9 +349,13 @@ export async function GET(request: NextRequest) {
 
     const responseData = {
       ok: true,
+      conversationId: conversation?.id ?? null,
+      conversation,
+      messages: messagesWithMedia,
       lead: {
         ...lead,
-        conversation,
+        conversation_id: conversation?.id ?? null,
+        conversationId: conversation?.id ?? null,
         messages: messagesWithMedia,
         voicemailRecordings: voicemailRecordings || [],
         followUpJobs: followUpJobs || [],
@@ -434,10 +365,12 @@ export async function GET(request: NextRequest) {
     
     console.log("[LEAD DETAIL API FINAL RESPONSE]", {
       conversationIdIncluded: !!responseData.lead.conversation,
-      conversationIdValue: responseData.lead.conversation?.id,
+      conversationIdValue: responseData.lead.conversationId,
       messagesLength: responseData.lead.messages.length,
       responseShape: {
         ok: responseData.ok,
+        hasConversationId: !!responseData.conversationId,
+        conversationIdValue: responseData.conversationId,
         hasLead: !!responseData.lead,
         hasConversation: !!responseData.lead.conversation,
         hasMessages: Array.isArray(responseData.lead.messages),

@@ -827,19 +827,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
 
       if (result.ok && result.lead) {
+        // Read messages and conversationId from either top-level or nested location
+        const messages = result.messages || result.lead.messages || []
+        const conversationId = result.conversationId || result.lead.conversationId || result.lead.conversation_id || null
+        
         console.log('[LEAD DETAIL LOAD] API returned lead data:', result.lead)
-        console.log('[LEAD DETAIL LOAD] Message count:', result.lead.messages?.length || 0)
-        console.log('[LEAD DETAIL LOAD] Conversation ID:', result.lead.conversation_id)
+        console.log('[LEAD DETAIL LOAD] Message count:', messages.length)
+        console.log('[LEAD DETAIL LOAD] Conversation ID:', conversationId)
         console.log('[LEAD DETAIL LOAD] Lead ID:', result.lead.id)
         console.log('[LEAD DETAIL LOAD] Business ID:', result.lead.business_id)
         
+        // Merge top-level data into lead object for consistency
+        const leadWithMergedData = {
+          ...result.lead,
+          conversation_id: conversationId,
+          conversationId: conversationId,
+          messages: messages,
+          conversation: result.conversation || result.lead.conversation
+        }
+        
         // Log message consistency
-        if (result.lead.messages && result.lead.messages.length > 0) {
+        if (messages && messages.length > 0) {
           console.log('[MESSAGE CONSISTENCY]', {
-            leadId: result.lead.id,
-            conversationId: result.lead.conversation_id,
-            messageCount: result.lead.messages.length,
-            messages: result.lead.messages.map((m: any) => ({
+            leadId: leadWithMergedData.id,
+            conversationId: conversationId,
+            messageCount: messages.length,
+            messages: messages.map((m: any) => ({
               messageId: m.id,
               leadId: m.lead_id,
               conversationId: m.conversation_id,
@@ -852,7 +865,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           console.log('[MESSAGE CONSISTENCY] No messages found for lead:', result.lead.id)
         }
         
-        setLeadData(result.lead)
+        setLeadData(leadWithMergedData)
         setLoading(false)
         return
       }
