@@ -868,12 +868,29 @@ export default function DashboardContent() {
   // Admin/protected accounts are exempt from this guard
   const setupState = deriveSetupState(business)
   const isSetupComplete = setupState === 'complete'
+  
+  // Check for manual/lifetime access
+  const manualAccessActive = (business as any)?.manual_access === true && 
+    (!(business as any)?.manual_access_expires_at || new Date((business as any)?.manual_access_expires_at) > new Date())
+  const lifetimeAccessActive = (business as any)?.lifetime_access === true
+  const subscriptionActive = business?.subscription_status === 'trialing' || 
+                         business?.subscription_status === 'active' ||
+                         business?.subscription_status === 'beta' ||
+                         business?.subscription_status === 'comped' ||
+                         business?.stripe_subscription_id
+  const hasValidAccess = subscriptionActive || manualAccessActive || lifetimeAccessActive
 
   console.log('[DASHBOARD GATE DECISION]', {
     businessId: business?.id,
     setupState,
-    subscriptionStatus: business?.subscription_status,
-    trialStatus: business?.subscription_status,
+    hasValidAccess,
+    stripeStatus: business?.subscription_status,
+    trialStatus: business?.subscription_status === 'trialing',
+    manualAccess: (business as any)?.manual_access,
+    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
+    manualAccessValid: manualAccessActive,
+    lifetimeAccess: (business as any)?.lifetime_access,
+    forwardingStatus: business?.forwarding_verified,
     redirectTarget: null,
     reason: 'Evaluating dashboard guard'
   })
@@ -885,14 +902,19 @@ export default function DashboardContent() {
         switch (setupState) {
           case 'needs_trial':
             // DO NOT redirect to /onboarding - that's for users with no business row
-            // If user has a business but needs trial, go to dashboard with billing prompt or trial page
+            // If user has a business but needs trial/access, go to dashboard with show billing prompt
             console.log('[DASHBOARD GATE DECISION]', {
               businessId: business?.id,
               setupState,
-              subscriptionStatus: business?.subscription_status,
-              trialStatus: business?.subscription_status,
+              hasValidAccess,
+              stripeStatus: business?.subscription_status,
+              trialStatus: business?.subscription_status === 'trialing',
+              manualAccess: (business as any)?.manual_access,
+              manualAccessValid: manualAccessActive,
+              lifetimeAccess: (business as any)?.lifetime_access,
+              forwardingStatus: business?.forwarding_verified,
               redirectTarget: '/dashboard',
-              reason: 'Business exists but needs trial - allow dashboard access'
+              reason: 'Business exists but needs trial/access - allow dashboard access with billing prompt'
             })
             return null  // Stay on dashboard, show billing prompt
           case 'provisioning_or_number_pending':
@@ -910,8 +932,13 @@ export default function DashboardContent() {
         console.log('[DASHBOARD GATE DECISION]', {
           businessId: business?.id,
           setupState,
-          subscriptionStatus: business?.subscription_status,
-          trialStatus: business?.subscription_status,
+          hasValidAccess,
+          stripeStatus: business?.subscription_status,
+          trialStatus: business?.subscription_status === 'trialing',
+          manualAccess: (business as any)?.manual_access,
+          manualAccessValid: manualAccessActive,
+          lifetimeAccess: (business as any)?.lifetime_access,
+          forwardingStatus: business?.forwarding_verified,
           redirectTarget: targetRoute,
           reason: 'Setup incomplete, redirecting to setup step'
         })

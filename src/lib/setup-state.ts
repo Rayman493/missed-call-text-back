@@ -12,6 +12,21 @@ export interface SetupState {
 }
 
 export function deriveSetupState(business: Business | null, realCallDataExists: boolean = false, missedCallCount: number = 0): SetupState {
+  console.log('[DERIVE SETUP STATE DEBUG]', {
+    businessId: business?.id,
+    subscriptionStatus: business?.subscription_status,
+    trialStatus: business?.subscription_status === 'trialing',
+    manualAccess: (business as any)?.manual_access,
+    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
+    manualAccessValid: (business as any)?.manual_access && 
+      (!!(business as any)?.manual_access_expires_at ? new Date((business as any)?.manual_access_expires_at) > new Date() : true),
+    lifetimeAccess: (business as any)?.lifetime_access,
+    hasTwilioNumber: !!business?.twilio_phone_number,
+    forwardingVerified: business?.forwarding_verified,
+    setupState: 'deriving...',
+    reason: 'Starting deriveSetupState'
+  })
+
   console.log('[SetupState] Deriving setup state from business:', {
     businessId: business?.id,
     onboarding_status: business?.onboarding_status,
@@ -46,8 +61,29 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
                          business.subscription_status === 'beta' ||
                          business.subscription_status === 'comped' ||
                          business.stripe_subscription_id
+  
+  // Manual/Lifetime Access: Support manual access and lifetime access
+  const manualAccessActive = (business as any)?.manual_access === true && 
+    (!(business as any)?.manual_access_expires_at || new Date((business as any)?.manual_access_expires_at) > new Date())
+  const lifetimeAccessActive = (business as any)?.lifetime_access === true
+  
+  // Valid access if ANY of these are true
+  const hasValidAccess = subscriptionActive || manualAccessActive || lifetimeAccessActive
+  
+  console.log('[DERIVE SETUP STATE DEBUG]', {
+    businessId: business?.id,
+    subscriptionStatus: business?.subscription_status,
+    trialStatus: business?.subscription_status === 'trialing',
+    manualAccess: (business as any)?.manual_access,
+    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
+    manualAccessValid: manualAccessActive,
+    lifetimeAccess: (business as any)?.lifetime_access,
+    hasValidAccess,
+    reason: `hasValidAccess = ${hasValidAccess} (subscription:${subscriptionActive}, manual:${manualAccessActive}, lifetime:${lifetimeAccessActive})`
+  })
+  
   const twilioReady = business.twilio_phone_number && business.provisioning_status === 'active'
-  const step1Complete = subscriptionActive && twilioReady
+  const step1Complete = hasValidAccess && twilioReady
 
   // Step 2: Forwarding is enabled
   const step2Complete = Boolean(business.phone_setup_completed_at && business.call_forwarding_enabled)
