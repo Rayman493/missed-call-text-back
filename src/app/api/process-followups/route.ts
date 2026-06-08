@@ -160,17 +160,20 @@ export async function POST(request: Request) {
 
         console.log(`[SYSTEM] [FOLLOWUP] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
 
+        console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`);
+
         // Send SMS using centralized sendSms function
-        const messageSid = await sendSms(business, lead.caller_phone, job.message_body, {
+        const sendResult = await sendSms(business, lead.caller_phone, job.message_body, {
           lead_id: job.lead_id,
         });
 
         // Check for Twilio send errors
-        if (!messageSid) {
+        if (!sendResult || !sendResult.sid) {
+          console.log(`[FOLLOWUP TWILIO SEND FAILED] No message SID returned for job ${job.id}`);
           throw new Error('SMS send failed: no Twilio message SID returned');
         }
 
-        console.log(`[FOLLOWUP MESSAGE SENT] SMS sent for job ${job.id}, SID: ${messageSid}`);
+        console.log(`[FOLLOWUP TWILIO SEND SUCCESS] SMS sent for job ${job.id}, SID: ${sendResult.sid}, Message ID: ${sendResult.messageId}`);
 
         console.log(`[SYSTEM] [FOLLOWUP] Message inserted for job ${job.id}`);
         
@@ -186,7 +189,7 @@ export async function POST(request: Request) {
           throw new Error(`Failed to update job status to sent: ${jobUpdateError.message || 'Database error'}`);
         }
 
-        console.log(`[SYSTEM] [FOLLOWUP] Job ${job.id} marked as sent`);
+        console.log(`[FOLLOWUP JOB MARKED SENT] Job ${job.id} marked as sent with Twilio SID: ${sendResult.sid}`);
         sent++;
 
       } catch (error: any) {
