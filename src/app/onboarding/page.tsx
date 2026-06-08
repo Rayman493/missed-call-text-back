@@ -126,12 +126,44 @@ export default function OnboardingPage() {
         .single()
 
       if (existingBusiness && !existingError) {
-        console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', !!existingBusiness, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget:', 'determining...', 'loadingState', 'complete')
+        console.log('[ROUTING AUDIT DEBUG]', {
+          location: 'src/app/onboarding/page.tsx',
+          guardName: 'OnboardingPage',
+          currentPath: '/onboarding',
+          userId: user.id,
+          sessionExists: true,
+          authLoading: false,
+          businessLoading: false,
+          businessId: existingBusiness.id,
+          businessFound: true,
+          businessName: existingBusiness.name,
+          businessPhone: existingBusiness.business_phone_number,
+          twilioNumberFound: !!existingBusiness.twilio_phone_number,
+          setupComplete: existingBusiness.onboarding_status === 'completed',
+          redirectTarget: 'determining...',
+          reason: 'Business row exists, evaluating routing'
+        })
         
         // Use server/database truth only, ignore localStorage
         // If business has a Twilio number and active subscription, redirect to new onboarding flow
         if (existingBusiness.twilio_phone_number && existingBusiness.onboarding_status !== 'completed' && isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[ROUTING DEBUG] Redirecting to /onboarding/new-onboarding - Twilio number exists AND subscription active')
+          console.log('[ROUTING AUDIT DEBUG]', {
+            location: 'src/app/onboarding/page.tsx',
+            guardName: 'OnboardingPage',
+            currentPath: '/onboarding',
+            userId: user.id,
+            sessionExists: true,
+            authLoading: false,
+            businessLoading: false,
+            businessId: existingBusiness.id,
+            businessFound: true,
+            businessName: existingBusiness.name,
+            businessPhone: existingBusiness.business_phone_number,
+            twilioNumberFound: !!existingBusiness.twilio_phone_number,
+            setupComplete: existingBusiness.onboarding_status === 'completed',
+            redirectTarget: '/onboarding/new-onboarding',
+            reason: 'Twilio number exists AND subscription active'
+          })
           
           // Verify session exists before redirecting
           const { data: { session } } = await supabase.auth.getSession()
@@ -149,12 +181,44 @@ export default function OnboardingPage() {
         // User already has a business, check if they should be redirected
         // Only redirect to dashboard if onboarding is completed AND subscription is active
         if (existingBusiness.onboarding_status === 'completed' && isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', true, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget:', '/dashboard', 'loadingState', 'complete', 'reason', 'onboarding completed AND subscription active')
+          console.log('[ROUTING AUDIT DEBUG]', {
+            location: 'src/app/onboarding/page.tsx',
+            guardName: 'OnboardingPage',
+            currentPath: '/onboarding',
+            userId: user.id,
+            sessionExists: true,
+            authLoading: false,
+            businessLoading: false,
+            businessId: existingBusiness.id,
+            businessFound: true,
+            businessName: existingBusiness.name,
+            businessPhone: existingBusiness.business_phone_number,
+            twilioNumberFound: !!existingBusiness.twilio_phone_number,
+            setupComplete: true,
+            redirectTarget: '/dashboard',
+            reason: 'onboarding completed AND subscription active'
+          })
           router.push('/dashboard')
           return
         } else {
           const reason = existingBusiness.onboarding_status !== 'completed' ? 'onboarding not completed' : 'subscription not active'
-          console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', true, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget', '/onboarding (stay)', 'loadingState', 'complete', 'reason', reason)
+          console.log('[ROUTING AUDIT DEBUG]', {
+            location: 'src/app/onboarding/page.tsx',
+            guardName: 'OnboardingPage',
+            currentPath: '/onboarding',
+            userId: user.id,
+            sessionExists: true,
+            authLoading: false,
+            businessLoading: false,
+            businessId: existingBusiness.id,
+            businessFound: true,
+            businessName: existingBusiness.name,
+            businessPhone: existingBusiness.business_phone_number,
+            twilioNumberFound: !!existingBusiness.twilio_phone_number,
+            setupComplete: existingBusiness.onboarding_status === 'completed',
+            redirectTarget: '/onboarding (stay)',
+            reason
+          })
         }
         
         // Clear stale localStorage onboarding keys when business is loaded

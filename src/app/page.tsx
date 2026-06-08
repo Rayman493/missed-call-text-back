@@ -186,7 +186,21 @@ export default async function Home() {
   const shouldRedirect = session?.user && !cookies().get('skip_homepage_redirect')
 
   if (shouldRedirect) {
-    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', 'checking...', 'twilioNumberFound:', 'checking...', 'currentPath:', '/', 'redirectTarget:', 'determining...', 'loadingState', 'complete', 'reason', 'authenticated user with skip_homepage_redirect not set')
+    console.log('[ROUTING AUDIT DEBUG]', {
+      location: 'src/app/page.tsx',
+      guardName: 'RootPage',
+      currentPath: '/',
+      userId: session.user.id,
+      sessionExists: true,
+      authLoading: false,
+      businessLoading: 'fetching...',
+      businessId: 'fetching...',
+      businessFound: 'fetching...',
+      twilioNumberFound: 'fetching...',
+      setupComplete: 'fetching...',
+      redirectTarget: 'determining...',
+      reason: 'Authenticated user without skip_homepage_redirect cookie'
+    })
     
     // Check if user has a business
     const { data: business, error } = await supabase
@@ -195,8 +209,24 @@ export default async function Home() {
       .eq('user_id', session.user.id)
       .single()
 
-    const reason = business ? 'business exists' : 'no business'
-    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', !!business, 'twilioNumberFound:', !!business?.twilio_phone_number, 'currentPath:', '/', 'redirectTarget', business ? '/dashboard' : '/onboarding', 'loadingState', 'complete', 'reason', reason)
+    const redirectTarget = business ? '/dashboard' : '/onboarding'
+    const reason = business ? 'Business row exists' : 'No business row exists'
+    
+    console.log('[ROUTING AUDIT DEBUG]', {
+      location: 'src/app/page.tsx',
+      guardName: 'RootPage',
+      currentPath: '/',
+      userId: session.user.id,
+      sessionExists: true,
+      authLoading: false,
+      businessLoading: 'complete',
+      businessId: business?.id,
+      businessFound: !!business,
+      twilioNumberFound: !!business?.twilio_phone_number,
+      setupComplete: business?.onboarding_status === 'completed',
+      redirectTarget,
+      reason
+    })
 
     // Redirect to dashboard if business exists and setup is complete
     if (business) {
@@ -206,6 +236,22 @@ export default async function Home() {
       console.log('[ROUTING DEBUG] Redirecting to /onboarding')
       redirect('/onboarding')
     }
+  } else if (session?.user) {
+    console.log('[ROUTING AUDIT DEBUG]', {
+      location: 'src/app/page.tsx',
+      guardName: 'RootPage',
+      currentPath: '/',
+      userId: session.user.id,
+      sessionExists: true,
+      authLoading: false,
+      businessLoading: 'complete',
+      businessId: null,
+      businessFound: null,
+      twilioNumberFound: null,
+      setupComplete: null,
+      redirectTarget: 'stay on homepage',
+      reason: 'Authenticated user with skip_homepage_redirect cookie - allowing homepage access'
+    })
   }
 
   console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Rendering public homepage for unauthenticated user')

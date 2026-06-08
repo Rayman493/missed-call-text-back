@@ -190,17 +190,21 @@ function AuthContent() {
       subscription.unsubscribe()
       
       // Fetch business row from database using authenticated user.id
-      console.log('[POST LOGIN ROUTING DEBUG]', {
+      console.log('[ROUTING AUDIT DEBUG]', {
+        location: 'src/app/auth/page.tsx',
+        guardName: 'AuthPage',
+        currentPath: window.location.pathname,
         userId: persistedSession.user.id,
         sessionExists: !!persistedSession,
+        authLoading: false,
+        businessLoading: 'fetching...',
         businessId: 'fetching...',
         businessFound: 'fetching...',
         businessName: 'fetching...',
         businessPhone: 'fetching...',
         twilioNumberFound: 'fetching...',
-        currentPath: window.location.pathname,
+        setupComplete: 'fetching...',
         redirectTarget: 'determining...',
-        loadingState: 'complete',
         reason: 'Fetching business row for routing decision'
       })
 
@@ -210,17 +214,21 @@ function AuthContent() {
         .eq('user_id', persistedSession.user.id)
         .single()
 
-      console.log('[POST LOGIN ROUTING DEBUG]', {
+      console.log('[ROUTING AUDIT DEBUG]', {
+        location: 'src/app/auth/page.tsx',
+        guardName: 'AuthPage',
+        currentPath: window.location.pathname,
         userId: persistedSession.user.id,
         sessionExists: !!persistedSession,
+        authLoading: false,
+        businessLoading: 'complete',
         businessId: business?.id,
         businessFound: !!business,
         businessName: business?.name,
         businessPhone: business?.business_phone_number,
         twilioNumberFound: !!business?.twilio_phone_number,
-        currentPath: window.location.pathname,
+        setupComplete: business?.onboarding_status === 'completed',
         redirectTarget: business ? '/dashboard' : '/onboarding',
-        loadingState: 'complete',
         reason: business ? 'Business row exists' : 'No business row exists'
       })
 

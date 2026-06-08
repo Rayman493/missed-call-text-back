@@ -82,14 +82,18 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       // Redirect if no business exists
       if (!business) {
-        console.log('[ONBOARDING REDIRECT DEBUG]', {
+        console.log('[ROUTING AUDIT DEBUG]', {
+          location: 'src/components/BusinessGuard.tsx',
+          guardName: 'BusinessGuard',
+          currentPath: pathname,
           userId: user?.id,
+          sessionExists: !!session,
+          authLoading: loading,
+          businessLoading: loading,
           businessId: null,
           businessFound: false,
-          businessName: null,
-          businessPhone: null,
-          twilioNumberFound: null,
-          currentPath: pathname,
+          twilioNumberFound: false,
+          setupComplete: false,
           redirectTarget: '/onboarding',
           reason: 'No business row exists',
           loadingState: loading ? 'loading' : 'complete'
@@ -188,14 +192,20 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         if (business && business.id) {
           // Business row exists but profile is incomplete - allow dashboard access
           // The dashboard will show setup prompts for missing fields
-          console.log('[ONBOARDING REDIRECT DEBUG]', {
+          console.log('[ROUTING AUDIT DEBUG]', {
+            location: 'src/components/BusinessGuard.tsx',
+            guardName: 'BusinessGuard',
+            currentPath: pathname,
             userId: user?.id,
+            sessionExists: !!session,
+            authLoading: loading,
+            businessLoading: loading,
             businessId: business.id,
             businessFound: true,
             businessName: business?.name,
             businessPhone: business?.business_phone_number,
             twilioNumberFound: !!business?.twilio_phone_number,
-            currentPath: pathname,
+            setupComplete: business?.onboarding_status === 'completed',
             redirectTarget: 'dashboard (stay)',
             reason: 'Business row exists but profile incomplete - allowing dashboard access',
             loadingState: loading ? 'loading' : 'complete'
@@ -210,14 +220,20 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           // Allow access - dashboard will show setup prompts
         } else {
           // No business row exists - redirect to onboarding step 1
-          console.log('[ONBOARDING REDIRECT DEBUG]', {
+          console.log('[ROUTING AUDIT DEBUG]', {
+            location: 'src/components/BusinessGuard.tsx',
+            guardName: 'BusinessGuard',
+            currentPath: pathname,
             userId: user?.id,
+            sessionExists: !!session,
+            authLoading: loading,
+            businessLoading: loading,
             businessId: null,
             businessFound: false,
             businessName: null,
             businessPhone: null,
-            twilioNumberFound: null,
-            currentPath: pathname,
+            twilioNumberFound: false,
+            setupComplete: false,
             redirectTarget: '/onboarding',
             reason: 'No business row exists',
             loadingState: loading ? 'loading' : 'complete'
