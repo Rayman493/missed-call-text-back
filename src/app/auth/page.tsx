@@ -209,6 +209,18 @@ function AuthContent() {
         .eq('user_id', persistedSession.user.id)
         .single()
 
+      console.log('[POST LOGIN BUSINESS QUERY RESULT]', {
+        location: 'src/app/auth/page.tsx',
+        userId: persistedSession.user.id,
+        sessionExists: !!persistedSession,
+        businessId: business?.id,
+        businessFound: !!business,
+        errorCode: businessError?.code,
+        errorMessage: businessError?.message,
+        redirectTarget: business ? '/dashboard' : (businessError?.code === 'PGRST116' ? '/onboarding' : '/dashboard?setup_check=failed'),
+        reason: business ? 'Business row exists' : (businessError?.code === 'PGRST116' ? 'No business row (PGRST116)' : 'Business query error')
+      })
+
       console.log('[ROUTING AUDIT DEBUG]', {
         location: 'src/app/auth/page.tsx',
         guardName: 'AuthPage',
@@ -240,8 +252,21 @@ function AuthContent() {
       setRedirecting(true)
       setLoading(false)
       
+      // Determine redirect target based on business query result
+      let redirectTarget: string
+      if (business) {
+        // Business found - go to dashboard
+        redirectTarget = returnToParam || redirectParam || '/dashboard'
+      } else if (businessError?.code === 'PGRST116') {
+        // No business row confirmed - go to onboarding
+        redirectTarget = '/onboarding'
+      } else {
+        // Business query error - go to dashboard with setup check failed, not onboarding
+        redirectTarget = '/dashboard?setup_check=failed'
+        console.warn('[Auth] Business query error, routing to dashboard instead of onboarding:', businessError)
+      }
+      
       // Use returnTo parameter if present (for post-Stripe recovery), otherwise use redirectParam
-      const redirectTarget = returnToParam || redirectParam
       console.log('[Auth] Session persisted and business fetched, redirecting to:', redirectTarget, {
         returnToParam,
         redirectParam,

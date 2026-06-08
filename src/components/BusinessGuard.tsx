@@ -9,7 +9,7 @@ import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
-  const { business, loading, fetchComplete, error: businessError } = useBusiness()
+  const { business, loading, fetchComplete, error: businessError, businessMissingConfirmed } = useBusiness()
   const { user, session } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -94,35 +94,35 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       // Redirect if no business exists
       if (!business) {
-        console.log('[ONBOARDING REDIRECT SOURCE]', {
-          file: 'src/components/BusinessGuard.tsx',
-          functionName: 'BusinessGuard useEffect',
-          currentPath: pathname,
-          redirectTarget: '/onboarding',
-          userId: user?.id,
-          sessionExists: !!session,
-          authLoading: loading,
-          businessLoading: loading,
-          businessFetchComplete: fetchComplete,
-          businessId: null,
-          businessFound: false,
-          businessErrorCode: businessError,
-          businessErrorMessage: businessError,
-          reason: 'No business row exists',
-          timestamp: new Date().toISOString()
-        })
-        console.trace('[ONBOARDING REDIRECT TRACE]')
+        console.log('[Routing] No business found, checking if fetch is complete and business missing is confirmed')
         
-        console.log('[Routing] No business found, checking if fetch is complete')
-        
-        // Only redirect to onboarding if fetch is complete
-        if (fetchComplete) {
+        // Only redirect to onboarding if fetch is complete AND business missing is confirmed (PGRST116)
+        if (fetchComplete && businessMissingConfirmed) {
           if (hasRedirectedRef.current === pathname) {
             console.log('[Routing] Already redirected from this path, skipping')
             return
           }
-          console.log('[Routing] Fetch complete and no business, redirecting to onboarding')
-          console.log('[Routing] render branch: no business, fetch complete -> onboarding')
+          console.log('[ONBOARDING REDIRECT SOURCE]', {
+            file: 'src/components/BusinessGuard.tsx',
+            functionName: 'BusinessGuard useEffect',
+            currentPath: pathname,
+            redirectTarget: '/onboarding',
+            userId: user?.id,
+            sessionExists: !!session,
+            authLoading: loading,
+            businessLoading: loading,
+            businessFetchComplete: fetchComplete,
+            businessId: null,
+            businessFound: false,
+            businessErrorCode: businessError,
+            businessErrorMessage: businessError,
+            reason: 'No business row exists and fetch complete with PGRST116 confirmation',
+            timestamp: new Date().toISOString()
+          })
+          console.trace('[ONBOARDING REDIRECT TRACE]')
+          
+          console.log('[Routing] Fetch complete and no business confirmed, redirecting to onboarding')
+          console.log('[Routing] render branch: no business, fetch complete, PGRST116 confirmed -> onboarding')
           
           // Verify session exists before redirecting to onboarding
           if (!session) {
@@ -142,7 +142,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           console.log('[REDIRECT]', {
             from: pathname,
             to: '/onboarding',
-            reason: 'No business found and fetch complete',
+            reason: 'No business found and fetch complete with PGRST116 confirmation',
             hasSession: !!session,
             component: 'BusinessGuard',
           })
@@ -150,8 +150,8 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           router.push('/onboarding')
           return
         } else {
-          console.log('[Routing] Fetch not complete yet, waiting for business data')
-          console.log('[Routing] render branch: no business, fetch incomplete -> loading')
+          console.log('[Routing] Fetch not complete yet or business missing not confirmed, waiting for business data')
+          console.log('[Routing] render branch: no business, fetch incomplete or not PGRST116 -> loading')
           return
         }
       }

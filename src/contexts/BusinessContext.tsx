@@ -13,6 +13,7 @@ interface BusinessContextType {
   loading: boolean
   error: string | null
   fetchComplete: boolean
+  businessMissingConfirmed: boolean // True only if PGRST116 confirmed no business
   refreshBusiness: () => Promise<void>
   setBusiness: (business: Business | null) => void
 }
@@ -25,6 +26,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fetchComplete, setFetchComplete] = useState(false)
+  const [businessMissingConfirmed, setBusinessMissingConfirmed] = useState(false)
   const userIdRef = useRef<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
   const hasInitialFetchRef = useRef(false)
@@ -46,12 +48,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       if (!user) {
         log('[BusinessContext] No user found')
         setBusiness(null)
+        setBusinessMissingConfirmed(false)
         userIdRef.current = null
         setLoading(false)
         setFetchComplete(true)
         console.log('[BUSINESS FETCH] businessLoading:', false)
         console.log('[BUSINESS FETCH] business exists:', false)
         console.log('[BUSINESS FETCH] business fetch complete:', true)
+        console.log('[BUSINESS FETCH] business missing confirmed:', false)
         console.log('[BUSINESS FETCH] render branch: no user')
         return
       }
@@ -60,6 +64,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       if (userIdRef.current && userIdRef.current !== user.id) {
         log('[BusinessContext] User changed, clearing old business data')
         setBusiness(null)
+        setBusinessMissingConfirmed(false)
       }
       userIdRef.current = user.id
 
@@ -86,11 +91,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           // No business found - do NOT auto-create, just set business to null
           log('[BusinessContext] No business found (PGRST116), not auto-creating. User must explicitly create business.')
           setBusiness(null)
+          setBusinessMissingConfirmed(true) // Confirmed no business
           setLoading(false)
           setFetchComplete(true)
           console.log('[BUSINESS FETCH] businessLoading:', false)
           console.log('[BUSINESS FETCH] business exists:', false)
           console.log('[BUSINESS FETCH] business fetch complete:', true)
+          console.log('[BUSINESS FETCH] business missing confirmed:', true)
           console.log('[BUSINESS FETCH] render branch: no business (PGRST116)')
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)
@@ -100,22 +107,26 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           // This prevents sending existing users to onboarding due to transient failures
           log('[BusinessContext] Business query failed (non-PGRST116 error), treating as unknown state')
           setBusiness(null)
+          setBusinessMissingConfirmed(false) // Not confirmed, could be error
           setLoading(false)
           setFetchComplete(true)
           console.log('[BUSINESS FETCH] businessLoading:', false)
           console.log('[BUSINESS FETCH] business exists:', false)
           console.log('[BUSINESS FETCH] business fetch complete:', true)
+          console.log('[BUSINESS FETCH] business missing confirmed:', false)
           console.log('[BUSINESS FETCH] business fetch error:', fetchError.message)
           console.log('[BUSINESS FETCH] render branch: error (not PGRST116)')
         }
       } else {
         log('[BusinessContext] Business found:', businessData?.id)
         setBusiness(businessData)
+        setBusinessMissingConfirmed(false)
         setLoading(false)
         setFetchComplete(true)
         console.log('[BUSINESS FETCH] businessLoading:', false)
         console.log('[BUSINESS FETCH] business exists:', true)
         console.log('[BUSINESS FETCH] business fetch complete:', true)
+        console.log('[BUSINESS FETCH] business missing confirmed:', false)
         console.log('[BUSINESS FETCH] render branch: business found')
       }
     } catch (err: any) {
@@ -139,16 +150,32 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange((event: string, session: any) => {
         log('[BusinessContext] Auth state changed:', event)
 
+        console.log('[AUTH STATE CHANGE DEBUG]', {
+          event,
+          userId: session?.user?.id || null,
+          previousUserId: userIdRef.current,
+          businessFetchStarted: loading,
+          businessFetchComplete: fetchComplete,
+          businessExists: !!business
+        })
+
         if (event === 'SIGNED_OUT') {
+          console.log('[AUTH STATE CHANGE DEBUG] SIGNED_OUT - clearing state')
           setBusiness(null)
+          setBusinessMissingConfirmed(false)
           userIdRef.current = null
           setLoading(false)
+          setFetchComplete(false) // Reset fetch complete on logout
         } else if (event === 'SIGNED_IN') {
+          console.log('[AUTH STATE CHANGE DEBUG] SIGNED_IN - checking if user changed')
           // Only refetch if user actually changed (avoids redundant refetch on initial mount)
           const newUserId = session?.user?.id
           if (newUserId && newUserId !== userIdRef.current) {
             log('[BusinessContext] User signed in (new user), fetching business')
+            console.log('[AUTH STATE CHANGE DEBUG] SIGNED_IN - user changed, fetching business')
             fetchBusiness()
+          } else {
+            console.log('[AUTH STATE CHANGE DEBUG] SIGNED_IN - user same as before, skipping fetch')
           }
         }
         // Intentionally NOT refetching on TOKEN_REFRESHED - the business data hasn't changed,
@@ -166,7 +193,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         authSubscriptionRef.current = null
       }
     }
-  }, [supabase, fetchBusiness])
+  }, [supabase, fetchBusiness, loading, fetchComplete, business])
 
   // Initial fetch - only once
   useEffect(() => {
@@ -182,11 +209,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       fetchComplete,
+      businessMissingConfirmed,
       refreshBusiness: fetchBusiness,
       setBusiness,
     }
     return value
-  }, [business, loading, error, fetchComplete, fetchBusiness])
+  }, [business, loading, error, fetchComplete, businessMissingConfirmed, fetchBusiness])
 
   // Show setup error if env vars are missing
   if (!supabase) {
