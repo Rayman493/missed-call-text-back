@@ -641,104 +641,14 @@ export async function POST(req: NextRequest) {
       let messageTemplate = 'unknown'
 
       if (aiCallRecord && aiCallRecord.outcome === 'completed') {
-        // AI completed intake - build summary from extracted_info
-        const rawExtractedInfo = aiCallRecord.extracted_info || {}
-
-        console.log('[AI SMS SOURCE RECORD]', {
+        // AI completed intake - Fly.io service handles AI confirmation SMS via /api/ai-confirmation-sms
+        // Skip sending duplicate SMS from voice-status webhook
+        console.log('[AI SUMMARY SMS SKIPPED]', {
           aiCallRecordId: aiCallRecord.id,
-          outcome: aiCallRecord.outcome,
-          rawExtractedInfo,
-          sourceTable: 'ai_call_records'
+          reason: 'Fly.io AI voice service handles AI confirmation SMS via /api/ai-confirmation-sms'
         })
-
-        // Normalize extracted_info to canonical keys with backward compatibility
-        const extracted = normalizeExtractedInfo(rawExtractedInfo)
-
-        console.log('[AI SMS NORMALIZED RECORD]', {
-          aiCallRecordId: aiCallRecord.id,
-          normalized: extracted
-        })
-
-        console.log('[AI SMS FIELD LOOKUP]', {
-          aiCallRecordId: aiCallRecord.id,
-          callerName_property: 'extracted.callerName',
-          callerName_value: extracted.callerName,
-          urgencyLevel_property: 'extracted.urgencyLevel',
-          urgencyLevel_value: extracted.urgencyLevel,
-          preferredCallbackTime_property: 'extracted.preferredCallbackTime',
-          preferredCallbackTime_value: extracted.preferredCallbackTime,
-          addressOrLocation_property: 'extracted.addressOrLocation',
-          addressOrLocation_value: extracted.addressOrLocation
-        })
-
-        console.log('[AI SMS FINAL FIELD VALUES]', {
-          aiCallRecordId: aiCallRecord.id,
-          callerName: extracted.callerName,
-          reasonForCalling: extracted.reasonForCalling,
-          importantDetails: extracted.importantDetails,
-          urgencyLevel: extracted.urgencyLevel,
-          addressOrLocation: extracted.addressOrLocation,
-          preferredCallbackTime: extracted.preferredCallbackTime,
-          callbackNumber: extracted.callbackNumber
-        })
-
-        const summaryParts: string[] = []
-
-        // Map available keys from extracted_info using canonical property names
-        if (extracted.callerName) {
-          summaryParts.push(`- Name: ${extracted.callerName}`)
-        }
-
-        if (extracted.reasonForCalling) {
-          summaryParts.push(`- Reason: ${extracted.reasonForCalling}`)
-        }
-
-        if (extracted.importantDetails) {
-          summaryParts.push(`- Details: ${extracted.importantDetails}`)
-        }
-
-        if (extracted.urgencyLevel) {
-          summaryParts.push(`- Urgency: ${extracted.urgencyLevel}`)
-        }
-
-        if (extracted.addressOrLocation) {
-          summaryParts.push(`- Location: ${extracted.addressOrLocation}`)
-        }
-
-        if (extracted.preferredCallbackTime) {
-          summaryParts.push(`- Callback time: ${extracted.preferredCallbackTime}`)
-        }
-
-        // Callback number: use extracted_info.callbackNumber if present, otherwise fallback to caller_phone
-        const callbackNumber = extracted.callbackNumber || aiCallRecord.caller_phone
-        if (callbackNumber) {
-          summaryParts.push(`- Callback number: ${callbackNumber}`)
-        }
-
-        // Build the summary message
-        let summaryText = ''
-        if (summaryParts.length > 0) {
-          summaryText = summaryParts.join('\n')
-        }
-
-        const businessName = business.name || 'My Business'
-        autoReplyMessage = `Thanks for calling ${businessName}. We received your request.\n\nDetails:\n${summaryText}\n\nWe'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
-        messageTemplate = 'ai_intake_summary'
-
-        console.log('[AI SUMMARY FINAL BODY]', {
-          aiCallRecordId: aiCallRecord.id,
-          messageBody: autoReplyMessage
-        })
-
-        console.log('[AI SUMMARY SMS GENERATED]', {
-          template: messageTemplate,
-          businessId: business.id,
-          aiCallRecordId: aiCallRecord.id,
-          extracted_info: extracted,
-          summaryParts,
-          summaryText,
-          messageBody: autoReplyMessage
-        })
+        autoReplyMessage = null
+        messageTemplate = 'ai_intake_skipped'
       } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
         autoReplyMessage = afterHoursMessage
         messageTemplate = 'after_hours'
@@ -759,22 +669,29 @@ export async function POST(req: NextRequest) {
       }
       
       // Substitute {{business_name}} token with actual business name for both normal and after-hours messages
-      const personalizedMessage = autoReplyMessage.replace('{{business_name}}', business.name || 'My Business')
-      
+      const personalizedMessage = autoReplyMessage ? autoReplyMessage.replace('{{business_name}}', business.name || 'My Business') : null
+
       console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${personalizedMessage}`)
       console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
       console.log(`[Twilio Voice Status Webhook] Business has messaging_service_sid: ${!!business.twilio_messaging_service_sid}`)
-      
-      try {
-        console.log('[SMS SEND ATTEMPT]', {
-          route: '/api/twilio/voice-status',
-          businessId: business.id,
-          fromPhone: From,
-          toPhone: To,
-          callSid: CallSid,
-          messageBody: autoReplyMessage?.substring(0, 100) + '...',
-          timestamp: new Date().toISOString()
+
+      // Skip SMS send if autoReplyMessage is null (AI completed intake - handled by Fly.io service)
+      if (!autoReplyMessage) {
+        console.log('[SMS SEND SKIPPED]', {
+          reason: 'autoReplyMessage is null (AI completed intake handled by Fly.io service)',
+          messageTemplate
         })
+      } else {
+        try {
+          console.log('[SMS SEND ATTEMPT]', {
+            route: '/api/twilio/voice-status',
+            businessId: business.id,
+            fromPhone: From,
+            toPhone: To,
+            callSid: CallSid,
+            messageBody: autoReplyMessage?.substring(0, 100) + '...',
+            timestamp: new Date().toISOString()
+          })
 
         if (messageTemplate === 'ai_intake_summary') {
           console.log('[AI SUMMARY SMS FINAL BODY]', {
@@ -893,6 +810,7 @@ export async function POST(req: NextRequest) {
         }
       } catch (smsError) {
         console.error('[Twilio Voice Status Webhook] Exception during SMS send:', smsError)
+      }
       }
     } else {
       if (hasRecentOutbound) {
