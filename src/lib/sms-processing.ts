@@ -398,12 +398,28 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             confidence: correctionResult.confidence
           })
 
+          // Log normalized data before correction
+          const beforeCorrection = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+          console.log('[AI CORRECTION NORMALIZED BEFORE]', {
+            leadId: lead.id,
+            aiCallRecordId: aiCallRecord.id,
+            before: beforeCorrection
+          })
+
           // Apply correction to extracted_info
           const updatedExtractedInfo = applyCorrection(
             aiCallRecord.extracted_info,
             correctionResult.fieldChanged,
             correctionResult.newValue
           )
+
+          // Log normalized data after correction
+          const afterCorrection = normalizeExtractedInfo(updatedExtractedInfo)
+          console.log('[AI CORRECTION NORMALIZED AFTER]', {
+            leadId: lead.id,
+            aiCallRecordId: aiCallRecord.id,
+            after: afterCorrection
+          })
 
           // Regenerate summary from updated extracted_info
           const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)

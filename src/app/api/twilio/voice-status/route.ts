@@ -642,6 +642,11 @@ export async function POST(req: NextRequest) {
         // Normalize extracted_info to canonical keys with backward compatibility
         const extracted = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
 
+        console.log('[AI SUMMARY NORMALIZED DATA]', {
+          aiCallRecordId: aiCallRecord.id,
+          normalized: extracted
+        })
+
         const summaryParts: string[] = []
 
         // Map available keys from extracted_info using canonical property names
@@ -730,7 +735,17 @@ export async function POST(req: NextRequest) {
           messageBody: autoReplyMessage?.substring(0, 100) + '...',
           timestamp: new Date().toISOString()
         })
-        
+
+        if (messageTemplate === 'ai_intake_summary') {
+          console.log('[AI SUMMARY SMS FINAL BODY]', {
+            template: messageTemplate,
+            businessId: business.id,
+            aiCallRecordId: aiCallRecord?.id,
+            leadId: lead.id,
+            finalMessageBody: personalizedMessage
+          })
+        }
+
         messageSid = await sendSms(business, From, personalizedMessage, {
           lead_id: lead.id,
           conversation_id: conversation?.id,
@@ -861,6 +876,14 @@ export async function POST(req: NextRequest) {
 
       // Skip follow-up creation if AI call record exists (AI completed intake)
       if (aiCallRecord) {
+        console.log('[AI FOLLOWUP CHECK RESULT]', {
+          action: 'skipped',
+          reason: 'ai_intake_completed',
+          callSid: CallSid,
+          aiCallRecordId: aiCallRecord.id,
+          leadId: lead.id,
+          businessId: business.id
+        });
         console.log('[AI FOLLOWUPS SKIPPED] reason: ai_intake_completed', {
           callSid: CallSid,
           aiCallRecordId: aiCallRecord.id,
