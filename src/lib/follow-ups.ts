@@ -103,14 +103,23 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
           step: fu.step,
           delayMinutes,
           delayValue,
-          delayUnit
+          delayUnit,
+          calculation: `${delayValue} ${delayUnit} = ${delayMinutes} minutes`
         })
 
-        return {
+        const result = {
           step: fu.step,
           delayMinutes,
           message: fu.message.replace('{{business_name}}', business.name || 'My Business')
         }
+
+        console.log('[FOLLOWUP SCHEDULE ITEM]', {
+          step: result.step,
+          delayMinutes: result.delayMinutes,
+          messagePreview: result.message.substring(0, 50)
+        })
+
+        return result
       })
     
     console.log('[GET FOLLOWUP SCHEDULE] Converted schedule:', { length: schedule.length, schedule });
