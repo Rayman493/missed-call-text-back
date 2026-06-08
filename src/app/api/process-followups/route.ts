@@ -157,7 +157,7 @@ export async function POST(request: Request) {
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
           .from('businesses')
-          .select('id, twilio_messaging_service_sid, twilio_phone_number')
+          .select('id, twilio_messaging_service_sid, twilio_phone_number, twilio_phone_number_sid')
           .eq('id', lead.business_id)
           .single();
 
