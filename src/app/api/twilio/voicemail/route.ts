@@ -9,6 +9,26 @@ import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 
+// CALL TRACE logging function
+function logCallTrace(data: {
+  route: string
+  action: string
+  callSid?: string
+  from?: string
+  to?: string
+  forwardedFrom?: string
+  businessId?: string
+  businessName?: string
+  leadId?: string
+  conversationId?: string
+  messageId?: string
+  aiCallRecordId?: string
+  existingOrCreated?: 'existing' | 'created' | 'updated'
+  reason?: string
+}) {
+  console.log('[CALL TRACE]', JSON.stringify(data))
+}
+
 export async function POST(request: NextRequest) {
   console.log('[VOICEMAIL CALLBACK RECEIVED]');
 
@@ -77,6 +97,16 @@ export async function POST(request: NextRequest) {
 
     // Find business by Twilio number
     console.log('[VOICEMAIL] Finding business for Twilio number:', to);
+    
+    logCallTrace({
+      route: 'voicemail',
+      action: 'business_lookup_start',
+      callSid,
+      from,
+      to,
+      reason: 'Looking up business by Twilio phone number'
+    })
+    
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id, name')
@@ -85,10 +115,32 @@ export async function POST(request: NextRequest) {
 
     if (businessError || !business) {
       console.error('[VOICEMAIL] Business not found for Twilio number:', to);
+      
+      logCallTrace({
+        route: 'voicemail',
+        action: 'business_lookup_failed',
+        callSid,
+        from,
+        to,
+        reason: `Business not found for Twilio number: ${to}`
+      })
+      
       return new NextResponse('Business not found', { status: 404 });
     }
 
     console.log('[VOICEMAIL] Business found:', business.id, business.name);
+    
+    logCallTrace({
+      route: 'voicemail',
+      action: 'business_lookup_success',
+      callSid,
+      from,
+      to,
+      businessId: business.id,
+      businessName: business.name,
+      existingOrCreated: 'existing',
+      reason: 'Found business by Twilio phone number'
+    })
 
     // Normalize caller phone number
     const normalizedCallerPhone = normalizePhoneNumberForStorage(from);
@@ -116,10 +168,49 @@ export async function POST(request: NextRequest) {
 
     // Find or create lead
     console.log('[VOICEMAIL] Finding lead for phone:', normalizedCallerPhone);
+    
+    logCallTrace({
+      route: 'voicemail',
+      action: 'lead_lookup_start',
+      callSid,
+      from,
+      to,
+      businessId: business.id,
+      businessName: business.name,
+      reason: 'Looking up lead by caller phone for voicemail'
+    })
+    
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
+    
+    if (lead) {
+      logCallTrace({
+        route: 'voicemail',
+        action: 'lead_lookup_success',
+        callSid,
+        from,
+        to,
+        businessId: business.id,
+        businessName: business.name,
+        leadId: lead.id,
+        existingOrCreated: 'existing',
+        reason: 'Found existing lead for voicemail'
+      })
+    }
     
     if (!lead) {
       console.log('[VOICEMAIL] No existing lead found, creating new lead')
+      
+      logCallTrace({
+        route: 'voicemail',
+        action: 'lead_create_start',
+        callSid,
+        from,
+        to,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'No existing lead found, creating new lead for voicemail'
+      })
+      
       // Use only columns that exist in the actual database schema
       const leadPayload = {
         business_id: business.id,
@@ -131,6 +222,21 @@ export async function POST(request: NextRequest) {
 
       try {
         lead = await db.createLead(leadPayload);
+        
+        if (lead) {
+          logCallTrace({
+            route: 'voicemail',
+            action: 'lead_create_success',
+            callSid,
+            from,
+            to,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead.id,
+            existingOrCreated: 'created',
+            reason: 'Created new lead for voicemail'
+          })
+        }
       } catch (leadError) {
         console.error('[VOICEMAIL LEAD CREATE EXCEPTION]', {
           error: leadError,
@@ -139,6 +245,18 @@ export async function POST(request: NextRequest) {
           business_id: business.id,
           phone: normalizedCallerPhone
         });
+        
+        logCallTrace({
+          route: 'voicemail',
+          action: 'lead_create_failed',
+          callSid,
+          from,
+          to,
+          businessId: business.id,
+          businessName: business.name,
+          reason: `Lead create failed: ${leadError instanceof Error ? leadError.message : 'Unknown error'}`
+        })
+        
         // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
         const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

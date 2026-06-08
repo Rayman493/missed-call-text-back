@@ -6,6 +6,26 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 
+// CALL TRACE logging function
+function logCallTrace(data: {
+  route: string
+  action: string
+  callSid?: string
+  from?: string
+  to?: string
+  forwardedFrom?: string
+  businessId?: string
+  businessName?: string
+  leadId?: string
+  conversationId?: string
+  messageId?: string
+  aiCallRecordId?: string
+  existingOrCreated?: 'existing' | 'created' | 'updated'
+  reason?: string
+}) {
+  console.log('[CALL TRACE]', JSON.stringify(data))
+}
+
 export async function POST(req: NextRequest) {
   console.log('[ROUTE HIT - TWILIO VOICE-STATUS]')
   
@@ -74,6 +94,15 @@ export async function POST(req: NextRequest) {
     
     console.log('[Twilio Voice Status Webhook] Looking up business with phone:', normalizedTo)
     
+    logCallTrace({
+      route: 'voice-status',
+      action: 'business_lookup_start',
+      callSid: CallSid,
+      from: From,
+      to: To,
+      reason: 'Looking up business by Twilio phone number'
+    })
+    
     let business = null
     try {
       const { data: businessData } = await supabase
@@ -90,9 +119,32 @@ export async function POST(req: NextRequest) {
       } : {
         found: false
       })
+      
+      if (business) {
+        logCallTrace({
+          route: 'voice-status',
+          action: 'business_lookup_success',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          businessId: business.id,
+          businessName: business.name,
+          existingOrCreated: 'existing',
+          reason: 'Found business by Twilio phone number'
+        })
+      }
     } catch (businessError) {
       console.error('[Twilio Voice Status Webhook] Error looking up business:', businessError)
       business = null
+      
+      logCallTrace({
+        route: 'voice-status',
+        action: 'business_lookup_failed',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        reason: `Error looking up business: ${businessError}`
+      })
     }
     
     if (!business) {
@@ -140,6 +192,17 @@ export async function POST(req: NextRequest) {
     // First try to find existing lead with safe error handling
     let existingLead = null
     try {
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_lookup_start',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'Looking up existing lead by caller phone'
+      })
+      
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
         .select("id, status")
@@ -149,6 +212,17 @@ export async function POST(req: NextRequest) {
       
       if (leadError && leadError.code !== 'PGRST116') { // Not found error
         console.error('[Twilio Voice Status Webhook] Error finding existing lead:', leadError)
+        
+        logCallTrace({
+          route: 'voice-status',
+          action: 'lead_lookup_failed',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          businessId: business.id,
+          businessName: business.name,
+          reason: `Error finding existing lead: ${leadError}`
+        })
       } else {
         existingLead = leadData
         console.log('[Twilio Voice Status Webhook] Existing lead lookup result:', existingLead ? {
@@ -158,9 +232,35 @@ export async function POST(req: NextRequest) {
         } : {
           found: false
         })
+        
+        if (existingLead) {
+          logCallTrace({
+            route: 'voice-status',
+            action: 'lead_lookup_success',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: existingLead.id,
+            existingOrCreated: 'existing',
+            reason: 'Found existing lead'
+          })
+        }
       }
     } catch (leadLookupError) {
       console.error('[Twilio Voice Status Webhook] Exception during lead lookup:', leadLookupError)
+      
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_lookup_failed',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        reason: `Exception during lead lookup: ${leadLookupError}`
+      })
     }
 
     let lead = null
@@ -202,6 +302,17 @@ export async function POST(req: NextRequest) {
         timestamp: new Date().toISOString()
       })
       
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_create_start',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'Creating new lead for voice-status webhook'
+      })
+      
       try {
         const { data: newLead, error: leadInsertError } = await supabase
           .from("leads")
@@ -216,13 +327,50 @@ export async function POST(req: NextRequest) {
 
         if (leadInsertError) {
           console.error("[Twilio Voice Status Webhook] Lead insert failed:", leadInsertError)
+          
+          logCallTrace({
+            route: 'voice-status',
+            action: 'lead_create_failed',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            businessId: business.id,
+            businessName: business.name,
+            reason: `Lead insert failed: ${leadInsertError}`
+          })
+          
           // Continue with processing even if lead creation fails
         } else {
           lead = newLead
           console.log("[Twilio Voice Status Webhook] New lead created:", lead.id)
+          
+          logCallTrace({
+            route: 'voice-status',
+            action: 'lead_create_success',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead.id,
+            existingOrCreated: 'created',
+            reason: 'Created new lead for voice-status webhook'
+          })
         }
       } catch (leadInsertException) {
         console.error("[Twilio Voice Status Webhook] Exception during lead insert:", leadInsertException)
+        
+        logCallTrace({
+          route: 'voice-status',
+          action: 'lead_create_failed',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          businessId: business.id,
+          businessName: business.name,
+          reason: `Exception during lead insert: ${leadInsertException}`
+        })
+        
         // Continue with processing even if lead creation fails
       }
     }

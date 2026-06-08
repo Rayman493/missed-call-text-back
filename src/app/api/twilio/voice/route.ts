@@ -19,6 +19,26 @@ import { markForwardingVerified } from '@/lib/forwarding-verification';
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
 
+// CALL TRACE logging function
+function logCallTrace(data: {
+  route: string
+  action: string
+  callSid?: string
+  from?: string
+  to?: string
+  forwardedFrom?: string
+  businessId?: string
+  businessName?: string
+  leadId?: string
+  conversationId?: string
+  messageId?: string
+  aiCallRecordId?: string
+  existingOrCreated?: 'existing' | 'created' | 'updated'
+  reason?: string
+}) {
+  console.log('[CALL TRACE]', JSON.stringify(data))
+}
+
 
 // Helper function to check if auto-reply SMS was recently sent
 async function hasRecentAutoReply(businessId: string, callerPhone: string): Promise<{ hasRecent: boolean; lastSentAt?: string }> {
@@ -248,6 +268,16 @@ export async function POST(request: NextRequest) {
     
     // Lookup business by businesses.twilio_phone_number IN candidateNumbers
     console.log('[Voice] Business lookup query started');
+    logCallTrace({
+      route: 'voice',
+      action: 'business_lookup_start',
+      callSid: CallSid,
+      from: From,
+      to: To,
+      forwardedFrom: ForwardedFrom,
+      reason: 'Looking up business by Twilio number'
+    })
+    
     let business = null;
     let lookupSource = null;
     
@@ -261,12 +291,36 @@ export async function POST(request: NextRequest) {
           businessId: business.id,
           businessName: business.name
         });
+        
+        logCallTrace({
+          route: 'voice',
+          action: 'business_lookup_success',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          forwardedFrom: ForwardedFrom,
+          businessId: business.id,
+          businessName: business.name,
+          existingOrCreated: 'existing',
+          reason: `Found business via ${lookupSource} using ${candidate}`
+        })
+        
         break;
       }
     }
     
     if (!business) {
       console.warn('[Voice] No business found for candidates:', uniqueCandidates);
+      
+      logCallTrace({
+        route: 'voice',
+        action: 'business_lookup_failed',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        forwardedFrom: ForwardedFrom,
+        reason: `No business found for candidates: ${uniqueCandidates.join(', ')}`
+      })
       
       const twiml = generateTwiMLResponse();
 
@@ -586,10 +640,52 @@ export async function POST(request: NextRequest) {
         try {
           // Create lead before AI session to ensure data linkage
           const normalizedCallerPhone = From.replace(/^\+1/, '').replace(/\D/g, '')
+          
+          logCallTrace({
+            route: 'voice',
+            action: 'lead_lookup_start',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            forwardedFrom: ForwardedFrom,
+            businessId: business.id,
+            businessName: business.name,
+            reason: 'Looking up lead by caller phone for AI session'
+          })
+          
           let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone)
+          
+          if (lead) {
+            logCallTrace({
+              route: 'voice',
+              action: 'lead_lookup_success',
+              callSid: CallSid,
+              from: From,
+              to: To,
+              forwardedFrom: ForwardedFrom,
+              businessId: business.id,
+              businessName: business.name,
+              leadId: lead.id,
+              existingOrCreated: 'existing',
+              reason: 'Found existing lead for AI session'
+            })
+          }
           
           if (!lead) {
             console.log('[AI CALL ASSISTANT] No existing lead, creating new lead for AI session')
+            
+            logCallTrace({
+              route: 'voice',
+              action: 'lead_create_start',
+              callSid: CallSid,
+              from: From,
+              to: To,
+              forwardedFrom: ForwardedFrom,
+              businessId: business.id,
+              businessName: business.name,
+              reason: 'No existing lead found, creating new lead for AI session'
+            })
+            
             lead = await db.createLead({
               business_id: business.id,
               caller_phone: normalizedCallerPhone,
@@ -599,15 +695,55 @@ export async function POST(request: NextRequest) {
             
             if (!lead) {
               console.error('[AI CALL ASSISTANT] Failed to create lead, falling back to voicemail')
+              
+              logCallTrace({
+                route: 'voice',
+                action: 'lead_create_failed',
+                callSid: CallSid,
+                from: From,
+                to: To,
+                forwardedFrom: ForwardedFrom,
+                businessId: business.id,
+                businessName: business.name,
+                reason: 'Failed to create lead for AI session'
+              })
+              
               // Fall through to voicemail flow
             } else {
               console.log('[AI CALL ASSISTANT] Lead created for AI session:', lead.id)
+              
+              logCallTrace({
+                route: 'voice',
+                action: 'lead_create_success',
+                callSid: CallSid,
+                from: From,
+                to: To,
+                forwardedFrom: ForwardedFrom,
+                businessId: business.id,
+                businessName: business.name,
+                leadId: lead.id,
+                existingOrCreated: 'created',
+                reason: 'Created new lead for AI session'
+              })
             }
           } else {
             console.log('[AI CALL ASSISTANT] Using existing lead for AI session:', lead.id)
           }
 
           // Create AI session with lead linkage
+          logCallTrace({
+            route: 'voice',
+            action: 'ai_session_create_start',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            forwardedFrom: ForwardedFrom,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead?.id,
+            reason: 'Creating AI session with lead linkage'
+          })
+          
           const session = await createAISession({
             business_id: business.id,
             lead_id: lead?.id || null,
@@ -616,11 +752,40 @@ export async function POST(request: NextRequest) {
 
           if (!session) {
             console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
+            
+            logCallTrace({
+              route: 'voice',
+              action: 'ai_session_create_failed',
+              callSid: CallSid,
+              from: From,
+              to: To,
+              forwardedFrom: ForwardedFrom,
+              businessId: business.id,
+              businessName: business.name,
+              leadId: lead?.id,
+              reason: 'Failed to create AI session'
+            })
+            
             // Fall through to voicemail flow
           } else {
             console.log('[AI POC] session created:', session.id)
             console.log('[AI POC] callSid:', CallSid)
             console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
+            
+            logCallTrace({
+              route: 'voice',
+              action: 'ai_session_create_success',
+              callSid: CallSid,
+              from: From,
+              to: To,
+              forwardedFrom: ForwardedFrom,
+              businessId: business.id,
+              businessName: business.name,
+              leadId: lead?.id,
+              aiCallRecordId: session.id,
+              existingOrCreated: 'created',
+              reason: 'Created AI session successfully'
+            })
 
             console.log('[AI SESSION LEAD LINKAGE VERIFIED]', {
               sessionId: session.id,
@@ -895,22 +1060,42 @@ export async function POST(request: NextRequest) {
         status: 'new'
       });
       
+      logCallTrace({
+        route: 'voice',
+        action: 'lead_create_start',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        forwardedFrom: ForwardedFrom,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'No existing lead found, creating new lead for voicemail flow'
+      })
+      
       // Create new lead
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         status: 'new',
-        name: null,
         raw_metadata: { source: 'voice', is_demo: false },
-        first_contact_at: new Date().toISOString(),
-        last_message_at: null,
-        last_reply_at: null,
-        opted_out: false,
-        is_demo: false,
       });
       
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);
+        
+        logCallTrace({
+          route: 'voice',
+          action: 'lead_create_success',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          forwardedFrom: ForwardedFrom,
+          businessId: business.id,
+          businessName: business.name,
+          leadId: lead.id,
+          existingOrCreated: 'created',
+          reason: 'Created new lead for voicemail flow'
+        })
         
         // Log call lead link debug after creation
         console.log('[CALL LEAD LINK DEBUG]', {
@@ -994,23 +1179,66 @@ export async function POST(request: NextRequest) {
             businessId: business.id, 
             leadId: lead.id 
           });
+          
+          logCallTrace({
+            route: 'voice',
+            action: 'followup_job_create_start',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            forwardedFrom: ForwardedFrom,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead.id,
+            reason: 'Creating follow-up jobs for new lead'
+          })
+          
           const followUpJobs = await createFollowUpJobs({
             businessId: business.id,
             leadId: lead.id,
             conversationId: undefined, // Conversation created later
             businessName: business.name
           });
+          
           console.log('[FOLLOWUP JOB CREATE SUCCESS]', { 
             businessId: business.id, 
             leadId: lead.id,
             jobCount: followUpJobs.length 
           });
+          
+          logCallTrace({
+            route: 'voice',
+            action: 'followup_job_create_success',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            forwardedFrom: ForwardedFrom,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead.id,
+            existingOrCreated: 'created',
+            reason: `Created ${followUpJobs.length} follow-up jobs`
+          })
         } catch (followUpError) {
           console.error('[FOLLOWUP JOB CREATE ERROR]', { 
             businessId: business.id, 
             leadId: lead.id,
             error: followUpError 
           });
+          
+          logCallTrace({
+            route: 'voice',
+            action: 'followup_job_create_failed',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            forwardedFrom: ForwardedFrom,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: lead.id,
+            reason: `Follow-up job creation failed: ${followUpError}`
+          })
+          
           // Don't let follow-up job creation fail the webhook
         }
         
