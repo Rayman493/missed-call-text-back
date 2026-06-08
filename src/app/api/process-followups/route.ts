@@ -19,27 +19,39 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
+    console.log('[FOLLOWUP CRON START] Route hit');
+    
     // Verify CRON_SECRET for cron job protection
+    // Support both Authorization header and Vercel's x-vercel-cron header
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      console.error('[Security] Unauthorized request to /api/process-followups - missing CRON_SECRET')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const cronHeader = request.headers.get('x-vercel-cron')
+    const searchParams = new URL(request.url).searchParams
+    const secretParam = searchParams.get('secret')
 
     const expectedSecret = process.env.CRON_SECRET
     if (!expectedSecret) {
-      console.error('[Security] CRON_SECRET not configured')
+      console.error('[FOLLOWUP CRON] CRON_SECRET not configured')
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    const providedSecret = authHeader.replace('Bearer ', '')
-    if (providedSecret !== expectedSecret) {
-      console.error('[Security] Invalid CRON_SECRET provided to /api/process-followups')
+    // Check authentication via multiple methods
+    const isAuthorized = 
+      cronHeader === '1' || // Vercel cron
+      (authHeader && authHeader.replace('Bearer ', '') === expectedSecret) || // Authorization header
+      secretParam === expectedSecret // Query parameter for manual testing
+
+    if (!isAuthorized) {
+      console.error('[FOLLOWUP CRON] Unauthorized request - missing or invalid credentials')
+      console.error('[FOLLOWUP CRON] Headers:', {
+        hasAuth: !!authHeader,
+        hasCron: !!cronHeader,
+        hasSecret: !!secretParam
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Cron] Authorized cron request to /api/process-followups');
-    console.log('[SYSTEM] [FOLLOWUP] Follow-up job processing started');
+    console.log('[FOLLOWUP CRON] Authorized successfully');
+    console.log('[FOLLOWUP CRON START] Processing started');
     
     // Fetch up to 10 pending jobs where scheduled_for <= now()
     const now = new Date().toISOString();
@@ -60,7 +72,7 @@ export async function POST(request: Request) {
     }
 
     if (!jobs || jobs.length === 0) {
-      console.log('[SYSTEM] [FOLLOWUP] No pending jobs found');
+      console.log('[FOLLOWUP JOBS FOUND] No pending jobs found');
       return NextResponse.json({
         processed: 0,
         sent: 0,
@@ -69,7 +81,7 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log(`[SYSTEM] [FOLLOWUP] Found ${jobs.length} pending jobs`);
+    console.log(`[FOLLOWUP JOBS FOUND] ${jobs.length} pending jobs found`);
 
     let processed = 0;
     let sent = 0;
@@ -81,10 +93,10 @@ export async function POST(request: Request) {
     
     for (const job of jobs) {
       processed++;
-      console.log(`[SYSTEM] [FOLLOWUP] Processing job: ${job.id}`);
+      console.log(`[FOLLOWUP JOB PROCESSING] Processing job ${job.id}`);
 
       try {
-        console.log(`[SYSTEM] [FOLLOWUP] Fetching lead for job ${job.id}`);
+        console.log(`[FOLLOWUP JOB PROCESSING] Fetching lead for job ${job.id}`);
         
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
@@ -158,7 +170,7 @@ export async function POST(request: Request) {
           throw new Error('SMS send failed: no Twilio message SID returned');
         }
 
-        console.log(`[SYSTEM] [FOLLOWUP] SMS sent for job ${job.id}, SID: ${messageSid}`);
+        console.log(`[FOLLOWUP MESSAGE SENT] SMS sent for job ${job.id}, SID: ${messageSid}`);
 
         console.log(`[SYSTEM] [FOLLOWUP] Message inserted for job ${job.id}`);
         
@@ -303,7 +315,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[SYSTEM] [FOLLOWUP] Complete - Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
+    console.log(`[FOLLOWUP JOB COMPLETE] Processed: ${processed}, Sent: ${sent}, Failed: ${failed}, Errors: ${errors}`);
 
     return NextResponse.json({
       processed,
