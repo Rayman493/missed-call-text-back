@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,7 +9,7 @@ import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
-  const { business, loading, fetchComplete } = useBusiness()
+  const { business, loading, fetchComplete, error: businessError } = useBusiness()
   const { user, session } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -18,6 +18,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Add explicit state tracking
   const [initialized, setInitialized] = useState(false)
+  const hasRedirectedRef = useRef<string | null>(null)
 
   useEffect(() => {
     console.log('[Routing] BusinessGuard evaluating')
@@ -44,6 +45,12 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       console.log('[Routing] BusinessGuard initialized')
     }
     
+    // Reset redirect ref when pathname changes to allow new redirects
+    if (hasRedirectedRef.current && hasRedirectedRef.current !== pathname) {
+      hasRedirectedRef.current = null
+      console.log('[Routing] Reset hasRedirectedRef due to pathname change')
+    }
+    
     // Don't redirect if already on onboarding page
     if (pathname?.startsWith('/onboarding')) {
       console.log('[Routing] Already on onboarding, skipping redirect')
@@ -68,6 +75,10 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     if (!loading && initialized) {
       // Redirect if user is not authenticated
       if (!user) {
+        if (hasRedirectedRef.current === pathname) {
+          console.log('[Routing] Already redirected from this path, skipping')
+          return
+        }
         console.log('[REDIRECT]', {
           from: pathname,
           to: '/auth/signin?redirect=/dashboard',
@@ -76,33 +87,40 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           component: 'BusinessGuard',
         })
         console.log('[Routing] No user authenticated, redirecting to sign in')
+        hasRedirectedRef.current = pathname
         router.push('/auth/signin?redirect=/dashboard')
         return
       }
       
       // Redirect if no business exists
       if (!business) {
-        console.log('[ROUTING AUDIT DEBUG]', {
-          location: 'src/components/BusinessGuard.tsx',
-          guardName: 'BusinessGuard',
+        console.log('[ONBOARDING REDIRECT SOURCE]', {
+          file: 'src/components/BusinessGuard.tsx',
+          functionName: 'BusinessGuard useEffect',
           currentPath: pathname,
+          redirectTarget: '/onboarding',
           userId: user?.id,
           sessionExists: !!session,
           authLoading: loading,
           businessLoading: loading,
+          businessFetchComplete: fetchComplete,
           businessId: null,
           businessFound: false,
-          twilioNumberFound: false,
-          setupComplete: false,
-          redirectTarget: '/onboarding',
+          businessErrorCode: businessError,
+          businessErrorMessage: businessError,
           reason: 'No business row exists',
-          loadingState: loading ? 'loading' : 'complete'
+          timestamp: new Date().toISOString()
         })
+        console.trace('[ONBOARDING REDIRECT TRACE]')
         
         console.log('[Routing] No business found, checking if fetch is complete')
         
         // Only redirect to onboarding if fetch is complete
         if (fetchComplete) {
+          if (hasRedirectedRef.current === pathname) {
+            console.log('[Routing] Already redirected from this path, skipping')
+            return
+          }
           console.log('[Routing] Fetch complete and no business, redirecting to onboarding')
           console.log('[Routing] render branch: no business, fetch complete -> onboarding')
           
@@ -116,6 +134,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
               component: 'BusinessGuard',
             })
             console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+            hasRedirectedRef.current = pathname
             router.push('/auth/signin?redirect=/dashboard')
             return
           }
@@ -127,6 +146,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
             hasSession: !!session,
             component: 'BusinessGuard',
           })
+          hasRedirectedRef.current = pathname
           router.push('/onboarding')
           return
         } else {
@@ -220,24 +240,28 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           // Allow access - dashboard will show setup prompts
         } else {
           // No business row exists - redirect to onboarding step 1
-          console.log('[ROUTING AUDIT DEBUG]', {
-            location: 'src/components/BusinessGuard.tsx',
-            guardName: 'BusinessGuard',
+          if (hasRedirectedRef.current === pathname) {
+            console.log('[Routing] Already redirected from this path, skipping')
+            return
+          }
+          console.log('[ONBOARDING REDIRECT SOURCE]', {
+            file: 'src/components/BusinessGuard.tsx',
+            functionName: 'BusinessGuard useEffect',
             currentPath: pathname,
+            redirectTarget: '/onboarding',
             userId: user?.id,
             sessionExists: !!session,
             authLoading: loading,
             businessLoading: loading,
+            businessFetchComplete: fetchComplete,
             businessId: null,
             businessFound: false,
-            businessName: null,
-            businessPhone: null,
-            twilioNumberFound: false,
-            setupComplete: false,
-            redirectTarget: '/onboarding',
-            reason: 'No business row exists',
-            loadingState: loading ? 'loading' : 'complete'
+            businessErrorCode: businessError,
+            businessErrorMessage: businessError,
+            reason: 'No business row exists (profile incomplete check)',
+            timestamp: new Date().toISOString()
           })
+          console.trace('[ONBOARDING REDIRECT TRACE]')
           
           console.log('[Post Trial Routing Decision]', {
             pathname,
@@ -276,6 +300,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
             hasSession: !!session,
             component: 'BusinessGuard',
           })
+          hasRedirectedRef.current = pathname
           router.push('/onboarding')
           return
         }

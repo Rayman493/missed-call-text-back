@@ -126,6 +126,25 @@ export async function GET(request: Request) {
         const redirectTarget = business ? '/dashboard' : '/onboarding'
         const reason = business ? 'Business row exists' : 'No business row exists'
         
+        console.log('[ONBOARDING REDIRECT SOURCE]', {
+          file: 'src/app/auth/callback/route.ts',
+          functionName: 'GET handler',
+          currentPath: '/auth/callback',
+          redirectTarget,
+          userId: session.user.id,
+          sessionExists: true,
+          authLoading: false,
+          businessLoading: 'complete',
+          businessFetchComplete: true,
+          businessId: business?.id,
+          businessFound: !!business,
+          businessErrorCode: null,
+          businessErrorMessage: null,
+          reason,
+          timestamp: new Date().toISOString()
+        })
+        console.trace('[ONBOARDING REDIRECT TRACE]')
+        
         console.log('[ROUTING AUDIT DEBUG]', {
           location: 'auth/callback/route.ts',
           guardName: 'AuthCallback',

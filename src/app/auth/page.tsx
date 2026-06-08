@@ -542,10 +542,7 @@ function AuthContent() {
       authLoading: loading,
       reason: 'User clicked Back to Homepage'
     })
-    // Set cookie to skip homepage redirect
-    if (typeof document !== 'undefined') {
-      document.cookie = 'skip_homepage_redirect=true; path=/; max-age=60'
-    }
+    // No cookie needed since homepage auto-redirect is disabled
     router.push('/')
   }
 

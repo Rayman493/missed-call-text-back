@@ -72,20 +72,41 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       const businessData = data as Business | null
 
+      console.log('[BUSINESS QUERY RESULT]', {
+        userId: user.id,
+        data: businessData ? { id: businessData.id, name: businessData.name, subscription_status: businessData.subscription_status } : null,
+        errorCode: fetchError?.code,
+        errorMessage: fetchError?.message,
+        count: businessData ? 1 : 0,
+        currentPath: typeof window !== 'undefined' ? window.location.pathname : 'server'
+      })
+
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
           // No business found - do NOT auto-create, just set business to null
-          log('[BusinessContext] No business found, not auto-creating. User must explicitly create business.')
+          log('[BusinessContext] No business found (PGRST116), not auto-creating. User must explicitly create business.')
           setBusiness(null)
           setLoading(false)
           setFetchComplete(true)
           console.log('[BUSINESS FETCH] businessLoading:', false)
           console.log('[BUSINESS FETCH] business exists:', false)
           console.log('[BUSINESS FETCH] business fetch complete:', true)
-          console.log('[BUSINESS FETCH] render branch: no business')
+          console.log('[BUSINESS FETCH] render branch: no business (PGRST116)')
         } else {
           console.error('[BusinessContext] Error fetching business:', fetchError)
-          throw fetchError
+          console.error('[BusinessContext] Error code:', fetchError.code)
+          console.error('[BusinessContext] Error message:', fetchError.message)
+          // For other errors, do NOT assume no business - keep business null but mark fetch as complete
+          // This prevents sending existing users to onboarding due to transient failures
+          log('[BusinessContext] Business query failed (non-PGRST116 error), treating as unknown state')
+          setBusiness(null)
+          setLoading(false)
+          setFetchComplete(true)
+          console.log('[BUSINESS FETCH] businessLoading:', false)
+          console.log('[BUSINESS FETCH] business exists:', false)
+          console.log('[BUSINESS FETCH] business fetch complete:', true)
+          console.log('[BUSINESS FETCH] business fetch error:', fetchError.message)
+          console.log('[BUSINESS FETCH] render branch: error (not PGRST116)')
         }
       } else {
         log('[BusinessContext] Business found:', businessData?.id)
