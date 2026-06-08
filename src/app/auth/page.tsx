@@ -120,10 +120,8 @@ function AuthContent() {
       console.log('[AUTH CREATE CALLED]', {
         source: 'handleSignIn',
         trigger: 'submit',
-        email,
       })
       console.log('[Auth] Starting sign in process')
-      console.log('[Auth] Email:', email)
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -131,12 +129,10 @@ function AuthContent() {
       })
 
       console.log('[Auth] Sign in API call completed')
-      console.log('[Auth] Full response:', JSON.stringify(data, null, 2))
       console.log('[Auth] User exists:', !!data.user)
       console.log('[Auth] User ID:', data.user?.id)
       console.log('[Auth] Session exists:', !!data.session)
       console.log('[Auth] Session user ID:', data.session?.user?.id)
-      console.log('[Auth] Session access token exists:', !!data.session?.access_token)
       console.log('[Auth] Error:', error)
 
       if (error) throw error
@@ -164,7 +160,6 @@ function AuthContent() {
       console.log('[Auth] Session persistence check:', {
         sessionExists: !!persistedSession,
         userId: persistedSession?.user?.id,
-        accessTokenExists: !!persistedSession?.access_token,
         sessionError: sessionError?.message
       })
 

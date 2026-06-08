@@ -123,6 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clean up debug storage keys
         localStorage.removeItem('replyflow_auth_debug_logs')
         
+        // Clear skip_homepage_redirect cookie to prevent trapping users on homepage
+        document.cookie = 'skip_homepage_redirect=; path=/; max-age=0'
+        
         const localKeysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
