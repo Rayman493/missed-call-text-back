@@ -2648,17 +2648,15 @@ Return only JSON, no other text.`;
             }
             console.log('[FOLLOWUP DEBUG COMPLETE - FALLBACK] Follow-up API call finished');
 
-            // Send confirmation SMS after successful AI intake (fallback path)
-            if (fallbackLead?.id && fallbackConversationId) {
-              await sendAIConfirmationSMS(
-                sessionBusinessId,
-                fallbackLead.id,
-                fallbackConversationId,
-                sessionCallSid || 'unknown',
-                sessionCallerPhone || 'unknown',
-                null // No extracted info in fallback path
-              );
-            }
+            // AI confirmation SMS skipped in fallback path to prevent duplicates
+            // Active success path (line 2449) handles SMS sending for completed AI intake
+            console.log('[AI CONFIRMATION SMS SKIPPED FALLBACK PATH]', {
+              reason: 'active_path_handles_sms',
+              leadId: fallbackLead?.id,
+              conversationId: fallbackConversationId,
+              callSid: sessionCallSid,
+              note: 'Falling back to transcript-only processing, but SMS is handled by active path'
+            });
 
             // Notification is now created in PATH-E via API endpoint (uses notificationServiceServer)
           }
