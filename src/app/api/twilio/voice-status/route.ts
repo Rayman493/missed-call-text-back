@@ -578,18 +578,34 @@ export async function POST(req: NextRequest) {
         })
       }
       
-      // Select message based on business hours
+      // Select message based on call type (AI completed vs missed call) and business hours
       let autoReplyMessage
-      if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
+      let messageTemplate = 'unknown'
+
+      if (aiCallRecord) {
+        // AI completed intake - use dedicated AI completion template
+        autoReplyMessage = `Thanks for calling {{business_name}}. We've received the information you provided and passed it along to our team. Someone will follow up with you soon.`
+        messageTemplate = 'ai_intake_completed'
+        console.log('[AI SMS TEMPLATE SELECTED]', {
+          template: messageTemplate,
+          businessId: business.id,
+          aiCallRecordId: aiCallRecord.id,
+          messageBody: autoReplyMessage
+        })
+      } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
         autoReplyMessage = afterHoursMessage
+        messageTemplate = 'after_hours'
         console.log('[AFTER HOURS MESSAGE SELECTED]', {
+          template: messageTemplate,
           businessId: business.id,
           messageBody: autoReplyMessage
         })
       } else {
-        autoReplyMessage = business.auto_reply_message || 
+        autoReplyMessage = business.auto_reply_message ||
           `Hi, this is {{business_name}}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
+        messageTemplate = 'missed_call'
         console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
+          template: messageTemplate,
           businessId: business.id,
           messageBody: autoReplyMessage
         })
