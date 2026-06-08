@@ -125,7 +125,6 @@ export async function POST(request: NextRequest) {
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         status: 'new',
-        name: null,
         raw_metadata: { source: 'voicemail' },
       };
       console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', leadPayload);

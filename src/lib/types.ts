@@ -99,11 +99,11 @@ export interface Lead {
   business_id: string;
   caller_phone: string;
   status: string;
-  name: string | null;
   raw_metadata: any;
   created_at: string;
   updated_at: string;
-  // Legacy fields - may not exist in actual DB schema, kept for compatibility
+  // Optional fields that may not exist in actual DB schema
+  name?: string | null;
   first_contact_at?: string | null;
   last_message_at?: string | null;
   last_reply_at?: string | null;

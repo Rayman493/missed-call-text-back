@@ -471,27 +471,28 @@ export const db = {
     
     // CRITICAL: Only use twilio_numbers table (dedicated number architecture)
     // Legacy fallback removed for routing safety
+    // Accept multiple valid statuses: 'assigned' and 'active'
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin
       .from('twilio_numbers')
       .select('id, business_id, phone_number, status')
       .eq('phone_number', phone)
-      .eq('status', 'active')
+      .in('status', ['assigned', 'active'])
       .single()
 
     if (twilioError) {
       console.error('[getBusinessByTwilioNumber] Error fetching twilio_number:', twilioError)
       if (twilioError.code === 'PGRST116') {
-        console.log('[getBusinessByTwilioNumber] No active twilio_number found for phone:', phone)
+        console.log('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
       }
       return null
     }
 
     if (!twilioNumber || !twilioNumber.business_id) {
-      console.error('[getBusinessByTwilioNumber] No active twilio_number found for phone:', phone)
+      console.error('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
       return null
     }
 
-    console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id)
+    console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id, 'status:', twilioNumber.status)
 
     // Fetch the business
     const { data: business, error: businessError } = await supabaseAdmin
@@ -772,7 +773,7 @@ export const db = {
       .from('leads')
       .select('*')
       .eq('business_id', businessId)
-      .eq('phone', normalizedPhone)
+      .eq('caller_phone', normalizedPhone)
       .single()
     
     if (error) {
@@ -832,7 +833,7 @@ export const db = {
     const { data, error } = await supabaseAdmin
       .from('leads')
       .upsert(lead, {
-        onConflict: 'business_id,phone'
+        onConflict: 'business_id,caller_phone'
       })
       .select()
       .single()

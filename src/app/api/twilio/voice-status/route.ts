@@ -207,10 +207,9 @@ export async function POST(req: NextRequest) {
           .from("leads")
           .insert([{
             business_id: business.id,
-            phone: normalizedCallerPhone,
+            caller_phone: normalizedCallerPhone,
             status: 'new',
-            first_contact_at: new Date().toISOString(),
-            last_message_at: new Date().toISOString()
+            raw_metadata: { source: 'voice-status' }
           }])
           .select("id, status")
           .single()
