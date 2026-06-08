@@ -70,6 +70,37 @@ export async function POST(req: NextRequest) {
     const Duration = params.Duration
     const Direction = params.Direction
     
+    console.log('[VOICE STATUS START]', {
+      callSid: CallSid,
+      callStatus: CallStatus,
+      businessId: null
+    })
+    
+    // Check for AI call record
+    console.log('[VOICE STATUS AI RECORD CHECK]', {
+      callSid: CallSid,
+      aiCallRecordFound: false,
+      aiCallRecordId: null,
+      aiConversationId: null,
+      aiLeadId: null
+    })
+    
+    const { data: aiCallRecord } = await supabase
+      .from('ai_call_sessions')
+      .select('id, lead_id')
+      .eq('call_sid', CallSid)
+      .maybeSingle()
+    
+    if (aiCallRecord) {
+      console.log('[VOICE STATUS AI RECORD CHECK]', {
+        callSid: CallSid,
+        aiCallRecordFound: true,
+        aiCallRecordId: aiCallRecord.id,
+        aiConversationId: null,
+        aiLeadId: aiCallRecord.lead_id
+      })
+    }
+    
     // Log essential call status details for production monitoring
     console.log('[voice-status] Call status update:', {
       CallSid,
@@ -233,6 +264,11 @@ export async function POST(req: NextRequest) {
           found: false
         })
         
+        console.log('[VOICE STATUS LEAD LOOKUP]', {
+          leadId: existingLead?.id || null,
+          existingOrCreated: existingLead ? 'existing' : 'created'
+        })
+        
         if (existingLead) {
           logCallTrace({
             route: 'voice-status',
@@ -387,9 +423,19 @@ export async function POST(req: NextRequest) {
     
     if (lead) {
       try {
+        console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
+          existingConversationId: null,
+          found: false
+        })
+        
         conversation = await db.getOpenConversationForLead(lead.id, business.id)
         
         if (!conversation) {
+          console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
+            existingConversationId: null,
+            found: false
+          })
+          
           // Create new conversation for missed call
           console.log(`[Twilio Voice Status Webhook] Creating new conversation for lead: ${lead.id}`)
           conversation = await db.createConversation({
@@ -406,9 +452,19 @@ export async function POST(req: NextRequest) {
           } else {
             conversationWasCreated = true
             console.log(`[Twilio Voice Status Webhook] Created new conversation: ${conversation.id}`)
+            console.log('[VOICE STATUS CONVERSATION CREATE]', {
+              newConversationId: conversation.id,
+              leadId: lead.id,
+              businessId: business.id,
+              callSid: CallSid
+            })
           }
         } else {
           console.log(`[Twilio Voice Status Webhook] Found existing conversation: ${conversation.id}`)
+          console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
+            existingConversationId: conversation.id,
+            found: true
+          })
           console.log(`[Twilio Voice Status Webhook] Conversation details:`, {
             conversation_id: conversation.id,
             lead_id: conversation.lead_id,
@@ -612,6 +668,10 @@ export async function POST(req: NextRequest) {
         if (messageSid) {
           console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
           autoReplySent = true
+          console.log('[VOICE STATUS SMS SEND]', {
+            conversationId: conversation?.id,
+            leadId: lead.id
+          })
 
           // TEST SETUP: Update test_sms_sent_at for businesses in test setup
           if (isTestSetup) {
@@ -806,6 +866,10 @@ export async function POST(req: NextRequest) {
             
             if (!error1 && !error2) {
               console.log(`[followups] Both follow-ups scheduled successfully for lead: ${lead.id}`)
+              console.log('[VOICE STATUS FOLLOWUP CREATE]', {
+                conversationId: conversation.id,
+                leadId: lead.id
+              })
             }
           } else {
             console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
