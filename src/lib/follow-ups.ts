@@ -54,17 +54,24 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
     const automationSettings = business.automation_settings || {}
     console.log('[GET FOLLOWUP SCHEDULE] Automation settings:', automationSettings);
 
-    const followUpSettings = automationSettings.followUps
-    console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
+    // The stored shape is: automation_settings.followUps.followUps
+    const followUpsContainer = automationSettings.followUps || {}
+    console.log('[GET FOLLOWUP SCHEDULE] Follow-ups container:', followUpsContainer);
 
-    // If no custom settings, use defaults
-    if (!followUpSettings || !followUpSettings.enabled) {
+    const followUpSettings = followUpsContainer.followUps
+    const followUpsEnabled = followUpsContainer.enabled !== false // Default to enabled if not set
+
+    console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
+    console.log('[GET FOLLOWUP SCHEDULE] Follow-ups enabled:', followUpsEnabled);
+
+    // If no custom settings or disabled, use defaults
+    if (!followUpSettings || !followUpSettings.length || !followUpsEnabled) {
       console.log('[GET FOLLOWUP SCHEDULE] No follow-up settings or disabled, returning empty');
       return []
     }
 
     // Convert saved settings to schedule format
-    const schedule = (followUpSettings.followUps || [])
+    const schedule = followUpSettings
       .filter((fu: any) => fu.enabled)
       .map((fu: any) => {
         // Convert delay based on unit
