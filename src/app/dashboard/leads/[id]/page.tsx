@@ -522,19 +522,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
-  // Debug message rendering
-  console.log('[MESSAGE RENDERING DEBUG]', {
-    leadDataMessagesCount: leadData?.messages?.length || 0,
-    allMessagesCount: allMessages?.length || 0,
-    messagesArrayCount: messagesArray.length,
-    firstMessage: messagesArray[0] ? {
-      id: messagesArray[0].id,
-      body: messagesArray[0].body?.substring(0, 50),
-      direction: messagesArray[0].direction,
-      created_at: messagesArray[0].created_at
-    } : null
-  })
-
   // Scroll to bottom after messages load
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
@@ -857,25 +844,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           conversationId: conversationId,
           messages: messages,
           conversation: result.conversation || result.lead.conversation
-        }
-        
-        // Log message consistency
-        if (messages && messages.length > 0) {
-          console.log('[MESSAGE CONSISTENCY]', {
-            leadId: leadWithMergedData.id,
-            conversationId: conversationId,
-            messageCount: messages.length,
-            messages: messages.map((m: any) => ({
-              messageId: m.id,
-              leadId: m.lead_id,
-              conversationId: m.conversation_id,
-              businessId: m.business_id,
-              direction: m.direction,
-              body: m.body?.substring(0, 50)
-            }))
-          })
-        } else {
-          console.log('[MESSAGE CONSISTENCY] No messages found for lead:', result.lead.id)
         }
         
         setLeadData(leadWithMergedData)

@@ -11,8 +11,6 @@ function normalizePhone(phone: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('[SERVER START] Lead Detail API debug logging enabled')
-  console.log("[lead-details API] route hit")
   
   try {
     const searchParams = request.nextUrl.searchParams
@@ -80,14 +78,6 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[lead-details API] Lead found:", lead.id)
-    console.log("[LEAD DETAIL API LEAD]", {
-      leadId: lead.id,
-      leadExists: !!lead
-    })
-    console.log("[LEAD DETAIL LOAD]", {
-      leadId: lead.id,
-      businessId: lead.business_id
-    })
 
     // Fetch conversation for this lead with RLS protection
     const { data: conversation } = await supabase
@@ -100,23 +90,12 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
-    console.log("[LEAD DETAIL API CONVERSATION]", {
-      conversationFound: !!conversation,
-      conversationId: conversation?.id,
-      conversationLeadId: conversation?.lead_id
-    })
 
     // Fetch messages by lead_id OR conversation_id - no business_id filter
     let messages: any[] = []
     
     if (conversation) {
       // Prefer conversation_id if conversation exists
-      console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-        queryUsed: 'conversation_id',
-        leadId,
-        conversationId: conversation.id
-      })
-      
       const { data: messagesByConversation, error: messagesByConversationError } = await supabase
         .from("messages")
         .select("*")
@@ -125,17 +104,8 @@ export async function GET(request: NextRequest) {
 
       if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
         messages = messagesByConversation
-        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
-          count: messages.length,
-          firstMessageId: messages[0]?.id || null
-        })
       } else {
         // Fallback to lead_id if conversation_id query fails
-        console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-          queryUsed: 'lead_id (fallback)',
-          leadId,
-          conversationId: conversation.id
-        })
         const { data: messagesByLead, error: messagesByLeadError } = await supabase
           .from("messages")
           .select("*")
@@ -144,19 +114,10 @@ export async function GET(request: NextRequest) {
 
         if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
           messages = messagesByLead
-          console.log("[LEAD DETAIL API MESSAGE RESULT]", {
-            count: messages.length,
-            firstMessageId: messages[0]?.id || null
-          })
         }
       }
     } else {
       // No conversation, fetch by lead_id only
-      console.log("[LEAD DETAIL API MESSAGE QUERY]", {
-        queryUsed: 'lead_id (no conversation)',
-        leadId,
-        conversationId: null
-      })
       const { data: messagesByLead, error: messagesByLeadError } = await supabase
         .from("messages")
         .select("*")
@@ -165,10 +126,6 @@ export async function GET(request: NextRequest) {
 
       if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
         messages = messagesByLead
-        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
-          count: messages.length,
-          firstMessageId: messages[0]?.id || null
-        })
       }
     }
 
@@ -362,26 +319,7 @@ export async function GET(request: NextRequest) {
         aiCallRecords: aiCallRecords || []
       }
     }
-    
-    console.log("[LEAD DETAIL API FINAL RESPONSE]", {
-      conversationIdIncluded: !!responseData.lead.conversation,
-      conversationIdValue: responseData.lead.conversationId,
-      messagesLength: responseData.lead.messages.length,
-      responseShape: {
-        ok: responseData.ok,
-        hasConversationId: !!responseData.conversationId,
-        conversationIdValue: responseData.conversationId,
-        hasLead: !!responseData.lead,
-        hasConversation: !!responseData.lead.conversation,
-        hasMessages: Array.isArray(responseData.lead.messages),
-        messagesCount: responseData.lead.messages.length,
-        hasVoicemailRecordings: Array.isArray(responseData.lead.voicemailRecordings),
-        hasFollowUpJobs: Array.isArray(responseData.lead.followUpJobs),
-        hasAiCallRecords: Array.isArray(responseData.lead.aiCallRecords)
-      }
-    })
 
-    // Return enhanced response
     return NextResponse.json(responseData)
   } catch (error) {
     console.error('Error in lead-details API:', error)
