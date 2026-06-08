@@ -181,8 +181,12 @@ export default async function Home() {
   const { data, error } = await supabase.auth.getSession()
   const session = data?.session
 
-  if (session?.user) {
-    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', 'checking...', 'twilioNumberFound:', 'checking...', 'currentPath:', '/', 'redirectTarget:', 'determining...', 'loadingState', 'complete')
+  // Only auto-redirect if explicitly accessing protected routes
+  // Allow logged-in users to stay on homepage if they intentionally navigate there
+  const shouldRedirect = session?.user && !cookies().get('skip_homepage_redirect')
+
+  if (shouldRedirect) {
+    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', 'checking...', 'twilioNumberFound:', 'checking...', 'currentPath:', '/', 'redirectTarget:', 'determining...', 'loadingState', 'complete', 'reason', 'authenticated user with skip_homepage_redirect not set')
     
     // Check if user has a business
     const { data: business, error } = await supabase

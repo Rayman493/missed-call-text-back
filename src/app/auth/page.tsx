@@ -189,16 +189,62 @@ function AuthContent() {
 
       subscription.unsubscribe()
       
+      // Fetch business row from database using authenticated user.id
+      console.log('[POST LOGIN ROUTING DEBUG]', {
+        userId: persistedSession.user.id,
+        sessionExists: !!persistedSession,
+        businessId: 'fetching...',
+        businessFound: 'fetching...',
+        businessName: 'fetching...',
+        businessPhone: 'fetching...',
+        twilioNumberFound: 'fetching...',
+        currentPath: window.location.pathname,
+        redirectTarget: 'determining...',
+        loadingState: 'complete',
+        reason: 'Fetching business row for routing decision'
+      })
+
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', persistedSession.user.id)
+        .single()
+
+      console.log('[POST LOGIN ROUTING DEBUG]', {
+        userId: persistedSession.user.id,
+        sessionExists: !!persistedSession,
+        businessId: business?.id,
+        businessFound: !!business,
+        businessName: business?.name,
+        businessPhone: business?.business_phone_number,
+        twilioNumberFound: !!business?.twilio_phone_number,
+        currentPath: window.location.pathname,
+        redirectTarget: business ? '/dashboard' : '/onboarding',
+        loadingState: 'complete',
+        reason: business ? 'Business row exists' : 'No business row exists'
+      })
+
+      // Clear stale localStorage keys
+      if (typeof window !== 'undefined') {
+        const keysToClear = ['onboarding_status', 'businessSetupPending', 'pendingOnboarding']
+        keysToClear.forEach(key => {
+          localStorage.removeItem(key)
+        })
+        console.log('[POST LOGIN ROUTING DEBUG] Cleared stale localStorage keys')
+      }
+      
       // Show redirecting state
       setRedirecting(true)
       setLoading(false)
       
       // Use returnTo parameter if present (for post-Stripe recovery), otherwise use redirectParam
       const redirectTarget = returnToParam || redirectParam
-      console.log('[Auth] Session persisted successfully, redirecting to:', redirectTarget, {
+      console.log('[Auth] Session persisted and business fetched, redirecting to:', redirectTarget, {
         returnToParam,
         redirectParam,
-        chosen: redirectTarget
+        chosen: redirectTarget,
+        businessId: business?.id,
+        hasBusiness: !!business
       })
       
       await new Promise(resolve => setTimeout(resolve, 800))
@@ -485,6 +531,21 @@ function AuthContent() {
     }
   }
 
+  const handleBackToHomepage = () => {
+    console.log('[SIGNIN HOME NAV DEBUG]', {
+      currentPath: window.location.pathname,
+      targetPath: '/',
+      userId: null,
+      authLoading: loading,
+      reason: 'User clicked Back to Homepage'
+    })
+    // Set cookie to skip homepage redirect
+    if (typeof document !== 'undefined') {
+      document.cookie = 'skip_homepage_redirect=true; path=/; max-age=60'
+    }
+    router.push('/')
+  }
+
   const toggleMode = () => {
     const newMode = isSignIn ? 'signup' : 'signin'
     router.push(`/auth?mode=${newMode}`)
@@ -495,15 +556,15 @@ function AuthContent() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-8">
         {/* Back to Homepage Link */}
         <div className="w-full max-w-md sm:max-w-[480px] mb-4">
-          <Link 
-            href="/"
+          <button
+            onClick={handleBackToHomepage}
             className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Homepage
-          </Link>
+          </button>
         </div>
         
         <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
