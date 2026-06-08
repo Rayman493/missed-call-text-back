@@ -807,6 +807,29 @@ export async function POST(request: NextRequest) {
     console.log('[Voice] Checking for existing lead for phone:', normalizedCallerPhone);
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
+    // Log test call lead trace for debugging
+    console.log('[TEST CALL LEAD TRACE]', {
+      callSid: CallSid,
+      from: From,
+      to: To,
+      forwardedFrom: ForwardedFrom,
+      matchedBusinessId: business.id,
+      matchedTwilioNumberId: business.twilio_phone_number_sid,
+      leadId: existingLead?.id || null,
+      conversationId: null,
+      messageId: null,
+      aiCallRecordId: null,
+      isDemo: existingLead?.is_demo || false,
+      leadStatus: existingLead?.status || 'new',
+      classification: existingLead ? 'existing_lead_reused' : 'new_lead_will_be_created',
+      reason: existingLead ? 'Lead found by phone number' : 'No lead found, will create new',
+      businessLookup: {
+        lookupSource,
+        twilioPhone: business.twilio_phone_number,
+        businessPhone: business.business_phone_number
+      }
+    });
+    
     let lead;
     let shouldSendSms = false;
     let isRepeatCaller = false;
@@ -840,6 +863,30 @@ export async function POST(request: NextRequest) {
       
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);
+        
+        // Log test call lead trace after creation
+        console.log('[TEST CALL LEAD TRACE]', {
+          callSid: CallSid,
+          from: From,
+          to: To,
+          forwardedFrom: ForwardedFrom,
+          matchedBusinessId: business.id,
+          matchedTwilioNumberId: business.twilio_phone_number_sid,
+          leadId: lead.id,
+          conversationId: null,
+          messageId: null,
+          aiCallRecordId: null,
+          isDemo: lead.is_demo,
+          leadStatus: lead.status,
+          classification: 'new_lead_created',
+          reason: 'Lead successfully created from voice webhook',
+          businessLookup: {
+            lookupSource,
+            twilioPhone: business.twilio_phone_number,
+            businessPhone: business.business_phone_number
+          }
+        });
+        
         await timelineEvents.leadCreated(business.id, lead.id, '', normalizedCallerPhone);
         
         // Mark forwarding as verified when real lead is created from missed call
