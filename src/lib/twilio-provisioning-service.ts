@@ -47,6 +47,225 @@ export interface ProvisioningResult {
 }
 
 /**
+ * Check provisioning consistency between businesses and twilio_numbers tables
+ */
+async function checkProvisioningConsistency(
+  businessId: string,
+  phoneNumberSid: string,
+  correlationId: string
+): Promise<{ consistent: boolean; mismatchReason?: string; twilioNumber?: any }> {
+  console.log('[TWILIO PROVISIONING CONSISTENCY] ========== START ==========');
+  console.log('[TWILIO PROVISIONING CONSISTENCY] correlation_id:', correlationId);
+  console.log('[TWILIO PROVISIONING CONSISTENCY] business_id:', businessId);
+  console.log('[TWILIO PROVISIONING CONSISTENCY] phone_number_sid:', phoneNumberSid);
+  
+  try {
+    // Query businesses table
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id')
+      .eq('id', businessId)
+      .single();
+    
+    if (businessError || !business) {
+      const error = 'Business not found';
+      console.error('[TWILIO PROVISIONING CONSISTENCY] ERROR:', error);
+      return { consistent: false, mismatchReason: error };
+    }
+    
+    console.log('[TWILIO PROVISIONING CONSISTENCY] Business found:', {
+      businessId: business.id,
+      businessPhoneNumber: business.twilio_phone_number,
+      businessTwilioSid: business.twilio_phone_number_sid,
+      assignedTwilioNumberId: business.assigned_twilio_number_id
+    });
+    
+    // Query twilio_numbers table
+    const { data: twilioNumber, error: twilioError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, status')
+      .eq('twilio_sid', phoneNumberSid)
+      .maybeSingle();
+    
+    console.log('[TWILIO PROVISIONING CONSISTENCY] Twilio number lookup result:', {
+      twilioNumberRowFound: !!twilioNumber,
+      twilioNumberId: twilioNumber?.id,
+      twilioNumberPhone: twilioNumber?.phone_number,
+      twilioNumberBusinessId: twilioNumber?.business_id,
+      twilioNumberStatus: twilioNumber?.status
+    });
+    
+    const consistencyCheck = {
+      businessId,
+      businessPhoneNumber: business.twilio_phone_number,
+      twilioPhoneNumber: twilioNumber?.phone_number,
+      assignedTwilioNumberId: business.assigned_twilio_number_id,
+      twilioNumberRowFound: !!twilioNumber,
+      twilioNumberBusinessId: twilioNumber?.business_id,
+      status: twilioNumber?.status,
+      mismatchReason: null as string | null
+    };
+    
+    // Check 1: twilio_numbers row must exist
+    if (!twilioNumber) {
+      consistencyCheck.mismatchReason = 'twilio_numbers row not found';
+      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
+      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+    }
+    
+    // Check 2: phone_number must match
+    if (business.twilio_phone_number !== twilioNumber.phone_number) {
+      consistencyCheck.mismatchReason = 'phone_number mismatch between businesses and twilio_numbers';
+      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
+      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+    }
+    
+    // Check 3: business_id must match
+    if (businessId !== twilioNumber.business_id) {
+      consistencyCheck.mismatchReason = 'business_id mismatch between businesses and twilio_numbers';
+      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
+      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+    }
+    
+    // Check 4: assigned_twilio_number_id must be set and match
+    if (!business.assigned_twilio_number_id || business.assigned_twilio_number_id !== twilioNumber.id) {
+      consistencyCheck.mismatchReason = 'assigned_twilio_number_id not set or does not match twilio_numbers.id';
+      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
+      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+    }
+    
+    // Check 5: status must be assigned/active, not available
+    if (twilioNumber.status === 'available') {
+      consistencyCheck.mismatchReason = 'twilio_number status is available, should be assigned/active';
+      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
+      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+    }
+    
+    console.log('[TWILIO PROVISIONING CONSISTENCY] ✓ CONSISTENT');
+    console.log('[TWILIO PROVISIONING CONSISTENCY] consistencyCheck:', consistencyCheck);
+    console.log('[TWILIO PROVISIONING CONSISTENCY] ========== COMPLETE ==========');
+    
+    return { consistent: true, twilioNumber };
+    
+  } catch (error: any) {
+    console.error('[TWILIO PROVISIONING CONSISTENCY] Exception:', error);
+    return { consistent: false, mismatchReason: error.message };
+  }
+}
+
+/**
+ * Reconcile missing twilio_numbers row for a business
+ */
+async function reconcileTwilioNumberRow(
+  businessId: string,
+  correlationId: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log('[RECONCILE TWILIO NUMBER] ========== START ==========');
+  console.log('[RECONCILE TWILIO NUMBER] correlation_id:', correlationId);
+  console.log('[RECONCILE TWILIO NUMBER] business_id:', businessId);
+  
+  try {
+    // Query businesses table
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id, twilio_phone_number, twilio_phone_number_sid')
+      .eq('id', businessId)
+      .single();
+    
+    if (businessError || !business) {
+      const error = 'Business not found';
+      console.error('[RECONCILE TWILIO NUMBER] ERROR:', error);
+      return { success: false, error };
+    }
+    
+    console.log('[RECONCILE TWILIO NUMBER] Business found:', {
+      businessPhoneNumber: business.twilio_phone_number,
+      businessTwilioSid: business.twilio_phone_number_sid
+    });
+    
+    // Check if twilio_phone_number exists
+    if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
+      const error = 'Business has no twilio_phone_number or twilio_phone_number_sid';
+      console.error('[RECONCILE TWILIO NUMBER] ERROR:', error);
+      return { success: false, error };
+    }
+    
+    // Check if twilio_numbers row already exists
+    const { data: existingTwilioNumber, error: existingError } = await supabase
+      .from('twilio_numbers')
+      .select('id')
+      .eq('twilio_sid', business.twilio_phone_number_sid)
+      .maybeSingle();
+    
+    if (existingTwilioNumber) {
+      console.log('[RECONCILE TWILIO NUMBER] twilio_numbers row already exists:', existingTwilioNumber.id);
+      
+      // Update businesses table with assigned_twilio_number_id
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update({ assigned_twilio_number_id: existingTwilioNumber.id })
+        .eq('id', businessId);
+      
+      if (updateError) {
+        console.error('[RECONCILE TWILIO NUMBER] Failed to update businesses:', updateError);
+        return { success: false, error: 'Failed to update businesses table' };
+      }
+      
+      console.log('[RECONCILE TWILIO NUMBER] ✓ Reconciliation complete - linked existing row');
+      return { success: true };
+    }
+    
+    // Create twilio_numbers row
+    console.log('[RECONCILE TWILIO NUMBER] Creating twilio_numbers row');
+    const { data: insertedTwilioNumber, error: insertError } = await supabase
+      .from('twilio_numbers')
+      .insert({
+        business_id: businessId,
+        phone_number: business.twilio_phone_number,
+        twilio_sid: business.twilio_phone_number_sid,
+        number_type: 'both',
+        status: 'active',
+        sms_status: 'pending',
+        provisioning_status: 'ready',
+        last_provisioning_attempt_at: new Date().toISOString(),
+        assigned_at: new Date().toISOString(),
+        campaign_registered_at: new Date().toISOString(),
+        sender_pool_attached_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    
+    if (insertError || !insertedTwilioNumber) {
+      console.error('[RECONCILE TWILIO NUMBER] Failed to create twilio_numbers row:', insertError);
+      return { success: false, error: 'Failed to create twilio_numbers row' };
+    }
+    
+    console.log('[RECONCILE TWILIO NUMBER] twilio_numbers row created with ID:', insertedTwilioNumber.id);
+    
+    // Update businesses table with assigned_twilio_number_id
+    console.log('[RECONCILE TWILIO NUMBER] Updating businesses table');
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update({ assigned_twilio_number_id: insertedTwilioNumber.id })
+      .eq('id', businessId);
+    
+    if (updateError) {
+      console.error('[RECONCILE TWILIO NUMBER] Failed to update businesses:', updateError);
+      return { success: false, error: 'Failed to update businesses table' };
+    }
+    
+    console.log('[RECONCILE TWILIO NUMBER] ✓ Reconciliation complete');
+    console.log('[RECONCILE TWILIO NUMBER] ========== COMPLETE ==========');
+    
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('[RECONCILE TWILIO NUMBER] Exception:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Main provisioning function - orchestrates the full workflow
  */
 export async function provisionTwilioNumberWithCompliance(
@@ -99,8 +318,39 @@ export async function provisionTwilioNumberWithCompliance(
       return { success: false, error: senderPoolResult.error };
     }
     
-    // STEP 4: Mark as ready
-    console.log('[PROVISIONING SERVICE] STEP 4: Marking number as ready');
+    // STEP 4: Mark as ready with consistency check
+    console.log('[PROVISIONING SERVICE] STEP 4: Marking number as ready with consistency check');
+    
+    // Check consistency before marking as ready
+    const consistencyCheck = await checkProvisioningConsistency(
+      businessId,
+      purchaseResult.phoneNumberSid,
+      correlation
+    );
+    
+    if (!consistencyCheck.consistent) {
+      console.error('[PROVISIONING SERVICE] Consistency check failed:', consistencyCheck.mismatchReason);
+      
+      // Attempt reconciliation
+      console.log('[PROVISIONING SERVICE] Attempting reconciliation');
+      const reconciliationResult = await reconcileTwilioNumberRow(businessId, correlation);
+      
+      if (!reconciliationResult.success) {
+        console.error('[PROVISIONING SERVICE] Reconciliation failed:', reconciliationResult.error);
+        return { success: false, error: `Consistency check failed: ${consistencyCheck.mismatchReason}. Reconciliation failed: ${reconciliationResult.error}` };
+      }
+      
+      console.log('[PROVISIONING SERVICE] Reconciliation successful, re-checking consistency');
+      const recheck = await checkProvisioningConsistency(businessId, purchaseResult.phoneNumberSid, correlation);
+      
+      if (!recheck.consistent) {
+        console.error('[PROVISIONING SERVICE] Consistency check still failed after reconciliation:', recheck.mismatchReason);
+        return { success: false, error: `Consistency check failed after reconciliation: ${recheck.mismatchReason}` };
+      }
+      
+      console.log('[PROVISIONING SERVICE] Consistency check passed after reconciliation');
+    }
+    
     await updateProvisioningStatus(
       businessId,
       purchaseResult.phoneNumberSid,
@@ -196,7 +446,7 @@ async function purchaseNumber(
     
     // Save to twilio_numbers table
     console.log('[PURCHASE NUMBER] Saving to database');
-    const { error: insertError } = await supabase
+    const { data: insertedTwilioNumber, error: insertError } = await supabase
       .from('twilio_numbers')
       .insert({
         business_id: businessId,
@@ -208,7 +458,9 @@ async function purchaseNumber(
         provisioning_status: 'purchased',
         last_provisioning_attempt_at: new Date().toISOString(),
         assigned_at: new Date().toISOString(),
-      });
+      })
+      .select()
+      .single();
     
     if (insertError) {
       console.error('[PURCHASE NUMBER] Database insert failed:', insertError);
@@ -222,13 +474,16 @@ async function purchaseNumber(
       return { success: false, error: 'Failed to save number to database' };
     }
     
-    // Update businesses table
+    console.log('[PURCHASE NUMBER] twilio_numbers row inserted with ID:', insertedTwilioNumber.id);
+    
+    // Update businesses table with assigned_twilio_number_id
     console.log('[PURCHASE NUMBER] Updating businesses table');
     const { error: updateError } = await supabase
       .from('businesses')
       .update({
         twilio_phone_number: purchasedNumber.phoneNumber,
         twilio_phone_number_sid: purchasedNumber.sid,
+        assigned_twilio_number_id: insertedTwilioNumber.id,
         twilio_messaging_service_sid: messagingServiceSid,
         provisioning_status: 'ready',
         provisioning_error: null,
