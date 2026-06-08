@@ -198,78 +198,76 @@ export async function POST(request: NextRequest) {
     }
     
     if (!lead) {
-      console.log('[VOICEMAIL] No existing lead found, creating new lead')
+      console.log('[VOICEMAIL] No existing lead found, using shared helper for canonical records')
       
       logCallTrace({
         route: 'voicemail',
-        action: 'lead_create_start',
+        action: 'call_intake_start',
         callSid,
         from,
         to,
         businessId: business.id,
         businessName: business.name,
-        reason: 'No existing lead found, creating new lead for voicemail'
+        reason: 'Getting/creating canonical lead and conversation for voicemail'
       })
       
-      // Use only columns that exist in the actual database schema
-      const leadPayload = {
-        business_id: business.id,
-        caller_phone: normalizedCallerPhone,
-        status: 'new',
-        raw_metadata: { source: 'voicemail' },
-      };
-      console.log('[VOICEMAIL LEAD CREATE PAYLOAD]', leadPayload);
-
       try {
-        lead = await db.createLead(leadPayload);
+        const intakeRecords = await db.getOrCreateCallIntakeRecords({
+          callSid,
+          businessId: business.id,
+          callerPhone: normalizedCallerPhone,
+          to
+        })
         
-        if (lead) {
+        if (!intakeRecords.leadId || !intakeRecords.conversationId) {
+          console.error('[VOICEMAIL] Failed to get or create intake records')
+          
           logCallTrace({
             route: 'voicemail',
-            action: 'lead_create_success',
+            action: 'call_intake_failed',
             callSid,
             from,
             to,
             businessId: business.id,
             businessName: business.name,
-            leadId: lead.id,
-            existingOrCreated: 'created',
-            reason: 'Created new lead for voicemail'
+            reason: 'Failed to get or create intake records for voicemail'
           })
+        } else {
+          console.log('[VOICEMAIL] Intake records obtained:', {
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            isNew: intakeRecords.isNew
+          })
+          
+          logCallTrace({
+            route: 'voicemail',
+            action: 'call_intake_success',
+            callSid,
+            from,
+            to,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            existingOrCreated: intakeRecords.isNew ? 'created' : 'existing',
+            reason: 'Successfully obtained canonical lead and conversation for voicemail'
+          })
+          
+          lead = { id: intakeRecords.leadId } as any
         }
-      } catch (leadError) {
-        console.error('[VOICEMAIL LEAD CREATE EXCEPTION]', {
-          error: leadError,
-          message: leadError instanceof Error ? leadError.message : 'Unknown error',
-          stack: leadError instanceof Error ? leadError.stack : undefined,
-          business_id: business.id,
-          phone: normalizedCallerPhone
-        });
+      } catch (intakeError) {
+        console.error('[VOICEMAIL] Exception during intake:', intakeError)
         
         logCallTrace({
           route: 'voicemail',
-          action: 'lead_create_failed',
+          action: 'call_intake_failed',
           callSid,
           from,
           to,
           businessId: business.id,
           businessName: business.name,
-          reason: `Lead create failed: ${leadError instanceof Error ? leadError.message : 'Unknown error'}`
+          reason: `Exception during intake: ${intakeError}`
         })
-        
-        // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
-        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
-        console.log('[VOICEMAIL] Returning 200 despite lead creation error');
-        return new NextResponse(errorTwiml, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/xml",
-          },
-        });
       }
 
       if (!lead) {
