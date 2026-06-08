@@ -2258,7 +2258,7 @@ Return only JSON, no other text.`;
             .insert({
               business_id: sessionBusinessId,
               lead_id: lead.id,
-              status: 'ai_completed',
+              status: 'open',
               last_activity_at: new Date().toISOString(),
             })
             .select()
