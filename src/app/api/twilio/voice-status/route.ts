@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
       const { data: record } = await supabase
         .from('ai_call_sessions')
-        .select('id, lead_id, extracted_info')
+        .select('id, lead_id, extracted_info, caller_phone')
         .eq('call_sid', CallSid)
         .maybeSingle()
 
@@ -625,34 +625,37 @@ export async function POST(req: NextRequest) {
         const summaryParts: string[] = []
         const extracted = aiCallRecord.extracted_info || {}
 
-        // Map available keys from extracted_info
+        // Map available keys from extracted_info using correct property names
         if (extracted.callerName) {
-          summaryParts.push(`Name: ${extracted.callerName}`)
+          summaryParts.push(`- Name: ${extracted.callerName}`)
         }
 
         if (extracted.reasonForCalling) {
-          summaryParts.push(`Reason: ${extracted.reasonForCalling}`)
+          summaryParts.push(`- Reason: ${extracted.reasonForCalling}`)
         }
 
         if (extracted.importantDetails) {
-          summaryParts.push(`Details: ${extracted.importantDetails}`)
+          summaryParts.push(`- Details: ${extracted.importantDetails}`)
         }
 
         if (extracted.urgencyLevel) {
-          summaryParts.push(`Urgency: ${extracted.urgencyLevel}`)
+          summaryParts.push(`- Urgency: ${extracted.urgencyLevel}`)
         }
 
-        // Handle location/address (try both keys)
-        if (extracted.location || extracted.address) {
-          summaryParts.push(`Location: ${extracted.location || extracted.address}`)
+        // Use correct property name for location
+        if (extracted.addressOrLocation) {
+          summaryParts.push(`- Location: ${extracted.addressOrLocation}`)
         }
 
-        if (extracted.callbackTime) {
-          summaryParts.push(`Callback time: ${extracted.callbackTime}`)
+        // Use correct property name for callback time
+        if (extracted.preferredCallbackTime) {
+          summaryParts.push(`- Callback time: ${extracted.preferredCallbackTime}`)
         }
 
-        if (extracted.callbackNumber) {
-          summaryParts.push(`Callback number: ${extracted.callbackNumber}`)
+        // Callback number: use extracted_info.callbackNumber if present, otherwise fallback to caller_phone
+        const callbackNumber = extracted.callbackNumber || aiCallRecord.caller_phone
+        if (callbackNumber) {
+          summaryParts.push(`- Callback number: ${callbackNumber}`)
         }
 
         // Build the summary message
@@ -662,7 +665,7 @@ export async function POST(req: NextRequest) {
         }
 
         const businessName = business.name || 'My Business'
-        autoReplyMessage = `Thanks for calling ${businessName}. Here's what we captured:\n\n${summaryText}\n\nIf anything is incorrect, simply reply with the correction.`
+        autoReplyMessage = `Thanks for calling ${businessName}. We received your request.\n\nDetails:\n${summaryText}\n\nWe'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
         messageTemplate = 'ai_intake_summary'
 
         console.log('[AI SUMMARY SMS GENERATED]', {
