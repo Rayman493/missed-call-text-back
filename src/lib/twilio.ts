@@ -153,13 +153,18 @@ export async function sendSms(
   });
 
   // Verify business has a canonical number
-  if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
+  // When using Messaging Service, twilio_phone_number_sid is not required (Messaging Service manages sender pool)
+  // twilio_phone_number is still required for validation and logging
+  const requiresPhoneSid = !business.twilio_messaging_service_sid;
+  if (!business.twilio_phone_number || (requiresPhoneSid && !business.twilio_phone_number_sid)) {
     console.error('[SMS FAILED] No canonical Twilio number assigned to business');
     console.error('[FOLLOWUP TWILIO SEND FAILED] Missing Twilio number');
     console.error('[SMS FAILED] Business config:', {
       business_id: business.id,
       twilio_phone_number: business.twilio_phone_number,
-      twilio_phone_number_sid: business.twilio_phone_number_sid
+      twilio_phone_number_sid: business.twilio_phone_number_sid,
+      messaging_service_sid: business.twilio_messaging_service_sid,
+      requiresPhoneSid
     });
     console.log('[FOLLOWUP RETURN PATH] Missing Twilio number - returning null SID');
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
