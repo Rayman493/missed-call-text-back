@@ -220,6 +220,9 @@ export async function POST(req: NextRequest) {
     const normalizedCallerPhone = normalizePhoneNumber(From)
     console.log(`[Twilio Voice Status Webhook] Normalized caller phone: ${normalizedCallerPhone}`)
     
+    // Store canonical conversationId from helper
+    let canonicalConversationId: string | null = null
+    
     // First try to find existing lead with safe error handling
     let existingLead = null
     try {
@@ -392,6 +395,7 @@ export async function POST(req: NextRequest) {
           })
           
           lead = { id: intakeRecords.leadId, status: 'new' } as any
+          canonicalConversationId = intakeRecords.conversationId
         }
       } catch (intakeError) {
         console.error("[Twilio Voice Status Webhook] Exception during intake:", intakeError)
@@ -417,81 +421,26 @@ export async function POST(req: NextRequest) {
       console.log("[Twilio Voice Status Webhook] Lead id for processing:", lead.id)
     }
     
-    // Handle conversation logic for missed calls
+    // Use canonical conversationId from helper - NO legacy conversation lookup/create
     let conversation = null
     let conversationWasCreated = false
     
-    if (lead) {
-      try {
-        console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
-          existingConversationId: null,
-          found: false
-        })
-        
-        conversation = await db.getOpenConversationForLead(lead.id, business.id)
-        
-        if (!conversation) {
-          console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
-            existingConversationId: null,
-            found: false
-          })
-          
-          // Create new conversation for missed call
-          console.log(`[Twilio Voice Status Webhook] Creating new conversation for lead: ${lead.id}`)
-          conversation = await db.createConversation({
-            lead_id: lead.id,
-            business_id: business.id,
-            status: 'open',
-            source: 'missed_call',
-            started_at: new Date().toISOString(),
-            last_activity_at: new Date().toISOString(),
-          })
-          
-          if (!conversation) {
-            console.error('[Twilio Voice Status Webhook] Failed to create conversation')
-          } else {
-            conversationWasCreated = true
-            console.log(`[Twilio Voice Status Webhook] Created new conversation: ${conversation.id}`)
-            console.log('[VOICE STATUS CONVERSATION CREATE]', {
-              newConversationId: conversation.id,
-              leadId: lead.id,
-              businessId: business.id,
-              callSid: CallSid
-            })
-          }
-        } else {
-          console.log(`[Twilio Voice Status Webhook] Found existing conversation: ${conversation.id}`)
-          console.log('[VOICE STATUS CONVERSATION LOOKUP]', {
-            existingConversationId: conversation.id,
-            found: true
-          })
-          console.log(`[Twilio Voice Status Webhook] Conversation details:`, {
-            conversation_id: conversation.id,
-            lead_id: conversation.lead_id,
-            business_id: conversation.business_id,
-            status: conversation.status,
-            source: conversation.source
-          })
-          
-          // Update existing conversation's last activity
-          console.log(`[Twilio Voice Status Webhook] Updating conversation last_activity_at`)
-          const updatedConversation = await db.updateConversation(conversation.id, {
-            last_activity_at: new Date().toISOString(),
-          })
-          
-          if (!updatedConversation) {
-            console.error('[Twilio Voice Status Webhook] Failed to update conversation')
-          } else {
-            console.log(`[Twilio Voice Status Webhook] Updated conversation: ${updatedConversation.id}`)
-            conversation = updatedConversation
-          }
-        }
-      } catch (conversationError) {
-        console.error('[Twilio Voice Status Webhook] Error handling conversation:', conversationError)
-        conversation = null
-      }
+    if (canonicalConversationId) {
+      console.log('[VOICE STATUS USING CANONICAL CONVERSATION]', {
+        canonicalConversationId: canonicalConversationId,
+        leadId: lead?.id,
+        businessId: business.id,
+        callSid: CallSid
+      })
+      
+      conversation = { id: canonicalConversationId } as any
+      conversationWasCreated = false
     } else {
-      console.error('[Twilio Voice Status Webhook] No lead available for conversation creation')
+      console.error('[VOICE STATUS NO CANONICAL CONVERSATION]', {
+        callSid: CallSid,
+        leadId: lead?.id,
+        businessId: business.id
+      })
     }
     
     // Update or create call event linked to conversation
