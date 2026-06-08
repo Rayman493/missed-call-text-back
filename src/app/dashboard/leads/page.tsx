@@ -232,6 +232,18 @@ export default function LeadsPage() {
       }
       setError(null)
 
+      console.log('[LEAD QUERY DEBUG]', {
+        location: 'src/app/dashboard/leads/page.tsx',
+        businessId: business.id,
+        userId: user?.id,
+        statusFilter: 'all',
+        isDemoFilter: false,
+        ignoredFilter: false,
+        createdAtRange: 'all',
+        returnedCount: 'fetching',
+        leadIds: []
+      })
+
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -244,9 +256,22 @@ export default function LeadsPage() {
           )
         `)
         .eq('business_id', business.id)
+        .eq('is_demo', false)
         .order('created_at', { ascending: false })
 
       if (error) throw error
+      
+      console.log('[LEAD QUERY DEBUG]', {
+        location: 'src/app/dashboard/leads/page.tsx',
+        businessId: business.id,
+        userId: user?.id,
+        statusFilter: 'all',
+        isDemoFilter: false,
+        ignoredFilter: false,
+        createdAtRange: 'all',
+        returnedCount: data?.length || 0,
+        leadIds: (data || []).map((l: any) => l.id)
+      })
       
       // Deduplicate leads by normalized phone number
       const deduplicatedLeads = mergeDuplicateLeads(data || [])

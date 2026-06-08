@@ -79,26 +79,52 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[lead-details API] Lead found:", lead.id)
+    console.log("[LEAD DETAIL DEBUG]", {
+      leadId: lead.id,
+      businessId: lead.business_id,
+      userId: user.id,
+      leadExists: !!lead,
+      leadBusinessId: lead.business_id
+    })
 
     // Fetch conversation for this lead with RLS protection
     const { data: conversation } = await supabase
       .from("conversations")
       .select("*")
       .eq("lead_id", leadId)
+      .eq("business_id", lead.business_id)
       .maybeSingle()
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
+    console.log("[LEAD DETAIL DEBUG]", {
+      leadId,
+      businessId: lead.business_id,
+      conversationId: conversation?.id,
+      conversationExists: !!conversation,
+      conversationBusinessId: conversation?.business_id
+    })
 
-    // Fetch messages for this lead with RLS protection
+    // Fetch messages for this lead with explicit business_id filter
     const { data: messages, error: messagesError } = await supabase
       .from("messages")
       .select("*")
       .eq("lead_id", leadId)
+      .eq("business_id", lead.business_id)
       .order("created_at", { ascending: true })
 
     if (messagesError) {
       console.log("[lead-details API] Messages error:", messagesError)
     }
+
+    console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+      leadId,
+      businessId: lead.business_id,
+      conversationId: conversation?.id,
+      messagesByConversationCount: 0,
+      messagesByLeadCount: messages?.length || 0,
+      displayedMessageCount: messages?.length || 0,
+      reasonIfEmpty: messages?.length === 0 ? 'No messages found for lead_id + business_id' : null
+    })
 
     console.log("[lead-details API] Messages fetched:", messages?.length || 0)
 

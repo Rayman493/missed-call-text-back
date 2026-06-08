@@ -30,6 +30,18 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     if (!businessId) return
 
     const fetchLeads = async () => {
+      console.log('[LEAD QUERY DEBUG]', {
+        location: 'src/components/RecentLeadsSection.tsx',
+        businessId,
+        userId: null,
+        statusFilter: 'all',
+        isDemoFilter: false,
+        ignoredFilter: false,
+        createdAtRange: 'all',
+        returnedCount: 'fetching',
+        leadIds: []
+      })
+      
       console.log('[Leads Fetch] Starting leads fetch', { businessId, loading })
       setLoading(true)
       try {
@@ -72,6 +84,19 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           .order('created_at', { ascending: false })
 
         const leadsData = data as any[]
+        
+        console.log('[LEAD QUERY DEBUG]', {
+          location: 'src/components/RecentLeadsSection.tsx',
+          businessId,
+          userId: null,
+          statusFilter: 'all',
+          isDemoFilter: false,
+          ignoredFilter: false,
+          createdAtRange: 'all',
+          returnedCount: leadsData?.length || 0,
+          leadIds: (leadsData || []).map((l: any) => l.id)
+        })
+        
         console.log('[Leads Fetch] Success', { count: leadsData?.length || 0, loading: false })
         setLeads(leadsData || [])
       } catch (error) {
