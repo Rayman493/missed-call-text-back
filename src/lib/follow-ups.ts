@@ -226,7 +226,19 @@ export async function createFollowUpJobs(params: {
       }
       
       const messageBody = followUp.message
-      
+
+      console.log('[FOLLOWUP JOB INSERT]', {
+        step: followUp.step,
+        delayDays: followUp.step,
+        delayUnit: 'N/A',
+        calculatedDelayMinutes: followUp.delayMinutes,
+        leadCreatedAt: now.toISOString(),
+        scheduledFor: scheduledFor.toISOString(),
+        businessHoursEnabled,
+        businessTimezone,
+        messagePreview: messageBody?.substring(0, 50)
+      })
+
       const job = await db.createFollowUpJob({
         lead_id: leadId,
         business_id: businessId,
