@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
+import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 export const dynamic = 'force-dynamic'
 
@@ -233,92 +234,73 @@ export async function POST(request: NextRequest) {
       source: 'external_ai_voice_service'
     })
 
-    const callerName = normalizePunctuation(
-      extractedInfo?.caller_name ||
-      extractedInfo?.caller_name ||
-      'Not provided'
-    )
+    // Normalize extracted_info to canonical keys with backward compatibility
+    const extracted = normalizeExtractedInfo(extractedInfo || {})
 
-    const reason = normalizePunctuation(
-      extractedInfo?.service_requested ||
-      extractedInfo?.reason ||
-      extractedInfo?.reason_for_call ||
-      extractedInfo?.summary ||
-      'Not provided'
-    )
+    console.log('[AI SMS NORMALIZED RECORD]', {
+      route: '/api/ai-confirmation-sms',
+      normalized: extracted
+    })
 
-    const details = normalizePunctuation(
-      extractedInfo?.details ||
-      extractedInfo?.important_details ||
-      extractedInfo?.issue ||
-      ''
-    )
+    const summaryParts: string[] = []
 
-    const urgency = normalizePunctuation(
-      extractedInfo?.urgency ||
-      extractedInfo?.urgency_level ||
-      'Not specified'
-    )
+    // Map available keys from extracted_info using canonical property names
+    if (extracted.callerName) {
+      summaryParts.push(`- Name: ${normalizePunctuation(extracted.callerName)}`)
+    }
 
-    const location = normalizePunctuation(
-      extractedInfo?.location ||
-      extractedInfo?.address ||
-      extractedInfo?.addressOrLocation ||
-      'Not provided'
-    )
+    if (extracted.reasonForCalling) {
+      summaryParts.push(`- Reason: ${normalizePunctuation(extracted.reasonForCalling)}`)
+    }
 
-    const callbackTime = normalizePunctuation(
-      extractedInfo?.preferred_callback_time ||
-      'Not provided'
-    )
+    if (extracted.importantDetails) {
+      summaryParts.push(`- Details: ${normalizePunctuation(extracted.importantDetails)}`)
+    }
 
-    const callbackNumber = normalizePunctuation(
-      extractedInfo?.callback_number ||
-      callerPhone ||
-      "We'll use the number you called from"
-    )
+    if (extracted.urgencyLevel) {
+      summaryParts.push(`- Urgency: ${normalizePunctuation(extracted.urgencyLevel)}`)
+    }
+
+    if (extracted.addressOrLocation) {
+      summaryParts.push(`- Location: ${normalizePunctuation(extracted.addressOrLocation)}`)
+    }
+
+    if (extracted.preferredCallbackTime) {
+      summaryParts.push(`- Callback time: ${normalizePunctuation(extracted.preferredCallbackTime)}`)
+    }
+
+    // Callback number: use extracted.callbackNumber if present, otherwise fallback to callerPhone
+    const callbackNumber = extracted.callbackNumber || callerPhone
+    if (callbackNumber) {
+      summaryParts.push(`- Callback number: ${normalizePunctuation(callbackNumber)}`)
+    }
 
     console.log('[AI SMS FIELD VALUES]', {
       route: '/api/ai-confirmation-sms',
-      callerName,
-      reason,
-      urgency,
-      location,
-      callbackTime,
-      callbackNumber,
-      hasDetails: !!details
+      callerName: extracted.callerName,
+      reasonForCalling: extracted.reasonForCalling,
+      importantDetails: extracted.importantDetails,
+      urgencyLevel: extracted.urgencyLevel,
+      addressOrLocation: extracted.addressOrLocation,
+      preferredCallbackTime: extracted.preferredCallbackTime,
+      callbackNumber: extracted.callbackNumber,
+      summaryPartsCount: summaryParts.length
     })
 
     // Build comprehensive confirmation message
     let messageBody = `Hi, this is ${businessName}. Thanks for calling — we received your request.\n\n`
-    
-    // Add summary section if details exist
-    if (details) {
-      messageBody += `Summary:\n${details}\n\n`
-    }
-    
+
     // Add details section
-    messageBody += `Details:\n`
-    messageBody += `• Name: ${callerName}\n`
-    messageBody += `• Reason: ${reason}\n`
-    messageBody += `• Urgency: ${urgency}\n`
-    messageBody += `• Location: ${location}\n`
-    messageBody += `• Callback time: ${callbackTime}\n`
-    messageBody += `• Callback number: ${callbackNumber}\n\n`
-    
+    messageBody += `Details:\n${summaryParts.join('\n')}\n\n`
+
     // Add next step and reply instruction
     messageBody += `We'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
 
-    console.log('[AI CONFIRMATION SMS BODY]', {
+    console.log('[AI SMS FINAL BODY]', {
+      route: '/api/ai-confirmation-sms',
       businessName,
-      callerName,
-      reason,
-      urgency,
-      location,
-      callbackTime,
-      callbackNumber,
-      hasDetails: !!details,
-      messageBodyLength: messageBody.length
+      messageBodyLength: messageBody.length,
+      summaryPartsCount: summaryParts.length
     })
 
     // Send SMS using sendSms (which handles message insertion and idempotency)
