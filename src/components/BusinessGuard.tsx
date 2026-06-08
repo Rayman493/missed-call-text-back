@@ -21,6 +21,18 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const hasRedirectedRef = useRef<string | null>(null)
 
   useEffect(() => {
+    console.log('[BUSINESS GUARD DECISION]', {
+      currentPath: pathname,
+      authLoading: loading,
+      businessLoading: loading,
+      businessFetchComplete: fetchComplete,
+      businessFound: !!business,
+      businessMissingConfirmed,
+      businessError: businessError,
+      redirectTarget: null,
+      reason: 'Evaluating guard state'
+    })
+
     console.log('[Routing] BusinessGuard evaluating')
     console.log('[Routing] auth user id:', user?.id || 'none')
     console.log('[Routing] businessLoading:', loading)
@@ -98,6 +110,18 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         
         // Only redirect to onboarding if fetch is complete AND business missing is confirmed (PGRST116)
         if (fetchComplete && businessMissingConfirmed) {
+          console.log('[BUSINESS GUARD DECISION]', {
+            currentPath: pathname,
+            authLoading: loading,
+            businessLoading: loading,
+            businessFetchComplete: fetchComplete,
+            businessFound: !!business,
+            businessMissingConfirmed,
+            businessError: businessError,
+            redirectTarget: '/onboarding',
+            reason: 'Fetch complete and business missing confirmed (PGRST116)'
+          })
+          
           if (hasRedirectedRef.current === pathname) {
             console.log('[Routing] Already redirected from this path, skipping')
             return

@@ -266,6 +266,17 @@ function AuthContent() {
         console.warn('[Auth] Business query error, routing to dashboard instead of onboarding:', businessError)
       }
       
+      console.log('[POST LOGIN BUSINESS QUERY]', {
+        location: 'src/app/auth/page.tsx',
+        userId: persistedSession.user.id,
+        sessionExists: !!persistedSession,
+        businessFound: !!business,
+        businessId: business?.id,
+        errorCode: businessError?.code,
+        errorMessage: businessError?.message,
+        redirectTarget: redirectTarget
+      })
+      
       // Use returnTo parameter if present (for post-Stripe recovery), otherwise use redirectParam
       console.log('[Auth] Session persisted and business fetched, redirecting to:', redirectTarget, {
         returnToParam,
