@@ -807,6 +807,55 @@ export async function POST(request: NextRequest) {
     console.log('[Voice] Checking for existing lead for phone:', normalizedCallerPhone);
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
     
+    // Determine if we should reuse existing lead
+    let shouldReuseLead = false;
+    let reuseReason = '';
+    
+    if (existingLead) {
+      // Only reuse lead if:
+      // - business_id matches (already guaranteed by getLeadByPhone)
+      // - normalized caller phone matches (already guaranteed by getLeadByPhone)
+      // - lead is not completed/ignored
+      // - lead is not too old (optional time-window check)
+      const isCompletedOrIgnored = existingLead.status === 'completed' || existingLead.status === 'ignored' || existingLead.opted_out === true;
+      
+      if (isCompletedOrIgnored) {
+        shouldReuseLead = false;
+        reuseReason = `Existing lead ${existingLead.id} is completed/ignored/opted_out, will create new lead`;
+        console.log('[Voice] Existing lead is completed/ignored, will create new lead:', {
+          leadId: existingLead.id,
+          status: existingLead.status,
+          optedOut: existingLead.opted_out
+        });
+      } else {
+        shouldReuseLead = true;
+        reuseReason = `Existing lead ${existingLead.id} is active, will reuse`;
+        console.log('[Voice] Existing lead is active, will reuse:', {
+          leadId: existingLead.id,
+          status: existingLead.status
+        });
+      }
+    }
+    
+    // Log detailed call lead link debug
+    console.log('[CALL LEAD LINK DEBUG]', {
+      callSid: CallSid,
+      from: From,
+      to: To,
+      normalizedFrom: normalizedCallerPhone,
+      normalizedTo: normalizedTo,
+      forwardedFrom: ForwardedFrom || null,
+      businessId: business.id,
+      existingLeadId: existingLead?.id || null,
+      shouldReuseLead,
+      newLeadCreated: false,
+      finalLeadId: shouldReuseLead ? existingLead?.id : null,
+      finalConversationId: null,
+      aiCallRecordId: null,
+      outboundMessageId: null,
+      reason: reuseReason || (existingLead ? `Existing lead found by phone: ${existingLead.id}, status: ${existingLead.status}` : 'No existing lead found by phone, will create new lead')
+    });
+    
     // Log test call lead trace for debugging
     console.log('[TEST CALL LEAD TRACE]', {
       callSid: CallSid,
@@ -834,7 +883,7 @@ export async function POST(request: NextRequest) {
     let shouldSendSms = false;
     let isRepeatCaller = false;
     
-    if (!existingLead) {
+    if (!shouldReuseLead || !existingLead) {
       console.log('[LEAD WRITE ATTEMPT]', {
         businessId: business.id,
         callerPhone: normalizedCallerPhone,
@@ -863,6 +912,25 @@ export async function POST(request: NextRequest) {
       
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);
+        
+        // Log call lead link debug after creation
+        console.log('[CALL LEAD LINK DEBUG]', {
+          callSid: CallSid,
+          from: From,
+          to: To,
+          normalizedFrom: normalizedCallerPhone,
+          normalizedTo: normalizedTo,
+          forwardedFrom: ForwardedFrom || null,
+          businessId: business.id,
+          existingLeadId: null,
+          shouldReuseLead: false,
+          newLeadCreated: true,
+          finalLeadId: lead.id,
+          finalConversationId: null,
+          aiCallRecordId: null,
+          outboundMessageId: null,
+          reason: 'New lead created from voice webhook'
+        });
         
         // Log test call lead trace after creation
         console.log('[TEST CALL LEAD TRACE]', {
@@ -969,6 +1037,25 @@ export async function POST(request: NextRequest) {
       console.log('[Repeat Caller] Reusing existing lead for repeat call');
       lead = existingLead;
       isRepeatCaller = true;
+      
+      // Log call lead link debug when reusing existing lead
+      console.log('[CALL LEAD LINK DEBUG]', {
+        callSid: CallSid,
+        from: From,
+        to: To,
+        normalizedFrom: normalizedCallerPhone,
+        normalizedTo: normalizedTo,
+        forwardedFrom: ForwardedFrom || null,
+        businessId: business.id,
+        existingLeadId: existingLead.id,
+        shouldReuseLead: true,
+        newLeadCreated: false,
+        finalLeadId: existingLead.id,
+        finalConversationId: null,
+        aiCallRecordId: null,
+        outboundMessageId: null,
+        reason: `Reusing existing lead: ${existingLead.id}, status: ${existingLead.status}, is_demo: ${existingLead.is_demo}`
+      });
       
       // Update lead's last activity
       try {

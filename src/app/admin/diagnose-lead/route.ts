@@ -209,11 +209,77 @@ export async function GET(request: NextRequest) {
 
     results.ownershipCheck = ownershipCheck
 
+    // Add message consistency diagnostics
+    const messageConsistency: any = {
+      inconsistencies: [],
+      summary: {
+        totalLeads: results.leads.length,
+        totalConversations: results.conversations.length,
+        totalMessages: results.messages.length,
+        messagesByConversationId: 0,
+        messagesByLeadIdOnly: 0,
+        messagesWithoutConversation: 0,
+        messagesWithWrongConversation: 0
+      }
+    }
+
+    // Check each lead for consistency
+    for (const lead of results.leads) {
+      const leadConversations = results.conversations.filter((c: any) => c.lead_id === lead.id)
+      const leadMessages = results.messages.filter((m: any) => m.lead_id === lead.id)
+      
+      // Check if messages have conversation_id that matches the conversation
+      for (const message of leadMessages) {
+        if (!message.conversation_id) {
+          messageConsistency.summary.messagesWithoutConversation++
+          messageConsistency.inconsistencies.push({
+            type: 'message_without_conversation',
+            messageId: message.id,
+            leadId: lead.id,
+            businessId: message.business_id,
+            reason: 'Message has no conversation_id'
+          })
+        } else {
+          const conversationExists = leadConversations.find((c: any) => c.id === message.conversation_id)
+          if (!conversationExists) {
+            messageConsistency.summary.messagesWithWrongConversation++
+            messageConsistency.inconsistencies.push({
+              type: 'message_wrong_conversation',
+              messageId: message.id,
+              leadId: lead.id,
+              businessId: message.business_id,
+              conversationId: message.conversation_id,
+              reason: 'Message conversation_id does not match any conversation for this lead'
+            })
+          } else {
+            messageConsistency.summary.messagesByConversationId++
+          }
+        }
+      }
+
+      // Check if conversation exists but no messages
+      for (const conversation of leadConversations) {
+        const conversationMessages = leadMessages.filter((m: any) => m.conversation_id === conversation.id)
+        if (conversationMessages.length === 0) {
+          messageConsistency.inconsistencies.push({
+            type: 'conversation_without_messages',
+            conversationId: conversation.id,
+            leadId: lead.id,
+            businessId: conversation.business_id,
+            reason: 'Conversation exists but has no messages'
+          })
+        }
+      }
+    }
+
+    results.messageConsistency = messageConsistency
+
     console.log("[DIAGNOSE LEAD] Results:", {
       leadCount: results.leads.length,
       conversationCount: results.conversations.length,
       messageCount: results.messages.length,
-      aiCallRecordCount: results.aiCallRecords.length
+      aiCallRecordCount: results.aiCallRecords.length,
+      inconsistenciesFound: messageConsistency.inconsistencies.length
     })
 
     return NextResponse.json({

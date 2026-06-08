@@ -381,6 +381,18 @@ export async function POST(request: NextRequest) {
 
             const messageSid = result?.sid || null;
 
+            // Log message link debug
+            console.log('[MESSAGE LINK DEBUG]', {
+              messageId: messageSid,
+              businessId: business.id,
+              leadId: lead.id,
+              conversationId: conversation?.id,
+              direction: 'outbound',
+              bodyPresent: !!personalizedMessage,
+              createdAt: new Date().toISOString(),
+              reason: 'SMS sent from voicemail callback with delayed auto-reply'
+            });
+
             if (messageSid) {
               console.log('[MISSED CALL TIMING] SMS sent successfully:', messageSid);
               

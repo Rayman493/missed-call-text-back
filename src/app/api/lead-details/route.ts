@@ -104,29 +104,114 @@ export async function GET(request: NextRequest) {
       conversationBusinessId: conversation?.business_id
     })
 
-    // Fetch messages for this lead with explicit business_id filter
-    const { data: messages, error: messagesError } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("lead_id", leadId)
-      .eq("business_id", lead.business_id)
-      .order("created_at", { ascending: true })
+    // Fetch messages - primary method: by conversation_id + business_id if conversation exists
+    let messages: any[] = []
+    let messagesByConversationCount = 0
+    let messagesByLeadCount = 0
+    let mismatchReason = ''
 
-    if (messagesError) {
-      console.log("[lead-details API] Messages error:", messagesError)
+    if (conversation) {
+      // Primary: fetch messages by conversation_id + business_id
+      const { data: messagesByConversation, error: messagesByConversationError } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversation.id)
+        .eq("business_id", lead.business_id)
+        .order("created_at", { ascending: true })
+
+      messagesByConversationCount = messagesByConversation?.length || 0
+
+      if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
+        messages = messagesByConversation
+        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+          leadId,
+          businessId: lead.business_id,
+          conversationId: conversation.id,
+          messagesByConversationCount,
+          messagesByLeadCount,
+          displayedMessageCount: messages.length,
+          mismatchReason: null
+        })
+      } else {
+        // Fallback: fetch messages by lead_id + business_id
+        console.log("[LEAD DETAIL MESSAGE DEBUG] No messages by conversation, trying by lead_id")
+        const { data: messagesByLead, error: messagesByLeadError } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("lead_id", leadId)
+          .eq("business_id", lead.business_id)
+          .order("created_at", { ascending: true })
+
+        messagesByLeadCount = messagesByLead?.length || 0
+
+        if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
+          messages = messagesByLead
+          // Check if messages have conversation_id mismatch
+          const messagesWithoutConversation = messagesByLead.filter(m => !m.conversation_id)
+          const messagesWithDifferentConversation = messagesByLead.filter(m => m.conversation_id && m.conversation_id !== conversation.id)
+          
+          if (messagesWithoutConversation.length > 0) {
+            mismatchReason = `Found ${messagesWithoutConversation.length} messages without conversation_id (repair needed)`
+          } else if (messagesWithDifferentConversation.length > 0) {
+            mismatchReason = `Found ${messagesWithDifferentConversation.length} messages linked to different conversation`
+          }
+
+          console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+            leadId,
+            businessId: lead.business_id,
+            conversationId: conversation.id,
+            messagesByConversationCount,
+            messagesByLeadCount,
+            displayedMessageCount: messages.length,
+            mismatchReason
+          })
+        } else {
+          console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+            leadId,
+            businessId: lead.business_id,
+            conversationId: conversation.id,
+            messagesByConversationCount,
+            messagesByLeadCount,
+            displayedMessageCount: 0,
+            mismatchReason: 'No messages found by conversation_id or lead_id'
+          })
+        }
+      }
+    } else {
+      // No conversation, fetch messages by lead_id + business_id only
+      const { data: messagesByLead, error: messagesByLeadError } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("lead_id", leadId)
+        .eq("business_id", lead.business_id)
+        .order("created_at", { ascending: true })
+
+      messagesByLeadCount = messagesByLead?.length || 0
+
+      if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
+        messages = messagesByLead
+        mismatchReason = 'Conversation missing but messages found by lead_id (repair needed)'
+        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+          leadId,
+          businessId: lead.business_id,
+          conversationId: null,
+          messagesByConversationCount,
+          messagesByLeadCount,
+          displayedMessageCount: messages.length,
+          mismatchReason
+        })
+      } else {
+        console.log("[LEAD DETAIL MESSAGE DEBUG]", {
+          leadId,
+          businessId: lead.business_id,
+          conversationId: null,
+          messagesByConversationCount,
+          messagesByLeadCount,
+          displayedMessageCount: 0,
+          mismatchReason: 'No conversation and no messages found'
+        })
+      }
     }
-
-    console.log("[LEAD DETAIL MESSAGE DEBUG]", {
-      leadId,
-      businessId: lead.business_id,
-      conversationId: conversation?.id,
-      messagesByConversationCount: 0,
-      messagesByLeadCount: messages?.length || 0,
-      displayedMessageCount: messages?.length || 0,
-      reasonIfEmpty: messages?.length === 0 ? 'No messages found for lead_id + business_id' : null
-    })
-
-    console.log("[lead-details API] Messages fetched:", messages?.length || 0)
 
     // Fetch media for all messages
     const messageIds = messages?.map(m => m.id) || []
