@@ -82,6 +82,19 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       
       // Redirect if no business exists
       if (!business) {
+        console.log('[ONBOARDING REDIRECT DEBUG]', {
+          userId: user?.id,
+          businessId: null,
+          businessFound: false,
+          businessName: null,
+          businessPhone: null,
+          twilioNumberFound: null,
+          currentPath: pathname,
+          redirectTarget: '/onboarding',
+          reason: 'No business row exists',
+          loadingState: loading ? 'loading' : 'complete'
+        })
+        
         console.log('[Routing] No business found, checking if fetch is complete')
         
         // Only redirect to onboarding if fetch is complete
@@ -167,49 +180,89 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         return
       }
 
-      // Only redirect to onboarding if user truly has no business or no basic profile
-      // IMPORTANT: Users with trialing/active subscription OR manual access should NEVER be redirected to onboarding
-      // Only send to onboarding if no access (stripe or manual) AND profile is missing
+      // IMPORTANT: If a business row exists, do NOT send to onboarding step 1
+      // Only redirect to onboarding step 1 if no business row exists at all
+      // If business exists but profile is incomplete, allow dashboard access with setup prompts
       if (!hasBasicProfile && !hasAccess) {
-        console.log('[Post Trial Routing Decision]', {
-          pathname,
-          destination: '/onboarding',
-          subscriptionStatus: business.subscription_status,
-          onboardingStatus: business.onboarding_status,
-          hasBusiness: !!business,
-          hasAccess,
-          reason: 'No basic profile AND no access (stripe or manual)'
-        })
-        
-        console.log('[BusinessGuard] Redirecting to onboarding - no basic profile', {
-          reason: 'Missing basic profile data (name or business_phone_number) AND no access',
-          derivedState,
-          redirectAllowed: true
-        })
-        
-        // Verify session exists before redirecting to onboarding
-        if (!session) {
+        // Check if business row exists
+        if (business && business.id) {
+          // Business row exists but profile is incomplete - allow dashboard access
+          // The dashboard will show setup prompts for missing fields
+          console.log('[ONBOARDING REDIRECT DEBUG]', {
+            userId: user?.id,
+            businessId: business.id,
+            businessFound: true,
+            businessName: business?.name,
+            businessPhone: business?.business_phone_number,
+            twilioNumberFound: !!business?.twilio_phone_number,
+            currentPath: pathname,
+            redirectTarget: 'dashboard (stay)',
+            reason: 'Business row exists but profile incomplete - allowing dashboard access',
+            loadingState: loading ? 'loading' : 'complete'
+          })
+          
+          console.log('[BusinessGuard] Business row exists but profile incomplete - allowing dashboard access', {
+            reason: 'Business row exists, will show setup prompts in dashboard',
+            derivedState,
+            redirectAllowed: false
+          })
+          
+          // Allow access - dashboard will show setup prompts
+        } else {
+          // No business row exists - redirect to onboarding step 1
+          console.log('[ONBOARDING REDIRECT DEBUG]', {
+            userId: user?.id,
+            businessId: null,
+            businessFound: false,
+            businessName: null,
+            businessPhone: null,
+            twilioNumberFound: null,
+            currentPath: pathname,
+            redirectTarget: '/onboarding',
+            reason: 'No business row exists',
+            loadingState: loading ? 'loading' : 'complete'
+          })
+          
+          console.log('[Post Trial Routing Decision]', {
+            pathname,
+            destination: '/onboarding',
+            subscriptionStatus: business?.subscription_status,
+            onboardingStatus: business?.onboarding_status,
+            hasBusiness: !!business,
+            hasAccess,
+            reason: 'No business row exists'
+          })
+          
+          console.log('[BusinessGuard] Redirecting to onboarding - no business row', {
+            reason: 'No business row exists',
+            derivedState,
+            redirectAllowed: true
+          })
+          
+          // Verify session exists before redirecting to onboarding
+          if (!session) {
+            console.log('[REDIRECT]', {
+              from: pathname,
+              to: '/auth/signin?redirect=/dashboard',
+              reason: 'No session exists, redirecting to sign in instead of onboarding',
+              hasSession: !!session,
+              component: 'BusinessGuard',
+            })
+            console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+            router.push('/auth/signin?redirect=/dashboard')
+            return
+          }
+          
           console.log('[REDIRECT]', {
             from: pathname,
-            to: '/auth/signin?redirect=/dashboard',
-            reason: 'No session exists, redirecting to sign in instead of onboarding',
+            to: '/onboarding',
+            reason: 'No business row exists',
             hasSession: !!session,
             component: 'BusinessGuard',
           })
-          console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
-          router.push('/auth/signin?redirect=/dashboard')
+          router.push('/onboarding')
           return
         }
-        
-        console.log('[REDIRECT]', {
-          from: pathname,
-          to: '/onboarding',
-          reason: 'No basic business profile AND no access',
-          hasSession: !!session,
-          component: 'BusinessGuard',
-        })
-        router.push('/onboarding')
-        return
       }
       
       console.log('[Post Trial Routing Decision]', {
