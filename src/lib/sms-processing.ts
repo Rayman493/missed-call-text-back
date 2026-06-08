@@ -125,6 +125,7 @@ function generateSummaryFromExtractedInfo(extractedInfo: any): string {
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
   const { messageSid, from, to, body, source, media } = params
+  const now = new Date().toISOString()
   
   console.log('[INBOUND SMS WEBHOOK HIT]')
   console.log('[INBOUND SMS REQUEST]', { messageSid, from, to, body, source, mediaCount: media?.length || 0 })
@@ -279,7 +280,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 </Response>`
       }
     }
-    
+
     console.log(`[SMS Processing] Lead created:`, {
       lead_id: lead.id,
       business_id: lead.business_id,
@@ -293,7 +294,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       callerPhone: lead.caller_phone
     })
 
-    const now = new Date().toISOString()
     const currentRawMetadata = lead.raw_metadata || {}
 
     // Update lead metadata with customer reply info
@@ -345,180 +345,221 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       })
       lead = updatedLead
     }
+  }
 
-    // Look for AI call record for this lead (needed for correction updates)
-    console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
+  // Handle conversation logic - ensure conversation exists (function-wide scope)
+  console.log('[INBOUND SMS CONVERSATION LOOKUP START]', {
+    leadId: lead.id,
+    businessId: business.id
+  })
+  let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+
+  console.log('[INBOUND SMS CONVERSATION LOOKUP RESULT]', {
+    found: !!conversation,
+    conversationId: conversation?.id
+  })
+
+  if (!conversation) {
+    // Create new conversation for SMS
+    conversation = await db.createConversation({
+      lead_id: lead.id,
+      business_id: business.id,
+      status: 'open',
+      source: 'sms',
+      started_at: new Date().toISOString(),
+      last_activity_at: new Date().toISOString(),
+    })
+
+    if (!conversation) {
+      console.error(`[SMS Processing] Failed to create conversation`)
+      return {
+        success: false,
+        error: 'Failed to create conversation',
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Error processing message</Message>
+</Response>`
+      }
+    }
+
+    console.log(`[SMS Processing] Conversation created:`, {
+      conversation_id: conversation.id,
+      lead_id: conversation.lead_id
+    })
+  }
+
+  // Look for AI call record for this lead (needed for correction updates)
+  console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
+    businessId: business.id,
+    callerPhone: normalizedCustomerPhone
+  })
+
+  const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, normalizedCustomerPhone)
+
+  if (aiCallRecord) {
+    console.log('[INBOUND SMS AI CALL RECORD FOUND]', {
+      callRecordId: aiCallRecord.id,
+      leadId: aiCallRecord.lead_id,
+      callSid: aiCallRecord.call_sid
+    })
+  } else {
+    console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
       businessId: business.id,
       callerPhone: normalizedCustomerPhone
     })
+  }
 
-    const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, normalizedCustomerPhone)
+  // Detect and process corrections in inbound SMS using AI
+  if (aiCallRecord && aiCallRecord.extracted_info) {
+    console.log('[AI CORRECTION DETECTION START]', {
+      leadId: lead.id,
+      aiCallRecordId: aiCallRecord.id,
+      customerReply: body
+    })
 
-    if (aiCallRecord) {
-      console.log('[INBOUND SMS AI CALL RECORD FOUND]', {
-        callRecordId: aiCallRecord.id,
-        leadId: aiCallRecord.lead_id,
-        callSid: aiCallRecord.call_sid
-      })
-    } else {
-      console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
-        businessId: business.id,
-        callerPhone: normalizedCustomerPhone
-      })
-    }
+    const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
 
-    // Detect and process corrections in inbound SMS using AI
-    if (aiCallRecord && aiCallRecord.extracted_info) {
-      console.log('[AI CORRECTION DETECTION START]', {
-        leadId: lead.id,
-        aiCallRecordId: aiCallRecord.id,
-        customerReply: body
-      })
+    console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
-      const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
+    if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
+      if (correctionResult.requiresReview) {
+        console.log('[AI CORRECTION REVIEW REQUIRED]', {
+          leadId: lead.id,
+          aiCallRecordId: aiCallRecord.id,
+          fieldChanged: correctionResult.fieldChanged,
+          confidence: correctionResult.confidence,
+          reason: correctionResult.reason
+        })
+      } else {
+        console.log('[AI CORRECTION APPLIED]', {
+          leadId: lead.id,
+          aiCallRecordId: aiCallRecord.id,
+          fieldChanged: correctionResult.fieldChanged,
+          oldValue: correctionResult.oldValue,
+          newValue: correctionResult.newValue,
+          confidence: correctionResult.confidence
+        })
 
-      console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
+        // Log normalized data before correction
+        const beforeCorrection = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+        console.log('[AI CORRECTION NORMALIZED BEFORE]', {
+          leadId: lead.id,
+          aiCallRecordId: aiCallRecord.id,
+          before: beforeCorrection
+        })
 
-      if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
-        if (correctionResult.requiresReview) {
-          console.log('[AI CORRECTION REVIEW REQUIRED]', {
-            leadId: lead.id,
-            aiCallRecordId: aiCallRecord.id,
-            fieldChanged: correctionResult.fieldChanged,
-            confidence: correctionResult.confidence,
-            reason: correctionResult.reason
-          })
-        } else {
-          console.log('[AI CORRECTION APPLIED]', {
-            leadId: lead.id,
-            aiCallRecordId: aiCallRecord.id,
-            fieldChanged: correctionResult.fieldChanged,
-            oldValue: correctionResult.oldValue,
-            newValue: correctionResult.newValue,
-            confidence: correctionResult.confidence
-          })
+        // Apply correction to extracted_info
+        const updatedExtractedInfo = applyCorrection(
+          aiCallRecord.extracted_info,
+          correctionResult.fieldChanged,
+          correctionResult.newValue
+        )
 
-          // Log normalized data before correction
-          const beforeCorrection = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
-          console.log('[AI CORRECTION NORMALIZED BEFORE]', {
-            leadId: lead.id,
-            aiCallRecordId: aiCallRecord.id,
-            before: beforeCorrection
-          })
+        // Log normalized data after correction
+        const afterCorrection = normalizeExtractedInfo(updatedExtractedInfo)
+        console.log('[AI CORRECTION NORMALIZED AFTER]', {
+          leadId: lead.id,
+          aiCallRecordId: aiCallRecord.id,
+          after: afterCorrection
+        })
 
-          // Apply correction to extracted_info
-          const updatedExtractedInfo = applyCorrection(
-            aiCallRecord.extracted_info,
-            correctionResult.fieldChanged,
-            correctionResult.newValue
-          )
+        // Regenerate summary from updated extracted_info
+        const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)
 
-          // Log normalized data after correction
-          const afterCorrection = normalizeExtractedInfo(updatedExtractedInfo)
-          console.log('[AI CORRECTION NORMALIZED AFTER]', {
-            leadId: lead.id,
-            aiCallRecordId: aiCallRecord.id,
-            after: afterCorrection
-          })
-
-          // Regenerate summary from updated extracted_info
-          const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)
-
-          // Update AI call record
-          const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
-            .from('ai_call_sessions')
-            .update({
-              extracted_info: updatedExtractedInfo,
-              summary: regeneratedSummary,
-              updated_at: now
-            })
-            .eq('id', aiCallRecord.id)
-            .select()
-            .single()
-
-          if (!aiUpdateError && updatedAiRecord) {
-            console.log('[AI CORRECTION AI INTAKE UPDATED]', {
-              callRecordId: updatedAiRecord.id,
-              fieldChanged: correctionResult.fieldChanged,
-              summary: regeneratedSummary
-            })
-          } else {
-            console.error('[AI CORRECTION AI INTAKE UPDATE ERROR]', {
-              callRecordId: aiCallRecord.id,
-              error: aiUpdateError
-            })
-          }
-
-          // Update lead raw_metadata with correction history
-          const currentMetadata = updatedLead?.raw_metadata || {}
-          const correctionNote = generateCorrectionNote(
-            correctionResult.fieldChanged,
-            correctionResult.oldValue || 'unknown',
-            correctionResult.newValue,
-            correctionResult.confidence
-          )
-
-          const correctedMetadata = {
-            ...currentMetadata,
-            customer_corrected_info: true,
-            last_correction_at: now,
-            last_correction_field: correctionResult.fieldChanged,
-            last_correction_note: correctionNote
-          }
-
-          const leadWithCorrection = await db.updateLead(lead.id, {
-            raw_metadata: correctedMetadata,
+        // Update AI call record
+        const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
+          .from('ai_call_sessions')
+          .update({
+            extracted_info: updatedExtractedInfo,
+            summary: regeneratedSummary,
             updated_at: now
           })
+          .eq('id', aiCallRecord.id)
+          .select()
+          .single()
 
-          if (leadWithCorrection) {
-            console.log('[AI CORRECTION LEAD UPDATED]', {
-              leadId: leadWithCorrection.id,
-              correctionNote
-            })
-          } else {
-            console.error('[AI CORRECTION LEAD UPDATE ERROR]', {
-              leadId: lead.id,
-              error: 'Failed to update lead with correction metadata'
-            })
-          }
-
-          // Add correction note to conversation
-          if (conversation) {
-            console.log('[AI CORRECTION ADDING NOTE TO CONVERSATION]', {
-              conversationId: conversation.id,
-              correctionNote
-            })
-            // Note: This would require a function to add a system note to the conversation
-            // For now, the correction is logged and stored in lead.raw_metadata
-          }
+        if (!aiUpdateError && updatedAiRecord) {
+          console.log('[AI CORRECTION AI INTAKE UPDATED]', {
+            callRecordId: updatedAiRecord.id,
+            fieldChanged: correctionResult.fieldChanged,
+            summary: regeneratedSummary
+          })
+        } else {
+          console.error('[AI CORRECTION AI INTAKE UPDATE ERROR]', {
+            callRecordId: aiCallRecord.id,
+            error: aiUpdateError
+          })
         }
-      } else {
-        console.log('[AI CORRECTION NOT DETECTED]', {
-          leadId: lead.id,
-          reason: correctionResult.reason || 'No correction detected'
+
+        // Update lead raw_metadata with correction history
+        const currentMetadata = lead?.raw_metadata || {}
+        const correctionNote = generateCorrectionNote(
+          correctionResult.fieldChanged,
+          correctionResult.oldValue || 'unknown',
+          correctionResult.newValue,
+          correctionResult.confidence
+        )
+
+        const correctedMetadata = {
+          ...currentMetadata,
+          customer_corrected_info: true,
+          last_correction_at: now,
+          last_correction_field: correctionResult.fieldChanged,
+          last_correction_note: correctionNote
+        }
+
+        const leadWithCorrection = await db.updateLead(lead.id, {
+          raw_metadata: correctedMetadata,
+          updated_at: now
         })
+
+        if (leadWithCorrection) {
+          console.log('[AI CORRECTION LEAD UPDATED]', {
+            leadId: leadWithCorrection.id,
+            correctionNote
+          })
+        } else {
+          console.error('[AI CORRECTION LEAD UPDATE ERROR]', {
+            leadId: lead.id,
+            error: 'Failed to update lead with correction metadata'
+          })
+        }
+
+        // Add correction note to conversation
+        if (conversation) {
+          console.log('[AI CORRECTION ADDING NOTE TO CONVERSATION]', {
+            conversationId: conversation.id,
+            correctionNote
+          })
+          // Note: This would require a function to add a system note to the conversation
+          // For now, the correction is logged and stored in lead.raw_metadata
+        }
       }
+    } else {
+      console.log('[AI CORRECTION NOT DETECTED]', {
+        leadId: lead.id,
+        reason: correctionResult.reason || 'No correction detected'
+      })
     }
+  }
 
-    // Update AI call record with customer reply info (separate from correction updates)
-    if (aiCallRecord) {
-      // Update AI call record with customer reply info
-      const updatedAiCallRecord = await db.updateAiCallRecordCustomerReply(aiCallRecord.id, body)
+  // Update AI call record with customer reply info (separate from correction updates)
+  if (aiCallRecord) {
+    // Update AI call record with customer reply info
+    const updatedAiCallRecord = await db.updateAiCallRecordCustomerReply(aiCallRecord.id, body)
 
-      if (updatedAiCallRecord) {
-        console.log('[INBOUND SMS AI CALL RECORD UPDATED]', {
-          callRecordId: updatedAiCallRecord.id,
-          customer_replied: updatedAiCallRecord.extracted_info?.customer_replied,
-          customer_reply_body: updatedAiCallRecord.extracted_info?.customer_reply_body,
-          customer_reply_at: updatedAiCallRecord.extracted_info?.customer_reply_at
-        })
-      } else {
-        console.error('[INBOUND SMS AI CALL RECORD UPDATE ERROR]', {
-          callRecordId: aiCallRecord.id,
-          error: 'Failed to update AI call record'
-        })
-      }
+    if (updatedAiCallRecord) {
+      console.log('[INBOUND SMS AI CALL RECORD UPDATED]', {
+        callRecordId: updatedAiCallRecord.id,
+        customer_replied: updatedAiCallRecord.extracted_info?.customer_replied,
+        customer_reply_body: updatedAiCallRecord.extracted_info?.customer_reply_body,
+        customer_reply_at: updatedAiCallRecord.extracted_info?.customer_reply_at
+      })
+    } else {
+      console.error('[INBOUND SMS AI CALL RECORD UPDATE ERROR]', {
+        callRecordId: aiCallRecord.id,
+        error: 'Failed to update AI call record'
+      })
     }
   }
   
@@ -619,67 +660,20 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 </Response>`
     }
   }
-  
-  // Handle conversation logic - ALWAYS ensure a conversation exists
-  console.log('[INBOUND SMS CONVERSATION LOOKUP START]', {
-    leadId: lead.id,
-    businessId: business.id
+
+  // Message creation logic (conversation already exists at this point)
+  // Update existing conversation's last activity
+  const updatedConversation = await db.updateConversation(conversation.id, {
+    last_activity_at: new Date().toISOString(),
   })
-  let conversation = await db.getOpenConversationForLead(lead.id, business.id)
-  
-  console.log('[INBOUND SMS CONVERSATION LOOKUP RESULT]', {
-    found: !!conversation,
-    conversationId: conversation?.id
-  })
-  
-  if (!conversation) {
-    // Create new conversation for SMS
-    conversation = await db.createConversation({
-      lead_id: lead.id,
-      business_id: business.id,
-      status: 'open',
-      source: 'sms', // Use 'sms' as allowed value, not 'dev_simulation'
-      started_at: new Date().toISOString(),
-      last_activity_at: new Date().toISOString(),
-    })
-    
-    if (!conversation) {
-      console.error(`[SMS Processing] Failed to create conversation`)
-      return {
-        success: false,
-        error: 'Failed to create conversation',
-        twiml: `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Error processing message</Message>
-</Response>`
-      }
-    }
-    
-    console.log(`[SMS Processing] Created conversation: ${conversation.id}`)
-    console.log('[CONVERSATION CREATE TRACE]', {
-      route: 'processInboundSms',
-      file: 'sms-processing.ts',
-      function: 'processInboundSms',
-      callSid: null,
-      businessId: business.id,
-      leadId: lead.id,
-      conversationId: conversation.id,
-      reason: 'No existing conversation found for SMS, creating new conversation'
-    })
+
+  if (!updatedConversation) {
+    console.error(`[SMS Processing] Failed to update conversation`)
   } else {
-    // Update existing conversation's last activity
-    const updatedConversation = await db.updateConversation(conversation.id, {
-      last_activity_at: new Date().toISOString(),
-    })
-    
-    if (!updatedConversation) {
-      console.error(`[SMS Processing] Failed to update conversation`)
-    } else {
-      console.log(`[SMS Processing] Updated conversation: ${updatedConversation.id}`)
-      conversation = updatedConversation
-    }
+    console.log(`[SMS Processing] Updated conversation: ${updatedConversation.id}`)
+    conversation = updatedConversation
   }
-  
+
   // Cancel all pending follow-ups for this conversation when customer replies
   if (conversation) {
     const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
