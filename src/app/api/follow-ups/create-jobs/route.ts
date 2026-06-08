@@ -58,12 +58,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: You do not own this business' }, { status: 403 })
     }
 
-    console.log('[FOLLOWUP JOB CREATE ATTEMPT - API]', { 
-      businessId, 
-      leadId, 
+    console.log('[FOLLOWUP JOB CREATE ATTEMPT - API]', {
+      businessId,
+      leadId,
       conversationId,
       source: 'external_api',
       userId: user.id
+    })
+
+    console.log('[FOLLOWUP CREATION SOURCE]', {
+      route: '/api/follow-ups/create-jobs',
+      businessId,
+      leadId,
+      conversationId,
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    })
+
+    console.log('[FOLLOWUP CREATION AI CHECK]', {
+      route: '/api/follow-ups/create-jobs',
+      aiCheck: 'not_implemented',
+      note: 'External API does not check for AI completed calls - this could be the source of unwanted follow-ups'
     })
 
     const jobs = await createFollowUpJobs({

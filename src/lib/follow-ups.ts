@@ -63,6 +63,7 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
 
     console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
     console.log('[GET FOLLOWUP SCHEDULE] Follow-ups enabled:', followUpsEnabled);
+    console.log('[GET FOLLOWUP SCHEDULE] Raw follow-up settings JSON:', JSON.stringify(followUpSettings, null, 2));
 
     // If no custom settings or disabled, use defaults
     if (!followUpSettings || !followUpSettings.length || !followUpsEnabled) {
@@ -151,7 +152,16 @@ export async function createFollowUpJobs(params: {
   businessName?: string
 }) {
   const { businessId, leadId, conversationId, businessName } = params
-  
+
+  console.log('[FOLLOWUP CREATION ATTEMPT]', {
+    businessId,
+    leadId,
+    conversationId,
+    businessName,
+    caller: 'createFollowUpJobs function',
+    timestamp: new Date().toISOString()
+  })
+
   console.log('[CREATE FOLLOWUPS ENTER]', { businessId, leadId, conversationId, businessName });
   
   // Fetch business settings for timezone and business hours

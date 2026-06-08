@@ -644,21 +644,34 @@ export async function POST(req: NextRequest) {
         // AI completed intake - build summary from extracted_info
         const rawExtractedInfo = aiCallRecord.extracted_info || {}
 
-        console.log('[AI SUMMARY RAW INPUT]', {
+        console.log('[AI SMS SOURCE RECORD]', {
           aiCallRecordId: aiCallRecord.id,
           outcome: aiCallRecord.outcome,
-          rawExtractedInfo
+          rawExtractedInfo,
+          sourceTable: 'ai_call_records'
         })
 
         // Normalize extracted_info to canonical keys with backward compatibility
         const extracted = normalizeExtractedInfo(rawExtractedInfo)
 
-        console.log('[AI SUMMARY NORMALIZED OUTPUT]', {
+        console.log('[AI SMS NORMALIZED RECORD]', {
           aiCallRecordId: aiCallRecord.id,
           normalized: extracted
         })
 
-        console.log('[AI SUMMARY FIELD VALUES]', {
+        console.log('[AI SMS FIELD LOOKUP]', {
+          aiCallRecordId: aiCallRecord.id,
+          callerName_property: 'extracted.callerName',
+          callerName_value: extracted.callerName,
+          urgencyLevel_property: 'extracted.urgencyLevel',
+          urgencyLevel_value: extracted.urgencyLevel,
+          preferredCallbackTime_property: 'extracted.preferredCallbackTime',
+          preferredCallbackTime_value: extracted.preferredCallbackTime,
+          addressOrLocation_property: 'extracted.addressOrLocation',
+          addressOrLocation_value: extracted.addressOrLocation
+        })
+
+        console.log('[AI SMS FINAL FIELD VALUES]', {
           aiCallRecordId: aiCallRecord.id,
           callerName: extracted.callerName,
           reasonForCalling: extracted.reasonForCalling,
@@ -947,6 +960,25 @@ export async function POST(req: NextRequest) {
 
             if (!hasPendingJob) {
               console.log(`[followups] No existing follow-ups, scheduling follow-ups for lead: ${lead.id}`)
+
+              console.log('[FOLLOWUP CREATION SOURCE]', {
+                route: '/api/twilio/voice-status',
+                businessId: business.id,
+                leadId: lead.id,
+                conversationId: conversation.id,
+                callSid: CallSid,
+                timestamp: new Date().toISOString()
+              })
+
+              console.log('[FOLLOWUP CREATION AI CHECK]', {
+                route: '/api/twilio/voice-status',
+                aiCallRecord: !!aiCallRecord,
+                aiCallRecordId: aiCallRecord?.id,
+                aiOutcome: aiCallRecord?.outcome,
+                aiCheckResult: aiCallRecord && aiCallRecord.outcome === 'completed' ? 'skip' : 'proceed',
+                leadId: lead.id,
+                callSid: CallSid
+              })
 
               // Use centralized createFollowUpJobs function to respect business settings
               try {
