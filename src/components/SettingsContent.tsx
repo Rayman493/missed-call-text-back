@@ -581,13 +581,9 @@ export default function SettingsContent() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const calendarStatus = urlParams.get('calendar')
-    if (calendarStatus === 'connected') {
-      showToast('Google Calendar connected successfully', 'success')
-      setCalendarConnected(true)
-      // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/settings')
-    } else if (calendarStatus === 'disconnected') {
+    if (calendarStatus === 'disconnected') {
       showToast('Google Calendar disconnected', 'success')
+      setCalendarConnected(false)
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard/settings')
     } else if (calendarStatus === 'error') {

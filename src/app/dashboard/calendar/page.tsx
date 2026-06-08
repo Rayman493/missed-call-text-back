@@ -60,6 +60,7 @@ export default function CalendarPage() {
   useEffect(() => {
     if (searchParams && searchParams.get('calendar') === 'connected') {
       showToast('Google Calendar connected successfully!', 'success')
+      setTokenExpired(false)
       // Clean up the URL
       window.history.replaceState({}, '', '/dashboard/calendar')
     }
@@ -132,16 +133,6 @@ export default function CalendarPage() {
       setIsConnecting(false)
     }
   }
-
-  // Reset tokenExpired state when OAuth success is detected
-  useEffect(() => {
-    if (searchParams && searchParams.get('calendar') === 'connected') {
-      setTokenExpired(false)
-      showToast('Google Calendar connected successfully!', 'success')
-      // Clean up the URL
-      window.history.replaceState({}, '', '/dashboard/calendar')
-    }
-  }, [searchParams])
 
   const handleDayClick = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return
