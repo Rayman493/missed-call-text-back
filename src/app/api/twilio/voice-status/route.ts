@@ -79,12 +79,9 @@ export async function POST(req: NextRequest) {
     })
     
     // Check for AI call record with retry logic to handle race condition
-    console.log('[VOICE STATUS AI RECORD CHECK]', {
-      callSid: CallSid,
-      aiCallRecordFound: false,
-      aiCallRecordId: null,
-      aiConversationId: null,
-      aiLeadId: null
+    console.log('[AI RECORD LOOKUP TABLE]', {
+      table: 'ai_call_records',
+      callSid: CallSid
     })
 
     let aiCallRecord = null
@@ -102,8 +99,8 @@ export async function POST(req: NextRequest) {
       }
 
       const { data: record } = await supabase
-        .from('ai_call_sessions')
-        .select('id, lead_id, extracted_info, caller_phone')
+        .from('ai_call_records')
+        .select('id, lead_id, conversation_id, caller_phone, call_sid, outcome, extracted_info, summary')
         .eq('call_sid', CallSid)
         .maybeSingle()
 
@@ -114,12 +111,22 @@ export async function POST(req: NextRequest) {
             callSid: CallSid,
             attempt: i + 1,
             totalDelay: delay,
-            aiCallRecordId: aiCallRecord.id
+            aiCallRecordId: aiCallRecord.id,
+            outcome: aiCallRecord.outcome
           })
         }
         break
       }
     }
+
+    console.log('[AI RECORD LOOKUP RESULT]', {
+      found: !!aiCallRecord,
+      id: aiCallRecord?.id,
+      outcome: aiCallRecord?.outcome,
+      lead_id: aiCallRecord?.lead_id,
+      conversation_id: aiCallRecord?.conversation_id,
+      callSid: CallSid
+    })
 
     if (!aiCallRecord) {
       console.log('[AI RECORD NOT FOUND AFTER RETRIES]', {
@@ -131,8 +138,9 @@ export async function POST(req: NextRequest) {
         callSid: CallSid,
         aiCallRecordFound: true,
         aiCallRecordId: aiCallRecord.id,
-        aiConversationId: null,
-        aiLeadId: aiCallRecord.lead_id
+        aiConversationId: aiCallRecord.conversation_id,
+        aiLeadId: aiCallRecord.lead_id,
+        outcome: aiCallRecord.outcome
       })
     }
     
@@ -632,10 +640,11 @@ export async function POST(req: NextRequest) {
       let autoReplyMessage
       let messageTemplate = 'unknown'
 
-      if (aiCallRecord) {
+      if (aiCallRecord && aiCallRecord.outcome === 'completed') {
         // AI completed intake - build summary from extracted_info
         console.log('[AI SUMMARY USING EXTRACTED_INFO]', {
           aiCallRecordId: aiCallRecord.id,
+          outcome: aiCallRecord.outcome,
           extracted_info: aiCallRecord.extracted_info
         })
 
@@ -874,19 +883,21 @@ export async function POST(req: NextRequest) {
       // Continue to final summary instead of returning early
     } else {
 
-      // Skip follow-up creation if AI call record exists (AI completed intake)
-      if (aiCallRecord) {
+      // Skip follow-up creation if AI call record exists with outcome = 'completed' (AI completed intake)
+      if (aiCallRecord && aiCallRecord.outcome === 'completed') {
         console.log('[AI FOLLOWUP CHECK RESULT]', {
           action: 'skipped',
           reason: 'ai_intake_completed',
           callSid: CallSid,
           aiCallRecordId: aiCallRecord.id,
+          outcome: aiCallRecord.outcome,
           leadId: lead.id,
           businessId: business.id
         });
         console.log('[AI FOLLOWUPS SKIPPED] reason: ai_intake_completed', {
           callSid: CallSid,
           aiCallRecordId: aiCallRecord.id,
+          outcome: aiCallRecord.outcome,
           leadId: lead.id,
           businessId: business.id
         });
