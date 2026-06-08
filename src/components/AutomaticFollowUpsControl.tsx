@@ -39,8 +39,10 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
   // Check if auto reply was sent (step 1 job with status 'sent')
   const autoReplySent = followUpJobs.some((job) => job.step === 1 && job.status === 'sent')
   
-  // Check if customer replied (based on lead metadata)
-  const customerReplied = leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || allCancelledAfterReply
+  // Check if customer replied (direct check for inbound messages)
+  const customerReplied = leadData?.messages?.some(
+    (message: any) => message.direction === 'inbound'
+  ) ?? false
 
   const handleSendFollowUp = async (jobId: string) => {
     setLoading(true)
