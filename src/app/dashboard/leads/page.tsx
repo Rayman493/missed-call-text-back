@@ -92,63 +92,10 @@ function normalizePhoneNumber(phone: string): string {
   return digits
 }
 
-// Helper to merge duplicate leads by phone number
+// Helper to merge duplicate leads by phone number - DISABLED to prevent incorrect merging
 function mergeDuplicateLeads(leads: any[]): any[] {
-  const mergedLeads = new Map()
-  
-  for (const lead of leads) {
-    const normalizedPhone = normalizePhoneNumber(lead.phone || '')
-    const key = `${lead.business_id}_${normalizedPhone}`
-    
-    if (!mergedLeads.has(key)) {
-      // First occurrence, store as-is
-      mergedLeads.set(key, { ...lead })
-    } else {
-      // Merge with existing lead
-      const existing = mergedLeads.get(key)
-      
-      // Prefer Active status over New
-      const existingStatus = existing.status || 'new'
-      const newStatus = lead.status || 'new'
-      const preferredStatus = (existingStatus === 'active' && newStatus === 'new') ? 'active' : newStatus
-      
-      // Use latest activity timestamp
-      const existingActivity = getLatestActivity(existing)
-      const newActivity = getLatestActivity(lead)
-      const latestActivity = new Date(newActivity) > new Date(existingActivity) ? newActivity : existingActivity
-      
-      // Merge messages
-      const existingMessages = existing.messages || []
-      const newMessages = lead.messages || []
-      const allMessages = [...existingMessages, ...newMessages]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      
-      // Merge other fields, preferring the most recent/complete data
-      mergedLeads.set(key, {
-        ...existing,
-        ...lead,
-        status: preferredStatus,
-        last_activity_at: latestActivity,
-        messages: allMessages,
-        // Keep the most recent created_at for sorting
-        created_at: new Date(lead.created_at) > new Date(existing.created_at) ? lead.created_at : existing.created_at,
-        // Merge message counts
-        message_count: (existing.message_count || 0) + (lead.message_count || 0),
-        // Preserve AI summary if available
-        ai_summary: existing.ai_summary || lead.ai_summary,
-        // Preserve conversation ID if available
-        conversation_id: existing.conversation_id || lead.conversation_id,
-        // Use best available name
-        name: lead.name || existing.name,
-        // Use best available phone
-        phone: lead.phone || existing.phone,
-        // Use best available source
-        source: lead.source || existing.source
-      })
-    }
-  }
-  
-  return Array.from(mergedLeads.values())
+  // DO NOT MERGE - return leads as-is to prevent hiding valid leads with different phone numbers
+  return leads
 }
 
 // Helper to get latest activity timestamp for sorting
@@ -273,14 +220,40 @@ export default function LeadsPage() {
         leadIds: (data || []).map((l: any) => l.id)
       })
       
-      // Deduplicate leads by normalized phone number
-      const deduplicatedLeads = mergeDuplicateLeads(data || [])
+      // Pipeline debug logs
+      const rawLeads = data || []
+      const rawIds = rawLeads.map((l: any) => l.id)
+      const rawPhones = rawLeads.map((l: any) => l.caller_phone)
+      const rawStatuses = rawLeads.map((l: any) => l.status)
+      
+      // Deduplicate leads by normalized phone number (DISABLED - no longer merging)
+      const deduplicatedLeads = mergeDuplicateLeads(rawLeads)
+      const deduplicatedIds = deduplicatedLeads.map((l: any) => l.id)
       
       // Sort by latest activity
       deduplicatedLeads.sort((a, b) => {
         const aActivity = getLatestActivity(a)
         const bActivity = getLatestActivity(b)
         return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+      })
+      
+      console.log('[LEADS PIPELINE DEBUG]', {
+        businessId: business.id,
+        rawCount: rawLeads.length,
+        rawIds,
+        rawPhones,
+        rawStatuses,
+        afterStatusFilterCount: rawLeads.length,
+        afterStatusFilterIds: rawIds,
+        afterDemoFilterCount: rawLeads.filter((l: any) => !l.is_demo).length,
+        afterDemoFilterIds: rawLeads.filter((l: any) => !l.is_demo).map((l: any) => l.id),
+        afterIgnoredFilterCount: rawLeads.filter((l: any) => !l.opted_out).length,
+        afterIgnoredFilterIds: rawLeads.filter((l: any) => !l.opted_out).map((l: any) => l.id),
+        afterDedupeCount: deduplicatedLeads.length,
+        afterDedupeIds: deduplicatedIds,
+        renderedCount: deduplicatedLeads.length,
+        renderedIds: deduplicatedIds,
+        reason: 'mergeDuplicateLeads disabled to prevent incorrect merging'
       })
       
       setLeads(deduplicatedLeads)
