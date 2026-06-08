@@ -812,33 +812,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Fetch lead data on mount
   useEffect(() => {
-    console.log('[Lead View] Opening lead details for leadId:', params.id)
-    console.log('[Lead View] LeadId type:', typeof params.id)
-    console.log('[Lead View] LeadId length:', params.id?.length)
+    console.log('[LEAD DETAIL LOAD] Opening lead details for leadId:', params.id)
+    console.log('[LEAD DETAIL LOAD] LeadId type:', typeof params.id)
+    console.log('[LEAD DETAIL LOAD] LeadId length:', params.id?.length)
     
     getLeadDetails(params.id).then(result => {
-      console.log('[Lead View] API response:', result)
+      console.log('[LEAD DETAIL LOAD] API response:', result)
       
       if (!result) {
-        console.log('[Lead View] No response returned from API - this is the issue!')
+        console.log('[LEAD DETAIL LOAD] No response returned from API - this is the issue!')
         setLeadData(null)
         setLoading(false)
         return
       }
 
       if (result.ok && result.lead) {
-        console.log('[Lead View] API returned lead data:', result.lead)
+        console.log('[LEAD DETAIL LOAD] API returned lead data:', result.lead)
+        console.log('[LEAD DETAIL LOAD] Message count:', result.lead.messages?.length || 0)
+        console.log('[LEAD DETAIL LOAD] Conversation ID:', result.lead.conversation_id)
+        console.log('[LEAD DETAIL LOAD] Lead ID:', result.lead.id)
+        console.log('[LEAD DETAIL LOAD] Business ID:', result.lead.business_id)
+        
+        // Log message consistency
+        if (result.lead.messages && result.lead.messages.length > 0) {
+          console.log('[MESSAGE CONSISTENCY]', {
+            leadId: result.lead.id,
+            conversationId: result.lead.conversation_id,
+            messageCount: result.lead.messages.length,
+            messages: result.lead.messages.map((m: any) => ({
+              messageId: m.id,
+              leadId: m.lead_id,
+              conversationId: m.conversation_id,
+              businessId: m.business_id,
+              direction: m.direction,
+              body: m.body?.substring(0, 50)
+            }))
+          })
+        } else {
+          console.log('[MESSAGE CONSISTENCY] No messages found for lead:', result.lead.id)
+        }
+        
         setLeadData(result.lead)
         setLoading(false)
         return
       }
 
-      console.log('[Lead View] API returned error:', result)
+      console.log('[LEAD DETAIL LOAD] API returned error:', result)
       setError(result.error || "Lead not found")
       setLeadData(null)
       setLoading(false)
     }).catch(error => {
-      console.error('[Lead View] Error fetching lead details:', error)
+      console.error('[LEAD DETAIL LOAD] Error fetching lead details:', error)
       setError('Failed to fetch lead details')
       setLeadData(null)
       setLoading(false)
