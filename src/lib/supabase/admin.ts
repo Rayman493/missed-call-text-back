@@ -78,45 +78,46 @@ export const db = {
     return data
   },
 
-  // New function to get all businesses with a given phone number
-  // This handles both per-business voice forwarding numbers and shared toll-free SMS sender
+  // Get business by Twilio phone number (dedicated number architecture)
+  // CRITICAL: One Twilio number maps to exactly one business
+  // Shared toll-free architecture has been removed for routing safety
   async getBusinessesByPhone(phone: string): Promise<Business[]> {
-    const sharedTollFreeNumber = process.env.MVP_SHARED_TWILIO_NUMBER || '+18336584303'
+    console.log('[getBusinessesByPhone] Looking up business for phone:', phone)
     
-    // Search for businesses with this phone number as their twilio_phone_number (voice forwarding)
-    // OR search all businesses if the phone is the shared toll-free number (SMS sender)
-    let query = supabaseAdmin
+    // Search for business with this specific twilio_phone_number
+    const { data, error } = await supabaseAdmin
       .from('businesses')
       .select('*')
-    
-    if (phone === sharedTollFreeNumber) {
-      // If the phone is the shared toll-free number, return all businesses
-      // (inbound SMS to shared number can be from any business)
-      console.log('[getBusinessesByPhone] Shared toll-free number detected, returning all businesses')
-    } else {
-      // Otherwise, search for businesses with this specific twilio_phone_number
-      query = query.eq('twilio_phone_number', phone)
-    }
-    
-    const { data, error } = await query
+      .eq('twilio_phone_number', phone)
+      .limit(1)
+      .single()
     
     if (error) {
-      console.error('Error fetching businesses:', error)
+      console.error('[getBusinessesByPhone] Error fetching business:', error)
+      if (error.code === 'PGRST116') {
+        console.log('[getBusinessesByPhone] No business found for phone:', phone)
+      }
       return []
     }
     
-    console.log('[getBusinessesByPhone] Found', data?.length || 0, 'businesses for phone:', phone)
-    return data || []
+    if (!data) {
+      console.log('[getBusinessesByPhone] No business found for phone:', phone)
+      return []
+    }
+    
+    console.log('[getBusinessesByPhone] Found business:', data.id, 'for phone:', phone)
+    return [data]
   },
 
-  // New function to find lead by phone number across businesses with shared phone number
+  // Find lead by phone number for a specific business (dedicated number architecture)
+  // CRITICAL: One Twilio number maps to exactly one business - no cross-business lookup needed
   async findLeadByPhoneAcrossBusinesses(phone: string, phoneNumber: string): Promise<{ lead: any; business: Business } | null> {
     console.log('[INBOUND SMS LEAD LOOKUP START]', {
       phone,
       phoneNumber
     })
     
-    // First get all businesses with this phone number
+    // Get the business for this phone number (dedicated number architecture)
     const businesses = await this.getBusinessesByPhone(phoneNumber)
     
     console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
@@ -126,20 +127,28 @@ export const db = {
     })
     
     if (businesses.length === 0) {
-      console.log('[INBOUND SMS BUSINESS LOOKUP FAILED]', { phoneNumber })
+      console.log('[INBOUND SMS BUSINESS LOOKUP FAILED]', { phoneNumber, reason: 'No business found for this phone number' })
       return null
     }
     
-    // Search for leads across all these businesses
-    const businessIds = businesses.map(b => b.id)
+    if (businesses.length > 1) {
+      console.error('[INBOUND SMS BUSINESS LOOKUP FAILED]', { 
+        phoneNumber, 
+        reason: 'Multiple businesses found for this phone number - this should not happen with dedicated number architecture',
+        businessIds: businesses.map(b => b.id)
+      })
+      return null
+    }
     
-    // Search by caller_phone field only (the actual column in the database)
+    const business = businesses[0]
+    
+    // Search for lead by caller_phone for this specific business
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
-      .in('business_id', businessIds)
+      .eq('business_id', business.id)
       .eq('caller_phone', phone)
-      .limit(1) // Get first match if multiple exist
+      .limit(1)
       .single()
     
     if (error) {
@@ -147,7 +156,7 @@ export const db = {
         error: error.message,
         code: error.code,
         phone,
-        businessIds
+        businessId: business.id
       })
       return null
     }
@@ -155,8 +164,8 @@ export const db = {
     if (!data) {
       console.log('[INBOUND SMS LEAD LOOKUP FAILED]', {
         phone,
-        businessIds,
-        reason: 'No lead found'
+        businessId: business.id,
+        reason: 'No lead found for this business'
       })
       return null
     }
@@ -166,13 +175,6 @@ export const db = {
       businessId: data.business_id,
       callerPhone: data.caller_phone
     })
-    
-    // Find the business for this lead
-    const business = businesses.find(b => b.id === data.business_id)
-    if (!business) {
-      console.error('[INBOUND SMS BUSINESS LOOKUP FAILED]', { businessId: data.business_id })
-      return null
-    }
     
     return { lead: data, business }
   },
@@ -464,40 +466,137 @@ export const db = {
     return data || []
   },
 
-  async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: 'twilio_numbers' | 'legacy' } | null> {
-    // First try to find via twilio_numbers table (new architecture)
+  async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: string } | null> {
+    console.log('[getBusinessByTwilioNumber] Looking up business for phone:', phone)
+    
+    // CRITICAL: Only use twilio_numbers table (dedicated number architecture)
+    // Legacy fallback removed for routing safety
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin
       .from('twilio_numbers')
-      .select('business_id, phone_number')
+      .select('id, business_id, phone_number, status')
       .eq('phone_number', phone)
       .eq('status', 'active')
       .single()
 
-    if (twilioNumber && twilioNumber.business_id) {
-      // Found in twilio_numbers, fetch the business
-      const { data: business, error: businessError } = await supabaseAdmin
-        .from('businesses')
-        .select('*')
-        .eq('id', twilioNumber.business_id)
-        .single()
-
-      if (business) {
-        return { business, source: 'twilio_numbers' }
+    if (twilioError) {
+      console.error('[getBusinessByTwilioNumber] Error fetching twilio_number:', twilioError)
+      if (twilioError.code === 'PGRST116') {
+        console.log('[getBusinessByTwilioNumber] No active twilio_number found for phone:', phone)
       }
+      return null
     }
 
-    // Fallback to legacy businesses.twilio_phone_number lookup
-    const { data: business, error: legacyError } = await supabaseAdmin
+    if (!twilioNumber || !twilioNumber.business_id) {
+      console.error('[getBusinessByTwilioNumber] No active twilio_number found for phone:', phone)
+      return null
+    }
+
+    console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id)
+
+    // Fetch the business
+    const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('*')
-      .eq('twilio_phone_number', phone)
+      .eq('id', twilioNumber.business_id)
       .single()
 
-    if (business) {
-      return { business, source: 'legacy' }
+    if (businessError) {
+      console.error('[getBusinessByTwilioNumber] Error fetching business:', businessError)
+      return null
     }
 
-    return null
+    if (!business) {
+      console.error('[getBusinessByTwilioNumber] Business not found for twilio_number.business_id:', twilioNumber.business_id)
+      return null
+    }
+
+    console.log('[getBusinessByTwilioNumber] Found business:', business.id, 'via twilio_numbers table')
+    return { business, source: 'twilio_numbers' }
+  },
+
+  // Validate Twilio number ownership consistency
+  // CRITICAL: Ensures businesses.assigned_twilio_number_id matches twilio_numbers row
+  async validateTwilioOwnership(businessId: string): Promise<{ valid: boolean; error?: string }> {
+    console.log('[TWILIO OWNERSHIP VALIDATION] ========== START ==========')
+    console.log('[TWILIO OWNERSHIP VALIDATION] business_id:', businessId)
+    
+    try {
+      // Fetch business with assigned_twilio_number_id and twilio_phone_number
+      const { data: business, error: businessError } = await supabaseAdmin
+        .from('businesses')
+        .select('id, assigned_twilio_number_id, twilio_phone_number, twilio_phone_number_sid')
+        .eq('id', businessId)
+        .single()
+
+      if (businessError || !business) {
+        const error = 'Business not found'
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      console.log('[TWILIO OWNERSHIP VALIDATION] Business found:', {
+        businessId: business.id,
+        assignedTwilioNumberId: business.assigned_twilio_number_id,
+        twilioPhoneNumber: business.twilio_phone_number
+      })
+
+      // Check 1: assigned_twilio_number_id must exist
+      if (!business.assigned_twilio_number_id) {
+        const error = 'Business has no assigned_twilio_number_id'
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      // Check 2: twilio_numbers row must exist
+      const { data: twilioNumber, error: twilioError } = await supabaseAdmin
+        .from('twilio_numbers')
+        .select('id, phone_number, business_id, status')
+        .eq('id', business.assigned_twilio_number_id)
+        .single()
+
+      if (twilioError || !twilioNumber) {
+        const error = 'twilio_numbers row not found for assigned_twilio_number_id'
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      console.log('[TWILIO OWNERSHIP VALIDATION] twilio_numbers row found:', {
+        twilioNumberId: twilioNumber.id,
+        phone_number: twilioNumber.phone_number,
+        business_id: twilioNumber.business_id,
+        status: twilioNumber.status
+      })
+
+      // Check 3: twilio_numbers.business_id must match business.id
+      if (twilioNumber.business_id !== businessId) {
+        const error = `twilio_numbers.business_id mismatch: expected ${businessId}, got ${twilioNumber.business_id}`
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      // Check 4: phone numbers must match
+      if (twilioNumber.phone_number !== business.twilio_phone_number) {
+        const error = `Phone number mismatch: businesses.twilio_phone_number=${business.twilio_phone_number}, twilio_numbers.phone_number=${twilioNumber.phone_number}`
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      // Check 5: status must be assigned/active
+      if (twilioNumber.status !== 'active') {
+        const error = `twilio_numbers status is ${twilioNumber.status}, expected active`
+        console.error('[TWILIO OWNERSHIP VALIDATION] ERROR:', error)
+        return { valid: false, error }
+      }
+
+      console.log('[TWILIO OWNERSHIP VALIDATION] ✓ VALID')
+      console.log('[TWILIO OWNERSHIP VALIDATION] ========== COMPLETE ==========')
+      
+      return { valid: true }
+
+    } catch (error: any) {
+      console.error('[TWILIO OWNERSHIP VALIDATION] Exception:', error)
+      return { valid: false, error: error.message }
+    }
   },
 
   async createBusiness(business: Omit<Business, 'id' | 'created_at' | 'updated_at'>): Promise<Business | null> {

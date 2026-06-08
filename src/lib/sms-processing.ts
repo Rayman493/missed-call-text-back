@@ -178,12 +178,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       callerPhone: lead.caller_phone
     })
   } else {
-    // No existing lead, get first business with this phone number
-    // Use getBusinessesByPhone to handle shared toll-free numbers
+    // No existing lead, get business for this phone number (dedicated number architecture)
     const businesses = await db.getBusinessesByPhone(to)
     
     if (!businesses || businesses.length === 0) {
-      console.error(`[SMS Processing] Business not found for phone: ${to}`)
+      console.error('[SMS Processing] Business not found for phone:', to)
+      console.error('[ROUTING FAILURE]', {
+        phoneNumber: to,
+        reason: 'No business found for this Twilio number'
+      })
       console.log('[INBOUND SMS BUSINESS LOOKUP RESULT]', {
         found: false,
         to: to,
@@ -191,10 +194,28 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       })
       return {
         success: false,
-        error: 'Business not found',
+        error: 'Business not found for this phone number',
         twiml: `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Service unavailable</Message>
+  <Message>Service unavailable - unable to route message</Message>
+</Response>`
+      }
+    }
+    
+    if (businesses.length > 1) {
+      console.error('[SMS Processing] Multiple businesses found for phone:', to)
+      console.error('[ROUTING FAILURE]', {
+        phoneNumber: to,
+        reason: 'Multiple businesses found for this Twilio number - this should not happen with dedicated number architecture',
+        businessCount: businesses.length,
+        businessIds: businesses.map(b => b.id)
+      })
+      return {
+        success: false,
+        error: 'Routing failure - multiple businesses found for this phone number',
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Service unavailable - routing error</Message>
 </Response>`
       }
     }
