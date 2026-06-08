@@ -4,7 +4,8 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 /**
  * POST /api/notifications/create
  * 
- * External endpoint for creating notifications (used by AI voice service)
+ * Internal endpoint for creating notifications (used by AI voice service)
+ * Protected with INTERNAL_API_SECRET for server-to-server authentication
  * 
  * Request body:
  * - businessId: string
@@ -22,6 +23,26 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[NOTIFICATION API ENTER] Request received');
     
+    // Verify INTERNAL_API_SECRET for server-to-server authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[NOTIFICATION API ERROR] Missing or invalid authorization header')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '')
+    const expectedSecret = process.env.INTERNAL_API_SECRET
+
+    if (!expectedSecret) {
+      console.error('[NOTIFICATION API ERROR] INTERNAL_API_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    if (providedSecret !== expectedSecret) {
+      console.error('[NOTIFICATION API ERROR] Invalid INTERNAL_API_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { 
       businessId, 

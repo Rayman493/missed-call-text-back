@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
-import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed } from 'lucide-react'
+import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
@@ -47,6 +47,51 @@ export default function NotificationsPage() {
       await notificationService.markAsRead(notification.id)
     }
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    // Optimistically remove from UI
+    const deletedNotification = notifications.find(n => n.id === notificationId)
+    setNotifications(prev => prev.filter(n => n.id !== notificationId))
+    setNotificationCount(prev => ({
+      unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
+      total: Math.max(0, prev.total - 1)
+    }))
+
+    try {
+      await notificationService.deleteNotification(notificationId)
+    } catch (error) {
+      console.error('[NOTIFICATION DELETE] Failed to delete notification:', error)
+      // Restore notification if delete failed
+      if (deletedNotification) {
+        setNotifications(prev => [...prev, deletedNotification])
+        setNotificationCount(prev => ({
+          unread: deletedNotification && !deletedNotification.read ? prev.unread + 1 : prev.unread,
+          total: prev.total + 1
+        }))
+      }
+    }
+  }
+
+  const handleClearAll = async () => {
+    if (!business?.id || notifications.length === 0) return
+
+    // Optimistically clear all from UI
+    const previousNotifications = [...notifications]
+    setNotifications([])
+    setNotificationCount({ unread: 0, total: 0 })
+
+    try {
+      await notificationService.clearAllNotifications(business.id)
+    } catch (error) {
+      console.error('[NOTIFICATION CLEAR ALL] Failed to clear notifications:', error)
+      // Restore notifications if clear failed
+      setNotifications(previousNotifications)
+      setNotificationCount({
+        unread: previousNotifications.filter(n => !n.read).length,
+        total: previousNotifications.length
+      })
+    }
   }
 
   const getNotificationIcon = (type: Notification['type']) => {
@@ -106,14 +151,22 @@ export default function NotificationsPage() {
         </div>
 
         {/* Actions */}
-        {notificationCount.unread > 0 && (
-          <div className="mb-4">
+        {notifications.length > 0 && (
+          <div className="mb-4 flex items-center gap-3">
             <button
-              onClick={handleMarkAllAsRead}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+              onClick={handleClearAll}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
-              Mark all as read
+              Clear all
             </button>
+            {notificationCount.unread > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                Mark all as read
+              </button>
+            )}
           </div>
         )}
 
@@ -146,15 +199,24 @@ export default function NotificationsPage() {
                           {new Date(notification.created_at).toLocaleString()}
                         </p>
                       </div>
-                      {!notification.read && (
+                      <div className="flex items-center gap-2 ml-4">
                         <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="ml-4 p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Mark as read"
+                          onClick={() => handleDeleteNotification(notification.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete notification"
                         >
-                          <Check className="w-4 h-4" />
+                          <X className="w-4 h-4" />
                         </button>
-                      )}
+                        {!notification.read && (
+                          <button
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Mark as read"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

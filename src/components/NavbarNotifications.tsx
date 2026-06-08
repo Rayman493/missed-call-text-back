@@ -8,7 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { Phone } from 'lucide-react'
-import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard } from 'lucide-react'
+import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, Trash2, X } from 'lucide-react'
 
 // Hook to detect mobile breakpoint
 const useIsMobile = () => {
@@ -127,6 +127,55 @@ export default function NavbarNotifications() {
     setNotificationCount({ unread: 0, total: notifications.length })
   }
 
+  const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    // Optimistically remove from UI
+    const deletedNotification = notifications.find(n => n.id === notificationId)
+    setNotifications(prev => prev.filter(n => n.id !== notificationId))
+    setNotificationCount(prev => ({
+      unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
+      total: Math.max(0, prev.total - 1)
+    }))
+
+    try {
+      await notificationService.deleteNotification(notificationId)
+    } catch (error) {
+      console.error('[NOTIFICATION DELETE] Failed to delete notification:', error)
+      // Restore notification if delete failed
+      if (deletedNotification) {
+        setNotifications(prev => [...prev, deletedNotification])
+        setNotificationCount(prev => ({
+          unread: deletedNotification && !deletedNotification.read ? prev.unread + 1 : prev.unread,
+          total: prev.total + 1
+        }))
+      }
+    }
+  }
+
+  const handleClearAll = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    if (!business || notifications.length === 0) return
+
+    // Optimistically clear all from UI
+    const previousNotifications = [...notifications]
+    setNotifications([])
+    setNotificationCount({ unread: 0, total: 0 })
+
+    try {
+      await notificationService.clearAllNotifications(business.id)
+    } catch (error) {
+      console.error('[NOTIFICATION CLEAR ALL] Failed to clear notifications:', error)
+      // Restore notifications if clear failed
+      setNotifications(previousNotifications)
+      setNotificationCount({
+        unread: previousNotifications.filter(n => !n.read).length,
+        total: previousNotifications.length
+      })
+    }
+  }
+
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'new_lead':
@@ -224,14 +273,25 @@ export default function NavbarNotifications() {
           <div className="flex items-center justify-between p-3 border-b border-border">
             <h3 className="font-semibold text-foreground">Notifications</h3>
             
-            {notificationCount.unread > 0 && (
-              <button
-                onClick={handleMarkAllAsRead}
-                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Mark all as read
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  title="Clear all notifications"
+                >
+                  Clear all
+                </button>
+              )}
+              {notificationCount.unread > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Notifications List */}
@@ -270,6 +330,13 @@ export default function NavbarNotifications() {
                             <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
                               {formatTime(notification.created_at)}
                             </span>
+                            <button
+                              onClick={(e) => handleDeleteNotification(notification.id, e)}
+                              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                              title="Delete notification"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
                             {!notification.read && (
                               <button
                                 onClick={(e) => {

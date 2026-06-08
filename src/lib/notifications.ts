@@ -150,6 +150,34 @@ export class NotificationService {
     }
   }
 
+  async deleteNotification(notificationId: string): Promise<void> {
+    console.log('[NOTIFICATION DELETE] Attempting to delete notification:', notificationId)
+    const { error } = await this.supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId)
+
+    if (error) {
+      console.error('[NOTIFICATION DELETE] Error deleting notification:', error)
+      throw error
+    }
+    console.log('[NOTIFICATION DELETE] Successfully deleted notification:', notificationId)
+  }
+
+  async clearAllNotifications(businessId: string): Promise<void> {
+    console.log('[NOTIFICATION CLEAR ALL] Attempting to clear all notifications for business:', businessId)
+    const { error } = await this.supabase
+      .from('notifications')
+      .delete()
+      .eq('business_id', businessId)
+
+    if (error) {
+      console.error('[NOTIFICATION CLEAR ALL] Error clearing notifications:', error)
+      throw error
+    }
+    console.log('[NOTIFICATION CLEAR ALL] Successfully cleared all notifications for business:', businessId)
+  }
+
   async createNotification(
     businessId: string,
     type: Notification['type'],
