@@ -81,20 +81,11 @@ export async function GET(request: NextRequest) {
     console.log("[lead-details API] Lead found:", lead.id)
     console.log("[LEAD DETAIL API LEAD]", {
       leadId: lead.id,
-      leadBusinessId: lead.business_id,
-      leadCallerPhone: lead.caller_phone,
       leadExists: !!lead
     })
     console.log("[LEAD DETAIL LOAD]", {
       leadId: lead.id,
       businessId: lead.business_id
-    })
-    console.log("[LEAD DETAIL DEBUG]", {
-      leadId: lead.id,
-      businessId: lead.business_id,
-      userId: user.id,
-      leadExists: !!lead,
-      leadBusinessId: lead.business_id
     })
 
     // Fetch conversation for this lead with RLS protection
@@ -107,23 +98,9 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
     console.log("[LEAD DETAIL API CONVERSATION]", {
-      leadId,
+      conversationFound: !!conversation,
       conversationId: conversation?.id,
-      conversationBusinessId: conversation?.business_id,
-      conversationLeadId: conversation?.lead_id,
-      conversationExists: !!conversation
-    })
-    console.log("[LEAD DETAIL CONVERSATION LOOKUP]", {
-      leadId,
-      conversationId: conversation?.id,
-      conversation
-    })
-    console.log("[LEAD DETAIL DEBUG]", {
-      leadId,
-      businessId: lead.business_id,
-      conversationId: conversation?.id,
-      conversationExists: !!conversation,
-      conversationBusinessId: conversation?.business_id
+      conversationLeadId: conversation?.lead_id
     })
 
     // Fetch messages - primary method: by conversation_id + business_id if conversation exists
@@ -134,10 +111,10 @@ export async function GET(request: NextRequest) {
 
     if (conversation) {
       // Primary: fetch messages by conversation_id + business_id
-      console.log("[LEAD DETAIL MESSAGE QUERY]", {
+      console.log("[LEAD DETAIL API MESSAGE QUERY]", {
+        queryUsed: 'conversation_id + business_id',
         leadId,
-        conversationId: conversation.id,
-        queryUsed: 'conversation_id + business_id'
+        conversationId: conversation.id
       })
       
       const { data: messagesByConversation, error: messagesByConversationError } = await supabase
@@ -151,11 +128,9 @@ export async function GET(request: NextRequest) {
 
       if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
         messages = messagesByConversation
-        console.log("[LEAD DETAIL MESSAGE RESULT]", {
-          leadId,
-          conversationId: conversation.id,
+        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
           count: messages.length,
-          messages
+          firstMessageId: messages[0]?.id || null
         })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
@@ -168,10 +143,10 @@ export async function GET(request: NextRequest) {
         })
       } else {
         // Fallback: fetch messages by lead_id + business_id
-        console.log("[LEAD DETAIL MESSAGE QUERY]", {
+        console.log("[LEAD DETAIL API MESSAGE QUERY]", {
+          queryUsed: 'lead_id + business_id (fallback)',
           leadId,
-          conversationId: conversation.id,
-          queryUsed: 'lead_id + business_id (fallback)'
+          conversationId: conversation.id
         })
         console.log("[LEAD DETAIL MESSAGE DEBUG] No messages by conversation, trying by lead_id")
         const { data: messagesByLead, error: messagesByLeadError } = await supabase
@@ -185,11 +160,9 @@ export async function GET(request: NextRequest) {
 
         if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
           messages = messagesByLead
-          console.log("[LEAD DETAIL MESSAGE RESULT]", {
-            leadId,
-            conversationId: conversation.id,
+          console.log("[LEAD DETAIL API MESSAGE RESULT]", {
             count: messages.length,
-            messages
+            firstMessageId: messages[0]?.id || null
           })
           // Check if messages have conversation_id mismatch
           const messagesWithoutConversation = messagesByLead.filter(m => !m.conversation_id)
@@ -224,10 +197,10 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // No conversation, fetch messages by lead_id + business_id only
-      console.log("[LEAD DETAIL MESSAGE QUERY]", {
+      console.log("[LEAD DETAIL API MESSAGE QUERY]", {
+        queryUsed: 'lead_id + business_id (no conversation)',
         leadId,
-        conversationId: null,
-        queryUsed: 'lead_id + business_id (no conversation)'
+        conversationId: null
       })
       const { data: messagesByLead, error: messagesByLeadError } = await supabase
         .from("messages")
@@ -241,11 +214,9 @@ export async function GET(request: NextRequest) {
       if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
         messages = messagesByLead
         mismatchReason = 'Conversation missing but messages found by lead_id (repair needed)'
-        console.log("[LEAD DETAIL MESSAGE RESULT]", {
-          leadId,
-          conversationId: null,
+        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
           count: messages.length,
-          messages
+          firstMessageId: messages[0]?.id || null
         })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
@@ -257,11 +228,9 @@ export async function GET(request: NextRequest) {
           mismatchReason
         })
       } else {
-        console.log("[LEAD DETAIL MESSAGE RESULT]", {
-          leadId,
-          conversationId: null,
+        console.log("[LEAD DETAIL API MESSAGE RESULT]", {
           count: 0,
-          messages: []
+          firstMessageId: null
         })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
@@ -462,15 +431,20 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log("[LEAD DETAIL API RESPONSE]", {
-      leadId: lead.id,
-      conversationId: conversation?.id,
-      messageCount: messagesWithMedia.length,
-      voicemailCount: voicemailRecordings?.length || 0,
-      followUpJobsCount: followUpJobs?.length || 0,
-      aiCallRecordsCount: aiCallRecords?.length || 0,
-      responseKeys: Object.keys(responseData),
-      leadKeys: Object.keys(responseData.lead)
+    console.log("[LEAD DETAIL API FINAL RESPONSE]", {
+      conversationIdIncluded: !!responseData.lead.conversation,
+      conversationIdValue: responseData.lead.conversation?.id,
+      messagesLength: responseData.lead.messages.length,
+      responseShape: {
+        ok: responseData.ok,
+        hasLead: !!responseData.lead,
+        hasConversation: !!responseData.lead.conversation,
+        hasMessages: Array.isArray(responseData.lead.messages),
+        messagesCount: responseData.lead.messages.length,
+        hasVoicemailRecordings: Array.isArray(responseData.lead.voicemailRecordings),
+        hasFollowUpJobs: Array.isArray(responseData.lead.followUpJobs),
+        hasAiCallRecords: Array.isArray(responseData.lead.aiCallRecords)
+      }
     })
 
     // Return enhanced response
