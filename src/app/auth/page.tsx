@@ -8,6 +8,7 @@ import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
 import BrandIcon from '@/components/BrandIcon'
+import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -857,6 +858,7 @@ function AuthContent() {
           </p>
         </div>
       </div>
+      <RoutingDebugBanner />
       <AuthFooter />
     </div>
   )

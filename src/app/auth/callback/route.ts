@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         
         // Check if user has a business
         let business = null
-        let businessError = null
+        let businessError: any = null
         try {
           const { data, error } = await supabase
             .from('businesses')
@@ -104,6 +104,43 @@ export async function GET(request: Request) {
         // If business query fails, log error but don't assume no business
         if (businessError) {
           console.error('[Auth Callback] Business query error:', businessError)
+          console.error('[Auth Callback] Error code:', businessError?.code)
+          console.error('[Auth Callback] Error message:', businessError?.message)
+          
+          const isPGRST116 = businessError?.code === 'PGRST116'
+          const redirectTarget = isPGRST116 ? '/onboarding' : '/dashboard'
+          const reason = isPGRST116 ? 'No business row (PGRST116 confirmed)' : 'Business query error (non-PGRST116)'
+          
+          console.log('[POST LOGIN BUSINESS QUERY]', {
+            location: 'src/app/auth/callback/route.ts',
+            userId: session.user.id,
+            sessionExists: true,
+            businessFound: !!business,
+            businessId: business?.id,
+            errorCode: businessError?.code,
+            errorMessage: businessError?.message,
+            redirectTarget
+          })
+          
+          console.log('[ONBOARDING REDIRECT SOURCE]', {
+            file: 'src/app/auth/callback/route.ts',
+            functionName: 'GET handler',
+            currentPath: '/auth/callback',
+            redirectTarget,
+            userId: session.user.id,
+            sessionExists: true,
+            authLoading: false,
+            businessLoading: 'complete',
+            businessFetchComplete: true,
+            businessId: null,
+            businessFound: false,
+            businessErrorCode: businessError?.code,
+            businessErrorMessage: businessError?.message,
+            reason,
+            timestamp: new Date().toISOString()
+          })
+          console.trace('[ONBOARDING REDIRECT TRACE]')
+          
           console.log('[ROUTING AUDIT DEBUG]', {
             location: 'auth/callback/route.ts',
             guardName: 'AuthCallback',
@@ -113,14 +150,14 @@ export async function GET(request: Request) {
             authLoading: false,
             businessLoading: 'complete',
             businessId: null,
-            businessFound: null,
+            businessFound: false,
             twilioNumberFound: null,
             setupComplete: null,
-            redirectTarget: '/dashboard',
-            reason: 'Business query failed, defaulting to dashboard for safety'
+            redirectTarget,
+            reason
           })
-          // On query failure, default to dashboard to avoid sending existing users to onboarding
-          return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+          
+          return NextResponse.redirect(new URL(redirectTarget, requestUrl.origin))
         }
         
         const redirectTarget = business ? '/dashboard' : '/onboarding'

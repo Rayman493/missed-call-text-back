@@ -11,6 +11,7 @@ import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import { useDashboardRouteTracking } from '@/hooks/useDashboardRouteTracking'
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
 import { 
   formatPhoneNumber, 
@@ -1564,6 +1565,7 @@ export default function DashboardContent() {
           </div>
         </BusinessGuard>
       </AuthGuard>
+      <RoutingDebugBanner />
       <BottomNavigation />
       <FloatingHelpButton context={{
         currentPage: 'dashboard',

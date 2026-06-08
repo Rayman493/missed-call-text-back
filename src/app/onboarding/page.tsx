@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
+import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 
@@ -566,6 +567,7 @@ export default function OnboardingPage() {
           </div>
         </div>
       </div>
+      <RoutingDebugBanner />
       <Footer />
     </AuthGuard>
   )
