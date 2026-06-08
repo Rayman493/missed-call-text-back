@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     const { data: aiCallRecord } = await supabase
       .from('ai_call_sessions')
-      .select('id, lead_id, caller_name, reason_for_call, urgency, callback_number, raw_metadata')
+      .select('id, lead_id, extracted_info')
       .eq('call_sid', CallSid)
       .maybeSingle()
 
@@ -583,65 +583,43 @@ export async function POST(req: NextRequest) {
       let messageTemplate = 'unknown'
 
       if (aiCallRecord) {
-        // AI completed intake - build summary from extracted fields
-        console.log('[AI SUMMARY RAW DATA]', {
+        // AI completed intake - build summary from extracted_info
+        console.log('[AI SUMMARY USING EXTRACTED_INFO]', {
           aiCallRecordId: aiCallRecord.id,
-          fullRecord: aiCallRecord,
-          reason_for_call: aiCallRecord.reason_for_call,
-          urgency: aiCallRecord.urgency,
-          callback_number: aiCallRecord.callback_number,
-          raw_metadata: aiCallRecord.raw_metadata,
-          caller_name: aiCallRecord.caller_name
+          extracted_info: aiCallRecord.extracted_info
         })
 
         const summaryParts: string[] = []
+        const extracted = aiCallRecord.extracted_info || {}
 
-        // Add reason for call
-        if (aiCallRecord.reason_for_call) {
-          summaryParts.push(`Reason: ${aiCallRecord.reason_for_call}`)
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'reason_for_call', value: aiCallRecord.reason_for_call, included: true })
-        } else {
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'reason_for_call', value: null, included: false })
+        // Map available keys from extracted_info
+        if (extracted.callerName) {
+          summaryParts.push(`Name: ${extracted.callerName}`)
         }
 
-        // Add urgency
-        if (aiCallRecord.urgency) {
-          summaryParts.push(`Urgency: ${aiCallRecord.urgency}`)
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'urgency', value: aiCallRecord.urgency, included: true })
-        } else {
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'urgency', value: null, included: false })
+        if (extracted.reasonForCalling) {
+          summaryParts.push(`Reason: ${extracted.reasonForCalling}`)
         }
 
-        // Add callback number
-        if (aiCallRecord.callback_number) {
-          summaryParts.push(`Callback: ${aiCallRecord.callback_number}`)
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'callback_number', value: aiCallRecord.callback_number, included: true })
-        } else {
-          console.log('[AI SUMMARY FIELD MAPPING]', { field: 'callback_number', value: null, included: false })
+        if (extracted.importantDetails) {
+          summaryParts.push(`Details: ${extracted.importantDetails}`)
         }
 
-        // Check raw_metadata for additional fields like address/location, callback time
-        if (aiCallRecord.raw_metadata) {
-          const metadata = aiCallRecord.raw_metadata
-          console.log('[AI SUMMARY RAW METADATA]', { metadata })
+        if (extracted.urgencyLevel) {
+          summaryParts.push(`Urgency: ${extracted.urgencyLevel}`)
+        }
 
-          if (metadata.address || metadata.location) {
-            const location = metadata.address || metadata.location
-            summaryParts.push(`Location: ${location}`)
-            console.log('[AI SUMMARY FIELD MAPPING]', { field: 'location', value: location, included: true })
-          } else {
-            console.log('[AI SUMMARY FIELD MAPPING]', { field: 'location', value: null, included: false, reason: 'Not found in raw_metadata' })
-          }
+        // Handle location/address (try both keys)
+        if (extracted.location || extracted.address) {
+          summaryParts.push(`Location: ${extracted.location || extracted.address}`)
+        }
 
-          if (metadata.callback_time || metadata.best_callback_time) {
-            const callbackTime = metadata.callback_time || metadata.best_callback_time
-            summaryParts.push(`Best callback time: ${callbackTime}`)
-            console.log('[AI SUMMARY FIELD MAPPING]', { field: 'callback_time', value: callbackTime, included: true })
-          } else {
-            console.log('[AI SUMMARY FIELD MAPPING]', { field: 'callback_time', value: null, included: false, reason: 'Not found in raw_metadata' })
-          }
-        } else {
-          console.log('[AI SUMMARY RAW METADATA]', { raw_metadata: null, reason: 'raw_metadata is null' })
+        if (extracted.callbackTime) {
+          summaryParts.push(`Callback time: ${extracted.callbackTime}`)
+        }
+
+        if (extracted.callbackNumber) {
+          summaryParts.push(`Callback number: ${extracted.callbackNumber}`)
         }
 
         // Build the summary message
@@ -658,12 +636,7 @@ export async function POST(req: NextRequest) {
           template: messageTemplate,
           businessId: business.id,
           aiCallRecordId: aiCallRecord.id,
-          extractedFields: {
-            reason: aiCallRecord.reason_for_call,
-            urgency: aiCallRecord.urgency,
-            callbackNumber: aiCallRecord.callback_number,
-            rawMetadata: aiCallRecord.raw_metadata
-          },
+          extracted_info: extracted,
           summaryParts,
           summaryText,
           messageBody: autoReplyMessage
