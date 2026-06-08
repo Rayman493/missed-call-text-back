@@ -79,6 +79,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[lead-details API] Lead found:", lead.id)
+    console.log("[LEAD DETAIL LOAD]", {
+      leadId: lead.id,
+      businessId: lead.business_id
+    })
     console.log("[LEAD DETAIL DEBUG]", {
       leadId: lead.id,
       businessId: lead.business_id,
@@ -96,6 +100,11 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
+    console.log("[LEAD DETAIL CONVERSATION LOOKUP]", {
+      leadId,
+      conversationId: conversation?.id,
+      conversation
+    })
     console.log("[LEAD DETAIL DEBUG]", {
       leadId,
       businessId: lead.business_id,
@@ -112,6 +121,12 @@ export async function GET(request: NextRequest) {
 
     if (conversation) {
       // Primary: fetch messages by conversation_id + business_id
+      console.log("[LEAD DETAIL MESSAGE QUERY]", {
+        leadId,
+        conversationId: conversation.id,
+        queryUsed: 'conversation_id + business_id'
+      })
+      
       const { data: messagesByConversation, error: messagesByConversationError } = await supabase
         .from("messages")
         .select("*")
@@ -123,6 +138,12 @@ export async function GET(request: NextRequest) {
 
       if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
         messages = messagesByConversation
+        console.log("[LEAD DETAIL MESSAGE RESULT]", {
+          leadId,
+          conversationId: conversation.id,
+          count: messages.length,
+          messages
+        })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
           businessId: lead.business_id,
@@ -134,6 +155,11 @@ export async function GET(request: NextRequest) {
         })
       } else {
         // Fallback: fetch messages by lead_id + business_id
+        console.log("[LEAD DETAIL MESSAGE QUERY]", {
+          leadId,
+          conversationId: conversation.id,
+          queryUsed: 'lead_id + business_id (fallback)'
+        })
         console.log("[LEAD DETAIL MESSAGE DEBUG] No messages by conversation, trying by lead_id")
         const { data: messagesByLead, error: messagesByLeadError } = await supabase
           .from("messages")
@@ -146,6 +172,12 @@ export async function GET(request: NextRequest) {
 
         if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
           messages = messagesByLead
+          console.log("[LEAD DETAIL MESSAGE RESULT]", {
+            leadId,
+            conversationId: conversation.id,
+            count: messages.length,
+            messages
+          })
           // Check if messages have conversation_id mismatch
           const messagesWithoutConversation = messagesByLead.filter(m => !m.conversation_id)
           const messagesWithDifferentConversation = messagesByLead.filter(m => m.conversation_id && m.conversation_id !== conversation.id)
@@ -179,6 +211,11 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // No conversation, fetch messages by lead_id + business_id only
+      console.log("[LEAD DETAIL MESSAGE QUERY]", {
+        leadId,
+        conversationId: null,
+        queryUsed: 'lead_id + business_id (no conversation)'
+      })
       const { data: messagesByLead, error: messagesByLeadError } = await supabase
         .from("messages")
         .select("*")
@@ -191,6 +228,12 @@ export async function GET(request: NextRequest) {
       if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
         messages = messagesByLead
         mismatchReason = 'Conversation missing but messages found by lead_id (repair needed)'
+        console.log("[LEAD DETAIL MESSAGE RESULT]", {
+          leadId,
+          conversationId: null,
+          count: messages.length,
+          messages
+        })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
           businessId: lead.business_id,
@@ -201,6 +244,12 @@ export async function GET(request: NextRequest) {
           mismatchReason
         })
       } else {
+        console.log("[LEAD DETAIL MESSAGE RESULT]", {
+          leadId,
+          conversationId: null,
+          count: 0,
+          messages: []
+        })
         console.log("[LEAD DETAIL MESSAGE DEBUG]", {
           leadId,
           businessId: lead.business_id,
