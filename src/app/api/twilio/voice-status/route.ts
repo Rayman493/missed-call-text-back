@@ -291,8 +291,8 @@ export async function POST(req: NextRequest) {
         return new Response("OK", { status: 200 })
       }
       
-      // Insert new lead with safe error handling
-      console.log(`[Twilio Voice Status Webhook] Creating new lead for business_id: ${business.id}, caller_phone: ${normalizedCallerPhone}`)
+      // Insert new lead with safe error handling - use shared helper for canonical records
+      console.log(`[Twilio Voice Status Webhook] Using shared helper for canonical lead/conversation`)
       console.log('[DB WRITE ATTEMPT - LEADS]', {
         route: '/api/twilio/voice-status',
         businessId: business.id,
@@ -304,74 +304,72 @@ export async function POST(req: NextRequest) {
       
       logCallTrace({
         route: 'voice-status',
-        action: 'lead_create_start',
+        action: 'call_intake_start',
         callSid: CallSid,
         from: From,
         to: To,
         businessId: business.id,
         businessName: business.name,
-        reason: 'Creating new lead for voice-status webhook'
+        reason: 'Getting/creating canonical lead and conversation for voice-status webhook'
       })
       
       try {
-        const { data: newLead, error: leadInsertError } = await supabase
-          .from("leads")
-          .insert([{
-            business_id: business.id,
-            caller_phone: normalizedCallerPhone,
-            status: 'new',
-            raw_metadata: { source: 'voice-status' }
-          }])
-          .select("id, status")
-          .single()
-
-        if (leadInsertError) {
-          console.error("[Twilio Voice Status Webhook] Lead insert failed:", leadInsertError)
+        const intakeRecords = await db.getOrCreateCallIntakeRecords({
+          callSid: CallSid,
+          businessId: business.id,
+          callerPhone: normalizedCallerPhone,
+          to: To
+        })
+        
+        if (!intakeRecords.leadId || !intakeRecords.conversationId) {
+          console.error("[Twilio Voice Status Webhook] Failed to get or create intake records")
           
           logCallTrace({
             route: 'voice-status',
-            action: 'lead_create_failed',
+            action: 'call_intake_failed',
             callSid: CallSid,
             from: From,
             to: To,
             businessId: business.id,
             businessName: business.name,
-            reason: `Lead insert failed: ${leadInsertError}`
+            reason: 'Failed to get or create intake records'
           })
-          
-          // Continue with processing even if lead creation fails
         } else {
-          lead = newLead
-          console.log("[Twilio Voice Status Webhook] New lead created:", lead.id)
+          console.log('[Twilio Voice Status Webhook] Intake records obtained:', {
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            isNew: intakeRecords.isNew
+          })
           
           logCallTrace({
             route: 'voice-status',
-            action: 'lead_create_success',
+            action: 'call_intake_success',
             callSid: CallSid,
             from: From,
             to: To,
             businessId: business.id,
             businessName: business.name,
-            leadId: lead.id,
-            existingOrCreated: 'created',
-            reason: 'Created new lead for voice-status webhook'
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            existingOrCreated: intakeRecords.isNew ? 'created' : 'existing',
+            reason: 'Successfully obtained canonical lead and conversation'
           })
+          
+          lead = { id: intakeRecords.leadId, status: 'new' } as any
         }
-      } catch (leadInsertException) {
-        console.error("[Twilio Voice Status Webhook] Exception during lead insert:", leadInsertException)
+      } catch (intakeError) {
+        console.error("[Twilio Voice Status Webhook] Exception during intake:", intakeError)
         
         logCallTrace({
           route: 'voice-status',
-          action: 'lead_create_failed',
+          action: 'call_intake_failed',
           callSid: CallSid,
           from: From,
           to: To,
           businessId: business.id,
           businessName: business.name,
-          reason: `Exception during lead insert: ${leadInsertException}`
+          reason: `Exception during intake: ${intakeError}`
         })
-        
-        // Continue with processing even if lead creation fails
       }
     }
 
